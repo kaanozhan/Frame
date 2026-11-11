@@ -106,6 +106,21 @@ async function handleRequest(client, msg) {
   }
 }
 
+// Called when the last desktop disconnects (server-hardening T9): the parts
+// stop work that only a watching desktop needs.
+const lastGoneHooks = [];
+function onLastClientGone(fn) {
+  lastGoneHooks.push(fn);
+}
+
+function dropClient(client) {
+  if (!clients.delete(client)) return;
+  if (clients.size > 0) return;
+  for (const fn of lastGoneHooks) {
+    try { fn(); } catch (err) { console.error(`[frame-server] idle hook failed: ${err.message}`); }
+  }
+}
+
 function onConnection(ws) {
   const client = { ws, ready: false };
   clients.add(client);
@@ -123,8 +138,8 @@ function onConnection(ws) {
     if (msg.type === 'req') return handleRequest(client, msg);
     return undefined;
   });
-  ws.on('close', () => clients.delete(client));
-  ws.on('error', () => clients.delete(client));
+  ws.on('close', () => dropClient(client));
+  ws.on('error', () => dropClient(client));
 }
 
 // ─── Start ────────────────────────────────────────────────────
@@ -146,6 +161,9 @@ function start(argv = process.argv.slice(2)) {
     require('./panels').setup({ shim, registerMethods, broadcast }),
     require('./doctor').setup({ shim, registerMethods, broadcast })
   ];
+  onLastClientGone(() => {
+    for (const part of parts) if (part && typeof part.idle === 'function') part.idle();
+  });
 
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 * 1024 });
   wss.on('connection', onConnection);
@@ -187,6 +205,6 @@ function start(argv = process.argv.slice(2)) {
   return { server, wss };
 }
 
-module.exports = { start, registerMethods, broadcast, parseArgs, HOME };
+module.exports = { start, registerMethods, broadcast, parseArgs, onConnection, onLastClientGone, HOME };
 
 if (require.main === module) start();

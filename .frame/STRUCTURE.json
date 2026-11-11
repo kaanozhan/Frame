@@ -7749,6 +7749,7 @@
         "setupIPC",
         "refresh",
         "setWatched",
+        "watched",
         "getState",
         "activeWorkspaces",
         "push",
@@ -7862,28 +7863,32 @@
           "purpose": "Re-read and push the state of `projectPath`'s workspaces. Calls that land"
         },
         "setWatched": {
-          "line": 221,
+          "line": 224,
           "params": [
             "projectPath"
           ],
-          "purpose": "Make `projectPath` the polled and pushed project (Frame Server's pr.refresh)."
+          "purpose": "Make `projectPath` the polled and pushed project (Frame Server's"
+        },
+        "watched": {
+          "line": 229,
+          "purpose": "The polled project, or null."
         },
         "getState": {
-          "line": 226,
+          "line": 234,
           "params": [
             "projectPath"
           ],
           "purpose": "The last state read for a project, or null."
         },
         "recordOf": {
-          "line": 235,
+          "line": 243,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "baseOf": {
-          "line": 243,
+          "line": 251,
           "params": [
             "projectPath",
             "ws"
@@ -7891,13 +7896,13 @@
           "purpose": "A workspace's base: the recorded one, else (records from before"
         },
         "settingsOf": {
-          "line": 248,
+          "line": 256,
           "params": [
             "projectPath"
           ]
         },
         "push": {
-          "line": 254,
+          "line": 262,
           "params": [
             "projectPath",
             "id"
@@ -7905,7 +7910,7 @@
           "purpose": "Push a workspace's branch; the first push sets `origin/<branch>` as upstream."
         },
         "heldSpec": {
-          "line": 270,
+          "line": 278,
           "params": [
             "projectPath",
             "id"
@@ -7913,7 +7918,7 @@
           "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
         },
         "prDraft": {
-          "line": 284,
+          "line": 292,
           "params": [
             "projectPath",
             "id"
@@ -7921,7 +7926,7 @@
           "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
         },
         "prCreate": {
-          "line": 294,
+          "line": 302,
           "params": [
             "projectPath",
             "id",
@@ -7932,7 +7937,7 @@
           "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
         },
         "merge": {
-          "line": 321,
+          "line": 329,
           "params": [
             "projectPath",
             "id"
@@ -7940,14 +7945,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 371,
+          "line": 379,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 408,
+          "line": 416,
           "params": [
             "projectPath",
             "id"
@@ -7955,7 +7960,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 426,
+          "line": 434,
           "params": [
             "ipcMain"
           ]
@@ -7975,7 +7980,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 20152,
+      "sizeBytes": 20312,
       "extraction": {
         "status": "parsed"
       },
@@ -7994,7 +7999,8 @@
           "refresh": "0316824b93954fd9",
           "refreshServer": "404974b72a7202ce",
           "rowState": "114f885ae19483b9",
-          "setWatched": "7bd7c78f889f5744"
+          "setWatched": "1b0ebe93abb317e0",
+          "watched": "d802027afc129d5a"
         }
       }
     },
@@ -24595,6 +24601,8 @@
         "registerMethods",
         "broadcast",
         "parseArgs",
+        "onConnection",
+        "onLastClientGone",
         "HOME"
       ],
       "depends": [
@@ -24651,14 +24659,26 @@
             "msg"
           ]
         },
+        "onLastClientGone": {
+          "line": 112,
+          "params": [
+            "fn"
+          ]
+        },
+        "dropClient": {
+          "line": 116,
+          "params": [
+            "client"
+          ]
+        },
         "onConnection": {
-          "line": 109,
+          "line": 124,
           "params": [
             "ws"
           ]
         },
         "start": {
-          "line": 132,
+          "line": 147,
           "params": [
             "argv = process.argv.slice(2"
           ]
@@ -24671,7 +24691,7 @@
           "purpose": "An installed package carries its exact version (a dev build's is"
         }
       },
-      "sizeBytes": 7261,
+      "sizeBytes": 7863,
       "extraction": {
         "status": "parsed"
       },
@@ -24712,7 +24732,7 @@
           ]
         }
       },
-      "sizeBytes": 4354,
+      "sizeBytes": 4637,
       "extraction": {
         "status": "parsed"
       },
@@ -30198,6 +30218,36 @@
         "description": "7f6af25406447c20"
       }
     },
+    "test/serverIdle.test": {
+      "file": "test/serverIdle.test.js",
+      "description": "Frame Server goes quiet when the last desktop leaves (server-hardening T9):",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "events",
+        "src/server/index",
+        "src/server/electronShim",
+        "src/main/workspaceGitState",
+        "src/main/gitStatusManager",
+        "src/server/panels"
+      ],
+      "functions": {
+        "fakeWs": {
+          "line": 16
+        }
+      },
+      "sizeBytes": 1863,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "8c7474f3d30993f1"
+      }
+    },
     "test/serverInstall.test": {
       "file": "test/serverInstall.test.js",
       "description": "serverInstall — installing and updating Frame Server (server-install-update spec, T01).",
@@ -34087,7 +34137,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 372,
+        "parsed": 373,
         "unsupported": 91,
         "partial": 0
       }
@@ -34134,9 +34184,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 557,
+      "visitedEntries": 558,
       "traversedDirectories": 86,
-      "eligibleFiles": 463,
+      "eligibleFiles": 464,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -34153,7 +34203,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 463,
+      "indexedFiles": 464,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34161,6 +34211,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "4cdda61199ae17f1ba980ab5d4acaf9a576a698ed27c3fac8c354399aa7bcd55"
+    "revision": "a935db7aa33b61c0f84c17e6dce0ef0d89e9623d8bdc9524d723763171f9015c"
   }
 }

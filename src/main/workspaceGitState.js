@@ -217,9 +217,17 @@ function refresh(projectPath) {
   return run;
 }
 
-/** Make `projectPath` the polled and pushed project (Frame Server's pr.refresh). */
+/**
+ * Make `projectPath` the polled and pushed project (Frame Server's
+ * pr.refresh); null stops polling when no desktop is left (server-hardening T9).
+ */
 function setWatched(projectPath) {
-  if (projectPath) watchedProject = projectPath;
+  watchedProject = projectPath || null;
+}
+
+/** The polled project, or null. */
+function watched() {
+  return watchedProject;
 }
 
 /** The last state read for a project, or null. */
@@ -448,4 +456,5 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.WORKSPACE_UPDATE_ABORT, guarded(({ projectPath, id }) => onServer('update.abort', id) || abortUpdate(projectPath, id)));
 }
 
-module.exports = { init, setupIPC, refresh, setWatched, getState, activeWorkspaces, push, prDraft, prCreate, merge, updateFromBase, abortUpdate, PR_FIELDS };
+module.exports = { init, setupIPC, refresh, setWatched,
+  watched, getState, activeWorkspaces, push, prDraft, prCreate, merge, updateFromBase, abortUpdate, PR_FIELDS };

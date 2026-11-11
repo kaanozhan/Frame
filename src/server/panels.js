@@ -75,6 +75,12 @@ function setup({ shim, registerMethods, broadcast }) {
   return {
     stop() {
       try { gitStatus.stopWatching(); } catch (_) { /* already stopped */ }
+    },
+    // No desktop is connected: nobody receives git status or PR state, so
+    // stop watching and polling until one asks again (git.watch / pr.refresh).
+    idle() {
+      try { gitStatus.stopWatching(); } catch (_) { /* already stopped */ }
+      prState.setWatched(null);
     }
   };
 }

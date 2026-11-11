@@ -70,3 +70,11 @@ FILE_TREE_DATA is now `{ root, files, error }` (the project-open path's bare arr
 _Captured: 2026-11-11 · 7 file change(s)_
 
 ---
+
+## T10 — Stop the server's watcher and poller when the last desktop leaves
+
+src/server/index.js drops clients through one dropClient() and runs the new onLastClientGone hooks once the last desktop disconnects (close and error both counted once); start() wires it to every part's idle(). panels.setup returns idle(), which stops the git watcher and calls workspaceGitState.setWatched(null) — setWatched now accepts null and a watched() getter exists — so the server stops polling git and GitHub for nobody; the next git.watch / pr.refresh from a desktop starts them again. onConnection and onLastClientGone are exported for the test.
+
+_Captured: 2026-11-11 · 4 file change(s)_
+
+---
