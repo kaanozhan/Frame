@@ -1,10 +1,10 @@
 {
   "slug": "server-hardening",
   "title": "Frame Server hardening",
-  "phase": "planned",
+  "phase": "tasks_generated",
   "generated_task_ids": [],
   "ai_tool": "claude-code",
   "created_at": "2026-11-11T00:09:09.114Z",
-  "updated_at": "2026-11-11T00:29:21.488Z",
-  "last_phase_at": "2026-11-11T00:29:21.488Z"
+  "updated_at": "2026-11-11T01:17:46.328Z",
+  "last_phase_at": "2026-11-11T01:17:46.328Z"
 }
