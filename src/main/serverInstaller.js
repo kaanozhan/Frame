@@ -106,7 +106,10 @@ async function desktopVersion() {
 const PROBE = [
   'uname -sm',
   'if [ -x "$HOME/.frame-server/bin/frame-server" ]; then echo FRAME:MANAGED; "$HOME/.frame-server/bin/frame-server" status --json;',
-  'elif [ -f "$HOME/.frame-server/connection.json" ]; then echo FRAME:MANUAL; cat "$HOME/.frame-server/connection.json";',
+  // A hand-run server: is the pid in its connection.json alive? (server-hardening S4)
+  'elif [ -f "$HOME/.frame-server/connection.json" ]; then echo FRAME:MANUAL; cat "$HOME/.frame-server/connection.json"; echo;',
+  '  pid="$(sed -n \'s/.*"pid": *\\([0-9][0-9]*\\).*/\\1/p\' "$HOME/.frame-server/connection.json" | head -n1)";',
+  '  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then echo FRAME:ALIVE; else echo FRAME:DEAD; fi;',
   'else echo FRAME:NONE; fi'
 ].join('\n');
 
@@ -128,8 +131,11 @@ async function probe(host) {
       const s = JSON.parse(rest);
       installed = { current: s.current, previous: s.previous, versions: s.versions || [], manual: false, running: !!s.running, runningVersion: s.runningVersion, service: s.service, linger: !!s.linger };
     } else if (marker === 'FRAME:MANUAL') {
-      const c = JSON.parse(rest);
-      installed = { current: c.frameVersion || null, previous: null, versions: [], manual: true, running: true, runningVersion: c.frameVersion || null, service: 'manual', linger: false };
+      const restLines = rest.split('\n');
+      const aliveLine = restLines.findIndex((l) => l.trim() === 'FRAME:ALIVE' || l.trim() === 'FRAME:DEAD');
+      const running = aliveLine >= 0 ? restLines[aliveLine].trim() === 'FRAME:ALIVE' : true;
+      const c = JSON.parse((aliveLine >= 0 ? restLines.slice(0, aliveLine) : restLines).join('\n'));
+      installed = { current: c.frameVersion || null, previous: null, versions: [], manual: true, running, runningVersion: running ? c.frameVersion || null : null, service: 'manual', linger: false };
     }
   } catch (_) {
     installed = null;

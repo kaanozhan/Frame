@@ -47,6 +47,7 @@ const BACKOFF_MS = [1000, 2000, 5000, 10000, 30000];
 const SSH_TIMEOUT_MS = 20000;
 const TUNNEL_READY_MS = 15000;
 const CALL_TIMEOUT_MS = 30000;
+const HELLO_TIMEOUT_MS = 10000;
 const SSH_OPTS = ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10'];
 
 let mainWindow = null;
@@ -161,8 +162,16 @@ function openSocket(port, token) {
       maxPayload: 16 * 1024 * 1024
     });
     let greeted = false;
-    ws.once('unexpected-response', (req, res) => reject(new Error(res.statusCode === 401 ? 'The server refused the token — restart Frame Server or reconnect.' : `The server answered HTTP ${res.statusCode}.`)));
-    ws.once('error', (err) => { if (!greeted) reject(err); });
+    // Settle even when the socket closes after the upgrade but before the
+    // server's hello, or the hello never comes (server-hardening S11).
+    const helloTimer = setTimeout(() => {
+      if (greeted) return;
+      try { ws.terminate(); } catch (_) { /* gone */ }
+      reject(new Error('Frame Server did not say hello in time.'));
+    }, HELLO_TIMEOUT_MS);
+    ws.once('unexpected-response', (req, res) => { clearTimeout(helloTimer); reject(new Error(res.statusCode === 401 ? 'The server refused the token — restart Frame Server or reconnect.' : `The server answered HTTP ${res.statusCode}.`)); });
+    ws.once('error', (err) => { if (!greeted) { clearTimeout(helloTimer); reject(err); } });
+    ws.once('close', (code) => { if (!greeted) { clearTimeout(helloTimer); reject(new Error(`The server closed the connection before saying hello (${code}).`)); } });
     ws.on('message', (data) => {
       const decoded = P.decode(data.toString());
       if (!decoded.ok) return;
@@ -177,6 +186,7 @@ function openSocket(port, token) {
           return;
         }
         greeted = true;
+        clearTimeout(helloTimer);
         ws.send(P.encode(P.hello(frameVersion)));
         resolve({ ws, serverVersion: msg.frameVersion });
         return;
@@ -190,6 +200,18 @@ function openSocket(port, token) {
 async function runOnce(host, mySession) {
   const info = await readConnectionInfo(host);
   if (mySession !== session) return;
+  try {
+    await openLink(host, mySession, info);
+  } catch (err) {
+    // connection.json was read but nothing answered behind it: the server
+    // may have died and left the file (kill -9, OOM, reboot). Probe again,
+    // which starts an installed server (server-hardening S4).
+    if (!err.protocol) err.unreachable = true;
+    throw err;
+  }
+}
+
+async function openLink(host, mySession, info) {
   const localPort = await freePort();
   const child = spawn(sshBin(), [...SSH_OPTS, '-N', '-o', 'ExitOnForwardFailure=yes', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3',
     '-L', `127.0.0.1:${localPort}:127.0.0.1:${info.port}`, host], { stdio: ['ignore', 'ignore', 'pipe'] });
@@ -205,25 +227,32 @@ async function runOnce(host, mySession) {
   const { ws, serverVersion } = await openSocket(localPort, info.token);
   if (mySession !== session) { ws.terminate(); return; }
   socket = ws;
-  let ping = null;
-  try {
-    ping = await call('server.ping', {}, 10000);
-  } catch (_) { /* the hello already proved the link */ }
-  attempt = 0;
-  setStatus({ state: 'connected', error: null, frameVersion: serverVersion || null, platform: ping ? `${ping.platform}-${ping.arch}` : null });
-  logger.info('server', `connected to ${host} (Frame ${serverVersion})`);
-  bus.emit('connected', status);
-
+  // Watch the link from the moment it exists: a close during the ping below
+  // used to leave nothing listening (server-hardening S11).
+  let up = false;
+  let gone = false;
   const lost = (why) => {
-    if (mySession !== session) return;
+    if (mySession !== session || gone) return;
+    gone = true;
     logger.warn('server', `connection to ${host} lost: ${why}`);
     teardown();
-    bus.emit('disconnected', status);
+    if (up) bus.emit('disconnected', status);
+    preflighted = false; // probe again: the server may have to be started (S4)
     scheduleRetry(host, mySession, `Connection lost (${why}).`);
   };
   ws.on('close', (code) => lost(`socket closed ${code}`));
   ws.on('error', (err) => lost(err.message));
   child.on('exit', (code) => lost(`tunnel exited ${code}`));
+  let ping = null;
+  try {
+    ping = await call('server.ping', {}, 10000);
+  } catch (_) { /* the hello already proved the link */ }
+  if (mySession !== session || gone) return;
+  up = true;
+  attempt = 0;
+  setStatus({ state: 'connected', error: null, frameVersion: serverVersion || null, platform: ping ? `${ping.platform}-${ping.arch}` : null });
+  logger.info('server', `connected to ${host} (Frame ${serverVersion})`);
+  bus.emit('connected', status);
 }
 
 function scheduleRetry(host, mySession, error) {
@@ -262,6 +291,11 @@ async function preflight(host, mySession, { protocolOk = true } = {}) {
     return 'wait';
   }
   setStatus({ install: info });
+  if (inst && inst.manual && !inst.running) {
+    // Started by hand (no managed install) and since stopped: Frame cannot
+    // start it; say so instead of retrying a dead port (S4).
+    throw new Error(`Frame Server on ${host} was started by hand and is not running — start it again there.`);
+  }
   if (inst && !inst.running && !inst.manual) {
     progress(`Starting Frame Server ${inst.current}`);
     const r = await installer().start(host, { onProgress: progress });
@@ -287,7 +321,7 @@ async function loop(host, mySession) {
       try { await preflight(host, mySession, { protocolOk: false }); } catch (_) { /* reported below */ }
       if (status.state === 'needs-update') return;
     }
-    if (err.notRunning) preflighted = false; // probe again: it may need starting or installing
+    if (err.notRunning || err.unreachable) preflighted = false; // probe again: it may need starting or installing
     logger.warn('server', `connect to ${host} failed: ${err.message}`);
     // Never connected yet in this session → error state, still retrying.
     if (status.state === 'connecting') setStatus({ state: 'error', error: err.message });

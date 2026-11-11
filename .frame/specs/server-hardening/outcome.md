@@ -22,3 +22,11 @@ runningAgents() now returns null when the server's terminals cannot be listed (n
 _Captured: 2026-11-11 · 7 file change(s)_
 
 ---
+
+## T04 — Recover from a dead server and a socket that closes before hello
+
+runOnce now tags every failure after connection.json was read (tunnel, socket, hello) as `unreachable`, which resets `preflighted`, and a lost link resets it too, so the next attempt probes the host and starts an installed server instead of retrying a dead port forever. openSocket rejects when the socket closes before hello and after a 10 s hello timeout; the close/error/tunnel-exit handlers attach as soon as the socket exists (before the first ping), and `connected` is only announced if the link is still up after the ping. The probe's hand-run branch now checks the pid in connection.json (FRAME:ALIVE/DEAD), and preflight reports a stopped hand-run server instead of looping. New harness: test/fixtures/fake-ssh.js and test/serverConnection.test.js drive the real connection loop and installer against a remote home installed by the real script with a protocol-speaking fake server (fixtures/fake-frame-server/index-ws.js); it also carries T03's concurrent-action test.
+
+_Captured: 2026-11-11 · 5 file change(s)_
+
+---

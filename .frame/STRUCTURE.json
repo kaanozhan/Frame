@@ -5663,35 +5663,35 @@
       ],
       "functions": {
         "sshBin": {
-          "line": 66
+          "line": 67
         },
         "setStatus": {
-          "line": 70,
+          "line": 71,
           "params": [
             "next"
           ]
         },
         "getStatus": {
-          "line": 76
+          "line": 77
         },
         "isConnected": {
-          "line": 80
+          "line": 81
         },
         "teardown": {
-          "line": 85,
+          "line": 86,
           "purpose": "Close the socket and the tunnel of the current attempt."
         },
         "readConnectionInfo": {
-          "line": 100,
+          "line": 101,
           "params": [
             "host"
           ]
         },
         "freePort": {
-          "line": 124
+          "line": 125
         },
         "waitForPort": {
-          "line": 136,
+          "line": 137,
           "params": [
             "port",
             "child",
@@ -5699,21 +5699,29 @@
           ]
         },
         "openSocket": {
-          "line": 156,
+          "line": 157,
           "params": [
             "port",
             "token"
           ]
         },
         "runOnce": {
-          "line": 190,
+          "line": 200,
           "params": [
             "host",
             "mySession"
           ]
         },
+        "openLink": {
+          "line": 214,
+          "params": [
+            "host",
+            "mySession",
+            "info"
+          ]
+        },
         "scheduleRetry": {
-          "line": 229,
+          "line": 258,
           "params": [
             "host",
             "mySession",
@@ -5721,16 +5729,16 @@
           ]
         },
         "installer": {
-          "line": 239
+          "line": 268
         },
         "progress": {
-          "line": 243,
+          "line": 272,
           "params": [
             "line"
           ]
         },
         "preflight": {
-          "line": 251,
+          "line": 280,
           "params": [
             "host",
             "mySession",
@@ -5739,21 +5747,21 @@
           "purpose": "Probe the host before connecting: 'go', or 'wait' after setting"
         },
         "loop": {
-          "line": 273,
+          "line": 307,
           "params": [
             "host",
             "mySession"
           ]
         },
         "connect": {
-          "line": 301,
+          "line": 335,
           "params": [
             "host"
           ],
           "purpose": "Connect to `host` (an ssh alias or user@host), remember it, auto-connect next launch."
         },
         "disconnect": {
-          "line": 315,
+          "line": 349,
           "params": [
             "{ forget = true",
             "quiet = false } = {}"
@@ -5761,7 +5769,7 @@
           "purpose": "Stop and close everything; `forget` drops auto-connect for next launch."
         },
         "call": {
-          "line": 330,
+          "line": 364,
           "params": [
             "method",
             "params = {}",
@@ -5770,7 +5778,7 @@
           "purpose": "A request to the server. Rejects when not connected or on timeout."
         },
         "send": {
-          "line": 341,
+          "line": 375,
           "params": [
             "method",
             "params = {}"
@@ -5778,7 +5786,7 @@
           "purpose": "Fire-and-forget request (terminal input): errors are only logged."
         },
         "on": {
-          "line": 346,
+          "line": 380,
           "params": [
             "name",
             "fn"
@@ -5786,18 +5794,18 @@
           "purpose": "Subscribe to a server event channel (`terminal.output`, …) or `connected` / `disconnected` / `status`."
         },
         "sshHosts": {
-          "line": 353,
+          "line": 387,
           "purpose": "Host aliases from ~/.ssh/config for the Connect dialog."
         },
         "init": {
-          "line": 363,
+          "line": 397,
           "params": [
             "window",
             "version"
           ]
         },
         "runAction": {
-          "line": 381,
+          "line": 415,
           "params": [
             "kind",
             "{ host",
@@ -5806,7 +5814,7 @@
           "purpose": "Run an installer action for the current (or given) host with progress,"
         },
         "setupIPC": {
-          "line": 417,
+          "line": 451,
           "params": [
             "ipcMain"
           ]
@@ -5828,7 +5836,7 @@
           "SERVER_INSTALL_PROGRESS"
         ]
       },
-      "sizeBytes": 18332,
+      "sizeBytes": 20058,
       "extraction": {
         "status": "parsed"
       },
@@ -5906,14 +5914,14 @@
           "purpose": "This desktop's version; a desktop running from source is `<v>-dev+<sha>`."
         },
         "probe": {
-          "line": 117,
+          "line": 120,
           "params": [
             "host"
           ],
           "purpose": "What is on the host: `{ error?, unameS, unameM, installed: { current, previous,"
         },
         "decide": {
-          "line": 141,
+          "line": 147,
           "params": [
             "host",
             "{ protocolOk = true } = {}"
@@ -5921,16 +5929,16 @@
           "purpose": "`{ action, reason, desktopVersion, dev, probe }` for a host."
         },
         "parseResult": {
-          "line": 151,
+          "line": 157,
           "params": [
             "stdout"
           ]
         },
         "scriptPath": {
-          "line": 157
+          "line": 163
         },
         "runInstaller": {
-          "line": 162,
+          "line": 168,
           "params": [
             "host",
             "args",
@@ -5939,7 +5947,7 @@
           "purpose": "Run the installer on the host with `args` (already shell-safe words)."
         },
         "download": {
-          "line": 174,
+          "line": 180,
           "params": [
             "url",
             "dest",
@@ -5948,7 +5956,7 @@
           "purpose": "GET with redirects into a file (GitHub release assets redirect to a CDN)."
         },
         "upload": {
-          "line": 199,
+          "line": 205,
           "params": [
             "host",
             "localFile",
@@ -5957,11 +5965,11 @@
           "purpose": "Stream a local file to `remotePath` on the host."
         },
         "sourceTarball": {
-          "line": 206,
+          "line": 212,
           "purpose": "Source tarball of this checkout (`git archive HEAD`) in a temp file."
         },
         "install": {
-          "line": 220,
+          "line": 226,
           "params": [
             "host",
             "{ onProgress = ("
@@ -5969,7 +5977,7 @@
           "purpose": "Install (or update to) this desktop's version on `host`."
         },
         "start": {
-          "line": 266,
+          "line": 272,
           "params": [
             "host",
             "{ onProgress = ("
@@ -5977,7 +5985,7 @@
           "purpose": "Start the installed current version (after a reboot, or a stopped process)."
         },
         "rollback": {
-          "line": 271,
+          "line": 277,
           "params": [
             "host",
             "{ onProgress = ("
@@ -5985,11 +5993,11 @@
           "purpose": "Back to the previous installed version."
         },
         "runningAgents": {
-          "line": 281,
+          "line": 287,
           "purpose": "Agents running on the connected server, for the update consent:"
         }
       },
-      "sizeBytes": 13359,
+      "sizeBytes": 13993,
       "extraction": {
         "status": "parsed"
       },
@@ -28177,6 +28185,29 @@
         "description": "23e2a863f2a9ade4"
       }
     },
+    "test/fixtures/fake-frame-server/index-ws": {
+      "file": "test/fixtures/fake-frame-server/index-ws.js",
+      "description": "A Frame Server stand-in that speaks the real protocol (serverConnection.test.js):",
+      "exports": [],
+      "depends": [
+        "fs",
+        "path",
+        "crypto",
+        "os"
+      ],
+      "functions": {
+        "mode": {
+          "line": 14
+        }
+      },
+      "sizeBytes": 1945,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "1d52f845978f43d0"
+      }
+    },
     "test/fixtures/fake-frame-server/stubs/loginctl": {
       "file": "test/fixtures/fake-frame-server/stubs/loginctl",
       "description": "",
@@ -28199,6 +28230,20 @@
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
+      }
+    },
+    "test/fixtures/fake-ssh": {
+      "file": "test/fixtures/fake-ssh.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "net",
+        "child_process"
+      ],
+      "functions": {},
+      "sizeBytes": 1597,
+      "extraction": {
+        "status": "parsed"
       }
     },
     "test/fixtures/go-service/cmd/server/main": {
@@ -29892,6 +29937,56 @@
       },
       "provenance": {
         "description": "7de28fe97c16e7c4"
+      }
+    },
+    "test/serverConnection.test": {
+      "file": "test/serverConnection.test.js",
+      "description": "serverConnection harness (server-hardening T04): the real connection loop",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "node:module",
+        "src/main/userSettings",
+        "src/main/serverConnection",
+        "src/main/serverInstaller",
+        "src/shared/ipcChannels"
+      ],
+      "functions": {
+        "remotePid": {
+          "line": 63
+        },
+        "alive": {
+          "line": 66,
+          "params": [
+            "pid"
+          ]
+        },
+        "waitFor": {
+          "line": 68,
+          "params": [
+            "pred",
+            "ms",
+            "what"
+          ]
+        },
+        "installRemote": {
+          "line": 77,
+          "params": [
+            "version"
+          ]
+        }
+      },
+      "sizeBytes": 7189,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "4beafd5a08985858"
       }
     },
     "test/serverInstall.test": {
@@ -33751,7 +33846,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 366,
+        "parsed": 369,
         "unsupported": 91,
         "partial": 0
       }
@@ -33798,9 +33893,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 551,
+      "visitedEntries": 554,
       "traversedDirectories": 86,
-      "eligibleFiles": 457,
+      "eligibleFiles": 460,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -33817,7 +33912,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 457,
+      "indexedFiles": 460,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -33825,6 +33920,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "9da6bb175946e91bba5e651823f50da296d4fe52e73bfe8f5821b5d9ab1b544a"
+    "revision": "6384f1b4acb212ed85a03c6f1821c704c311c1cf1c3d0f5296c21bf375387b18"
   }
 }
