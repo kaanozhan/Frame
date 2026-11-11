@@ -36,9 +36,17 @@ VERSION="latest"; PACKAGE_FILE=""; CHECKSUM=""; SOURCE_FILE=""; MODE="install"; 
 HOME_DIR="${FRAME_SERVER_HOME:-$HOME/.frame-server}"
 
 say() { echo "frame-install: $*"; }
+# A JSON string body: backslash, quote and control characters escaped, so the
+# result line always parses whatever a path or message contains (S1).
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"; s="${s//$'\r'/\\r}"; s="${s//$'\t'/\\t}"
+  printf '%s' "$s" | LC_ALL=C tr -d '\000-\010\013\014\016-\037'
+}
 result() { # ok version service rolledBack code message
-  local msg="${6//\"/\'}"
-  printf 'FRAME_INSTALL_RESULT {"ok":%s,"version":"%s","service":"%s","rolledBack":%s,"code":%s,"message":"%s"}\n' "$1" "$2" "$3" "$4" "$5" "$msg"
+  printf 'FRAME_INSTALL_RESULT {"ok":%s,"version":"%s","service":"%s","rolledBack":%s,"code":%s,"message":"%s"}\n' \
+    "$1" "$(json_escape "$2")" "$(json_escape "$3")" "$4" "$5" "$(json_escape "$6")"
 }
 die() { # code message
   say "error: $2"
@@ -87,11 +95,25 @@ fetch() { # url dest
 
 link_target() { [ -L "$1" ] && basename "$(readlink "$1")" || echo ""; }
 
+# The home with symlinks resolved (the server runs from the resolved path).
+HOME_REAL="$(cd "$HOME_DIR" 2>/dev/null && pwd -P || echo "$HOME_DIR")"
+
+# Is <pid> this home's Frame Server? Only when its command line runs from this
+# home: a recorded pid may since belong to another process (S7).
+is_frame_pid() {
+  local pid="$1" args=""
+  [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || return 1
+  if [ -r "/proc/$pid/cmdline" ]; then args="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)"; fi
+  [ -n "$args" ] || args="$(ps -o args= -p "$pid" 2>/dev/null)"
+  case "$args" in *"$HOME_DIR/"*|*"$HOME_REAL/"*) return 0 ;; esac
+  return 1
+}
+
 running_pid() {
   local f="$HOME_DIR/connection.json" pid
   [ -f "$f" ] || return 0
   pid="$(sed -n 's/.*"pid": *\([0-9][0-9]*\).*/\1/p' "$f" | head -n1)"
-  [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && echo "$pid"
+  is_frame_pid "$pid" && echo "$pid"
 }
 
 running_version() {
@@ -102,6 +124,15 @@ running_version() {
 systemd_ok() {
   [ "$SERVICE" = "detached" ] || [ "$SERVICE" = "none" ] && return 1
   command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1
+}
+
+# The user unit serves the default home only (its ExecStart is
+# %h/.frame-server): a run for any other --home never starts, stops or
+# signals it (S6).
+uses_systemd() {
+  local def
+  def="$(cd "$HOME/.frame-server" 2>/dev/null && pwd -P || echo "$HOME/.frame-server")"
+  [ "$HOME_REAL" = "$def" ] && systemd_ok
 }
 
 write_unit() {
@@ -123,13 +154,13 @@ UNIT
 }
 
 stop_server() {
-  if systemd_ok && systemctl --user is-active frame-server >/dev/null 2>&1; then
+  if uses_systemd && systemctl --user is-active frame-server >/dev/null 2>&1; then
     systemctl --user stop frame-server || true
   fi
   local pid
   pid="$(running_pid || true)"
   [ -z "$pid" ] && [ -f "$HOME_DIR/server.pid" ] && pid="$(cat "$HOME_DIR/server.pid" 2>/dev/null || true)"
-  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+  if [ -n "$pid" ] && is_frame_pid "$pid"; then
     kill -TERM "$pid" 2>/dev/null || true
     for _ in $(seq 1 50); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
     kill -0 "$pid" 2>/dev/null && kill -KILL "$pid" 2>/dev/null
@@ -137,10 +168,11 @@ stop_server() {
   rm -f "$HOME_DIR/server.pid" "$HOME_DIR/connection.json"
 }
 
-# Start the current version; prints the service mode used.
+# Start the current version; sets SERVICE_USED. Never call it inside $(…):
+# its progress lines (the linger advice) would be captured into the mode (S1).
 start_server() {
-  if [ "$SERVICE" = "none" ]; then echo none; return; fi
-  if systemd_ok && [ "$HOME_DIR" = "$HOME/.frame-server" ]; then
+  if [ "$SERVICE" = "none" ]; then SERVICE_USED=none; return; fi
+  if uses_systemd; then
     write_unit
     systemctl --user daemon-reload
     systemctl --user enable frame-server >/dev/null 2>&1 || true
@@ -148,7 +180,7 @@ start_server() {
     if command -v loginctl >/dev/null 2>&1 && [ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null)" != "yes" ]; then
       loginctl enable-linger "$USER" >/dev/null 2>&1 || say "linger is off and could not be enabled — as root run: loginctl enable-linger $USER"
     fi
-    echo systemd
+    SERVICE_USED=systemd
   else
     if command -v setsid >/dev/null 2>&1; then
       setsid nohup "$HOME_DIR/current/bin/frame-server" run >> "$HOME_DIR/server.log" 2>&1 < /dev/null &
@@ -156,7 +188,7 @@ start_server() {
       nohup "$HOME_DIR/current/bin/frame-server" run >> "$HOME_DIR/server.log" 2>&1 < /dev/null &
     fi
     echo $! > "$HOME_DIR/server.pid"
-    echo detached
+    SERVICE_USED=detached
   fi
 }
 
@@ -193,17 +225,15 @@ prune() {
 
 # Start the current version and check it; on failure go back to $1 (the old current).
 activate() { # new_version old_version
-  local mode
   stop_server
-  mode="$(start_server)"
-  SERVICE_USED="$mode"
+  start_server
   if healthy "$1"; then return 0; fi
   say "Frame Server $1 did not start — going back to ${2:-nothing}"
   [ -f "$HOME_DIR/server.log" ] && tail -n 20 "$HOME_DIR/server.log" | sed 's/^/frame-install:   /'
   if [ -n "$2" ] && [ -d "$HOME_DIR/versions/$2" ]; then
     ln -sfn "$HOME_DIR/versions/$2" "$HOME_DIR/current"
     stop_server
-    SERVICE_USED="$(start_server)"
+    start_server
     healthy "$2" || say "the previous version $2 did not start either"
   fi
   return 1
@@ -322,7 +352,7 @@ fi
 if [ -d "$TARGET.replaced.$$" ]; then
   # A reinstall of the running version failed: put the old copy back.
   rm -rf "$TARGET"; mv "$TARGET.replaced.$$" "$TARGET"
-  stop_server; SERVICE_USED="$(start_server)"; healthy "$VERSION" || true
+  stop_server; start_server; healthy "$VERSION" || true
 else
   # The new version never ran: drop it and leave current/previous as they were.
   rm -rf "${TARGET:?}"

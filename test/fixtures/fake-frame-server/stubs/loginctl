@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Logging loginctl stand-in: linger is off and cannot be enabled (no root).
+echo "loginctl $*" >> "${FAKE_STUB_LOG:-/dev/null}"
+case "$1" in
+  show-user) echo no ;;
+  enable-linger) echo "Could not enable linger: Access denied" >&2; exit 1 ;;
+esac

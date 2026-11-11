@@ -30,10 +30,30 @@ link_version() {
   basename "$(readlink "$link")"
 }
 
+FRAME_HOME_REAL="$(cd "$FRAME_HOME" 2>/dev/null && pwd -P || echo "$FRAME_HOME")"
+
+# Is <pid> this home's Frame Server? Its command line must run from this home:
+# a recorded pid may since belong to another process (server-hardening S7).
+is_frame_pid() {
+  local pid="$1" args=""
+  [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || return 1
+  if [ -r "/proc/$pid/cmdline" ]; then args="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)"; fi
+  [ -n "$args" ] || args="$(ps -o args= -p "$pid" 2>/dev/null || true)"
+  case "$args" in *"$FRAME_HOME/"*|*"$FRAME_HOME_REAL/"*) return 0 ;; esac
+  return 1
+}
+
+# The user unit serves the default home only (S6).
+uses_systemd() {
+  local def
+  def="$(cd "$HOME/.frame-server" 2>/dev/null && pwd -P || echo "$HOME/.frame-server")"
+  [ "$FRAME_HOME_REAL" = "$def" ] && command -v systemctl >/dev/null 2>&1
+}
+
 service_mode() {
-  if command -v systemctl >/dev/null 2>&1 && systemctl --user is-enabled frame-server >/dev/null 2>&1; then
+  if uses_systemd && systemctl --user is-enabled frame-server >/dev/null 2>&1; then
     echo systemd
-  elif [ -f "$FRAME_HOME/server.pid" ]; then
+  elif [ -f "$FRAME_HOME/server.pid" ] && is_frame_pid "$(cat "$FRAME_HOME/server.pid" 2>/dev/null || true)"; then
     echo detached
   else
     echo none
@@ -52,7 +72,7 @@ running_pid() {
   local f="$FRAME_HOME/connection.json" pid
   [ -f "$f" ] || { echo ""; return; }
   pid="$(sed -n 's/.*"pid": *\([0-9][0-9]*\).*/\1/p' "$f" | head -n1)"
-  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then echo "$pid"; else echo ""; fi
+  if is_frame_pid "$pid"; then echo "$pid"; else echo ""; fi
 }
 
 running_version() {

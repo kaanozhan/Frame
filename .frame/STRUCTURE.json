@@ -20851,7 +20851,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 14951,
+      "sizeBytes": 16251,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -24307,7 +24307,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 4590,
+      "sizeBytes": 5456,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -28061,6 +28061,62 @@
         "description": "8dd65d0952ed144c"
       }
     },
+    "test/fixtures/fake-frame-server/index-bad": {
+      "file": "test/fixtures/fake-frame-server/index-bad.js",
+      "description": "A package whose server never starts (installScript.test.js).",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 136,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7c4571f3b9d8aecf"
+      }
+    },
+    "test/fixtures/fake-frame-server/index-good": {
+      "file": "test/fixtures/fake-frame-server/index-good.js",
+      "description": "Stand-in for src/server/index.js in test packages (installScript.test.js):",
+      "exports": [],
+      "depends": [
+        "fs",
+        "path",
+        "os"
+      ],
+      "functions": {},
+      "sizeBytes": 645,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "23e2a863f2a9ade4"
+      }
+    },
+    "test/fixtures/fake-frame-server/stubs/loginctl": {
+      "file": "test/fixtures/fake-frame-server/stubs/loginctl",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 268,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
+    "test/fixtures/fake-frame-server/stubs/systemctl": {
+      "file": "test/fixtures/fake-frame-server/stubs/systemctl",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 1031,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     "test/fixtures/go-service/cmd/server/main": {
       "file": "test/fixtures/go-service/cmd/server/main.go",
       "description": "Command server starts the HTTP API.",
@@ -29024,6 +29080,81 @@
         "purposes": {
           "data": "2694de0d86ccd77b",
           "shellBlock": "e01ec856b4c63111"
+        }
+      }
+    },
+    "test/installScript.test": {
+      "file": "test/installScript.test.js",
+      "description": "install-frame-server.sh scenarios (server-hardening C1).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "sandbox": {
+          "line": 28,
+          "purpose": "A fresh sandbox: HOME, stub bin dir, stub state, log."
+        },
+        "makePackage": {
+          "line": 63,
+          "params": [
+            "box",
+            "version",
+            "{ good = true } = {}"
+          ],
+          "purpose": "A package tarball for `version`; `good` decides whether its server starts."
+        },
+        "install": {
+          "line": 78,
+          "params": [
+            "box",
+            "args",
+            "extraEnv"
+          ],
+          "purpose": "Run the installer; returns { code, lines, result, out }."
+        },
+        "frameServer": {
+          "line": 90,
+          "params": [
+            "box",
+            "home",
+            "args"
+          ]
+        },
+        "alive": {
+          "line": 95,
+          "params": [
+            "pid"
+          ]
+        },
+        "serverPid": {
+          "line": 99,
+          "params": [
+            "home"
+          ]
+        },
+        "stopEverything": {
+          "line": 103,
+          "params": [
+            "box"
+          ]
+        }
+      },
+      "sizeBytes": 8709,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "5866640ebe81a6f1",
+        "purposes": {
+          "install": "986c7b4211054489",
+          "makePackage": "3569e84b622a49ed",
+          "sandbox": "290f5d0eb2b0eeed"
         }
       }
     },
@@ -33480,8 +33611,8 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 361,
-        "unsupported": 89,
+        "parsed": 364,
+        "unsupported": 91,
         "partial": 0
       }
     },
@@ -33527,9 +33658,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 542,
-      "traversedDirectories": 84,
-      "eligibleFiles": 450,
+      "visitedEntries": 549,
+      "traversedDirectories": 86,
+      "eligibleFiles": 455,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -33546,7 +33677,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 450,
+      "indexedFiles": 455,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -33554,6 +33685,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "60bdd75664f7d59988f4bdd25d0afb156b1db19256d8ee88c1895185aff770cd"
+    "revision": "db2d6cbd389960f23aa4e87358d79dc77483140136ba6bb7799af009eb90fed0"
   }
 }
