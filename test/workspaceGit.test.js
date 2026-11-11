@@ -100,18 +100,12 @@ function makeProject({ defaultBranch = 'main' } = {}) {
 /**
  * A test's own mutating git command inside a worktree. Every workspace
  * mutation starts a background git-state read (workspaceManager.notify →
- * workspaceGitState.refresh) whose `git status` can hold the index lock for a
- * moment, so a colliding `git add` is retried briefly instead of failing.
+ * workspaceGitState.refresh); those reads run with --no-optional-locks, so
+ * they never hold index.lock and the test's `git add` needs no retry — a
+ * collision here is a regression.
  */
 function gitWrite(args, cwd) {
-  for (let i = 0; ; i++) {
-    try {
-      return git(args, cwd);
-    } catch (err) {
-      if (i >= 50 || !/index\.lock/.test(String(err.stderr || err.message))) throw err;
-      execFileSync('sleep', ['0.1']);
-    }
-  }
+  return git(args, cwd);
 }
 
 function remoteSha(remote, ref) {
@@ -325,6 +319,8 @@ test('L13a: Abort Update leaves a merge the user started alone', async () => {
   gitWrite(['add', '.'], wt); gitWrite(['commit', '-qm', 'mine'], wt);
   try { git(['merge', 'side'], wt); } catch (_) { /* conflict expected */ }
   assert.ok(git(['rev-parse', '-q', '--verify', 'MERGE_HEAD'], wt));
+  const { parseConflicts } = require('../src/shared/prFlow');
+  assert.deepEqual(parseConflicts(await require('../src/main/gitBranchesManager').conflictedFiles(wt)), ['c.txt'], 'conflicts are listed');
   const res = await workspaceGitState.abortUpdate(project, created.workspace.id);
   assert.ok(res.error, 'refused with a reason');
   assert.equal(res.aborted, false);
@@ -485,4 +481,37 @@ test('L13e: spec locations of a project that is not watched follow its workspace
   fs.mkdirSync(path.join(a.workspace.path, '.frame', 'specs', 'later'), { recursive: true });
   await workspaceManager.create(project, { from: 'new', base: 'main' }); // any workspace change
   assert.equal(specManager.specRoot(project, 'later'), a.workspace.path);
+});
+
+// ─── Background reads never take the index lock (follow-up of T01) ──
+
+test('status and diff reads leave .git/index alone (--no-optional-locks)', async () => {
+  const { project } = makeProject();
+  const gitBranches = require('../src/main/gitBranchesManager');
+  const gitDiff = require('../src/main/gitDiffManager');
+  const gitStatus = require('../src/main/gitStatusManager');
+  const index = path.join(project, '.git', 'index');
+  // Stat-dirty but content-identical: a plain `git status` would refresh
+  // and rewrite the index (taking index.lock) here.
+  const stale = () => {
+    const f = path.join(project, 'README.md');
+    const t = new Date(Date.now() + 5000);
+    fs.utimesSync(f, t, t);
+    fs.utimesSync(index, new Date(0), new Date(0));
+    return fs.statSync(index).mtimeMs;
+  };
+  let before = stale();
+  await gitBranches.worktreeStatus(project);
+  await gitBranches.trackedDirtyCount(project);
+  assert.equal(fs.statSync(index).mtimeMs, before, 'worktreeStatus / trackedDirtyCount did not rewrite the index');
+  before = stale();
+  await gitStatus.readGitStatus(project);
+  assert.equal(fs.statSync(index).mtimeMs, before, 'the file-tree status did not rewrite the index');
+  before = stale();
+  await gitBranches.conflictedFiles(project);
+  assert.equal(fs.statSync(index).mtimeMs, before, 'the conflict listing did not rewrite the index');
+  // Known limit: `git diff` (the review) refreshes the index even with
+  // --no-optional-locks on git 2.39; it runs when a review loads, not in the
+  // background poll. Not asserted here.
+  void gitDiff;
 });

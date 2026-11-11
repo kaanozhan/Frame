@@ -63,10 +63,17 @@ function execGit(command, projectPath) {
  * `error` when there is one, so a refusal such as "already checked out at
  * …" reaches the UI verbatim.
  */
+// `git status` and `git diff` refresh the index's stat cache, which takes
+// index.lock: a read Frame runs in the background could then make an agent's
+// own `git add` / `git commit` fail with "index.lock exists". Reads skip that
+// optional write (the same as GIT_OPTIONAL_LOCKS=0).
+const OPTIONAL_LOCK_READS = new Set(['status', 'diff']);
+
 function execGitArgs(args, projectPath, opts = {}) {
   if (gitMissing) {
     return Promise.reject({ error: GIT_MISSING_ERROR, gitMissing: true });
   }
+  if (OPTIONAL_LOCK_READS.has(args[0])) args = ['--no-optional-locks', ...args];
   const timeout = opts.timeout || 10000;
   const maxBuffer = opts.maxBuffer || 1024 * 1024;
   return new Promise((resolve, reject) => {
@@ -90,7 +97,7 @@ function execGitArgs(args, projectPath, opts = {}) {
         const detail = (stderr || '').trim();
         // A killed child (timeout) has no useful stderr; say so plainly.
         const timedOut = error.killed && error.signal === 'SIGTERM';
-        reject({ error: detail || (timedOut ? `git ${args[0]} timed out` : error.message), stderr: detail, timedOut });
+        reject({ error: detail || (timedOut ? `git ${args[args[0] === '--no-optional-locks' ? 1 : 0]} timed out` : error.message), stderr: detail, timedOut });
       } else {
         resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
       }
@@ -113,7 +120,7 @@ async function localBranchExists(name, projectPath) {
  */
 async function isWorkingTreeClean(projectPath) {
   try {
-    const { stdout } = await execGit('git status --porcelain', projectPath);
+    const { stdout } = await execGit('git --no-optional-locks status --porcelain', projectPath);
     return { clean: stdout === '', changes: stdout.split('\n').filter(Boolean) };
   } catch (err) {
     return { clean: false, error: err.error };
@@ -699,8 +706,12 @@ async function mergeInProgress(cwd) {
 /** Raw `-z` list of unmerged paths (parse with prFlow.parseConflicts); '' when none or unreadable. */
 async function conflictedFiles(cwd) {
   try {
-    const { stdout } = await execGitArgs(['diff', '--name-only', '--diff-filter=U', '-z'], cwd, { maxBuffer: LIST_MAX_BUFFER });
-    return stdout;
+    // `ls-files -u` (plumbing) never writes the index, unlike `git diff`,
+    // which refreshes it even under --no-optional-locks (git 2.39): this
+    // runs in the background poll while an agent may be committing.
+    // Lines are `<mode> <sha> <stage>\t<path>`; return paths `\0`-joined.
+    const { stdout } = await execGitArgs(['ls-files', '-u', '-z'], cwd, { maxBuffer: LIST_MAX_BUFFER });
+    return stdout.split('\0').map((l) => l.slice(l.indexOf('\t') + 1)).filter(Boolean).join('\0');
   } catch (_) {
     return '';
   }

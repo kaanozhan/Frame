@@ -88,7 +88,8 @@ function runDiff(cwd, args) {
   return new Promise((resolve) => {
     execFile(
       'git',
-      args,
+      // Reads only: never take index.lock (see gitBranchesManager).
+      ['--no-optional-locks', ...args],
       { cwd, maxBuffer: MAX_BUFFER, timeout: DIFF_TIMEOUT_MS },
       (err, stdout, stderr) => {
         if (isGitMissing(err, cwd)) {

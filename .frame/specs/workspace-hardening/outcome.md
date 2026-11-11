@@ -110,4 +110,4 @@ Every finding of spec.md is fixed; none was accepted unfixed.
 | R12 | fixed | T09 | counts coerced, status escaped |
 | R14 | fixed | T09 | viewed and session keys pruned |
 
-Open follow-up (not in this spec's findings): Frame's background git reads should use `git --no-optional-locks` — see T01.
+Follow-up from T01, done after the spec closed (2026-11-11, at the user's request): background git reads no longer take index.lock. `git status` runs with `--no-optional-locks` (execGitArgs for `status`/`diff`, gitStatusManager, gitDiffManager), and the conflict listing uses `ls-files -u` because `git diff` still refreshes the index under that flag on git 2.39. Verified by a test that stat-dirties a file and checks `.git/index` is not rewritten (it was before), and by dropping the index.lock retry from test/workspaceGit.test.js: 10/10 runs passed without it. Limit: the review's `git diff` (run when a review loads) still refreshes the index.

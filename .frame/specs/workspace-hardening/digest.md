@@ -25,7 +25,7 @@ The local workspace flows now hold their rules at the edges, not only in the pur
 - `test/workspaceGit.test.js` is the temp-repo harness for main-process git behaviour; add a case there for each git-edge fix.
 
 **Gaps.**
-- Frame's background git reads take the index lock; they should use `git --no-optional-locks` (open follow-up, not done).
+- `git diff` (the review) still refreshes the index under `--no-optional-locks` on git 2.39; background reads (`status`, conflict listing via `ls-files -u`) no longer take index.lock.
 - Renderer fixes are verified live over CDP, without a DOM test harness.
 - An edit to an untracked file in a workspace does not refresh the open review (pre-existing).
 

@@ -348,7 +348,9 @@ function readGitStatus(projectPath) {
   return new Promise((resolve) => {
     execFile(
       'git',
-      ['status', '--porcelain=v1', '-z', '--branch', '--untracked-files=all'],
+      // Never take index.lock for a read: an agent's own git write in the
+      // same checkout would fail on it (see gitBranchesManager).
+      ['--no-optional-locks', 'status', '--porcelain=v1', '-z', '--branch', '--untracked-files=all'],
       { cwd: projectPath, maxBuffer: MAX_BUFFER },
       (err, stdout) => {
         if (err) {
@@ -457,4 +459,4 @@ function classify(index, worktree) {
   return 'modified';
 }
 
-module.exports = { init, setupIPC, startWatching, stopWatching, pushStatus, isIgnoredWorktreePath, gitDirFromDotGitFile, resolveGitDir };
+module.exports = { init, setupIPC, readGitStatus, startWatching, stopWatching, pushStatus, isIgnoredWorktreePath, gitDirFromDotGitFile, resolveGitDir };
