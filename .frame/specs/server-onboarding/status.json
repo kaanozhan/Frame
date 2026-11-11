@@ -1,10 +1,10 @@
 {
   "slug": "server-onboarding",
   "title": "Server onboarding: sign-ins and sending a project",
-  "phase": "planned",
+  "phase": "tasks_generated",
   "generated_task_ids": [],
   "ai_tool": "claude-code",
   "created_at": "2026-11-11T14:02:14.000Z",
-  "updated_at": "2026-11-11T14:09:26.361Z",
-  "last_phase_at": "2026-11-11T14:09:26.361Z"
+  "updated_at": "2026-11-11T14:10:50.492Z",
+  "last_phase_at": "2026-11-11T14:10:50.492Z"
 }
