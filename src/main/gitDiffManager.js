@@ -15,6 +15,7 @@ const { execFile } = require('child_process');
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
 const logger = require('./logger');
+const { isValidBranchName } = require('../shared/gitRefNames');
 const fs = require('fs');
 const { parseNumstat, mergeChangedFiles, MAX_DIFF_BYTES } = require('../shared/reviewModel');
 
@@ -159,8 +160,12 @@ function countLines(root, paths) {
   return out;
 }
 
+const COMMIT_ID = /^[0-9a-f]{7,64}$/;
+
 async function reviewFiles(root, base) {
   if (!root) return { error: 'No workspace', mergeBase: null, files: [] };
+  // Base and merge base reach git argv: never let them be options (workspace-hardening L13d).
+  if (base && !isValidBranchName(base)) return { error: `"${base}" is not a valid base branch name.`, mergeBase: null, files: [] };
   const mergeBase = await mergeBaseOf(root, base || 'main');
   if (!mergeBase) return { error: `No common history with ${base || 'main'}`, mergeBase: null, files: [] };
   const [numstat, nameStatus, untrackedOut] = await Promise.all([
@@ -183,6 +188,9 @@ async function reviewFiles(root, base) {
 
 async function reviewFileDiff(root, { mergeBase, path: rel, oldPath, untracked }) {
   if (!root || !rel) return { diff: '', isBinary: false, tooLarge: false };
+  if (!untracked && !COMMIT_ID.test(String(mergeBase || ''))) {
+    return { diff: '', isBinary: false, tooLarge: false, error: 'The review has no valid merge base — refresh it.' };
+  }
   const args = untracked
     ? ['diff', '--no-index', '--', '/dev/null', rel]
     : ['diff', '-M', mergeBase, '--', ...(oldPath ? [oldPath] : []), rel];

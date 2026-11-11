@@ -27,6 +27,7 @@ const { selectFiles } = require('../shared/copyFilesMatch');
 const projectRegistry = require('./projectRegistry');
 const tooling = require('./workspaceTooling');
 const git = require('./gitBranchesManager');
+const { isValidBranchName } = require('../shared/gitRefNames');
 const userSettings = require('./userSettings');
 const logger = require('./logger');
 
@@ -312,6 +313,11 @@ async function status(projectPath, id) {
  */
 async function create(projectPath, { from = 'new', base, branch, location = 'local' } = {}) {
   if (!projectPath) return { error: 'No project selected' };
+  // Branch text from the dialog (or the server protocol) reaches git argv:
+  // refuse anything that is not a plain branch name before any git runs
+  // (workspace-hardening X1 — `--upload-pack=<cmd>` as a base ran a command).
+  if (base !== undefined && base !== null && base !== '' && !isValidBranchName(base)) return { error: `"${base}" is not a valid base branch name.` };
+  if (from === 'branch' && !isValidBranchName(branch)) return { error: `"${branch}" is not a valid branch name.` };
   if (location === 'server') return createOnServer(projectPath, { from, base, branch });
   const { error: gitError } = await git.loadWorktrees(projectPath);
   if (gitError) return { error: 'This project is not a git repository.' };
@@ -487,7 +493,8 @@ async function rename(projectPath, id, { name, branch } = {}) {
 
   if (nextBranch && nextBranch !== record.branch) {
     try {
-      await git.execGitArgs(['branch', '-m', record.branch, nextBranch], projectPath);
+      // `--` ends options: a name can never be read as one (workspace-hardening L2).
+      await git.execGitArgs(['branch', '-m', '--', record.branch, nextBranch], projectPath);
     } catch (err) {
       return { error: err.error || err.message };
     }

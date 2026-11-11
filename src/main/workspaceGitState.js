@@ -20,7 +20,7 @@
 const fs = require('fs');
 const { IPC } = require('../shared/ipcChannels');
 const registry = require('../shared/workspaceRegistry');
-const { mapPrView, parseCount, composePr, pickMergeMethod, isPushable, parseConflicts } = require('../shared/prFlow');
+const { mapPrView, parseCount, composePr, pickMergeMethod, pushArgs, parseConflicts } = require('../shared/prFlow');
 const projectRegistry = require('./projectRegistry');
 const git = require('./gitBranchesManager');
 const github = require('./githubManager');
@@ -245,12 +245,14 @@ function settingsOf(projectPath) {
 async function push(projectPath, id) {
   const ws = recordOf(projectPath, id);
   if (!ws) return { error: 'This workspace is not available.' };
-  if (!isPushable({ branch: ws.branch, base: ws.base })) {
-    return { error: `Refusing to push ${ws.branch}: it is the base branch.` };
-  }
-  const st = await git.worktreeStatus(ws.path);
+  // A workspace opened from an existing branch may have no stored base: the
+  // remote's default branch stands in, so the base can never be pushed.
+  const base = ws.base || (await git.defaultRemoteBranch(projectPath)).branch || 'main';
   const upstream = await git.upstreamOf(ws.path);
-  const res = await git.pushBranch(ws.path, ws.branch, { setUpstream: !upstream });
+  const plan = pushArgs({ branch: ws.branch, base, upstream });
+  if (plan.error) return { error: plan.error };
+  const st = await git.worktreeStatus(ws.path);
+  const res = await git.pushBranch(ws.path, plan.args);
   refresh(projectPath);
   return { error: res.error || null, dirty: st.count || 0 };
 }

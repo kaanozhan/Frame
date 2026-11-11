@@ -413,6 +413,8 @@ async function defaultRemoteBranch(projectPath) {
  */
 async function fetchBranch(projectPath, branch) {
   if (!projectPath || !branch) return { fetched: false, error: 'Missing parameters' };
+  // Never hand option text to git fetch: `--upload-pack=<cmd>` runs a command (workspace-hardening X1).
+  if (!isValidBranchName(branch)) return { fetched: false, error: `"${branch}" is not a valid branch name.` };
   try {
     await execGitArgs(['fetch', 'origin', branch], projectPath, { timeout: FETCH_TIMEOUT_MS });
     return { fetched: true, error: null };
@@ -543,13 +545,12 @@ async function upstreamOf(cwd) {
 }
 
 /**
- * Push `branch` from `cwd`. With `setUpstream`, `git push -u origin <branch>`
- * (a workspace branch is created --no-track, so its first push names the
- * remote branch explicitly); otherwise a plain `git push`. Never forces.
+ * Run a push built by prFlow.pushArgs in `cwd` — always an explicit
+ * `origin refs/heads/B:refs/heads/B` target, never a bare `git push` whose
+ * destination depends on the upstream and push.default. Never forces.
  */
-async function pushBranch(cwd, branch, { setUpstream = false } = {}) {
-  if (!cwd || !branch) return { error: 'Missing parameters' };
-  const args = setUpstream ? ['push', '-u', 'origin', branch] : ['push'];
+async function pushBranch(cwd, args) {
+  if (!cwd || !Array.isArray(args) || args[0] !== 'push') return { error: 'Missing parameters' };
   try {
     await execGitArgs(args, cwd, { timeout: PUSH_TIMEOUT_MS });
     return { error: null };

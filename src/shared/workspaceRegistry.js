@@ -21,6 +21,8 @@
  *   - `missing` is a transient flag set by `reconcile`; it is never persisted.
  */
 
+const { isValidBranchName } = require('./gitRefNames');
+
 const MAIN_ID = 'main';
 
 /** Defaults for `.frame/config.json` → `settings.workspaces`. */
@@ -167,6 +169,7 @@ function rename(records, id, { name, branch } = {}) {
   }
   if (branch !== undefined && branch !== current.branch) {
     if (!branch) return fail(ERR.INVALID, 'A branch name cannot be empty.');
+    if (!isValidBranchName(branch)) return fail(ERR.INVALID, `"${branch}" is not a valid branch name.`);
     if (!current.archivedAt) {
       const holder = findByBranch(records, branch, id);
       if (holder) return branchInUse(holder, branch);

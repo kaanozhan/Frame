@@ -14,7 +14,7 @@ const assert = require('node:assert/strict');
 
 const {
   parseCount, checksSummary, mapPrView, sectionLead, composePr, pickMergeMethod, fixChecksPrompt, isPushable,
-  parseConflicts, updateMenuState, conflictPrompt, updateMessage
+  parseConflicts, updateMenuState, conflictPrompt, updateMessage, pushArgs
 } = require('../src/shared/prFlow');
 
 test('parseCount reads rev-list output and never returns garbage', () => {
@@ -146,4 +146,13 @@ test('updateMessage describes every result', () => {
   assert.equal(updateMessage({ state: 'dirty', count: 1 }), 'Commit or stash your 1 uncommitted change first');
   assert.equal(updateMessage({ state: 'conflict', files: ['a', 'b'] }), 'Update stopped on 2 conflicted files');
   assert.equal(updateMessage({ error: 'boom' }), 'Update failed: boom');
+});
+
+test('pushArgs always names origin and the same branch, and refuses the base and option text (workspace-hardening L1)', () => {
+  assert.deepEqual(pushArgs({ branch: 'ws/teal', base: 'main', upstream: null }).args, ['push', '-u', 'origin', 'refs/heads/ws/teal:refs/heads/ws/teal']);
+  assert.deepEqual(pushArgs({ branch: 'ws/teal', base: 'main', upstream: 'origin/ws/teal' }).args, ['push', 'origin', 'refs/heads/ws/teal:refs/heads/ws/teal']);
+  assert.deepEqual(pushArgs({ branch: 'feat', base: 'main', upstream: 'origin/main' }).args, ['push', '-u', 'origin', 'refs/heads/feat:refs/heads/feat'], 'a wrong upstream is re-pointed, never followed');
+  assert.match(pushArgs({ branch: 'main', base: 'main' }).error, /base branch/);
+  assert.match(pushArgs({ branch: '-f', base: 'main' }).error, /not a valid branch/);
+  assert.match(pushArgs({ branch: '', base: 'main' }).error, /not a valid branch/);
 });

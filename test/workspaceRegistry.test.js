@@ -151,3 +151,11 @@ test('normalizeSettings: merge method and archive-on-merge (workspace-pr-flow)',
   assert.equal(reg.normalizeSettings({ archiveOnMerge: false }).archiveOnMerge, false);
   assert.equal(reg.normalizeSettings({ archiveOnMerge: 'no' }).archiveOnMerge, true);
 });
+
+test('rename refuses a branch name that git would read as an option (workspace-hardening L2)', () => {
+  const recs = reg.add([], { id: 'a1', name: 'teal', branch: 'ws/teal', base: 'main', path: '/w/teal', now: '2026-11-11T00:00:00Z' }).records;
+  const res = reg.rename(recs, 'a1', { branch: '-f' });
+  assert.equal(res.ok, false);
+  assert.match(res.error.message, /not a valid branch/);
+  assert.equal(reg.rename(recs, 'a1', { branch: 'ws/ok' }).ok, true);
+});

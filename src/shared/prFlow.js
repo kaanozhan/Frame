@@ -145,6 +145,25 @@ function isPushable({ branch, base }) {
   return true;
 }
 
+/**
+ * The argv for pushing a workspace branch (workspace-hardening L1). The push
+ * always names its target — `origin refs/heads/B:refs/heads/B` — so neither
+ * the branch's upstream nor the user's `push.default` can send it anywhere
+ * else (a branch made from `origin/main` tracks main, and a bare `git push`
+ * under `push.default=upstream` would update main). `-u` is added when the
+ * upstream is not already `origin/B`, which also re-points a wrong one.
+ * Returns `{ args }` or `{ error }` for an invalid name or the base itself.
+ */
+function pushArgs({ branch, base, upstream = null }) {
+  const { isValidBranchName } = require('./gitRefNames');
+  if (!isValidBranchName(branch)) return { error: `"${branch}" is not a valid branch name.` };
+  if (!isPushable({ branch, base })) return { error: `Refusing to push ${branch}: it is the base branch.` };
+  const args = ['push'];
+  if (upstream !== `origin/${branch}`) args.push('-u');
+  args.push('origin', `refs/heads/${branch}:refs/heads/${branch}`);
+  return { args };
+}
+
 // ─── Update from base (update-from-base spec) ─────────────────
 
 /** `git diff --name-only --diff-filter=U -z` → conflicted paths, in order, no duplicates. */
@@ -222,5 +241,6 @@ module.exports = {
   pickMergeMethod,
   fixChecksPrompt,
   isPushable,
+  pushArgs,
   MERGE_ORDER
 };
