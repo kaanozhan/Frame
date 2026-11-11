@@ -22,3 +22,11 @@ The archive flow reads `status.head` and, when commits no branch holds would go 
 _Captured: 2026-11-11 · 7 file change(s)_
 
 ---
+
+## T04 — Make guards fail closed
+
+trackedDirtyCount now returns `{ count, error }` and updateFromBase refuses with "Could not check for uncommitted changes, so nothing was merged" when the check fails. Abort Update first checks `merge-base --is-ancestor MERGE_HEAD origin/<base>` (new gitBranchesManager.mergeHeadIn) and leaves any other merge in place with a reason. New src/shared/gitMissing.js (isGitMissing: ENOENT only counts as "git missing" when the working directory exists) replaces the ad-hoc checks in gitBranchesManager, gitStatusManager and gitDiffManager, so a removed workspace folder no longer switches the file-tree status or the review diff off for the session.
+
+_Captured: 2026-11-11 · 8 file change(s)_
+
+---

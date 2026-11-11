@@ -20,6 +20,7 @@
  */
 
 const { execFile } = require('child_process');
+const { isGitMissing } = require('../shared/gitMissing');
 const fs = require('fs');
 const path = require('path');
 const fsSafe = require('./fsSafe');
@@ -351,7 +352,7 @@ function readGitStatus(projectPath) {
       { cwd: projectPath, maxBuffer: MAX_BUFFER },
       (err, stdout) => {
         if (err) {
-          if (err.code === 'ENOENT' && !gitMissing) {
+          if (isGitMissing(err, projectPath) && !gitMissing) {
             gitMissing = true;
             logger.warn('gitStatus', 'git executable not found — file-tree status decorations disabled');
           }

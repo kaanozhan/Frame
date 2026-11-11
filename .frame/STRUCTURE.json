@@ -2696,6 +2696,7 @@
         "pushBranch",
         "commitSubjects",
         "fastForwardIfOn",
+        "mergeHeadIn",
         "mergeInProgress",
         "conflictedFiles",
         "mergeRef",
@@ -2718,18 +2719,19 @@
         "shared/frameConstants",
         "gitBranchRefs",
         "shared/gitRefNames",
+        "shared/gitMissing",
         "serverPanels"
       ],
       "functions": {
         "init": {
-          "line": 20,
+          "line": 21,
           "params": [
             "window"
           ],
           "purpose": "Initialize manager"
         },
         "execGit": {
-          "line": 33,
+          "line": 34,
           "params": [
             "command",
             "projectPath"
@@ -2737,7 +2739,7 @@
           "purpose": "Execute git command with promise"
         },
         "execGitArgs": {
-          "line": 65,
+          "line": 66,
           "params": [
             "args",
             "projectPath",
@@ -2746,7 +2748,7 @@
           "purpose": "Execute git with an argv array — no shell, so a branch name is one"
         },
         "localBranchExists": {
-          "line": 101,
+          "line": 102,
           "params": [
             "name",
             "projectPath"
@@ -2754,21 +2756,21 @@
           "purpose": "Does `refs/heads/<name>` exist in this repo?"
         },
         "isWorkingTreeClean": {
-          "line": 113,
+          "line": 114,
           "params": [
             "projectPath"
           ],
           "purpose": "Check if working tree is clean"
         },
         "loadBranches": {
-          "line": 125,
+          "line": 126,
           "params": [
             "projectPath"
           ],
           "purpose": "Load all branches"
         },
         "switchBranch": {
-          "line": 183,
+          "line": 184,
           "params": [
             "projectPath",
             "branchName"
@@ -2776,7 +2778,7 @@
           "purpose": "Switch to a branch"
         },
         "createBranch": {
-          "line": 234,
+          "line": 235,
           "params": [
             "projectPath",
             "branchName",
@@ -2786,7 +2788,7 @@
           "purpose": "Create a new branch"
         },
         "deleteBranch": {
-          "line": 257,
+          "line": 258,
           "params": [
             "projectPath",
             "branchName",
@@ -2795,14 +2797,14 @@
           "purpose": "Delete a branch"
         },
         "loadWorktrees": {
-          "line": 274,
+          "line": 275,
           "params": [
             "projectPath"
           ],
           "purpose": "Load worktrees"
         },
         "addWorktree": {
-          "line": 316,
+          "line": 317,
           "params": [
             "projectPath",
             "worktreePath",
@@ -2812,7 +2814,7 @@
           "purpose": "Add a worktree"
         },
         "removeWorktree": {
-          "line": 335,
+          "line": 336,
           "params": [
             "projectPath",
             "worktreePath",
@@ -2821,28 +2823,28 @@
           "purpose": "Remove a worktree"
         },
         "hasRemote": {
-          "line": 362,
+          "line": 363,
           "params": [
             "projectPath",
             "remote = 'origin'"
           ]
         },
         "refExists": {
-          "line": 371,
+          "line": 372,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "defaultRemoteBranch": {
-          "line": 386,
+          "line": 387,
           "params": [
             "projectPath"
           ],
           "purpose": "The branch a new workspace should start from by default."
         },
         "fetchBranch": {
-          "line": 414,
+          "line": 415,
           "params": [
             "projectPath",
             "branch"
@@ -2850,7 +2852,7 @@
           "purpose": "`git fetch origin <branch>` with a 15 s ceiling. Never throws: a failure"
         },
         "addWorkspaceWorktree": {
-          "line": 434,
+          "line": 435,
           "params": [
             "projectPath",
             "worktreePath",
@@ -2861,7 +2863,7 @@
           "purpose": "Create a workspace worktree."
         },
         "removeWorkspaceWorktree": {
-          "line": 448,
+          "line": 449,
           "params": [
             "projectPath",
             "worktreePath",
@@ -2870,14 +2872,14 @@
           "purpose": "`git worktree remove [--force] <path>`, argv form."
         },
         "worktreeStatus": {
-          "line": 460,
+          "line": 461,
           "params": [
             "worktreePath"
           ],
           "purpose": "Uncommitted state of a worktree: `{ error, dirty, count }` from `git status --porcelain`."
         },
         "headState": {
-          "line": 483,
+          "line": 484,
           "params": [
             "worktreePath",
             "branch"
@@ -2885,7 +2887,7 @@
           "purpose": "Where a worktree's HEAD stands: on `branch` or not, and how many commits"
         },
         "commitAll": {
-          "line": 507,
+          "line": 508,
           "params": [
             "worktreePath",
             "message"
@@ -2893,21 +2895,21 @@
           "purpose": "Stage everything and commit it with `message` (the archive dialog's \"commit\")."
         },
         "discardAll": {
-          "line": 523,
+          "line": 524,
           "params": [
             "worktreePath"
           ],
           "purpose": "Throw away uncommitted work (the archive dialog's \"discard\"): tracked"
         },
         "listIgnoredCandidates": {
-          "line": 540,
+          "line": 541,
           "params": [
             "projectPath"
           ],
           "purpose": "Ignored, untracked paths in the main checkout — the candidates `copyFiles`"
         },
         "revCount": {
-          "line": 562,
+          "line": 563,
           "params": [
             "cwd",
             "range"
@@ -2915,14 +2917,14 @@
           "purpose": "`git rev-list --count <range>` in `cwd`; 0 when the range does not resolve."
         },
         "upstreamOf": {
-          "line": 573,
+          "line": 574,
           "params": [
             "cwd"
           ],
           "purpose": "The upstream of the checked-out branch (`origin/ws/teal`), or null."
         },
         "pushBranch": {
-          "line": 587,
+          "line": 588,
           "params": [
             "cwd",
             "args"
@@ -2930,7 +2932,7 @@
           "purpose": "Run a push built by prFlow.pushArgs in `cwd` — always an explicit"
         },
         "commitSubjects": {
-          "line": 598,
+          "line": 599,
           "params": [
             "cwd",
             "range",
@@ -2939,7 +2941,7 @@
           "purpose": "Commit subjects in `range`, newest first (`git log --format=%s`), at most `max`."
         },
         "fastForwardIfOn": {
-          "line": 612,
+          "line": 613,
           "params": [
             "projectPath",
             "branch"
@@ -2947,28 +2949,36 @@
           "purpose": "After a PR merges: fast-forward the main checkout's `branch` from origin —"
         },
         "trackedDirtyCount": {
-          "line": 641,
+          "line": 642,
           "params": [
             "cwd"
           ],
           "purpose": "Uncommitted changes to tracked files (untracked files never block a merge on their own)."
         },
+        "mergeHeadIn": {
+          "line": 654,
+          "params": [
+            "cwd",
+            "ref"
+          ],
+          "purpose": "Is MERGE_HEAD a commit of `ref` (the merge Frame's update started), not one the user or an agent began?"
+        },
         "mergeInProgress": {
-          "line": 651,
+          "line": 664,
           "params": [
             "cwd"
           ],
           "purpose": "Is a merge stopped half-way (MERGE_HEAD present)?"
         },
         "conflictedFiles": {
-          "line": 661,
+          "line": 674,
           "params": [
             "cwd"
           ],
           "purpose": "Raw `-z` list of unmerged paths (parse with prFlow.parseConflicts); '' when none or unreadable."
         },
         "mergeRef": {
-          "line": 671,
+          "line": 684,
           "params": [
             "cwd",
             "ref"
@@ -2976,34 +2986,34 @@
           "purpose": "`git merge --no-edit <ref>` → `{ ok, error }`; never throws."
         },
         "abortMerge": {
-          "line": 682,
+          "line": 695,
           "params": [
             "cwd"
           ],
           "purpose": "`git merge --abort` → `{ error }`."
         },
         "orchWorktreePath": {
-          "line": 697,
+          "line": 710,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getHeadSha": {
-          "line": 701,
+          "line": 714,
           "params": [
             "projectPath"
           ]
         },
         "branchExists": {
-          "line": 710,
+          "line": 723,
           "params": [
             "projectPath",
             "branchName"
           ]
         },
         "createOrchWorktree": {
-          "line": 724,
+          "line": 737,
           "params": [
             "projectPath",
             "slug"
@@ -3011,7 +3021,7 @@
           "purpose": "Create a fresh worker worktree for a spec, branched from current HEAD."
         },
         "removeOrchWorktree": {
-          "line": 745,
+          "line": 758,
           "params": [
             "projectPath",
             "slug",
@@ -3020,7 +3030,7 @@
           "purpose": "Remove a spec's worker worktree (force). Optionally delete its work branch."
         },
         "worktreeChangedFiles": {
-          "line": 760,
+          "line": 773,
           "params": [
             "projectPath",
             "slug",
@@ -3029,7 +3039,7 @@
           "purpose": "Files actually changed on a spec's work branch relative to a base ref."
         },
         "mergeWorkToIntegration": {
-          "line": 777,
+          "line": 790,
           "params": [
             "projectPath",
             "slug"
@@ -3037,7 +3047,7 @@
           "purpose": "Merge a spec's work branch into its per-spec integration branch. Because the"
         },
         "isWorkMerged": {
-          "line": 796,
+          "line": 809,
           "params": [
             "projectPath",
             "slug"
@@ -3045,14 +3055,14 @@
           "purpose": "Whether a spec's work branch has been merged (its integration branch exists"
         },
         "listOrchBranches": {
-          "line": 812,
+          "line": 825,
           "params": [
             "projectPath"
           ],
           "purpose": "List orchestration branches present in the repo, grouped by slug. Used for"
         },
         "setupIPC": {
-          "line": 832,
+          "line": 845,
           "params": [
             "ipcMain"
           ],
@@ -3074,7 +3084,7 @@
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
       },
-      "sizeBytes": 33910,
+      "sizeBytes": 34488,
       "extraction": {
         "status": "parsed"
       },
@@ -3105,6 +3115,7 @@
           "loadBranches": "cb990681d8be2c86",
           "loadWorktrees": "e1f5dd6ccfd9f107",
           "localBranchExists": "d399d1abf0bf3f60",
+          "mergeHeadIn": "1c166271dafc51a6",
           "mergeInProgress": "3a03486c03657467",
           "mergeRef": "2e98a7d4780d893c",
           "mergeWorkToIntegration": "5fdd31c529fff0f9",
@@ -3133,6 +3144,7 @@
       ],
       "depends": [
         "child_process",
+        "shared/gitMissing",
         "path",
         "shared/ipcChannels",
         "logger",
@@ -3143,27 +3155,27 @@
       ],
       "functions": {
         "gitDiff": {
-          "line": 30,
+          "line": 31,
           "params": [
             "payload"
           ],
           "purpose": "One file's diff for the diff tab: staged (`--cached`), working tree, or a"
         },
         "setupIPC": {
-          "line": 63,
+          "line": 64,
           "params": [
             "ipcMain"
           ]
         },
         "runDiff": {
-          "line": 83,
+          "line": 84,
           "params": [
             "cwd",
             "args"
           ]
         },
         "mergeBaseOf": {
-          "line": 123,
+          "line": 124,
           "params": [
             "root",
             "base"
@@ -3171,7 +3183,7 @@
           "purpose": "Merge base of HEAD with origin/<base>, else with the local <base>."
         },
         "hashFiles": {
-          "line": 133,
+          "line": 134,
           "params": [
             "root",
             "paths"
@@ -3179,7 +3191,7 @@
           "purpose": "Content hashes for existing files, `{ path: sha }`, in chunks."
         },
         "countLines": {
-          "line": 148,
+          "line": 149,
           "params": [
             "root",
             "paths"
@@ -3187,14 +3199,14 @@
           "purpose": "Line counts for small text untracked files (shown as +N)."
         },
         "reviewFiles": {
-          "line": 165,
+          "line": 166,
           "params": [
             "root",
             "base"
           ]
         },
         "reviewFileDiff": {
-          "line": 189,
+          "line": 190,
           "params": [
             "root",
             "{ mergeBase",
@@ -3204,7 +3216,7 @@
           ]
         },
         "detectBinary": {
-          "line": 203,
+          "line": 204,
           "params": [
             "diff"
           ]
@@ -3218,7 +3230,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 8464,
+      "sizeBytes": 8516,
       "extraction": {
         "status": "parsed"
       },
@@ -3491,6 +3503,7 @@
       ],
       "depends": [
         "child_process",
+        "shared/gitMissing",
         "fs",
         "path",
         "fsSafe",
@@ -3502,34 +3515,34 @@
       ],
       "functions": {
         "init": {
-          "line": 42,
+          "line": 43,
           "params": [
             "window"
           ]
         },
         "serverPanels": {
-          "line": 61
+          "line": 62
         },
         "wireRemote": {
-          "line": 65
+          "line": 66
         },
         "unwatchRemote": {
-          "line": 78
+          "line": 79
         },
         "watch": {
-          "line": 85,
+          "line": 86,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 99,
+          "line": 100,
           "params": [
             "ipcMain"
           ]
         },
         "gitDirFromDotGitFile": {
-          "line": 124,
+          "line": 125,
           "params": [
             "contents",
             "worktreePath"
@@ -3537,66 +3550,66 @@
           "purpose": "The git dir a `.git` *file* points at (`gitdir: <path>`), resolved against"
         },
         "resolveGitDir": {
-          "line": 131,
+          "line": 132,
           "params": [
             "projectPath"
           ],
           "purpose": "The real git dir for `projectPath`: `.git` itself, or where a `.git` file points."
         },
         "startWatching": {
-          "line": 144,
+          "line": 145,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 202
+          "line": 203
         },
         "isGitInternalPath": {
-          "line": 222,
+          "line": 223,
           "params": [
             "filename"
           ],
           "purpose": "True for paths that live inside the repo's `.git` directory, so the worktree"
         },
         "isIgnoredWorktreePath": {
-          "line": 241,
+          "line": 242,
           "params": [
             "filename"
           ],
           "purpose": "Paths the working-tree watcher does not care about."
         },
         "isGitBookkeeping": {
-          "line": 268,
+          "line": 269,
           "params": [
             "filename"
           ],
           "purpose": "Is this .git event just bookkeeping rather than a real repository change?"
         },
         "scheduleRefresh": {
-          "line": 274,
+          "line": 275,
           "params": [
             "watcher"
           ]
         },
         "pushStatus": {
-          "line": 292
+          "line": 293
         },
         "readGitStatus": {
-          "line": 343,
+          "line": 344,
           "params": [
             "projectPath"
           ]
         },
         "parsePorcelainV1": {
-          "line": 374,
+          "line": 375,
           "params": [
             "stdout"
           ],
           "purpose": "Parse `git status --porcelain=v1 -z --branch` output."
         },
         "classify": {
-          "line": 431,
+          "line": 432,
           "params": [
             "index",
             "worktree"
@@ -3615,7 +3628,7 @@
           "GIT_STATUS_DATA"
         ]
       },
-      "sizeBytes": 16275,
+      "sizeBytes": 16342,
       "extraction": {
         "status": "parsed"
       },
@@ -7878,7 +7891,7 @@
           ]
         },
         "abortUpdate": {
-          "line": 398,
+          "line": 399,
           "params": [
             "projectPath",
             "id"
@@ -7886,7 +7899,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 410,
+          "line": 417,
           "params": [
             "ipcMain"
           ]
@@ -7906,7 +7919,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 19299,
+      "sizeBytes": 19825,
       "extraction": {
         "status": "parsed"
       },
@@ -25258,6 +25271,37 @@
         }
       }
     },
+    "shared/gitMissing": {
+      "file": "src/shared/gitMissing.js",
+      "description": "Is a failed git spawn \"git is not installed\"? Node's spawn reports a missing",
+      "exports": [
+        "isGitMissing"
+      ],
+      "depends": [
+        "fs"
+      ],
+      "functions": {
+        "isGitMissing": {
+          "line": 10,
+          "params": [
+            "err",
+            "cwd",
+            "exists = require('fs'"
+          ],
+          "purpose": "Is a failed git spawn \"git is not installed\"? Node's spawn reports a missing"
+        }
+      },
+      "sizeBytes": 714,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "863361888915b7f6",
+        "purposes": {
+          "isGitMissing": "863361888915b7f6"
+        }
+      }
+    },
     "shared/gitRefNames": {
       "file": "src/shared/gitRefNames.js",
       "description": "gitRefNames — is this string a branch name git would accept?",
@@ -28456,6 +28500,24 @@
         "description": "c9be5133c7953221"
       }
     },
+    "test/gitMissing.test": {
+      "file": "test/gitMissing.test.js",
+      "description": "isGitMissing — a missing working directory is not a missing git (workspace-hardening L14).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert",
+        "src/shared/gitMissing"
+      ],
+      "functions": {},
+      "sizeBytes": 950,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "62971c27be35c934"
+      }
+    },
     "test/gitRefNames.test": {
       "file": "test/gitRefNames.test.js",
       "description": "Branch-name validation (status-bar-branch-picker spec, D8 / C11).",
@@ -30697,7 +30759,7 @@
           "purpose": "A workspace whose worktree has one commit on a detached HEAD that no branch holds."
         }
       },
-      "sizeBytes": 15105,
+      "sizeBytes": 17892,
       "extraction": {
         "status": "parsed"
       },
@@ -32216,6 +32278,11 @@
         "description": "Workspace Git State — each workspace's way out, as seen from main"
       },
       {
+        "module": "shared/gitMissing",
+        "file": "src/shared/gitMissing.js",
+        "description": "Is a failed git spawn \"git is not installed\"? Node's spawn reports a missing"
+      },
+      {
         "module": "shared/gitRefNames",
         "file": "src/shared/gitRefNames.js",
         "description": "gitRefNames — is this string a branch name git would accept?"
@@ -33137,7 +33204,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 356,
+        "parsed": 358,
         "unsupported": 89,
         "partial": 0
       }
@@ -33184,9 +33251,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 537,
+      "visitedEntries": 539,
       "traversedDirectories": 84,
-      "eligibleFiles": 445,
+      "eligibleFiles": 447,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -33203,7 +33270,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 445,
+      "indexedFiles": 447,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -33211,6 +33278,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "d26f83774f43b1832fb49e5aa671cdfb6b8da0a166b6150e431255c2c057a1f5"
+    "revision": "a5d167bde049f9937c856956e0373a02bd27ecaf2e61f56deedf9bcbadfbdc1f"
   }
 }

@@ -12,6 +12,7 @@
  */
 
 const { execFile } = require('child_process');
+const { isGitMissing } = require('../shared/gitMissing');
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
 const logger = require('./logger');
@@ -90,7 +91,7 @@ function runDiff(cwd, args) {
       args,
       { cwd, maxBuffer: MAX_BUFFER, timeout: DIFF_TIMEOUT_MS },
       (err, stdout, stderr) => {
-        if (err && err.code === 'ENOENT') {
+        if (isGitMissing(err, cwd)) {
           if (!gitMissing) {
             gitMissing = true;
             logger.warn('gitDiff', 'git executable not found — diff viewer disabled');

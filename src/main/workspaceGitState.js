@@ -368,7 +368,8 @@ async function updateFromBase(projectPath, id) {
       return { state: 'conflict', base, files: parseConflicts(await git.conflictedFiles(ws.path)) };
     }
     const dirty = await git.trackedDirtyCount(ws.path);
-    if (dirty) return { state: 'dirty', base, count: dirty };
+    if (dirty.error) return { error: `Could not check for uncommitted changes, so nothing was merged: ${dirty.error}` };
+    if (dirty.count) return { state: 'dirty', base, count: dirty.count };
 
     let fetchNote = null;
     const fetched = await git.fetchBranch(ws.path, base);
@@ -400,6 +401,12 @@ async function abortUpdate(projectPath, id) {
   if (!ws) return { error: 'This workspace is not available.' };
   try {
     if (!(await git.mergeInProgress(ws.path))) return { error: null, aborted: false };
+    // Only abort the merge an update started (MERGE_HEAD is a commit of
+    // origin/<base>): one the user or an agent began is theirs (L13a).
+    const base = ws.base || 'main';
+    if (!(await git.mergeHeadIn(ws.path, `origin/${base}`))) {
+      return { error: `The merge in progress is not an update from ${base} — Frame leaves it for you to finish or abort.`, aborted: false };
+    }
     const res = await git.abortMerge(ws.path);
     return { error: res.error, aborted: !res.error };
   } finally {

@@ -287,3 +287,57 @@ test('L13b: a merge that GitHub only queued is reported as queued, with no archi
   assert.equal(res.fastForward, null, 'no fast-forward for a merge that has not happened');
   assert.equal(fs.existsSync(ws.path), true);
 });
+
+// ─── L8 / L13a / L14: guards fail closed ─────────────────────
+
+test('L8: update from base refuses when the dirty check cannot run', async () => {
+  const { project } = makeProject();
+  const created = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.equal(created.error, null, created.error);
+  const wt = created.workspace.path;
+  const gitBranches = require('../src/main/gitBranchesManager');
+  // Break the worktree's link to its repository: every git command in it fails.
+  const dotGit = path.join(wt, '.git');
+  const link = fs.readFileSync(dotGit, 'utf8');
+  fs.writeFileSync(dotGit, 'gitdir: /nonexistent/frame-test\n');
+  try {
+    const dirty = await gitBranches.trackedDirtyCount(wt);
+    assert.ok(dirty.error, 'the failed check reports an error, not 0');
+    const res = await workspaceGitState.updateFromBase(project, created.workspace.id);
+    assert.ok(res.error, 'update refuses');
+    assert.match(res.error, /uncommitted/);
+  } finally {
+    fs.writeFileSync(dotGit, link);
+  }
+});
+
+test('L13a: Abort Update leaves a merge the user started alone', async () => {
+  const { project } = makeProject();
+  const created = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.equal(created.error, null, created.error);
+  const wt = created.workspace.path;
+  // A side branch that conflicts with the workspace, merged by hand.
+  gitWrite(['checkout', '-qb', 'side'], wt);
+  fs.writeFileSync(path.join(wt, 'c.txt'), 'side\n');
+  gitWrite(['add', '.'], wt); gitWrite(['commit', '-qm', 'side'], wt);
+  gitWrite(['checkout', '-q', created.workspace.branch], wt);
+  fs.writeFileSync(path.join(wt, 'c.txt'), 'mine\n');
+  gitWrite(['add', '.'], wt); gitWrite(['commit', '-qm', 'mine'], wt);
+  try { git(['merge', 'side'], wt); } catch (_) { /* conflict expected */ }
+  assert.ok(git(['rev-parse', '-q', '--verify', 'MERGE_HEAD'], wt));
+  const res = await workspaceGitState.abortUpdate(project, created.workspace.id);
+  assert.ok(res.error, 'refused with a reason');
+  assert.equal(res.aborted, false);
+  assert.ok(git(['rev-parse', '-q', '--verify', 'MERGE_HEAD'], wt), 'the user\'s merge is still there');
+});
+
+test('L14: a missing workspace folder does not switch the review diff off', async () => {
+  const { project } = makeProject();
+  const gitDiff = require('../src/main/gitDiffManager');
+  const gone = path.join(os.tmpdir(), `frame-gone-${Date.now()}`);
+  await gitDiff.reviewFiles(gone, 'main');
+  fs.writeFileSync(path.join(project, 'new.txt'), 'x\n');
+  const res = await gitDiff.reviewFiles(project, 'main');
+  assert.equal(res.error, null, res.error);
+  assert.ok(res.files.some((f) => f.path === 'new.txt'), 'git still runs after the missing folder');
+});

@@ -11,6 +11,7 @@ const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, ORCH_WORKTREES_DIR, orchWorkBranch, orchIntegrationBranch } = require('../shared/frameConstants');
 const { BRANCH_FORMAT, parseBranchLine, splitRemoteRef } = require('./gitBranchRefs');
 const { isValidBranchName } = require('../shared/gitRefNames');
+const { isGitMissing } = require('../shared/gitMissing');
 
 let mainWindow = null;
 
@@ -74,11 +75,11 @@ function execGitArgs(args, projectPath, opts = {}) {
         // spawn reports a missing working directory as ENOENT too (a
         // workspace folder removed by archive): that is not "git missing",
         // and must not switch git off for the rest of the session.
-        if (error.code === 'ENOENT' && projectPath && !fs.existsSync(projectPath)) {
+        if (error.code === 'ENOENT' && !isGitMissing(error, projectPath)) {
           reject({ error: `Folder not found: ${projectPath}` });
           return;
         }
-        if (error.code === 'ENOENT' || error.code === 127) {
+        if (isGitMissing(error, projectPath)) {
           if (!gitMissing) {
             gitMissing = true;
             logger.warn('gitBranches', 'git executable not found — branch/worktree operations disabled');
@@ -639,11 +640,23 @@ async function fastForwardIfOn(projectPath, branch) {
 
 /** Uncommitted changes to tracked files (untracked files never block a merge on their own). */
 async function trackedDirtyCount(cwd) {
+  // `{ count, error }`: a check that could not run must not read as clean
+  // (workspace-hardening L8 — the callers refuse on error).
   try {
     const { stdout } = await execGitArgs(['status', '--porcelain', '--untracked-files=no'], cwd, { maxBuffer: LIST_MAX_BUFFER });
-    return stdout ? stdout.split('\n').filter(Boolean).length : 0;
+    return { count: stdout ? stdout.split('\n').filter(Boolean).length : 0, error: null };
+  } catch (err) {
+    return { count: 0, error: err.error || err.message || 'git status failed' };
+  }
+}
+
+/** Is MERGE_HEAD a commit of `ref` (the merge Frame's update started), not one the user or an agent began? */
+async function mergeHeadIn(cwd, ref) {
+  try {
+    await execGitArgs(['merge-base', '--is-ancestor', 'MERGE_HEAD', ref], cwd);
+    return true;
   } catch (_) {
-    return 0;
+    return false;
   }
 }
 
@@ -912,6 +925,7 @@ module.exports = {
   fastForwardIfOn,
   // Update from base (update-from-base)
   trackedDirtyCount,
+  mergeHeadIn,
   mergeInProgress,
   conflictedFiles,
   mergeRef,
