@@ -14,7 +14,7 @@
  * server root are refused.
  */
 
-const { serverRootFor } = require('../shared/serverRouting');
+const { routeOf } = require('../shared/serverRouting');
 
 const READ_ONLY_FILES = 'Editing files of a server workspace comes in a later update.';
 const READ_ONLY_ACTIONS = 'File actions on server workspaces come in a later update.';
@@ -31,11 +31,29 @@ function roots() {
   }
 }
 
-/** The server workspace a path belongs to: `{ root, host, id, projectPath, serverProjectPath }`, or null. */
-function rootOf(p) {
+/**
+ * The server workspace a panel call belongs to: `{ root, host, id,
+ * projectPath, serverProjectPath }`, or null for a local call. `ctx` is the
+ * caller's `{ workspaceId }`: with it, routing is by id (a local workspace
+ * that shares a server workspace's absolute path stays local); without it,
+ * by path (server-hardening T6, serverRouting.routeOf).
+ */
+function resolve(p, ctx = null) {
   const all = roots();
-  const hit = serverRootFor(p, all.map((r) => r.root));
-  return hit ? all.find((r) => r.root.replace(/\/+$/, '') === hit) || null : null;
+  const locations = {};
+  for (const r of all) locations[r.id] = { path: r.root, host: r.host };
+  const route = routeOf(p, ctx, all, locations);
+  return route.remote || null;
+}
+
+/** Path-only routing, for calls that carry no workspace context. */
+function rootOf(p) {
+  return resolve(p, null);
+}
+
+/** The `{ workspaceId }` context of an IPC payload or trailing argument, or null. */
+function ctxOf(x) {
+  return x && typeof x === 'object' && typeof x.workspaceId === 'string' && x.workspaceId ? { workspaceId: x.workspaceId } : null;
 }
 
 function offlineError(entry) {
@@ -48,4 +66,4 @@ function call(entry, method, params, timeoutMs) {
   return server().call(method, params, timeoutMs);
 }
 
-module.exports = { rootOf, call, offlineError, READ_ONLY_FILES, READ_ONLY_ACTIONS };
+module.exports = { resolve, rootOf, ctxOf, call, offlineError, READ_ONLY_FILES, READ_ONLY_ACTIONS };

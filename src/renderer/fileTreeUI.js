@@ -10,6 +10,14 @@ const taskConfirmModal = require('./taskConfirmModal');
 
 let fileTreeElement = null;
 let currentProjectPath = null;
+// The workspace the shown tree belongs to: every call about it carries this
+// id, so main routes by workspace, not by path (server-hardening T6).
+let treeWorkspaceId = null;
+let workspaceIdGetter = null;
+const treeCtx = () => {
+  const id = treeWorkspaceId || (workspaceIdGetter && workspaceIdGetter()) || null;
+  return id ? { workspaceId: id } : null;
+};
 let onFileClickCallback = null;
 let focusedItem = null;
 
@@ -65,6 +73,11 @@ function init(elementId, getProjectPath) {
  */
 function setProjectPathGetter(getter) {
   currentProjectPath = getter;
+}
+
+/** Where the selected workspace's id comes from when a load names none. */
+function setWorkspaceIdGetter(getter) {
+  workspaceIdGetter = getter;
 }
 
 /**
@@ -190,16 +203,22 @@ function clearFileTree({ unwatch = false } = {}) {
 function refreshFileTree(projectPath) {
   const path = projectPath || (currentProjectPath && currentProjectPath());
   if (path) {
-    ipcRenderer.send(IPC.LOAD_FILE_TREE, path);
+    ipcRenderer.send(IPC.LOAD_FILE_TREE, path, treeCtx());
   }
 }
 
 /**
  * Load file tree for path
  */
-function loadFileTree(projectPath) {
-  ipcRenderer.send(IPC.LOAD_FILE_TREE, projectPath);
-  ipcRenderer.send(IPC.WATCH_GIT_STATUS, projectPath);
+function loadFileTree(projectPath, workspaceId = null) {
+  treeWorkspaceId = workspaceId || (workspaceIdGetter && workspaceIdGetter()) || null;
+  ipcRenderer.send(IPC.LOAD_FILE_TREE, projectPath, treeCtx());
+  ipcRenderer.send(IPC.WATCH_GIT_STATUS, projectPath, treeCtx());
+}
+
+/** The `{ workspaceId }` of the shown tree, for files opened from it. */
+function getTreeContext() {
+  return treeCtx();
 }
 
 /**
@@ -610,7 +629,7 @@ async function pasteInto(destDir) {
   if (fileClipboard && refuseOnServer(destDir, fileClipboard.path)) return;
   if (!fileClipboard || !destDir) return;
   const { path: source, mode } = fileClipboard;
-  const result = await ipcRenderer.invoke(IPC.FILE_TREE_PASTE, { source, mode, destDir });
+  const result = await ipcRenderer.invoke(IPC.FILE_TREE_PASTE, { source, mode, destDir, ...(treeCtx() || {}) });
   if (!result || !result.ok) {
     notify.error(`Couldn't paste "${baseName(source)}": ${result ? result.error : 'unknown error'}`);
     return;
@@ -656,7 +675,7 @@ function startRename(targetPath) {
     input.replaceWith(nameEl);
     if (!commit || !newName || newName === oldName) return;
 
-    const result = await ipcRenderer.invoke(IPC.FILE_TREE_RENAME, targetPath, newName);
+    const result = await ipcRenderer.invoke(IPC.FILE_TREE_RENAME, targetPath, newName, treeCtx());
     if (!result || !result.ok) {
       notify.error(`Couldn't rename "${oldName}": ${result ? result.error : 'unknown error'}`);
       return;
@@ -694,7 +713,7 @@ function confirmDelete(target) {
     message: `"${name}" will be moved to the Trash.`,
     confirmLabel: 'Move to Trash',
     onConfirm: async () => {
-      const result = await ipcRenderer.invoke(IPC.FILE_TREE_TRASH, target.path);
+      const result = await ipcRenderer.invoke(IPC.FILE_TREE_TRASH, target.path, treeCtx());
       if (!result || !result.ok) {
         notify.error(`Couldn't delete "${name}": ${result ? result.error : 'unknown error'}`);
         return;
@@ -761,6 +780,8 @@ function applyGitStatusDecoration() {
 module.exports = {
   init,
   setProjectPathGetter,
+  setWorkspaceIdGetter,
+  getTreeContext,
   setOnFileClick,
   renderFileTree,
   clearFileTree,

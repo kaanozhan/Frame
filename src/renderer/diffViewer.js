@@ -62,7 +62,7 @@ function init() {
  */
 async function open(opts) {
   if (!overlay) return;
-  const { projectPath, relPath, staged } = opts || {};
+  const { projectPath, relPath, staged, workspaceId } = opts || {};
   if (!projectPath || !relPath) return;
 
   filenameEl.textContent = relPath;
@@ -81,7 +81,8 @@ async function open(opts) {
     result = await ipcRenderer.invoke(IPC.GET_GIT_DIFF, {
       projectPath,
       relPath,
-      staged: !!staged
+      staged: !!staged,
+      ...(workspaceId ? { workspaceId } : {})
     });
   } catch (err) {
     if (currentRequest !== requestId) return;

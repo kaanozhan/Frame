@@ -24,6 +24,11 @@
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../../shared/ipcChannels');
+// Branch calls name the selected workspace (server-hardening T6).
+const wsCtx = () => {
+  const ws = require('../state').getWorkspace();
+  return ws && ws.id ? { workspaceId: ws.id } : {};
+};
 const { GitBranch, Cloud, Plus, Settings2, Check } = require('lucide');
 const state = require('../state');
 const dock = require('../dock');
@@ -146,8 +151,8 @@ async function open() {
   let worktrees;
   try {
     [branches, worktrees] = await Promise.all([
-      ipcRenderer.invoke(IPC.LOAD_GIT_BRANCHES, projectPath),
-      ipcRenderer.invoke(IPC.LOAD_GIT_WORKTREES, projectPath)
+      ipcRenderer.invoke(IPC.LOAD_GIT_BRANCHES, projectPath, wsCtx()),
+      ipcRenderer.invoke(IPC.LOAD_GIT_WORKTREES, projectPath, wsCtx())
     ]);
   } catch (err) {
     branches = { error: (err && err.message) || 'Could not read branches', branches: [] };
@@ -303,10 +308,11 @@ async function _activate(index) {
     let result;
     if (item.kind === 'create') {
       result = await ipcRenderer.invoke(IPC.CREATE_GIT_BRANCH, {
+        ...wsCtx(),
         projectPath, branchName: item.name, checkout: true
       });
     } else {
-      result = await ipcRenderer.invoke(IPC.SWITCH_GIT_BRANCH, { projectPath, branchName: item.ref });
+      result = await ipcRenderer.invoke(IPC.SWITCH_GIT_BRANCH, { projectPath, branchName: item.ref, ...wsCtx() });
     }
     if (!opened || state.getWorkspaceRoot() !== projectPath) return;
 

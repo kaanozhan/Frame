@@ -131,13 +131,14 @@ function init() {
   // workspace's folder; main is the project itself (workspaces spec).
   fileTreeUI.init('file-tree', state.getWorkspaceRoot);
   fileTreeUI.setProjectPathGetter(state.getWorkspaceRoot);
+  fileTreeUI.setWorkspaceIdGetter(() => (state.getWorkspace() || {}).id || null);
 
   // Git Changes panel (Changes sidebar tab); a row click opens that file's
   // diff as a section tab (next to Home / Terminals), navigable with ◀ / ▶.
   gitChangesPanel.init({
     onRowClick: ({ projectPath, relPath, staged }) => {
       if (!projectPath || !relPath) return;
-      diffSection.open({ projectPath, relPath, staged });
+      diffSection.open({ projectPath, relPath, staged, workspaceId: (state.getWorkspace() || {}).id || null });
     }
   });
 
@@ -148,7 +149,7 @@ function init() {
 
   // Connect file tree clicks to editor
   fileTreeUI.setOnFileClick((filePath, source) => {
-    editor.openFile(filePath, source);
+    editor.openFile(filePath, source, fileTreeUI.getTreeContext());
   });
 
   // Initialize tasks panel
@@ -283,7 +284,7 @@ function init() {
     const rec = serverRecordOf(ws);
     const up = require('./serverConnect').getStatus().state === 'connected';
     if (rec && (rec.offline || !up)) showServerOffline(rec);
-    else if (ws && ws.root) fileTreeUI.loadFileTree(ws.root);
+    else if (ws && ws.root) fileTreeUI.loadFileTree(ws.root, ws.id);
   };
   state.onWorkspaceChange((ws) => {
     loadCheckout(ws);

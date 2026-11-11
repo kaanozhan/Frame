@@ -86,7 +86,8 @@ function createViewport() {
       result = await ipcRenderer.invoke(IPC.GET_GIT_DIFF, {
         projectPath: cur.projectPath,
         relPath: cur.relPath,
-        staged: cur.staged
+        staged: cur.staged,
+        ...(cur.workspaceId ? { workspaceId: cur.workspaceId } : {})
       });
     } catch (err) {
       if (id !== reqId) return;

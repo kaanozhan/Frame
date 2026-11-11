@@ -156,3 +156,12 @@ test('T3: adopt says "cannot tell" (null) while offline, so lanes are kept', asy
     assert.equal(await adopt(), null);
   } finally { fakeServer.connected = true; }
 });
+
+test('T2: connecting to another host forgets the previous host\'s server terminals', () => {
+  fakeServer.emit('connected', { host: 'box' });
+  pty.noteServerTerminal('srv-x-9', { projectPath: '/p', workspaceId: 'remote-ws' });
+  fakeServer.emit('connected', { host: 'box' });
+  assert.ok(pty.serverTerminalInfo('srv-x-9'), 'same host: kept');
+  fakeServer.emit('connected', { host: 'other-box' });
+  assert.equal(pty.serverTerminalInfo('srv-x-9'), null, 'another host: forgotten');
+});

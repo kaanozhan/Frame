@@ -162,7 +162,34 @@ function mergeGitStatePayloads(local, server, projectPath) {
   };
 }
 
+/**
+ * Where a panel call goes (server-hardening T6): `{ remote: rootEntry }` or
+ * `{ local: true }`. The caller's workspace id decides — `main` or a local
+ * workspace is local even when a server workspace has the same absolute path
+ * (two machines sharing a home path); a server workspace id routes to it when
+ * the path lies in its folder. Only a call without a workspace id falls back
+ * to matching the path against the known server folders.
+ *   roots:     [{ root, id, host, … }] (workspaceManager.serverRoots())
+ *   locations: { [workspaceId]: { path, host } } for server workspaces
+ */
+function routeOf(p, ctx, roots, locations) {
+  const id = ctx && typeof ctx.workspaceId === 'string' ? ctx.workspaceId : null;
+  if (id) {
+    const loc = locations && locations[id];
+    if (!loc) return { local: true };
+    const hit = serverRootFor(p, [loc.path]);
+    if (!hit) return { local: true };
+    const entry = (roots || []).find((r) => r.id === id) || { root: loc.path, id, host: loc.host };
+    return { remote: entry };
+  }
+  const all = roots || [];
+  const hit = serverRootFor(p, all.map((r) => r.root));
+  const entry = hit ? all.find((r) => String(r.root).replace(/\/+$/, '') === hit) : null;
+  return entry ? { remote: entry } : { local: true };
+}
+
 module.exports = {
+  routeOf,
   serverRootFor,
   mergeGitStatePayloads,
   SERVER_TERMINAL_PREFIX,

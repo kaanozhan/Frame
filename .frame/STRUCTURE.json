@@ -1717,7 +1717,7 @@
           "FILE_SAVED"
         ]
       },
-      "sizeBytes": 2275,
+      "sizeBytes": 2406,
       "extraction": {
         "status": "parsed"
       },
@@ -1822,7 +1822,7 @@
           "FILE_TREE_DATA"
         ]
       },
-      "sizeBytes": 6773,
+      "sizeBytes": 6986,
       "extraction": {
         "status": "parsed"
       },
@@ -3100,7 +3100,7 @@
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
       },
-      "sizeBytes": 36253,
+      "sizeBytes": 36406,
       "extraction": {
         "status": "parsed"
       },
@@ -3184,14 +3184,14 @@
           ]
         },
         "runDiff": {
-          "line": 84,
+          "line": 85,
           "params": [
             "cwd",
             "args"
           ]
         },
         "mergeBaseOf": {
-          "line": 125,
+          "line": 126,
           "params": [
             "root",
             "base"
@@ -3199,7 +3199,7 @@
           "purpose": "Merge base of HEAD with origin/<base>, else with the local <base>."
         },
         "hashFiles": {
-          "line": 135,
+          "line": 136,
           "params": [
             "root",
             "paths"
@@ -3207,7 +3207,7 @@
           "purpose": "Content hashes for existing files, `{ path: sha }`, in chunks."
         },
         "countLines": {
-          "line": 150,
+          "line": 151,
           "params": [
             "root",
             "paths"
@@ -3215,14 +3215,14 @@
           "purpose": "Line counts for small text untracked files (shown as +N)."
         },
         "reviewFiles": {
-          "line": 167,
+          "line": 168,
           "params": [
             "root",
             "base"
           ]
         },
         "reviewFileDiff": {
-          "line": 191,
+          "line": 192,
           "params": [
             "root",
             "{ mergeBase",
@@ -3232,7 +3232,7 @@
           ]
         },
         "detectBinary": {
-          "line": 205,
+          "line": 206,
           "params": [
             "diff"
           ]
@@ -3246,7 +3246,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 8613,
+      "sizeBytes": 8773,
       "extraction": {
         "status": "parsed"
       },
@@ -3549,7 +3549,8 @@
         "watch": {
           "line": 86,
           "params": [
-            "projectPath"
+            "projectPath",
+            "ctx = null"
           ]
         },
         "setupIPC": {
@@ -3645,7 +3646,7 @@
           "GIT_STATUS_DATA"
         ]
       },
-      "sizeBytes": 16521,
+      "sizeBytes": 16571,
       "extraction": {
         "status": "parsed"
       },
@@ -5569,14 +5570,14 @@
           "line": 527
         },
         "adoptServerTerminals": {
-          "line": 554,
+          "line": 562,
           "params": [
             "projectPath"
           ],
           "purpose": "The connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 592,
+          "line": 600,
           "params": [
             "ipcMain"
           ]
@@ -5599,7 +5600,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 25104,
+      "sizeBytes": 25396,
       "extraction": {
         "status": "parsed"
       },
@@ -6023,7 +6024,9 @@
       "file": "src/main/serverPanels.js",
       "description": "Server panels — the desktop half of routing a server workspace's panels",
       "exports": [
+        "resolve",
         "rootOf",
+        "ctxOf",
         "call",
         "offlineError",
         "READ_ONLY_FILES",
@@ -6041,21 +6044,36 @@
         "roots": {
           "line": 26
         },
+        "resolve": {
+          "line": 41,
+          "params": [
+            "p",
+            "ctx = null"
+          ],
+          "purpose": "The server workspace a panel call belongs to: `{ root, host, id,"
+        },
         "rootOf": {
-          "line": 35,
+          "line": 50,
           "params": [
             "p"
           ],
-          "purpose": "The server workspace a path belongs to: `{ root, host, id, projectPath, serverProjectPath }`, or null."
+          "purpose": "Path-only routing, for calls that carry no workspace context."
+        },
+        "ctxOf": {
+          "line": 55,
+          "params": [
+            "x"
+          ],
+          "purpose": "The `{ workspaceId }` context of an IPC payload or trailing argument, or null."
         },
         "offlineError": {
-          "line": 41,
+          "line": 59,
           "params": [
             "entry"
           ]
         },
         "call": {
-          "line": 46,
+          "line": 64,
           "params": [
             "entry",
             "method",
@@ -6065,7 +6083,7 @@
           "purpose": "A server call for a routed panel; rejects with the offline error while disconnected."
         }
       },
-      "sizeBytes": 1982,
+      "sizeBytes": 2655,
       "extraction": {
         "status": "parsed"
       },
@@ -6073,7 +6091,9 @@
         "description": "04141028083ea787",
         "purposes": {
           "call": "31fa5a587531cd4f",
-          "rootOf": "2ee6cf11730dd053"
+          "ctxOf": "61cd31677c49181a",
+          "resolve": "d05d7df7f02ece5c",
+          "rootOf": "ead6ea60dc87e11b"
         }
       }
     },
@@ -8094,14 +8114,29 @@
         "server": {
           "line": 155
         },
+        "currentHost": {
+          "line": 160,
+          "purpose": "The host the desktop is (or was last) connected to."
+        },
+        "rowsFor": {
+          "line": 169,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Cached server rows of `projectPath`, only when they belong to the current"
+        },
+        "currentEntries": {
+          "line": 175,
+          "purpose": "The current host's entries only."
+        },
         "originOf": {
-          "line": 159,
+          "line": 180,
           "params": [
             "projectPath"
           ]
         },
         "serverProjectFor": {
-          "line": 169,
+          "line": 190,
           "params": [
             "projectPath",
             "{ ensure = false } = {}"
@@ -8109,7 +8144,7 @@
           "purpose": "The server's clone of `projectPath` (by remote), cloning it when `ensure`."
         },
         "toServerRow": {
-          "line": 190,
+          "line": 211,
           "params": [
             "row",
             "serverProjectPath",
@@ -8117,24 +8152,24 @@
           ]
         },
         "listServer": {
-          "line": 194,
+          "line": 215,
           "params": [
             "projectPath"
           ]
         },
         "serverRoots": {
-          "line": 217,
+          "line": 238,
           "purpose": "Every known server workspace folder (server-workspace-panels): what panel"
         },
         "serverLocation": {
-          "line": 228,
+          "line": 249,
           "params": [
             "workspaceId"
           ],
           "purpose": "Where a workspace id lives on the server, or null when it is not a server workspace."
         },
         "serverCall": {
-          "line": 236,
+          "line": 257,
           "params": [
             "method",
             "projectPath",
@@ -8143,7 +8178,7 @@
           ]
         },
         "createOnServer": {
-          "line": 245,
+          "line": 266,
           "params": [
             "projectPath",
             "{ from",
@@ -8152,35 +8187,35 @@
           ]
         },
         "notifyRenderer": {
-          "line": 264,
+          "line": 285,
           "params": [
             "projectPath"
           ],
           "purpose": "Tell the renderer only (no spec/git refresh — those are local concerns)."
         },
         "wireServerEvents": {
-          "line": 269
+          "line": 290
         },
         "list": {
-          "line": 283,
+          "line": 309,
           "params": [
             "projectPath"
           ]
         },
         "realPath": {
-          "line": 291,
+          "line": 317,
           "params": [
             "p"
           ]
         },
         "listLocal": {
-          "line": 295,
+          "line": 321,
           "params": [
             "projectPath"
           ]
         },
         "withBase": {
-          "line": 314,
+          "line": 340,
           "params": [
             "projectPath",
             "rows"
@@ -8188,7 +8223,7 @@
           "purpose": "Records stored before workspaces knew their base (`base: null`) read as the"
         },
         "baseForBranch": {
-          "line": 321,
+          "line": 347,
           "params": [
             "projectPath",
             "branch"
@@ -8196,14 +8231,14 @@
           "purpose": "The base to prefill for a workspace opened from `branch` (decision B2)."
         },
         "status": {
-          "line": 330,
+          "line": 356,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "create": {
-          "line": 349,
+          "line": 375,
           "params": [
             "projectPath",
             "{ from = 'new'",
@@ -8214,14 +8249,14 @@
           "purpose": "Create a workspace."
         },
         "refExists": {
-          "line": 454,
+          "line": 480,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "archive": {
-          "line": 470,
+          "line": 496,
           "params": [
             "projectPath",
             "id",
@@ -8232,7 +8267,7 @@
           "purpose": "Archive. With uncommitted changes and no `action`, nothing happens and"
         },
         "restore": {
-          "line": 525,
+          "line": 551,
           "params": [
             "projectPath",
             "id"
@@ -8240,7 +8275,7 @@
           "purpose": "Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere."
         },
         "rename": {
-          "line": 550,
+          "line": 576,
           "params": [
             "projectPath",
             "id",
@@ -8250,7 +8285,7 @@
           "purpose": "Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`)."
         },
         "removeRecord": {
-          "line": 584,
+          "line": 610,
           "params": [
             "projectPath",
             "id"
@@ -8258,13 +8293,13 @@
           "purpose": "Forget a record whose worktree is gone (missing) or that is archived."
         },
         "setupIPC": {
-          "line": 600,
+          "line": 626,
           "params": [
             "ipcMain"
           ]
         },
         "archiveQueued": {
-          "line": 627,
+          "line": 653,
           "params": [
             "projectPath",
             "id",
@@ -8291,7 +8326,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 28071,
+      "sizeBytes": 28997,
       "extraction": {
         "status": "parsed"
       },
@@ -8303,10 +8338,13 @@
           "baseForBranch": "1223888f6b097dbf",
           "copyIgnoredFiles": "7e0ac6d8b34d7685",
           "create": "49e97b4073070fcc",
+          "currentEntries": "15be72a4b1278675",
+          "currentHost": "7074067f14ad1110",
           "notifyRenderer": "f9f667afbfb4fe2c",
           "removeRecord": "cfa0e770acc4b861",
           "rename": "3e9545571f850334",
           "restore": "6f2ad8b2b915b68e",
+          "rowsFor": "4514664a6659fead",
           "serialize": "e12d4daf0f07ad77",
           "serverLocation": "a527f36a1d60a981",
           "serverProjectFor": "e6b28242755cee20",
@@ -9562,16 +9600,16 @@
           "line": 45
         },
         "_orderedFiles": {
-          "line": 191
+          "line": 192
         },
         "_basename": {
-          "line": 199,
+          "line": 200,
           "params": [
             "p"
           ]
         },
         "_escape": {
-          "line": 205,
+          "line": 206,
           "params": [
             "text"
           ]
@@ -9583,7 +9621,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 7331,
+      "sizeBytes": 7401,
       "extraction": {
         "status": "parsed"
       },
@@ -9618,28 +9656,28 @@
           "purpose": "Open the diff viewer for the given file."
         },
         "close": {
-          "line": 110
+          "line": 111
         },
         "setMode": {
-          "line": 119,
+          "line": 120,
           "params": [
             "mode"
           ]
         },
         "renderCurrent": {
-          "line": 127
+          "line": 128
         },
         "showLoading": {
-          "line": 138
+          "line": 139
         },
         "showEmpty": {
-          "line": 144,
+          "line": 145,
           "params": [
             "message"
           ]
         }
       },
-      "sizeBytes": 4019,
+      "sizeBytes": 4079,
       "extraction": {
         "status": "parsed"
       },
@@ -10277,34 +10315,36 @@
         "electron",
         "shared/ipcChannels",
         "marked",
+        "state",
         "notify"
       ],
       "functions": {
         "init": {
-          "line": 30,
+          "line": 31,
           "params": [
             "onRefreshFileTree"
           ],
           "purpose": "Initialize editor module"
         },
         "openFile": {
-          "line": 50,
+          "line": 51,
           "params": [
             "filePath",
-            "source = 'terminal'"
+            "source = 'terminal'",
+            "ctx = null"
           ],
           "purpose": "Open file in editor"
         },
         "closeEditor": {
-          "line": 58,
+          "line": 63,
           "purpose": "Close editor"
         },
         "saveFile": {
-          "line": 89,
+          "line": 94,
           "purpose": "Save file"
         },
         "updateStatus": {
-          "line": 106,
+          "line": 112,
           "params": [
             "status",
             "className = ''"
@@ -10312,27 +10352,27 @@
           "purpose": "Update editor status"
         },
         "checkModified": {
-          "line": 116,
+          "line": 122,
           "purpose": "Check if content is modified"
         },
         "togglePreview": {
-          "line": 130,
+          "line": 136,
           "purpose": "Toggle between raw text and rendered markdown preview"
         },
         "setupEventHandlers": {
-          "line": 147,
+          "line": 153,
           "purpose": "Setup event handlers"
         },
         "setupIPC": {
-          "line": 213,
+          "line": 219,
           "purpose": "Setup IPC listeners"
         },
         "isEditorOpen": {
-          "line": 290,
+          "line": 296,
           "purpose": "Check if editor is open"
         },
         "getCurrentFile": {
-          "line": 297,
+          "line": 303,
           "purpose": "Get currently editing file path"
         }
       },
@@ -10346,7 +10386,7 @@
           "WRITE_FILE"
         ]
       },
-      "sizeBytes": 9010,
+      "sizeBytes": 9445,
       "extraction": {
         "status": "parsed"
       },
@@ -10515,6 +10555,8 @@
       "exports": [
         "init",
         "setProjectPathGetter",
+        "setWorkspaceIdGetter",
+        "getTreeContext",
         "setOnFileClick",
         "renderFileTree",
         "clearFileTree",
@@ -10533,7 +10575,7 @@
       ],
       "functions": {
         "init": {
-          "line": 50,
+          "line": 58,
           "params": [
             "elementId",
             "getProjectPath"
@@ -10541,21 +10583,28 @@
           "purpose": "Initialize file tree UI"
         },
         "setProjectPathGetter": {
-          "line": 66,
+          "line": 74,
           "params": [
             "getter"
           ],
           "purpose": "Set project path getter"
         },
+        "setWorkspaceIdGetter": {
+          "line": 79,
+          "params": [
+            "getter"
+          ],
+          "purpose": "Where the selected workspace's id comes from when a load names none."
+        },
         "setOnFileClick": {
-          "line": 73,
+          "line": 86,
           "params": [
             "callback"
           ],
           "purpose": "Set file click callback"
         },
         "renderFileTree": {
-          "line": 80,
+          "line": 93,
           "params": [
             "files",
             "parentElement",
@@ -10564,96 +10613,101 @@
           "purpose": "Render file tree recursively"
         },
         "clearFileTree": {
-          "line": 176,
+          "line": 189,
           "params": [
             "{ unwatch = false } = {}"
           ],
           "purpose": "Clear file tree"
         },
         "refreshFileTree": {
-          "line": 190,
+          "line": 203,
           "params": [
             "projectPath"
           ],
           "purpose": "Refresh file tree"
         },
         "loadFileTree": {
-          "line": 200,
+          "line": 213,
           "params": [
-            "projectPath"
+            "projectPath",
+            "workspaceId = null"
           ],
           "purpose": "Load file tree for path"
         },
+        "getTreeContext": {
+          "line": 220,
+          "purpose": "The `{ workspaceId }` of the shown tree, for files opened from it."
+        },
         "setupIPC": {
-          "line": 208,
+          "line": 227,
           "purpose": "Setup IPC listeners"
         },
         "setFolderExpanded": {
-          "line": 237,
+          "line": 256,
           "params": [
             "folderItem",
             "expanded"
           ]
         },
         "getExpandedFolderPaths": {
-          "line": 245
+          "line": 264
         },
         "restoreExpandedFolders": {
-          "line": 256,
+          "line": 275,
           "params": [
             "paths"
           ]
         },
         "focus": {
-          "line": 266,
+          "line": 285,
           "purpose": "Focus file tree for keyboard navigation"
         },
         "getVisibleItems": {
-          "line": 296,
+          "line": 315,
           "purpose": "Get all visible file items (for navigation). Uses offsetParent so it"
         },
         "handleKeydown": {
-          "line": 305,
+          "line": 324,
           "params": [
             "e"
           ],
           "purpose": "Handle keyboard navigation in file tree"
         },
         "blur": {
-          "line": 367,
+          "line": 386,
           "purpose": "Blur/unfocus file tree"
         },
         "setupSearch": {
-          "line": 377
+          "line": 396
         },
         "applyFilter": {
-          "line": 405,
+          "line": 424,
           "params": [
             "query"
           ]
         },
         "filterWrapper": {
-          "line": 418,
+          "line": 437,
           "params": [
             "wrapper",
             "query"
           ]
         },
         "setupContextMenu": {
-          "line": 454
+          "line": 473
         },
         "getProjectRoot": {
-          "line": 495
+          "line": 514
         },
         "configureMenu": {
-          "line": 504,
+          "line": 523,
           "params": [
             "target"
           ],
           "purpose": "Show only what applies to the target: the project root gets Paste alone;"
         },
         "showContextMenu": {
-          "line": 523,
+          "line": 542,
           "params": [
             "x",
             "y",
@@ -10661,60 +10715,63 @@
           ]
         },
         "hideContextMenu": {
-          "line": 541
+          "line": 560
         },
         "handleContextMenuAction": {
-          "line": 547,
+          "line": 566,
           "params": [
             "action",
             "target"
           ]
         },
         "baseName": {
-          "line": 578,
+          "line": 597,
           "params": [
             "p"
           ]
         },
         "applyCutDecoration": {
-          "line": 583,
+          "line": 602,
           "purpose": "Dim the row that is cut and waiting for a paste."
         },
         "refuseOnServer": {
-          "line": 599,
+          "line": 618,
           "params": [
             "...paths"
           ],
           "purpose": "Server workspaces are read-only in the tree for now"
         },
         "pasteInto": {
-          "line": 609,
+          "line": 628,
           "params": [
             "destDir"
           ]
         },
         "findItem": {
-          "line": 625,
+          "line": 644,
           "params": [
             "p"
           ]
         },
         "startRename": {
-          "line": 636,
+          "line": 655,
           "params": [
             "targetPath"
           ],
           "purpose": "Inline rename: the name span becomes an input. Enter or blur commits,"
         },
         "confirmDelete": {
-          "line": 689,
+          "line": 708,
           "params": [
             "target"
           ]
         },
         "applyGitStatusDecoration": {
-          "line": 715,
+          "line": 734,
           "purpose": "Walk every rendered .file-item and apply the git status class matching its"
+        },
+        "treeCtx": {
+          "line": 17
         }
       },
       "ipc": {
@@ -10729,7 +10786,7 @@
           "WATCH_GIT_STATUS"
         ]
       },
-      "sizeBytes": 24510,
+      "sizeBytes": 25369,
       "extraction": {
         "status": "parsed"
       },
@@ -10742,6 +10799,7 @@
           "clearFileTree": "789d46c61d18f1bb",
           "configureMenu": "22e39c65c3543d80",
           "focus": "9a85b10a099de7d9",
+          "getTreeContext": "8b31d0481e4cb3b5",
           "getVisibleItems": "cbf7c829e8121fad",
           "handleKeydown": "a97e3a7adab02564",
           "init": "fe2f0b37b985b9d3",
@@ -10751,6 +10809,7 @@
           "renderFileTree": "c72a5a14c2b731e9",
           "setOnFileClick": "afd80fa6df989f16",
           "setProjectPathGetter": "0e3ea361f9bf955b",
+          "setWorkspaceIdGetter": "53d9f4f8cbcefc79",
           "setupIPC": "4c49f7443d20ad7c",
           "startRename": "65cca67936a536f7"
         }
@@ -11287,101 +11346,101 @@
         "electron",
         "lucide",
         "shared/ipcChannels",
+        "state",
         "htmlUtils",
         "notify",
         "taskConfirmModal",
         "dock",
         "github/sectionState",
         "github/accessState",
-        "github/rowModels",
-        "state"
+        "github/rowModels"
       ],
       "functions": {
         "resetCache": {
-          "line": 106
-        },
-        "projectPath": {
           "line": 112
         },
+        "projectPath": {
+          "line": 118
+        },
         "init": {
-          "line": 123,
+          "line": 129,
           "params": [
             "opts = {}"
           ],
           "purpose": "Opens a terminal lane (optionally in `cwd`) and types `command` into it."
         },
         "readStored": {
-          "line": 173
+          "line": 179
         },
         "persistSections": {
-          "line": 181
+          "line": 187
         },
         "paintStaticIcons": {
-          "line": 189
+          "line": 195
         },
         "setupEventListeners": {
-          "line": 204
+          "line": 210
         },
         "show": {
-          "line": 310,
+          "line": 316,
           "purpose": "Called on every reveal of the tab (revealSidebarTab → show()). Resolves"
         },
         "hide": {
-          "line": 324
+          "line": 330
         },
         "toggle": {
-          "line": 329,
+          "line": 335,
           "purpose": "Kept for callers of the old slide-in API; the tab has no closed state."
         },
         "loadAccess": {
-          "line": 335,
+          "line": 341,
           "params": [
             "force"
           ]
         },
         "isAvailable": {
-          "line": 351,
+          "line": 357,
           "params": [
             "id"
           ]
         },
         "renderHead": {
-          "line": 355
+          "line": 361
         },
         "renderState": {
-          "line": 362
+          "line": 368
         },
         "signIn": {
-          "line": 391
+          "line": 397
         },
         "toggleSection": {
-          "line": 402,
+          "line": 408,
           "params": [
             "id"
           ]
         },
         "revealSection": {
-          "line": 419,
+          "line": 425,
           "params": [
             "id"
           ],
           "purpose": "Expand one section from outside the panel (the status bar's branch picker"
         },
         "toggleSubgroup": {
-          "line": 430,
+          "line": 436,
           "params": [
             "id"
           ]
         },
         "applySections": {
-          "line": 436
+          "line": 442
         },
         "loadExpanded": {
-          "line": 447,
+          "line": 453,
           "purpose": "Every expanded, available section: cached rows now, a reload behind."
         },
         "onSectionAction": {
-          "line": 454,
+          "line": 460,
           "params": [
             "id",
             "action",
@@ -11389,18 +11448,18 @@
           ]
         },
         "refreshAll": {
-          "line": 468,
+          "line": 474,
           "purpose": "Head refresh (G6): re-run the access check with force, then reload every"
         },
         "invokeSection": {
-          "line": 487,
+          "line": 493,
           "params": [
             "id",
             "path"
           ]
         },
         "loadSection": {
-          "line": 521,
+          "line": 527,
           "params": [
             "id",
             "opts = {}"
@@ -11408,75 +11467,75 @@
           "purpose": "Load one section into its cache and re-render it. A section that is not"
         },
         "visibleRows": {
-          "line": 562,
+          "line": 568,
           "params": [
             "id"
           ]
         },
         "findRow": {
-          "line": 568,
+          "line": 574,
           "params": [
             "id",
             "rowId"
           ]
         },
         "noteHtml": {
-          "line": 574,
+          "line": 580,
           "params": [
             "text",
             "kind = ''"
           ]
         },
         "unavailableNote": {
-          "line": 578
+          "line": 584
         },
         "emptyNote": {
-          "line": 585,
+          "line": 591,
           "params": [
             "id"
           ]
         },
         "renderSection": {
-          "line": 594,
+          "line": 600,
           "params": [
             "id"
           ]
         },
         "rowHtml": {
-          "line": 655,
+          "line": 661,
           "params": [
             "row"
           ]
         },
         "hintLabel": {
-          "line": 689,
+          "line": 695,
           "params": [
             "h"
           ]
         },
         "rowTitle": {
-          "line": 700,
+          "line": 706,
           "params": [
             "row"
           ]
         },
         "selectRow": {
-          "line": 715,
+          "line": 721,
           "params": [
             "row"
           ]
         },
         "clearSearch": {
-          "line": 726
+          "line": 732
         },
         "menusOpen": {
-          "line": 735
+          "line": 741
         },
         "hideMenus": {
-          "line": 740
+          "line": 746
         },
         "placeMenu": {
-          "line": 747,
+          "line": 753,
           "params": [
             "menuEl",
             "x",
@@ -11484,7 +11543,7 @@
           ]
         },
         "showContextMenu": {
-          "line": 758,
+          "line": 764,
           "params": [
             "row",
             "x",
@@ -11492,103 +11551,107 @@
           ]
         },
         "showFilterMenu": {
-          "line": 768,
+          "line": 774,
           "params": [
             "id",
             "anchorBtn"
           ]
         },
         "setFilter": {
-          "line": 780,
+          "line": 786,
           "params": [
             "id",
             "filter"
           ]
         },
         "runAction": {
-          "line": 794,
+          "line": 800,
           "params": [
             "row",
             "action"
           ]
         },
         "openOnGitHub": {
-          "line": 809,
+          "line": 815,
           "params": [
             "row"
           ],
           "purpose": "D2: the browser opens only from the action or the context menu."
         },
         "afterCheckoutChange": {
-          "line": 814,
+          "line": 820,
           "purpose": "D13: after a checkout-changing action the status bar and Changes follow."
         },
         "reportDirty": {
-          "line": 819,
+          "line": 825,
           "params": [
             "result"
           ]
         },
         "switchBranch": {
-          "line": 827,
+          "line": 833,
           "params": [
             "row"
           ]
         },
         "checkoutPullRequest": {
-          "line": 844,
+          "line": 850,
           "params": [
             "row"
           ]
         },
         "startWork": {
-          "line": 862,
+          "line": 868,
           "params": [
             "row"
           ],
           "purpose": "D1: branch only — `issue-<n>-<slug>` from the current branch, checked out."
         },
         "confirmModal": {
-          "line": 890,
+          "line": 897,
           "params": [
             "opts"
           ]
         },
         "deleteBranch": {
-          "line": 902,
+          "line": 909,
           "params": [
             "row"
           ]
         },
         "openTerminalHere": {
-          "line": 935,
+          "line": 942,
           "params": [
             "row"
           ]
         },
         "removeWorktree": {
-          "line": 943,
+          "line": 950,
           "params": [
             "row"
           ]
         },
         "setupModalListeners": {
-          "line": 979
+          "line": 986
         },
         "showCreateBranchModal": {
-          "line": 1007
+          "line": 1014
         },
         "populateBaseBranchSelect": {
-          "line": 1023,
+          "line": 1030,
           "params": [
             "select"
           ]
         },
         "hideCreateBranchModal": {
-          "line": 1051
+          "line": 1058
         },
         "handleCreateBranch": {
-          "line": 1056
+          "line": 1063
+        },
+        "wsCtx": {
+          "line": 35,
+          "purpose": "Branch and worktree calls name the selected workspace, so main routes them"
         }
       },
       "ipc": {
@@ -11598,7 +11661,7 @@
           "REFRESH_GIT_STATUS"
         ]
       },
-      "sizeBytes": 37033,
+      "sizeBytes": 37404,
       "extraction": {
         "status": "parsed"
       },
@@ -11614,7 +11677,8 @@
           "revealSection": "17ed011bcdd7319c",
           "show": "5a4e0ab909e691a6",
           "startWork": "03b08ccba8bd647c",
-          "toggle": "a9d0a5241b90f901"
+          "toggle": "a9d0a5241b90f901",
+          "wsCtx": "4059c91e72dae8fc"
         }
       }
     },
@@ -12753,34 +12817,34 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 387,
+          "line": 388,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 495,
+          "line": 496,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 626,
+          "line": 627,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 665,
+          "line": 666,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 691,
+          "line": 692,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1238,
+          "line": 1239,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1263,
+          "line": 1264,
           "params": [
             "err"
           ],
@@ -12801,7 +12865,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 46557,
+      "sizeBytes": 46729,
       "extraction": {
         "status": "parsed"
       },
@@ -13296,7 +13360,7 @@
           ]
         }
       },
-      "sizeBytes": 12829,
+      "sizeBytes": 12854,
       "extraction": {
         "status": "parsed"
       },
@@ -14792,7 +14856,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 29953,
+      "sizeBytes": 30013,
       "extraction": {
         "status": "parsed"
       },
@@ -16728,8 +16792,8 @@
       "depends": [
         "electron",
         "../shared/ipcChannels",
-        "lucide",
         "state",
+        "lucide",
         "dock",
         "notify",
         "htmlUtils",
@@ -16737,56 +16801,60 @@
       ],
       "functions": {
         "init": {
-          "line": 66,
+          "line": 71,
           "params": [
             "opts"
           ]
         },
         "isOpen": {
-          "line": 117
+          "line": 122
         },
         "toggle": {
-          "line": 121
+          "line": 126
         },
         "open": {
-          "line": 125
+          "line": 130
         },
         "close": {
-          "line": 175,
+          "line": 180,
           "params": [
             "{ refocus = false } = {}"
           ]
         },
         "_render": {
-          "line": 188,
+          "line": 193,
           "params": [
             "{ resetHighlight = false } = {}"
           ]
         },
         "_paintHighlight": {
-          "line": 246
+          "line": 251
         },
         "_notice": {
-          "line": 255,
+          "line": 260,
           "params": [
             "text",
             "kind = 'error'"
           ]
         },
         "_clearNotice": {
-          "line": 261
+          "line": 266
         },
         "_onKeydown": {
-          "line": 268,
+          "line": 273,
           "params": [
             "e"
           ]
         },
         "_activate": {
-          "line": 288,
+          "line": 293,
           "params": [
             "index"
           ]
+        },
+        "wsCtx": {
+          "line": 28,
+          "purpose": "Branch calls name the selected workspace (server-hardening T6)."
         }
       },
       "ipc": {
@@ -16795,12 +16863,15 @@
           "REFRESH_GIT_STATUS"
         ]
       },
-      "sizeBytes": 12531,
+      "sizeBytes": 12774,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "5657f7b2b1a27e7f"
+        "description": "5657f7b2b1a27e7f",
+        "purposes": {
+          "wsCtx": "dbb2b09137398842"
+        }
       }
     },
     "renderer/statusBar/branchPickerModel": {
@@ -17879,7 +17950,7 @@
           "line": 192
         }
       },
-      "sizeBytes": 6164,
+      "sizeBytes": 6189,
       "extraction": {
         "status": "parsed"
       },
@@ -26126,6 +26197,7 @@
       "file": "src/shared/serverRouting.js",
       "description": "serverRouting — which things live on the server and how desktop and",
       "exports": [
+        "routeOf",
         "serverRootFor",
         "mergeGitStatePayloads",
         "SERVER_TERMINAL_PREFIX",
@@ -26214,9 +26286,19 @@
             "projectPath"
           ],
           "purpose": "One WORKSPACE_GIT_STATE payload for a desktop project: its local"
+        },
+        "routeOf": {
+          "line": 175,
+          "params": [
+            "p",
+            "ctx",
+            "roots",
+            "locations"
+          ],
+          "purpose": "Where a panel call goes (server-hardening T6): `{ remote: rootEntry }` or"
         }
       },
-      "sizeBytes": 6647,
+      "sizeBytes": 7930,
       "extraction": {
         "status": "parsed"
       },
@@ -26229,6 +26311,7 @@
           "parseServerTerminalId": "ac26e1ccb8a2f96c",
           "parseSshConfigHosts": "c6b2dbdf7edb7f8d",
           "projectDirName": "aa19e2a8bd1a94e9",
+          "routeOf": "c4b1b9aaf9c977fc",
           "serverRootFor": "fcf9225415cd0e81",
           "serverTerminalId": "be0d191633b998ba"
         }
@@ -29795,7 +29878,7 @@
           ]
         }
       },
-      "sizeBytes": 6654,
+      "sizeBytes": 7142,
       "extraction": {
         "status": "parsed"
       },
@@ -30075,6 +30158,31 @@
         "description": "4beafd5a08985858"
       }
     },
+    "test/serverHost.test": {
+      "file": "test/serverHost.test.js",
+      "description": "Server workspace caches follow the connected host (server-hardening T2).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "node:module",
+        "events",
+        "src/main/projectRegistry",
+        "src/main/workspaceManager"
+      ],
+      "functions": {},
+      "sizeBytes": 3637,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7f6af25406447c20"
+      }
+    },
     "test/serverInstall.test": {
       "file": "test/serverInstall.test.js",
       "description": "serverInstall — installing and updating Frame Server (server-install-update spec, T01).",
@@ -30123,7 +30231,7 @@
         "src/shared/serverRouting"
       ],
       "functions": {},
-      "sizeBytes": 5816,
+      "sizeBytes": 7055,
       "extraction": {
         "status": "parsed"
       },
@@ -33932,7 +34040,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 370,
+        "parsed": 371,
         "unsupported": 91,
         "partial": 0
       }
@@ -33979,9 +34087,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 555,
+      "visitedEntries": 556,
       "traversedDirectories": 86,
-      "eligibleFiles": 461,
+      "eligibleFiles": 462,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -33998,7 +34106,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 461,
+      "indexedFiles": 462,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34006,6 +34114,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "3fd23090f66f9f09a06853cf1b674e3a796300348561b808a8e6eabcbc469567"
+    "revision": "5bb455f461a6bcd5873df3199cb8bbfa764baca7bb4a2323b1002796595ac650"
   }
 }

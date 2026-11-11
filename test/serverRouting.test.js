@@ -108,3 +108,18 @@ test('adoptPlan: lanes the server no longer has are disposed; a lane whose works
   assert.deepEqual(plan.recreate, ['srv-b2-1']);
   assert.deepEqual(plan.add, ['srv-b2-2']);
 });
+
+// ─── server-hardening T6: route by workspace id ──────────────
+
+test('routeOf: the workspace id decides; the path only without one', () => {
+  const roots = [{ root: '/Users/me/frame/workspaces/app/sage', id: 'srv-ws', host: 'box' }];
+  const locations = { 'srv-ws': { path: '/Users/me/frame/workspaces/app/sage', host: 'box' } };
+  const samePath = '/Users/me/frame/workspaces/app/sage/src/a.js';
+  // A local workspace whose folder has the same absolute path as the server one.
+  assert.deepEqual(R.routeOf(samePath, { workspaceId: 'local-ws' }, roots, locations), { local: true }, 'a local id never routes remote');
+  assert.deepEqual(R.routeOf(samePath, { workspaceId: 'main' }, roots, locations), { local: true });
+  assert.equal(R.routeOf(samePath, { workspaceId: 'srv-ws' }, roots, locations).remote.id, 'srv-ws');
+  assert.deepEqual(R.routeOf('/elsewhere/x.js', { workspaceId: 'srv-ws' }, roots, locations), { local: true }, 'a server id with a path outside its folder is not that workspace');
+  assert.equal(R.routeOf(samePath, null, roots, locations).remote.id, 'srv-ws', 'no context: the old path rule');
+  assert.deepEqual(R.routeOf('/other', null, roots, locations), { local: true });
+});

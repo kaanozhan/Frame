@@ -177,7 +177,7 @@ function createViewport() {
     if (!silent) { listLoading = true; changed(); }
     let res;
     try {
-      res = await ipcRenderer.invoke(IPC.REVIEW_FILES, { root: ref.root, base: ref.base });
+      res = await ipcRenderer.invoke(IPC.REVIEW_FILES, { root: ref.root, base: ref.base, workspaceId: ref.workspaceId });
     } catch (err) {
       res = { error: (err && err.message) || String(err), files: [] };
     }
@@ -218,7 +218,7 @@ function createViewport() {
     let res;
     try {
       res = await ipcRenderer.invoke(IPC.REVIEW_FILE_DIFF, {
-        root: ref.root, mergeBase, path: f.path, oldPath: f.oldPath, untracked: f.status === 'U'
+        root: ref.root, mergeBase, path: f.path, oldPath: f.oldPath, untracked: f.status === 'U', workspaceId: ref.workspaceId
       });
     } catch (err) {
       res = { diff: '', error: (err && err.message) || String(err) };

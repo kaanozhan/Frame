@@ -535,7 +535,15 @@ function wireServerEvents() {
   sc.on('terminal.process', (p) => {
     if (p && p.terminalId) toWindow(IPC.TERMINAL_PROCESS_DATA, { terminalId: p.terminalId, processName: p.processName, shellName: p.shellName, commandLine: p.commandLine });
   });
-  sc.on('connected', () => {
+  let lastHost = null;
+  sc.on('connected', (s) => {
+    const host = (s && s.host) || null;
+    // Another host: the previous host's terminal ids mean nothing here (T2).
+    if (lastHost && host && host !== lastHost) {
+      serverTerminals.clear();
+      pendingDestroys.clear();
+    }
+    lastHost = host || lastHost;
     for (const terminalId of pendingDestroys) sc.send('terminals.destroy', { terminalId });
   });
   sc.on('terminal.destroyed', (p) => {

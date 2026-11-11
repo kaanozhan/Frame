@@ -23,6 +23,7 @@ let isModified = false;
 let readOnlyFile = false; // a server workspace's file (server-workspace-panels)
 let onFileTreeRefreshCallback = null;
 let openedFromSource = null; // Track where the file was opened from ('fileTree', 'terminal', etc.)
+let openedWorkspaceId = null; // the workspace the open file was opened in
 
 /**
  * Initialize editor module
@@ -47,9 +48,13 @@ function init(onRefreshFileTree) {
  * @param {string} filePath - Path to the file
  * @param {string} source - Where the file was opened from ('fileTree', 'terminal', etc.)
  */
-function openFile(filePath, source = 'terminal') {
+function openFile(filePath, source = 'terminal', ctx = null) {
   openedFromSource = source;
-  ipcRenderer.send(IPC.READ_FILE, filePath);
+  // The opener's workspace travels with the file: reads and saves route by
+  // it, not by the path (server-hardening T6).
+  const id = (ctx && ctx.workspaceId) || (require('./state').getWorkspace() || {}).id || null;
+  openedWorkspaceId = id;
+  ipcRenderer.send(IPC.READ_FILE, filePath, id ? { workspaceId: id } : null);
 }
 
 /**
@@ -96,7 +101,8 @@ function saveFile() {
   const content = editorTextarea.value;
   ipcRenderer.send(IPC.WRITE_FILE, {
     filePath: currentEditingFile,
-    content: content
+    content: content,
+    ...(openedWorkspaceId ? { workspaceId: openedWorkspaceId } : {})
   });
 }
 

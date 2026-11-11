@@ -165,12 +165,13 @@ function setupIPC(ipcMain) {
   const serverPanels = require('./serverPanels');
   // Read-only on server workspaces (server-workspace-panels): no rename,
   // paste or trash under a server root — the server has no trash.
-  const refuseRemote = (...paths) => paths.some((p) => p && serverPanels.rootOf(p))
+  // Routed by the caller's workspace id when it sends one (server-hardening T6).
+  const refuseRemote = (ctx, ...paths) => paths.some((p) => p && serverPanels.resolve(p, ctx))
     ? { ok: false, error: serverPanels.READ_ONLY_ACTIONS }
     : null;
 
-  ipcMain.on(IPC.LOAD_FILE_TREE, async (event, projectPath) => {
-    const remote = serverPanels.rootOf(projectPath);
+  ipcMain.on(IPC.LOAD_FILE_TREE, async (event, projectPath, ctx) => {
+    const remote = serverPanels.resolve(projectPath, serverPanels.ctxOf(ctx));
     let files;
     if (remote) {
       try {
@@ -186,17 +187,17 @@ function setupIPC(ipcMain) {
     }
   });
 
-  ipcMain.handle(IPC.FILE_TREE_RENAME, (event, oldPath, newName) =>
-    refuseRemote(oldPath) || guarded(() => renameEntry(oldPath, newName)));
+  ipcMain.handle(IPC.FILE_TREE_RENAME, (event, oldPath, newName, ctx) =>
+    refuseRemote(serverPanels.ctxOf(ctx), oldPath) || guarded(() => renameEntry(oldPath, newName)));
 
-  ipcMain.handle(IPC.FILE_TREE_TRASH, (event, targetPath) =>
-    refuseRemote(targetPath) || guarded(async () => {
+  ipcMain.handle(IPC.FILE_TREE_TRASH, (event, targetPath, ctx) =>
+    refuseRemote(serverPanels.ctxOf(ctx), targetPath) || guarded(async () => {
       await shell.trashItem(targetPath);
       return { ok: true };
     }));
 
   ipcMain.handle(IPC.FILE_TREE_PASTE, (event, payload) =>
-    refuseRemote(payload && payload.source, payload && payload.destDir) || guarded(() => pasteEntry(payload || {})));
+    refuseRemote(serverPanels.ctxOf(payload), payload && payload.source, payload && payload.destDir) || guarded(() => pasteEntry(payload || {})));
 }
 
 module.exports = {

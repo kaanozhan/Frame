@@ -54,3 +54,11 @@ Frame Server ids now carry a per-process nonce, `srv-<boot>-<n>` (serverRouting.
 _Captured: 2026-11-11 · 7 file change(s)_
 
 ---
+
+## T08 — Route panel calls by workspace id and follow the connected host
+
+Added the pure serverRouting.routeOf(path, ctx, roots, locations) and serverPanels.resolve(path, ctx) (+ ctxOf): with a workspace id, main or a local workspace is local even when a server workspace has the same absolute path, and a server id routes there when the path lies in its folder; only calls without an id fall back to path matching (rootOf). Every routed handler (fileTree load/rename/trash/paste, fileEditor read/write, gitDiffManager review/diff, gitStatusManager watch, gitBranchesManager branches/switch) takes the ctx, and the renderer sends it: the file tree keeps the id of the workspace it shows (loadCheckout passes ws.id), files opened from it carry it into the editor's read and save, diffs and the review pass theirs, the branch panel and picker pass the selected workspace, and New Workspace / Run Task load main's branches. workspaceManager serves server rows only for the current host (lists, serverRoots, serverLocation, serverProjectFor, createOnServer) and drops another host's rows on `connected`; ptyManager forgets server terminals and queued closes when the host changes. Worktree list/create/delete calls carry the id now but are refused under a server root only in T09, as planned.
+
+_Captured: 2026-11-11 · 21 file change(s)_
+
+---

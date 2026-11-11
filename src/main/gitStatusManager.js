@@ -83,8 +83,8 @@ function unwatchRemote() {
   serverPanels().call(entry, 'git.unwatch', {}).catch(() => {});
 }
 
-function watch(projectPath) {
-  const entry = projectPath && serverPanels().rootOf(projectPath);
+function watch(projectPath, ctx = null) {
+  const entry = projectPath && serverPanels().resolve(projectPath, ctx);
   if (!entry) {
     unwatchRemote();
     startWatching(projectPath);
@@ -100,8 +100,8 @@ function watch(projectPath) {
 function setupIPC(ipcMain) {
   try { wireRemote(); } catch (err) { logger.warn('gitStatus', `server status not wired: ${err.message}`); }
 
-  ipcMain.on(IPC.WATCH_GIT_STATUS, (event, projectPath) => {
-    watch(projectPath);
+  ipcMain.on(IPC.WATCH_GIT_STATUS, (event, projectPath, ctx) => {
+    watch(projectPath, serverPanels().ctxOf(ctx));
   });
 
   ipcMain.on(IPC.UNWATCH_GIT_STATUS, () => {

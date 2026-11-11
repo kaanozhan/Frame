@@ -116,7 +116,7 @@ async function open() {
 
   const [def, branches] = await Promise.all([
     ipcRenderer.invoke(IPC.GIT_DEFAULT_BRANCH, projectPath).catch(() => null),
-    ipcRenderer.invoke(IPC.LOAD_GIT_BRANCHES, projectPath).catch(() => null)
+    ipcRenderer.invoke(IPC.LOAD_GIT_BRANCHES, projectPath, { workspaceId: 'main' }).catch(() => null)
   ]);
   if (state.getProjectPath() !== projectPath) return;
   defaultBase = def && def.branch ? def.branch : null;

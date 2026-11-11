@@ -156,6 +156,27 @@ function server() {
   return require('./serverConnection');
 }
 
+/** The host the desktop is (or was last) connected to. */
+function currentHost() {
+  try { return server().getStatus().host || null; } catch (_) { return null; }
+}
+
+/**
+ * Cached server rows of `projectPath`, only when they belong to the current
+ * host: another host's clone and workspaces never list or route here
+ * (server-hardening T2).
+ */
+function rowsFor(projectPath) {
+  const entry = serverRows.get(projectPath);
+  return entry && entry.host === currentHost() ? entry : null;
+}
+
+/** The current host's entries only. */
+function currentEntries() {
+  const host = currentHost();
+  return [...serverRows].filter(([, entry]) => entry.host === host);
+}
+
 async function originOf(projectPath) {
   try {
     const { stdout } = await git.execGitArgs(['remote', 'get-url', 'origin'], projectPath);
@@ -176,7 +197,7 @@ async function serverProjectFor(projectPath, { ensure = false } = {}) {
     const res = await server().call('projects.ensure', { originUrl: origin }, 11 * 60 * 1000);
     return res.projectPath;
   }
-  const cached = serverRows.get(projectPath);
+  const cached = rowsFor(projectPath);
   if (cached && cached.serverProjectPath) return cached.serverProjectPath;
   const { sameRemote } = require('../shared/serverRouting');
   const clones = await server().call('projects.list', {});
@@ -192,7 +213,7 @@ function toServerRow(row, serverProjectPath, host) {
 }
 
 async function listServer(projectPath) {
-  const prev = serverRows.get(projectPath);
+  const prev = rowsFor(projectPath);
   const offline = () => (prev ? prev.rows.map((r) => ({ ...r, offline: true })) : []);
   if (!server().isConnected()) return offline();
   try {
@@ -216,7 +237,7 @@ async function listServer(projectPath) {
  */
 function serverRoots() {
   const out = [];
-  for (const [projectPath, entry] of serverRows) {
+  for (const [projectPath, entry] of currentEntries()) {
     for (const r of entry.rows) {
       if (r && r.path && !r.archivedAt) out.push({ root: r.path, id: r.id, host: entry.host, projectPath, serverProjectPath: entry.serverProjectPath });
     }
@@ -226,7 +247,7 @@ function serverRoots() {
 
 /** Where a workspace id lives on the server, or null when it is not a server workspace. */
 function serverLocation(workspaceId) {
-  for (const [projectPath, entry] of serverRows) {
+  for (const [projectPath, entry] of currentEntries()) {
     const row = entry.rows.find((r) => r.id === workspaceId);
     if (row) return { projectPath, serverProjectPath: entry.serverProjectPath, path: row.path, host: entry.host, name: row.name };
   }
@@ -250,7 +271,7 @@ async function createOnServer(projectPath, { from, base, branch }) {
     if (!res || res.error) return { error: (res && res.error) || 'Could not create the workspace on the server.' };
     const host = server().getStatus().host;
     const workspace = toServerRow(res.workspace, sp, host);
-    const entry = serverRows.get(projectPath) || { serverProjectPath: sp, host, rows: [] };
+    const entry = rowsFor(projectPath) || { serverProjectPath: sp, host, rows: [] };
     entry.rows = [...entry.rows.filter((r) => r.id !== workspace.id), workspace];
     serverRows.set(projectPath, entry);
     notifyRenderer(projectPath);
@@ -271,7 +292,12 @@ function wireServerEvents() {
   serverWired = true;
   const sc = server();
   sc.on('workspaces.updated', ({ projectPath: sp } = {}) => {
-    for (const [projectPath, entry] of serverRows) if (entry.serverProjectPath === sp) notifyRenderer(projectPath);
+    for (const [projectPath, entry] of currentEntries()) if (entry.serverProjectPath === sp) notifyRenderer(projectPath);
+  });
+  // Another host: the previous host's rows are dropped outright (T2).
+  sc.on('connected', (s) => {
+    const host = (s && s.host) || currentHost();
+    for (const [projectPath, entry] of [...serverRows]) if (entry.host !== host) serverRows.delete(projectPath);
   });
   const all = () => {
     for (const p of projectRegistry.getProjects()) notifyRenderer(p.path);
