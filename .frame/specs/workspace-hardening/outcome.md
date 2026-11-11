@@ -14,3 +14,11 @@ Added gitBranchesManager.headState (symbolic-ref, rev-parse, `rev-list --count H
 _Captured: 2026-11-11 · 5 file change(s)_
 
 ---
+
+## T03 — Ask before archiving unreachable commits and report queued merges
+
+The archive flow reads `status.head` and, when commits no branch holds would go with the folder (or a commit about to be made on a detached HEAD), shows a new rescue dialog before any terminal is closed: "keep them on `<branch>-rescue-<shortsha>`" or Cancel, with focus on Cancel and Enter doing what the focused button says. A `headOff` reply (commits made after the check) asks the same and retries with `rescue: true`. Added prFlow.mergeLanded; workspaceGitState.merge reads the PR back after `gh pr merge` and, when it has not merged (merge queue, auto-merge, unreadable), returns `queued: true` with no fast-forward and no archive; workspacePr.js says so. No CSS change was needed (the dialog reuses the archive dialog's classes).
+
+_Captured: 2026-11-11 · 7 file change(s)_
+
+---

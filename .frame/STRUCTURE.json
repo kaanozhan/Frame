@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 107437,
+      "sizeBytes": 108329,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -7871,14 +7871,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 355,
+          "line": 362,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 391,
+          "line": 398,
           "params": [
             "projectPath",
             "id"
@@ -7886,7 +7886,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 403,
+          "line": 410,
           "params": [
             "ipcMain"
           ]
@@ -7906,7 +7906,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 18901,
+      "sizeBytes": 19299,
       "extraction": {
         "status": "parsed"
       },
@@ -19070,14 +19070,14 @@
           "purpose": "Merge the workspace's PR with the project's method (main decides: the"
         },
         "updateFromBase": {
-          "line": 315,
+          "line": 319,
           "params": [
             "ws"
           ],
           "purpose": "Fetch the base and merge it into the workspace branch (main decides; see"
         },
         "workspaceAgentLanes": {
-          "line": 346,
+          "line": 350,
           "params": [
             "projectPath",
             "workspaceId"
@@ -19085,7 +19085,7 @@
           "purpose": "A workspace's terminals running an agent, most recently active first:"
         },
         "askConflictChoice": {
-          "line": 362,
+          "line": 366,
           "params": [
             "ws",
             "files"
@@ -19093,7 +19093,7 @@
           "purpose": "The conflict dialog. Resolves 'resolve' | 'abort' | 'later'."
         },
         "resolveConflicts": {
-          "line": 395,
+          "line": 399,
           "params": [
             "ws",
             "files = null"
@@ -19101,7 +19101,7 @@
           "purpose": "Hand a stopped update to an agent in the workspace: the most recently"
         },
         "abortUpdate": {
-          "line": 410,
+          "line": 414,
           "params": [
             "ws",
             "{ confirmed = false } = {}"
@@ -19109,7 +19109,7 @@
           "purpose": "Abort a stopped update (`git merge --abort`): the branch goes back to where it was."
         },
         "openOnGitHub": {
-          "line": 420,
+          "line": 424,
           "params": [
             "ws"
           ],
@@ -19124,7 +19124,7 @@
           "OPEN_GITHUB_ISSUE"
         ]
       },
-      "sizeBytes": 19033,
+      "sizeBytes": 19257,
       "extraction": {
         "status": "parsed"
       },
@@ -19289,8 +19289,24 @@
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
+        "rescueBranchName": {
+          "line": 437,
+          "params": [
+            "ws",
+            "head"
+          ],
+          "purpose": "The branch name archive's rescue creates; the sha may be unknown before a commit is made."
+        },
+        "askRescue": {
+          "line": 443,
+          "params": [
+            "ws",
+            "head"
+          ],
+          "purpose": "The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false."
+        },
         "openHeldSpec": {
-          "line": 418,
+          "line": 480,
           "params": [
             "ws",
             "slug"
@@ -19298,14 +19314,14 @@
           "purpose": "Select a workspace and open the spec it holds in the specs drawer."
         },
         "closeWorkspaceTerminals": {
-          "line": 427,
+          "line": 489,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 440,
+          "line": 502,
           "params": [
             "ws",
             "count"
@@ -19313,37 +19329,37 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 497,
+          "line": 559,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 503,
+          "line": 565,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 516,
+          "line": 578,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 525,
+          "line": 587,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 535,
+          "line": 597,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 549,
+          "line": 611,
           "purpose": "Active workspaces of the current project, as last loaded."
         }
       },
@@ -19354,7 +19370,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 23051,
+      "sizeBytes": 26329,
       "extraction": {
         "status": "parsed"
       },
@@ -19363,10 +19379,12 @@
         "purposes": {
           "archiveWorkspace": "4363218bb753fb2e",
           "askArchiveChoice": "2981894ae593cf4b",
+          "askRescue": "24458e85717df59f",
           "closeWorkspaceTerminals": "22a7c42ea098a240",
           "getWorkspaces": "0eab879c07f7a326",
           "load": "e807754c516c9be1",
           "openHeldSpec": "3c6f2fdd9819c4b2",
+          "rescueBranchName": "9535b434ca8c9ced",
           "selectSpecWorkspace": "7d88cec82ca928f9",
           "selectedWorkspace": "fa1da8f5f604bd70",
           "setActions": "4f2a1450120dc24f",
@@ -25306,6 +25324,7 @@
         "fixChecksPrompt",
         "isPushable",
         "pushArgs",
+        "mergeLanded",
         "MERGE_ORDER"
       ],
       "depends": [
@@ -25416,9 +25435,16 @@
             "result"
           ],
           "purpose": "One sentence for the user about an update's result."
+        },
+        "mergeLanded": {
+          "line": 236,
+          "params": [
+            "pr"
+          ],
+          "purpose": "Whether a PR read back after `gh pr merge` has actually merged. On a"
         }
       },
-      "sizeBytes": 10298,
+      "sizeBytes": 10606,
       "extraction": {
         "status": "parsed"
       },
@@ -25431,6 +25457,7 @@
           "fixChecksPrompt": "12c4e5bb6f83be44",
           "isPushable": "20e43c7377899394",
           "mapPrView": "886ffc419a78fdac",
+          "mergeLanded": "875702301f11b53c",
           "parseConflicts": "35eac48b8bf0d2d4",
           "parseCount": "e0e6116d342409ca",
           "pickMergeMethod": "b92b46d28d104dd3",
@@ -29033,7 +29060,7 @@
         "src/shared/prFlow"
       ],
       "functions": {},
-      "sizeBytes": 8916,
+      "sizeBytes": 9284,
       "extraction": {
         "status": "parsed"
       },
@@ -30670,7 +30697,7 @@
           "purpose": "A workspace whose worktree has one commit on a detached HEAD that no branch holds."
         }
       },
-      "sizeBytes": 13858,
+      "sizeBytes": 15105,
       "extraction": {
         "status": "parsed"
       },
@@ -33184,6 +33211,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "b6fa14f1ff990e85c6a3aff1f5d5a8cc0cb2dd1069c842a4dc49c74fafce5cdc"
+    "revision": "d26f83774f43b1832fb49e5aa671cdfb6b8da0a166b6150e431255c2c057a1f5"
   }
 }

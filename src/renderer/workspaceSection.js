@@ -406,12 +406,74 @@ async function archiveWorkspace(ws) {
     choice = await askArchiveChoice(ws, status.count);
     if (!choice) return; // cancelled
   }
+  // Commits no branch holds — or a commit about to be made on a detached
+  // HEAD — would go with the folder: ask before any terminal is closed
+  // (workspace-hardening L3, decision B1).
+  const raw = status && status.head;
+  // A commit made now on a detached HEAD moves it: the rescue sha is not known yet.
+  const head = raw && raw.detached && choice.action === 'commit' ? { ...raw, sha: null } : raw;
+  if (head && (head.unreachable > 0 || (head.detached && choice.action === 'commit'))) {
+    const keep = await askRescue(ws, head);
+    if (!keep) return;
+    choice.rescue = true;
+  }
   closeWorkspaceTerminals(ws.id);
-  const result = await ipcRenderer.invoke(IPC.WORKSPACE_ARCHIVE, { projectPath, id: ws.id, ...choice });
+  let result = await ipcRenderer.invoke(IPC.WORKSPACE_ARCHIVE, { projectPath, id: ws.id, ...choice });
+  if (result && result.headOff) {
+    // Commits appeared after the check (an agent was still working): ask now.
+    const keep = await askRescue(ws, result.headOff);
+    if (!keep) { await load(); return; }
+    result = await ipcRenderer.invoke(IPC.WORKSPACE_ARCHIVE, { projectPath, id: ws.id, rescue: true });
+  }
   if (result && result.error) notify.error(result.error);
   else if (result && result.dirty) notify.error(`"${ws.name}" changed while archiving — try again.`);
+  else if (result && result.headOff) notify.error(`"${ws.name}" was not archived: it has commits that are not on any branch.`);
+  else if (choice.rescue) notify.success(`Archived "${ws.name}" — its commits are kept on ${rescueBranchName(ws, head)}.`);
   else notify.success(`Archived "${ws.name}" — its branch ${ws.branch} is kept.`);
   await load();
+}
+
+/** The branch name archive's rescue creates; the sha may be unknown before a commit is made. */
+function rescueBranchName(ws, head) {
+  const sha = head && typeof head.sha === 'string' ? head.sha.slice(0, 7) : '';
+  return `${ws.branch}-rescue-${sha || '<sha>'}`;
+}
+
+/** The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false. */
+function askRescue(ws, head) {
+  const modal = document.getElementById('archive-rescue-modal');
+  if (!modal) return Promise.resolve(false);
+  const n = Number(head && head.unreachable) || 0;
+  modal.querySelector('#ar-summary').textContent = n > 0
+    ? `"${ws.name}" has ${n} commit${n === 1 ? '' : 's'} on ${head.detached ? 'a detached HEAD' : `another branch (${head.ref || '?'})`} that no branch holds.`
+    : `"${ws.name}" is on a detached HEAD: the commit made now would not be on any branch.`;
+  modal.querySelector('#ar-branch').textContent = rescueBranchName(ws, head);
+  const confirm = modal.querySelector('#ar-confirm');
+  const cancel = modal.querySelector('#ar-cancel');
+  modal.classList.add('visible');
+  cancel.focus();
+  return new Promise((resolve) => {
+    const cleanup = (value) => {
+      modal.classList.remove('visible');
+      confirm.removeEventListener('click', onConfirm);
+      cancel.removeEventListener('click', onCancel);
+      modal.removeEventListener('keydown', onKey);
+      modal.removeEventListener('mousedown', onBackdrop);
+      resolve(value);
+    };
+    const onConfirm = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+    // Enter does what the focused button says; focus starts on Cancel.
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+      if (e.key === 'Enter' && e.target !== confirm && e.target !== cancel) { e.preventDefault(); onCancel(); }
+    };
+    const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
+    confirm.addEventListener('click', onConfirm);
+    cancel.addEventListener('click', onCancel);
+    modal.addEventListener('keydown', onKey);
+    modal.addEventListener('mousedown', onBackdrop);
+  });
 }
 
 /** Select a workspace and open the spec it holds in the specs drawer. */

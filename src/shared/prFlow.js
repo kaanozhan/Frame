@@ -228,6 +228,15 @@ function updateMessage(result) {
   }
 }
 
+/**
+ * Whether a PR read back after `gh pr merge` has actually merged. On a
+ * merge-queue repository the command succeeds while the PR stays open; an
+ * unreadable PR is not taken as merged (workspace-hardening L13b).
+ */
+function mergeLanded(pr) {
+  return !!pr && pr.state === 'merged';
+}
+
 module.exports = {
   parseConflicts,
   updateMenuState,
@@ -242,5 +251,6 @@ module.exports = {
   fixChecksPrompt,
   isPushable,
   pushArgs,
+  mergeLanded,
   MERGE_ORDER
 };

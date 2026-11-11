@@ -268,3 +268,22 @@ test('L11: archive commit and discard get a timeout long enough for hooks', () =
   const git = require('../src/main/gitBranchesManager');
   assert.ok(git.ARCHIVE_TIMEOUT_MS >= 60000);
 });
+
+test('L13b: a merge that GitHub only queued is reported as queued, with no archive', async () => {
+  const { project } = makeProject();
+  const created = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.equal(created.error, null, created.error);
+  const ws = created.workspace;
+  const pr = { number: 9, url: 'https://example/pr/9', state: 'OPEN', isDraft: false, mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN', reviewDecision: '', statusCheckRollup: [], comments: [], headRefName: ws.branch, baseRefName: 'main' };
+  const res = await withGh(async (args) => {
+    if (args[0] === 'pr' && args[1] === 'view') return { ok: true, stdout: JSON.stringify(pr) };
+    if (args[0] === 'repo') return { ok: true, stdout: JSON.stringify({ squashMergeAllowed: true }) };
+    if (args[0] === 'pr' && args[1] === 'merge') return { ok: true, stdout: '' };
+    return { ok: false, error: 'unexpected', stdout: '' };
+  }, () => workspaceGitState.merge(project, ws.id));
+  assert.equal(res.error, null, res.error);
+  assert.equal(res.queued, true);
+  assert.equal(res.archived, false);
+  assert.equal(res.fastForward, null, 'no fast-forward for a merge that has not happened');
+  assert.equal(fs.existsSync(ws.path), true);
+});

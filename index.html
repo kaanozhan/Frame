@@ -1522,6 +1522,25 @@
   </div>
 
   <!-- Archive a workspace with uncommitted changes (workspaces spec): never auto-commits -->
+  <div id="archive-rescue-modal" class="task-run-modal new-workspace-modal" role="dialog" aria-modal="true" aria-labelledby="ar-title">
+    <div class="task-run-modal-container">
+      <div class="task-run-modal-header">
+        <h3 id="ar-title">Commits not on any branch</h3>
+        <p id="ar-summary"></p>
+      </div>
+      <div class="task-run-modal-body">
+        <div class="task-run-section">
+          <p class="task-run-hint">Removing the folder would lose them. Frame can keep them on a new branch first:</p>
+          <p><code id="ar-branch"></code></p>
+        </div>
+      </div>
+      <div class="task-run-modal-footer">
+        <button type="button" id="ar-cancel" class="task-run-btn task-run-btn-cancel">Cancel</button>
+        <button type="button" id="ar-confirm" class="task-run-btn task-run-btn-primary">Keep them and archive</button>
+      </div>
+    </div>
+  </div>
+
   <div id="archive-workspace-modal" class="task-run-modal new-workspace-modal" role="dialog" aria-modal="true" aria-labelledby="aw-title">
     <div class="task-run-modal-container">
       <div class="task-run-modal-header">

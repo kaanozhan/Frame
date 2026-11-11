@@ -295,6 +295,10 @@ async function merge(ws) {
     notify.error(`Merge failed: ${(result && result.error) || 'unknown error'}`);
     return result;
   }
+  if (result.queued) {
+    notify.info(`PR #${Number(result.number) || ''} was accepted but has not merged yet (merge queue or auto-merge). The workspace is kept; archive it once the PR has merged.`);
+    return result;
+  }
   const notes = [`Merged PR #${result.number} (${result.method})`];
   if (result.fastForward && result.fastForward.updated) notes.push(`main checkout updated`);
   else if (result.fastForward && result.fastForward.reason) notes.push(`main checkout not updated: ${result.fastForward.reason}`);

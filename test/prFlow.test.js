@@ -156,3 +156,10 @@ test('pushArgs always names origin and the same branch, and refuses the base and
   assert.match(pushArgs({ branch: '-f', base: 'main' }).error, /not a valid branch/);
   assert.match(pushArgs({ branch: '', base: 'main' }).error, /not a valid branch/);
 });
+
+test('mergeLanded: only a PR that reads back as merged has landed', () => {
+  const { mergeLanded } = require('../src/shared/prFlow');
+  assert.equal(mergeLanded({ state: 'merged' }), true);
+  assert.equal(mergeLanded({ state: 'open' }), false, 'a merge queue leaves it open');
+  assert.equal(mergeLanded(null), false, 'an unreadable PR is not taken as merged');
+});

@@ -20,7 +20,7 @@
 const fs = require('fs');
 const { IPC } = require('../shared/ipcChannels');
 const registry = require('../shared/workspaceRegistry');
-const { mapPrView, parseCount, composePr, pickMergeMethod, pushArgs, parseConflicts } = require('../shared/prFlow');
+const { mapPrView, parseCount, composePr, pickMergeMethod, pushArgs, parseConflicts, mergeLanded } = require('../shared/prFlow');
 const projectRegistry = require('./projectRegistry');
 const git = require('./gitBranchesManager');
 const github = require('./githubManager');
@@ -328,6 +328,13 @@ async function merge(projectPath, id) {
   if (!res.ok) {
     refresh(projectPath);
     return { error: res.error, method };
+  }
+  // A merge queue (or auto-merge) accepts the command without merging: then
+  // there is nothing to fast-forward and the workspace must stay.
+  const after = await prFor(projectPath, ws.branch);
+  if (!mergeLanded(after)) {
+    refresh(projectPath);
+    return { error: null, method, number: current.number, queued: true, fastForward: null, archived: false, archiveNote: null };
   }
   const fastForward = await git.fastForwardIfOn(projectPath, ws.base || 'main');
   let archived = false;
