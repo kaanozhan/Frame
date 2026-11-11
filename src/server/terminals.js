@@ -6,8 +6,10 @@
  * fake window) and keeps a screen mirror per terminal so a desktop that
  * comes back can redraw the exact screen.
  *
- * Ids: ptyManager's `term-<n>` is exposed as `srv-<n>` (serverRouting), so the
- * desktop can route by id and its local teardown never touches these.
+ * Ids: ptyManager's `term-<n>` is exposed as `srv-<boot>-<n>` (serverRouting),
+ * so the desktop can route by id, its local teardown never touches these, and
+ * an id from before a server restart never names a new terminal
+ * (server-hardening T3: `<boot>` is a nonce per server process).
  *
  * Methods: terminals.create / input / resize / destroy / list / attach.
  * Events:  terminal.output { terminalId, data }
@@ -18,12 +20,19 @@
  */
 
 const { IPC } = require('../shared/ipcChannels');
-const { SERVER_TERMINAL_PREFIX } = require('../shared/serverRouting');
+const crypto = require('crypto');
+const { serverTerminalId, parseServerTerminalId } = require('../shared/serverRouting');
 const { createMirror } = require('./screenMirror');
 
 const LOCAL_PREFIX = 'term-';
-const toServerId = (id) => (id && id.startsWith(LOCAL_PREFIX) ? SERVER_TERMINAL_PREFIX + id.slice(LOCAL_PREFIX.length) : id);
-const toLocalId = (id) => (id && id.startsWith(SERVER_TERMINAL_PREFIX) ? LOCAL_PREFIX + id.slice(SERVER_TERMINAL_PREFIX.length) : id);
+const BOOT = crypto.randomBytes(3).toString('hex');
+const toServerId = (id) => (id && id.startsWith(LOCAL_PREFIX) ? serverTerminalId(id.slice(LOCAL_PREFIX.length), BOOT) : id);
+// An id of another boot names no terminal here.
+const toLocalId = (id) => {
+  const p = parseServerTerminalId(id);
+  if (!p) return id;
+  return p.boot === BOOT ? `${LOCAL_PREFIX}${p.n}` : `${LOCAL_PREFIX}gone-${p.n}`;
+};
 
 /**
  * Wire terminals into the server: `shim` is the installed electron shim,
@@ -121,4 +130,4 @@ function setup({ shim, registerMethods, broadcast }) {
   };
 }
 
-module.exports = { setup, toServerId, toLocalId };
+module.exports = { setup, toServerId, toLocalId, BOOT };

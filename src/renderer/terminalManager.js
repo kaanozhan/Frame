@@ -8,7 +8,7 @@ const { pruneScopes } = require('../shared/reviewModel');
 const { Terminal } = require('xterm');
 const { FitAddon } = require('xterm-addon-fit');
 const { IPC } = require('../shared/ipcChannels');
-const { isServerTerminalId } = require('../shared/serverRouting');
+const { isServerTerminalId, adoptPlan } = require('../shared/serverRouting');
 const terminalInput = require('./terminalInput');
 const themes = require('./themes');
 
@@ -937,7 +937,16 @@ class TerminalManager {
       console.error('terminalManager: adopting server terminals failed', err);
       return;
     }
+    if (!Array.isArray(list)) { this._setServerBanners(); return; } // main cannot tell: keep the lanes
+    // Lanes of this project's server terminals that the server no longer
+    // has (it restarted, or they were closed elsewhere) go; a lane whose
+    // terminal now belongs to another workspace is rebuilt for it (T3).
+    const known = [...this.terminals]
+      .filter(([id, inst]) => isServerTerminalId(id) && inst.state.projectPath === projectPath)
+      .map(([id, inst]) => ({ terminalId: id, workspaceId: inst.state.workspaceId || 'main' }));
+    const plan = adoptPlan(known, list || []);
     let added = false;
+    for (const id of [...plan.dispose, ...plan.recreate]) this._disposeLocalLane(id);
     for (const t of list || []) {
       let inst = this.terminals.get(t.terminalId);
       if (!inst) {
@@ -950,13 +959,23 @@ class TerminalManager {
       if (t.screen) inst.terminal.write(t.screen);
     }
     this._setServerBanners();
-    if (added) {
+    if (added || plan.dispose.length || plan.recreate.length) {
       this.restoreProjectSession(this.currentProjectPath);
       this._renumberTerminals(projectPath);
     }
     this._notifyStateChange();
     // Fit to this window; the resize reaches the server PTY and its app redraws.
     setTimeout(() => this.fitAll(), 50);
+  }
+
+  /** Drop a server terminal's lane in this window only — the server is not told. */
+  _disposeLocalLane(terminalId) {
+    const inst = this.terminals.get(terminalId);
+    if (!inst) return;
+    try { inst.terminal.dispose(); } catch (_) { /* gone */ }
+    if (inst.element && inst.element.parentNode) inst.element.remove();
+    this.terminals.delete(terminalId);
+    if (this.activeTerminalId === terminalId) this.activeTerminalId = null;
   }
 
   /** "Reconnecting to <host>…" over every server terminal while the link is down. */

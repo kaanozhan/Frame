@@ -109,3 +109,50 @@ test('T1: a failed create echoes the request id too', async () => {
     fakeServer.call = saved;
   }
 });
+
+// ─── T3 / T4: adopt prunes, offline closes are kept ──────────
+
+fakeWorkspaces.list = async () => ({ workspaces: [{ id: 'remote-ws', location: 'server' }] });
+function adopt() { return handlers[IPC.TERMINAL_ADOPT]({}, { projectPath: '/p' }); }
+function liveList(ids) {
+  const saved = fakeServer.call;
+  fakeServer.call = async (method, params) => {
+    serverCalls.push({ method, params });
+    if (method === 'terminals.list') return ids.map((terminalId) => ({ terminalId, workspaceId: 'remote-ws' }));
+    if (method === 'terminals.attach') return { screen: '', cols: 80, rows: 24 };
+    return saved.call(fakeServer, method, params);
+  };
+  return () => { fakeServer.call = saved; };
+}
+
+test('T4: closing a server terminal while offline is sent on reconnect and not adopted back', async () => {
+  fakeServer.connected = false;
+  handlers[IPC.TERMINAL_DESTROY]({}, 'srv-boot1-7');
+  assert.equal(serverCalls.filter((c) => c.method === 'terminals.destroy').length, 0, 'nothing sent while offline');
+  fakeServer.connected = true;
+  fakeServer.emit('connected', {});
+  const sent = serverCalls.filter((c) => c.method === 'terminals.destroy' && c.params.terminalId === 'srv-boot1-7');
+  assert.equal(sent.length, 1, 'the close is sent on reconnect');
+  const restore = liveList(['srv-boot1-7', 'srv-boot1-8']);
+  try {
+    const adopted = await adopt();
+    assert.deepEqual(adopted.map((t) => t.terminalId), ['srv-boot1-8'], 'the closed terminal is not adopted back');
+  } finally { restore(); }
+});
+
+test('T3: adopt forgets server terminals that no longer exist', async () => {
+  pty.noteServerTerminal('srv-oldboot-1', { projectPath: '/p', workspaceId: 'remote-ws' });
+  const restore = liveList(['srv-newboot-1']);
+  try {
+    await adopt();
+  } finally { restore(); }
+  assert.equal(pty.serverTerminalInfo('srv-oldboot-1'), null, 'the dead id is forgotten');
+  assert.deepEqual(pty.serverTerminalInfo('srv-newboot-1'), { projectPath: '/p', workspaceId: 'remote-ws' });
+});
+
+test('T3: adopt says "cannot tell" (null) while offline, so lanes are kept', async () => {
+  fakeServer.connected = false;
+  try {
+    assert.equal(await adopt(), null);
+  } finally { fakeServer.connected = true; }
+});

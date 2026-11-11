@@ -17,8 +17,40 @@ function isServerTerminalId(id) {
   return typeof id === 'string' && id.startsWith(SERVER_TERMINAL_PREFIX);
 }
 
-function serverTerminalId(n) {
-  return `${SERVER_TERMINAL_PREFIX}${n}`;
+/**
+ * A server terminal id. Frame Server adds a per-boot nonce (`srv-<boot>-<n>`)
+ * so an id from before a server restart is never reused for a new terminal
+ * (server-hardening T3); the `srv-` prefix rule is unchanged.
+ */
+function serverTerminalId(n, boot = null) {
+  return boot ? `${SERVER_TERMINAL_PREFIX}${boot}-${n}` : `${SERVER_TERMINAL_PREFIX}${n}`;
+}
+
+/** `{ boot, n }` of a server terminal id (`boot` null for an old `srv-<n>`), or null. */
+function parseServerTerminalId(id) {
+  if (!isServerTerminalId(id)) return null;
+  const m = /^srv-(?:([a-z0-9]+)-)?(\d+)$/.exec(id);
+  return m ? { boot: m[1] || null, n: Number(m[2]) } : null;
+}
+
+/**
+ * Reconcile the server terminals a window (or main) knows for a project with
+ * the server's live list after a reconnect (T3): `dispose` the ones the
+ * server no longer has, `recreate` a lane whose workspace differs, `add`
+ * the new ones. Each item is `{ terminalId, workspaceId }`.
+ */
+function adoptPlan(known, live) {
+  const liveById = new Map((live || []).map((t) => [t.terminalId, t]));
+  const knownById = new Map((known || []).map((t) => [t.terminalId, t]));
+  const dispose = [];
+  const recreate = [];
+  for (const k of knownById.values()) {
+    const l = liveById.get(k.terminalId);
+    if (!l) dispose.push(k.terminalId);
+    else if ((l.workspaceId || null) !== (k.workspaceId || null)) recreate.push(k.terminalId);
+  }
+  const add = [...liveById.keys()].filter((id) => !knownById.has(id));
+  return { dispose, recreate, add };
 }
 
 /**
@@ -135,6 +167,8 @@ module.exports = {
   mergeGitStatePayloads,
   SERVER_TERMINAL_PREFIX,
   isServerTerminalId,
+  parseServerTerminalId,
+  adoptPlan,
   serverTerminalId,
   normalizeRemoteUrl,
   sameRemote,

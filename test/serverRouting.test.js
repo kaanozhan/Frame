@@ -82,3 +82,29 @@ test('mergeGitStatePayloads joins rows and keeps the server gh apart', () => {
   assert.equal(R.mergeGitStatePayloads(local, null, '/Users/me/app').serverAccess, null, 'no server, no serverAccess');
   assert.deepEqual(R.mergeGitStatePayloads(null, server, '/p').access, { gh: false, authed: false, repoName: null });
 });
+
+// ─── server-hardening T3: per-boot ids and adopt pruning ─────
+
+test('serverTerminalId carries a per-boot nonce and parses back', () => {
+  assert.equal(R.serverTerminalId(3, 'a1b2c3'), 'srv-a1b2c3-3');
+  assert.deepEqual(R.parseServerTerminalId('srv-a1b2c3-3'), { boot: 'a1b2c3', n: 3 });
+  assert.deepEqual(R.parseServerTerminalId('srv-3'), { boot: null, n: 3 }, 'old ids still parse');
+  assert.equal(R.parseServerTerminalId('term-3'), null);
+  assert.equal(R.isServerTerminalId('srv-a1b2c3-3'), true, 'the prefix rule is unchanged');
+});
+
+test('adoptPlan: lanes the server no longer has are disposed; a lane whose workspace changed is recreated', () => {
+  const known = [
+    { terminalId: 'srv-b1-1', workspaceId: 'w1' },
+    { terminalId: 'srv-b1-2', workspaceId: 'w1' },
+    { terminalId: 'srv-b2-1', workspaceId: 'w1' }
+  ];
+  const live = [
+    { terminalId: 'srv-b2-1', workspaceId: 'w2' },
+    { terminalId: 'srv-b2-2', workspaceId: 'w1' }
+  ];
+  const plan = R.adoptPlan(known, live);
+  assert.deepEqual(plan.dispose.sort(), ['srv-b1-1', 'srv-b1-2']);
+  assert.deepEqual(plan.recreate, ['srv-b2-1']);
+  assert.deepEqual(plan.add, ['srv-b2-2']);
+});

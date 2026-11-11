@@ -5530,16 +5530,16 @@
           "purpose": "Check if terminal exists"
         },
         "serverLocationOf": {
-          "line": 487,
+          "line": 490,
           "params": [
             "workspaceId"
           ]
         },
         "server": {
-          "line": 496
+          "line": 499
         },
         "createServerTerminal": {
-          "line": 500,
+          "line": 503,
           "params": [
             "loc",
             "{ cwd",
@@ -5551,14 +5551,14 @@
           ]
         },
         "serverTerminalInfo": {
-          "line": 514,
+          "line": 517,
           "params": [
             "terminalId"
           ],
           "purpose": "Local project/workspace of a server terminal this window knows, or null."
         },
         "noteServerTerminal": {
-          "line": 519,
+          "line": 522,
           "params": [
             "terminalId",
             "info"
@@ -5566,17 +5566,17 @@
           "purpose": "Remember a server terminal found on reconnect (adopted by the renderer)."
         },
         "wireServerEvents": {
-          "line": 524
+          "line": 527
         },
         "adoptServerTerminals": {
-          "line": 547,
+          "line": 554,
           "params": [
             "projectPath"
           ],
           "purpose": "The connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 576,
+          "line": 592,
           "params": [
             "ipcMain"
           ]
@@ -5599,7 +5599,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 23741,
+      "sizeBytes": 25104,
       "extraction": {
         "status": "parsed"
       },
@@ -18876,7 +18876,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 36181,
+      "sizeBytes": 37375,
       "extraction": {
         "status": "parsed"
       },
@@ -24708,33 +24708,43 @@
       "exports": [
         "setup",
         "toServerId",
-        "toLocalId"
+        "toLocalId",
+        "BOOT"
       ],
       "depends": [
         "shared/ipcChannels",
+        "crypto",
         "shared/serverRouting",
         "screenMirror",
         "main/ptyManager"
       ],
       "functions": {
         "setup": {
-          "line": 32,
+          "line": 41,
           "params": [
             "{ shim",
             "registerMethods",
             "broadcast }"
           ],
           "purpose": "Wire terminals into the server: `shim` is the installed electron shim,"
+        },
+        "toLocalId": {
+          "line": 31,
+          "params": [
+            "id"
+          ],
+          "purpose": "An id of another boot names no terminal here."
         }
       },
-      "sizeBytes": 5280,
+      "sizeBytes": 5615,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "6ce7f00c207acc45",
         "purposes": {
-          "setup": "b1faf5b173071512"
+          "setup": "b1faf5b173071512",
+          "toLocalId": "0a5473fc6a70b40e"
         }
       }
     },
@@ -26120,6 +26130,8 @@
         "mergeGitStatePayloads",
         "SERVER_TERMINAL_PREFIX",
         "isServerTerminalId",
+        "parseServerTerminalId",
+        "adoptPlan",
         "serverTerminalId",
         "normalizeRemoteUrl",
         "sameRemote",
@@ -26135,27 +26147,44 @@
           ]
         },
         "serverTerminalId": {
-          "line": 20,
+          "line": 25,
           "params": [
-            "n"
-          ]
+            "n",
+            "boot = null"
+          ],
+          "purpose": "A server terminal id. Frame Server adds a per-boot nonce (`srv-<boot>-<n>`)"
+        },
+        "parseServerTerminalId": {
+          "line": 30,
+          "params": [
+            "id"
+          ],
+          "purpose": "`{ boot, n }` of a server terminal id (`boot` null for an old `srv-<n>`), or null."
+        },
+        "adoptPlan": {
+          "line": 42,
+          "params": [
+            "known",
+            "live"
+          ],
+          "purpose": "Reconcile the server terminals a window (or main) knows for a project with"
         },
         "normalizeRemoteUrl": {
-          "line": 30,
+          "line": 62,
           "params": [
             "url"
           ],
           "purpose": "`git@github.com:Owner/Repo.git`, `https://github.com/Owner/Repo`,"
         },
         "sameRemote": {
-          "line": 55,
+          "line": 87,
           "params": [
             "a",
             "b"
           ]
         },
         "projectDirName": {
-          "line": 66,
+          "line": 98,
           "params": [
             "url",
             "taken = {}"
@@ -26163,14 +26192,14 @@
           "purpose": "Folder name for a clone of `url` under the server's projects root."
         },
         "parseSshConfigHosts": {
-          "line": 84,
+          "line": 116,
           "params": [
             "text"
           ],
           "purpose": "Host aliases from an OpenSSH client config: every name on a `Host` line,"
         },
         "serverRootFor": {
-          "line": 105,
+          "line": 137,
           "params": [
             "p",
             "roots"
@@ -26178,7 +26207,7 @@
           "purpose": "The server workspace folder `p` is (or lies under), or null. `roots` are"
         },
         "mergeGitStatePayloads": {
-          "line": 123,
+          "line": 155,
           "params": [
             "local",
             "server",
@@ -26187,18 +26216,21 @@
           "purpose": "One WORKSPACE_GIT_STATE payload for a desktop project: its local"
         }
       },
-      "sizeBytes": 5182,
+      "sizeBytes": 6647,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "ce59a75408de331b",
         "purposes": {
+          "adoptPlan": "d4177df65e90ccc8",
           "mergeGitStatePayloads": "629c850743c162fe",
           "normalizeRemoteUrl": "afe713da10725c06",
+          "parseServerTerminalId": "ac26e1ccb8a2f96c",
           "parseSshConfigHosts": "c6b2dbdf7edb7f8d",
           "projectDirName": "aa19e2a8bd1a94e9",
-          "serverRootFor": "fcf9225415cd0e81"
+          "serverRootFor": "fcf9225415cd0e81",
+          "serverTerminalId": "be0d191633b998ba"
         }
       }
     },
@@ -29752,9 +29784,18 @@
             "data"
           ],
           "purpose": "Send TERMINAL_CREATE like the renderer; resolve every reply it gets."
+        },
+        "adopt": {
+          "line": 116
+        },
+        "liveList": {
+          "line": 117,
+          "params": [
+            "ids"
+          ]
         }
       },
-      "sizeBytes": 4427,
+      "sizeBytes": 6654,
       "extraction": {
         "status": "parsed"
       },
@@ -30082,7 +30123,7 @@
         "src/shared/serverRouting"
       ],
       "functions": {},
-      "sizeBytes": 4635,
+      "sizeBytes": 5816,
       "extraction": {
         "status": "parsed"
       },
@@ -33965,6 +34006,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "73281ba293261f6b1a64b3595e803e9e9bb65b9242d644f56657eae164859412"
+    "revision": "3fd23090f66f9f09a06853cf1b674e3a796300348561b808a8e6eabcbc469567"
   }
 }

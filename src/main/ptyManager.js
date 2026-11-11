@@ -481,8 +481,11 @@ function hasTerminal(terminalId) {
 // already handles. Local teardown (reload reconcile, quit) only ever sees
 // local PTYs, so server terminals outlive this window.
 
-const { isServerTerminalId } = require('../shared/serverRouting');
+const { isServerTerminalId, adoptPlan } = require('../shared/serverRouting');
 const serverTerminals = new Map(); // srv id → { projectPath (local), workspaceId }
+// Server terminals closed while the link was down: sent on reconnect, and
+// never adopted back while the server still lists them (server-hardening T4).
+const pendingDestroys = new Set();
 
 function serverLocationOf(workspaceId) {
   if (!workspaceId || workspaceId === 'main') return null;
@@ -532,8 +535,12 @@ function wireServerEvents() {
   sc.on('terminal.process', (p) => {
     if (p && p.terminalId) toWindow(IPC.TERMINAL_PROCESS_DATA, { terminalId: p.terminalId, processName: p.processName, shellName: p.shellName, commandLine: p.commandLine });
   });
+  sc.on('connected', () => {
+    for (const terminalId of pendingDestroys) sc.send('terminals.destroy', { terminalId });
+  });
   sc.on('terminal.destroyed', (p) => {
     if (!p || !p.terminalId) return;
+    pendingDestroys.delete(p.terminalId);
     serverTerminals.delete(p.terminalId);
     toWindow(IPC.TERMINAL_DESTROYED, { terminalId: p.terminalId, exitCode: p.exitCode });
   });
@@ -545,18 +552,27 @@ function wireServerEvents() {
  * Their last process info is re-sent so lane detection sees the agents.
  */
 async function adoptServerTerminals(projectPath) {
-  if (!projectPath || !server().isConnected()) return [];
+  // null = cannot tell (not connected, rows offline): the renderer then keeps
+  // its lanes; [] = the server has none for this project (T3).
+  if (!projectPath || !server().isConnected()) return null;
   const wm = require('./workspaceManager');
   const listed = await wm.list(projectPath);
-  const serverIds = new Set(((listed && listed.workspaces) || []).filter((w) => w.location === 'server' && !w.offline).map((w) => w.id));
+  const rows = ((listed && listed.workspaces) || []).filter((w) => w.location === 'server');
+  if (rows.some((w) => w.offline)) return null;
+  const serverIds = new Set(rows.map((w) => w.id));
   if (!serverIds.size) return [];
   const loc = wm.serverLocation([...serverIds][0]);
-  if (!loc) return [];
-  const live = await server().call('terminals.list', { projectPath: loc.serverProjectPath });
+  if (!loc) return null;
+  const onServer = (await server().call('terminals.list', { projectPath: loc.serverProjectPath })) || [];
+  const live = onServer.filter((t) => serverIds.has(t.workspaceId) && !pendingDestroys.has(t.terminalId));
+  // Forget this project's terminals the server no longer has (a restart, a
+  // close elsewhere): their ids must not route anywhere (T3).
+  const known = [...serverTerminals].filter(([, info]) => info.projectPath === projectPath).map(([terminalId, info]) => ({ terminalId, workspaceId: info.workspaceId }));
+  for (const id of adoptPlan(known, live).dispose) serverTerminals.delete(id);
+  for (const id of pendingDestroys) if (!onServer.some((t) => t.terminalId === id)) pendingDestroys.delete(id);
   const out = [];
   const processes = [];
-  for (const t of live || []) {
-    if (!serverIds.has(t.workspaceId)) continue;
+  for (const t of live) {
     try {
       const snap = await server().call('terminals.attach', { terminalId: t.terminalId });
       noteServerTerminal(t.terminalId, { projectPath, workspaceId: t.workspaceId });
@@ -580,7 +596,7 @@ function setupIPC(ipcMain) {
       return await adoptServerTerminals(projectPath);
     } catch (err) {
       logger.warn('ptyManager', `adopting server terminals failed: ${err.message}`);
-      return [];
+      return null; // unknown, not "none"
     }
   });
   try { wireServerEvents(); } catch (err) { logger.warn('ptyManager', `server terminal events not wired: ${err.message}`); }
@@ -641,7 +657,10 @@ function setupIPC(ipcMain) {
   ipcMain.on(IPC.TERMINAL_DESTROY, (event, terminalId) => {
     if (isServerTerminalId(terminalId)) {
       serverTerminals.delete(terminalId);
-      server().send('terminals.destroy', { terminalId });
+      // Offline: keep the close and send it on reconnect, instead of the
+      // terminal running on and coming back (T4).
+      if (server().isConnected()) server().send('terminals.destroy', { terminalId });
+      else pendingDestroys.add(terminalId);
       return;
     }
     destroyTerminal(terminalId);
@@ -650,7 +669,7 @@ function setupIPC(ipcMain) {
   // Input to specific terminal
   ipcMain.on(IPC.TERMINAL_INPUT_ID, (event, { terminalId, data }) => {
     if (isServerTerminalId(terminalId)) {
-      // Held while the link is down: the renderer shows the reconnecting banner.
+      // Dropped while the link is down; the reconnecting banner says typing is paused.
       if (server().isConnected()) server().send('terminals.input', { terminalId, data });
       return;
     }

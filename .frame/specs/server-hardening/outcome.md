@@ -46,3 +46,11 @@ The renderer's createTerminal now sends a `requestId` with every TERMINAL_CREATE
 _Captured: 2026-11-11 · 5 file change(s)_
 
 ---
+
+## T07 — Prune dead server terminals and keep offline closes
+
+Frame Server ids now carry a per-process nonce, `srv-<boot>-<n>` (serverRouting.serverTerminalId/parseServerTerminalId; terminals.js maps an id of another boot to no terminal), so a restarted server never hands an old lane's id to a new terminal; the `srv-` prefix rule and protocol are unchanged. A pure adoptPlan(known, live) drives both sides on reconnect: main forgets serverTerminals entries the server no longer lists, and the renderer drops those lanes locally and rebuilds a lane whose terminal now belongs to another workspace. A close while offline goes into ptyManager's pendingDestroys, is sent on `connected`, and is skipped by adopt until the server stops listing it; the misleading "Held" comment now says input is dropped, as the banner does. Deviation found while checking live: main's adopt answered `[]` when it could not tell (offline, offline rows, errors), which would have closed every server lane — it now answers null for "unknown" and the renderer keeps its lanes.
+
+_Captured: 2026-11-11 · 7 file change(s)_
+
+---
