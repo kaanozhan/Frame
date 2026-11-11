@@ -259,9 +259,25 @@ function settingsOf(projectPath) {
 }
 
 /** Push a workspace's branch; the first push sets `origin/<branch>` as upstream. */
+/**
+ * Push and pull requests need `origin`: a project sent to the server without
+ * a remote (server-onboarding), or a local one never connected, is told how
+ * to add one instead of seeing git's own error.
+ */
+const NO_REMOTE = 'This project has no remote — add one (git remote add origin <url>) to push or open a pull request.';
+async function noRemote(cwd) {
+  try {
+    await git.execGitArgs(['remote', 'get-url', 'origin'], cwd);
+    return false;
+  } catch (_) {
+    return true;
+  }
+}
+
 async function push(projectPath, id) {
   const ws = recordOf(projectPath, id);
   if (!ws) return { error: 'This workspace is not available.' };
+  if (await noRemote(ws.path)) return { error: NO_REMOTE };
   // A workspace opened from an existing branch may have no stored base: the
   // remote's default branch stands in, so the base can never be pushed.
   const base = await baseOf(projectPath, ws);
@@ -292,6 +308,7 @@ function heldSpec(projectPath, id) {
 async function prDraft(projectPath, id) {
   const ws = recordOf(projectPath, id);
   if (!ws) return { error: 'This workspace is not available.' };
+  if (await noRemote(ws.path)) return { error: NO_REMOTE };
   const base = await baseOf(projectPath, ws);
   const commits = await git.commitSubjects(ws.path, `origin/${base}..HEAD`);
   const { title, body } = composePr({ spec: heldSpec(projectPath, id), commits, branch: ws.branch });
@@ -302,6 +319,7 @@ async function prDraft(projectPath, id) {
 async function prCreate(projectPath, id, { title, body = '', draft = false } = {}) {
   const ws = recordOf(projectPath, id);
   if (!ws) return { error: 'This workspace is not available.' };
+  if (await noRemote(ws.path)) return { error: NO_REMOTE };
   if (!title || !String(title).trim()) return { error: 'A pull request needs a title.' };
   const access = await github.checkAccess(projectPath);
   if (!access.gh) return { error: 'GitHub CLI (gh) is not installed.' };

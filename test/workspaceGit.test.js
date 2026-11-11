@@ -515,3 +515,18 @@ test('status and diff reads leave .git/index alone (--no-optional-locks)', async
   // background poll. Not asserted here.
   void gitDiff;
 });
+
+// ─── server-onboarding T03: push and PR need a remote ────────
+
+test('push and pull requests of a project without a remote say a remote is needed', async () => {
+  const { project } = makeProject();
+  const created = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.equal(created.error, null, created.error);
+  git(['remote', 'remove', 'origin'], project);
+  const pushed = await workspaceGitState.push(project, created.workspace.id);
+  assert.match(String(pushed.error), /no remote — add one/);
+  const draft = await workspaceGitState.prDraft(project, created.workspace.id);
+  assert.match(String(draft.error), /no remote — add one/);
+  const pr = await workspaceGitState.prCreate(project, created.workspace.id, { title: 'x' });
+  assert.match(String(pr.error), /no remote — add one/);
+});

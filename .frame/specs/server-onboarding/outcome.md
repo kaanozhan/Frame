@@ -14,3 +14,11 @@ Added gitBranchesManager.createBundle (`git bundle create … HEAD --branches --
 _Captured: 2026-11-11 · 6 file change(s)_
 
 ---
+
+## T03 — Refuse push and pull requests for a project without a remote
+
+workspaceGitState.push, prDraft and prCreate first check `git remote get-url origin` in the workspace and, without one, answer "This project has no remote — add one (git remote add origin <url>) to push or open a pull request." This covers a project sent to the server without a remote (T02) and, as planned, a local project never connected to one, where git's own error was the message before.
+
+_Captured: 2026-11-11 · 2 file change(s)_
+
+---

@@ -7940,16 +7940,21 @@
             "projectPath"
           ]
         },
+        "noRemote": {
+          "line": 268,
+          "params": [
+            "cwd"
+          ]
+        },
         "push": {
-          "line": 262,
+          "line": 277,
           "params": [
             "projectPath",
             "id"
-          ],
-          "purpose": "Push a workspace's branch; the first push sets `origin/<branch>` as upstream."
+          ]
         },
         "heldSpec": {
-          "line": 278,
+          "line": 294,
           "params": [
             "projectPath",
             "id"
@@ -7957,7 +7962,7 @@
           "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
         },
         "prDraft": {
-          "line": 292,
+          "line": 308,
           "params": [
             "projectPath",
             "id"
@@ -7965,7 +7970,7 @@
           "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
         },
         "prCreate": {
-          "line": 302,
+          "line": 319,
           "params": [
             "projectPath",
             "id",
@@ -7976,7 +7981,7 @@
           "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
         },
         "merge": {
-          "line": 329,
+          "line": 347,
           "params": [
             "projectPath",
             "id"
@@ -7984,14 +7989,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 379,
+          "line": 397,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 416,
+          "line": 434,
           "params": [
             "projectPath",
             "id"
@@ -7999,7 +8004,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 434,
+          "line": 452,
           "params": [
             "ipcMain"
           ]
@@ -8019,7 +8024,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 20312,
+      "sizeBytes": 20988,
       "extraction": {
         "status": "parsed"
       },
@@ -8034,7 +8039,6 @@
           "onServer": "e4870351bcb6a358",
           "prCreate": "33db61ed0da6f9aa",
           "prDraft": "62d68c7cdebe2e3d",
-          "push": "01dc3b998b8c53d9",
           "refresh": "0316824b93954fd9",
           "refreshServer": "404974b72a7202ce",
           "rowState": "114f885ae19483b9",
@@ -31894,7 +31898,7 @@
           "purpose": "A workspace whose worktree has one commit on a detached HEAD that no branch holds."
         }
       },
-      "sizeBytes": 27747,
+      "sizeBytes": 28600,
       "extraction": {
         "status": "parsed"
       },
@@ -34445,6 +34449,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "4470d0e8e4ef96efc99c9fb21a4150be8c517a24e15f2cc0e977b9d44771fc68"
+    "revision": "6bd45b3dd025dc7dea7cf46e553b8fa915bfb465480dc57175b02b0b6641a0a9"
   }
 }
