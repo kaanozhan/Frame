@@ -80,3 +80,16 @@ test('selectFiles filters candidates and normalises separators', () => {
   const out = selectFiles(['.env', 'src\\.env.local', 'README.md', './.env.test'], ['.env*']);
   assert.deepEqual(out, ['.env', 'src\\.env.local', './.env.test']);
 });
+
+test('a trailing /** also matches the collapsed directory itself', () => {
+  const { selectFiles } = require('../src/shared/copyFilesMatch');
+  assert.deepEqual(selectFiles(['certs/', 'other/'], ['certs/**']), ['certs/']);
+});
+
+test('dirsToExpand: collapsed folders an anchored pattern reaches into', () => {
+  const { dirsToExpand } = require('../src/shared/copyFilesMatch');
+  assert.deepEqual(dirsToExpand(['secrets/', 'build/', '.env'], ['secrets/*.key', '.env*']), ['secrets/']);
+  assert.deepEqual(dirsToExpand(['config/'], ['config/local/*.json']), ['config/']);
+  assert.deepEqual(dirsToExpand(['certs/'], ['certs/**']), [], 'already selected whole');
+  assert.deepEqual(dirsToExpand(['node_modules/'], ['node_modules/x/*.js']), [], 'never node_modules');
+});

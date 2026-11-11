@@ -552,6 +552,20 @@ async function listIgnoredCandidates(projectPath) {
   }
 }
 
+/** Ignored, untracked files inside one collapsed ignored folder `dir` (copyFiles, L10). */
+async function listIgnoredIn(projectPath, dir) {
+  try {
+    const { stdout } = await execGitArgs(
+      ['ls-files', '--others', '--ignored', '--exclude-standard', '-z', '--', dir],
+      projectPath,
+      { maxBuffer: LIST_MAX_BUFFER }
+    );
+    return stdout.split('\0').filter(Boolean);
+  } catch (_) {
+    return [];
+  }
+}
+
 // ─── PR flow helpers (workspace-pr-flow) ───────────────────
 //
 // Push, counts and the post-merge fast-forward. Argv only; nothing here
@@ -929,6 +943,7 @@ module.exports = {
   headState,
   ARCHIVE_TIMEOUT_MS,
   listIgnoredCandidates,
+  listIgnoredIn,
   // PR flow helpers (workspace-pr-flow)
   revCount,
   upstreamOf,

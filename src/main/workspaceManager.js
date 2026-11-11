@@ -23,7 +23,7 @@ const crypto = require('crypto');
 const { IPC } = require('../shared/ipcChannels');
 const registry = require('../shared/workspaceRegistry');
 const { nextName, toSlug, uniquify } = require('../shared/workspaceNames');
-const { selectFiles } = require('../shared/copyFilesMatch');
+const { selectFiles, dirsToExpand } = require('../shared/copyFilesMatch');
 const projectRegistry = require('./projectRegistry');
 const tooling = require('./workspaceTooling');
 const git = require('./gitBranchesManager');
@@ -114,6 +114,11 @@ async function copyIgnoredFiles(projectPath, worktreePath) {
   if (!copyFiles.length) return [];
   const { paths } = await git.listIgnoredCandidates(projectPath);
   const chosen = selectFiles(paths, copyFiles);
+  // Files inside fully ignored folders that a pattern reaches into (L10).
+  for (const dir of dirsToExpand(paths, copyFiles)) {
+    const inner = await git.listIgnoredIn(projectPath, dir);
+    chosen.push(...selectFiles(inner, copyFiles));
+  }
   const copied = [];
   for (const rel of chosen) {
     const clean = rel.replace(/\/+$/, '');
@@ -122,7 +127,9 @@ async function copyIgnoredFiles(projectPath, worktreePath) {
     try {
       if (fs.existsSync(dest)) continue;
       fs.mkdirSync(path.dirname(dest), { recursive: true });
-      fs.cpSync(src, dest, { recursive: true, errorOnExist: false, force: false });
+      // verbatimSymlinks: a relative link stays relative instead of being
+      // rewritten to point back into the main checkout (L9).
+      fs.cpSync(src, dest, { recursive: true, errorOnExist: false, force: false, verbatimSymlinks: true });
       copied.push(clean);
     } catch (err) {
       logger.warn('workspaces', `could not copy ${clean}: ${err.message}`);
@@ -281,13 +288,17 @@ async function list(projectPath) {
   return { ...local, workspaces: [...local.workspaces.map((w) => ({ ...w, location: 'local' })), ...remote] };
 }
 
+function realPath(p) {
+  try { return fs.realpathSync(p); } catch (_) { return p; }
+}
+
 async function listLocal(projectPath) {
   const { error, worktrees } = await git.loadWorktrees(projectPath);
   if (error) return { error, isRepo: false, workspaces: [], archived: [] };
   // `git worktree list` keeps a deleted folder until `worktree prune`, so a
   // row only counts when its folder is still on disk.
   const present = worktrees.filter((w) => w && w.path && fs.existsSync(w.path));
-  const reconciled = registry.reconcile(records(projectPath), present);
+  const reconciled = registry.reconcile(records(projectPath), present, { canon: realPath });
   return {
     error: null,
     isRepo: true,
@@ -396,12 +407,28 @@ async function create(projectPath, { from = 'new', base, branch, location = 'loc
     return { error: `Could not create ${dir}: ${err.message}` };
   }
 
+  // The commit a new branch starts at: a failed create deletes the branch
+  // only while it still points there (L13c, compare-and-swap).
+  let startSha = null;
+  if (from !== 'branch') {
+    try { startSha = (await git.execGitArgs(['rev-parse', '--verify', '-q', `${startPoint}^{commit}`], projectPath)).stdout.trim() || null; } catch (_) { startSha = null; }
+  }
+  const dropNewBranch = async () => {
+    if (!startSha) return;
+    // Frame's own half-finished create, never a user branch: a recorded
+    // exception to "never deletes a branch" (workspace-hardening plan, L13c).
+    await git.execGitArgs(['update-ref', '-d', `refs/heads/${targetBranch}`, startSha], projectPath).catch(() => {});
+  };
+
   const added = await git.addWorkspaceWorktree(projectPath, worktreePath, {
     branch: targetBranch,
     createBranch: from !== 'branch',
     startPoint
   });
-  if (added.error) return { error: added.error };
+  if (added.error) {
+    await dropNewBranch();
+    return { error: added.error };
+  }
 
   const result = registry.add(current, {
     id: newId(),
@@ -414,6 +441,7 @@ async function create(projectPath, { from = 'new', base, branch, location = 'loc
   if (!result.ok || !persist(projectPath, result.records)) {
     // Roll the worktree back: a folder nobody tracks is worse than an error.
     await git.removeWorkspaceWorktree(projectPath, worktreePath, true);
+    await dropNewBranch();
     return { error: result.ok ? 'This project is not in the project registry.' : result.error.message };
   }
 

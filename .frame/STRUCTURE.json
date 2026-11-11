@@ -2692,6 +2692,7 @@
         "headState",
         "ARCHIVE_TIMEOUT_MS",
         "listIgnoredCandidates",
+        "listIgnoredIn",
         "upstreamOf",
         "upstreamOfBranch",
         "pushBranch",
@@ -2909,8 +2910,16 @@
           ],
           "purpose": "Ignored, untracked paths in the main checkout — the candidates `copyFiles`"
         },
+        "listIgnoredIn": {
+          "line": 556,
+          "params": [
+            "projectPath",
+            "dir"
+          ],
+          "purpose": "Ignored, untracked files inside one collapsed ignored folder `dir` (copyFiles, L10)."
+        },
         "revCount": {
-          "line": 563,
+          "line": 577,
           "params": [
             "cwd",
             "range"
@@ -2918,7 +2927,7 @@
           "purpose": "`git rev-list --count <range>` in `cwd`; 0 when the range does not resolve."
         },
         "upstreamOfBranch": {
-          "line": 575,
+          "line": 589,
           "params": [
             "cwd",
             "branch"
@@ -2926,13 +2935,13 @@
           "purpose": "`branch`'s upstream as seen from `cwd` (`origin/develop`, or a local name), or null."
         },
         "upstreamOf": {
-          "line": 586,
+          "line": 600,
           "params": [
             "cwd"
           ]
         },
         "pushBranch": {
-          "line": 600,
+          "line": 614,
           "params": [
             "cwd",
             "args"
@@ -2940,7 +2949,7 @@
           "purpose": "Run a push built by prFlow.pushArgs in `cwd` — always an explicit"
         },
         "commitSubjects": {
-          "line": 611,
+          "line": 625,
           "params": [
             "cwd",
             "range",
@@ -2949,7 +2958,7 @@
           "purpose": "Commit subjects in `range`, newest first (`git log --format=%s`), at most `max`."
         },
         "fastForwardIfOn": {
-          "line": 625,
+          "line": 639,
           "params": [
             "projectPath",
             "branch"
@@ -2957,14 +2966,14 @@
           "purpose": "After a PR merges: fast-forward the main checkout's `branch` from origin —"
         },
         "trackedDirtyCount": {
-          "line": 654,
+          "line": 668,
           "params": [
             "cwd"
           ],
           "purpose": "Uncommitted changes to tracked files (untracked files never block a merge on their own)."
         },
         "mergeHeadIn": {
-          "line": 666,
+          "line": 680,
           "params": [
             "cwd",
             "ref"
@@ -2972,21 +2981,21 @@
           "purpose": "Is MERGE_HEAD a commit of `ref` (the merge Frame's update started), not one the user or an agent began?"
         },
         "mergeInProgress": {
-          "line": 676,
+          "line": 690,
           "params": [
             "cwd"
           ],
           "purpose": "Is a merge stopped half-way (MERGE_HEAD present)?"
         },
         "conflictedFiles": {
-          "line": 686,
+          "line": 700,
           "params": [
             "cwd"
           ],
           "purpose": "Raw `-z` list of unmerged paths (parse with prFlow.parseConflicts); '' when none or unreadable."
         },
         "mergeRef": {
-          "line": 696,
+          "line": 710,
           "params": [
             "cwd",
             "ref"
@@ -2994,34 +3003,34 @@
           "purpose": "`git merge --no-edit <ref>` → `{ ok, error }`; never throws."
         },
         "abortMerge": {
-          "line": 707,
+          "line": 721,
           "params": [
             "cwd"
           ],
           "purpose": "`git merge --abort` → `{ error }`."
         },
         "orchWorktreePath": {
-          "line": 722,
+          "line": 736,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getHeadSha": {
-          "line": 726,
+          "line": 740,
           "params": [
             "projectPath"
           ]
         },
         "branchExists": {
-          "line": 735,
+          "line": 749,
           "params": [
             "projectPath",
             "branchName"
           ]
         },
         "createOrchWorktree": {
-          "line": 749,
+          "line": 763,
           "params": [
             "projectPath",
             "slug"
@@ -3029,7 +3038,7 @@
           "purpose": "Create a fresh worker worktree for a spec, branched from current HEAD."
         },
         "removeOrchWorktree": {
-          "line": 770,
+          "line": 784,
           "params": [
             "projectPath",
             "slug",
@@ -3038,7 +3047,7 @@
           "purpose": "Remove a spec's worker worktree (force). Optionally delete its work branch."
         },
         "worktreeChangedFiles": {
-          "line": 785,
+          "line": 799,
           "params": [
             "projectPath",
             "slug",
@@ -3047,7 +3056,7 @@
           "purpose": "Files actually changed on a spec's work branch relative to a base ref."
         },
         "mergeWorkToIntegration": {
-          "line": 802,
+          "line": 816,
           "params": [
             "projectPath",
             "slug"
@@ -3055,7 +3064,7 @@
           "purpose": "Merge a spec's work branch into its per-spec integration branch. Because the"
         },
         "isWorkMerged": {
-          "line": 821,
+          "line": 835,
           "params": [
             "projectPath",
             "slug"
@@ -3063,14 +3072,14 @@
           "purpose": "Whether a spec's work branch has been merged (its integration branch exists"
         },
         "listOrchBranches": {
-          "line": 837,
+          "line": 851,
           "params": [
             "projectPath"
           ],
           "purpose": "List orchestration branches present in the repo, grouped by slug. Used for"
         },
         "setupIPC": {
-          "line": 857,
+          "line": 871,
           "params": [
             "ipcMain"
           ],
@@ -3092,7 +3101,7 @@
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
       },
-      "sizeBytes": 34979,
+      "sizeBytes": 35419,
       "extraction": {
         "status": "parsed"
       },
@@ -3119,6 +3128,7 @@
           "isWorkMerged": "39ca7ffa9b37d991",
           "isWorkingTreeClean": "077fc8ab2e75ee0d",
           "listIgnoredCandidates": "8363d4cd5adc577f",
+          "listIgnoredIn": "6778c318a1168739",
           "listOrchBranches": "b6e87043dfe78d4c",
           "loadBranches": "cb990681d8be2c86",
           "loadWorktrees": "e1f5dd6ccfd9f107",
@@ -5063,28 +5073,28 @@
           "purpose": "Add a project to the registry"
         },
         "removeProject": {
-          "line": 137,
+          "line": 142,
           "params": [
             "projectPath"
           ],
           "purpose": "Remove a project from the registry"
         },
         "reorderProjects": {
-          "line": 152,
+          "line": 164,
           "params": [
             "orderedPaths"
           ],
           "purpose": "Reorder the registered projects to match the given list of paths."
         },
         "updateProjectLastOpened": {
-          "line": 172,
+          "line": 184,
           "params": [
             "projectPath"
           ],
           "purpose": "Update project's last opened timestamp"
         },
         "updateProjectFrameStatus": {
-          "line": 188,
+          "line": 200,
           "params": [
             "projectPath",
             "isFrame"
@@ -5092,14 +5102,14 @@
           "purpose": "Update project's Frame status"
         },
         "getWorkspaceRecords": {
-          "line": 206,
+          "line": 218,
           "params": [
             "projectPath"
           ],
           "purpose": "A project's workspace records (workspaces spec). Stored on the project's"
         },
         "setWorkspaceRecords": {
-          "line": 212,
+          "line": 224,
           "params": [
             "projectPath",
             "records"
@@ -5107,7 +5117,7 @@
           "purpose": "Replace a project's workspace records. Returns false when the project is not registered."
         },
         "setupIPC": {
-          "line": 225,
+          "line": 237,
           "params": [
             "ipcMain"
           ],
@@ -5127,7 +5137,7 @@
           "PROJECT_REGISTRY_UPDATED"
         ]
       },
-      "sizeBytes": 8160,
+      "sizeBytes": 9027,
       "extraction": {
         "status": "parsed"
       },
@@ -6394,6 +6404,7 @@
         "init",
         "setupIPC",
         "refreshWorkspaceWatchers",
+        "specRoot",
         "repairSpecStatus",
         "listSpecs",
         "searchSpecs",
@@ -6864,54 +6875,54 @@
           "purpose": "Watch each active workspace's `.frame/specs` alongside main's, then push"
         },
         "startWatching": {
-          "line": 1435,
+          "line": 1439,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1515
+          "line": 1519
         },
         "markSpecNewLaunch": {
-          "line": 1569,
+          "line": 1573,
           "params": [
             "projectPath"
           ]
         },
         "consumeSpecNewLaunch": {
-          "line": 1575,
+          "line": 1579,
           "params": [
             "projectPath"
           ]
         },
         "resolveSpecOrigin": {
-          "line": 1591,
+          "line": 1595,
           "params": [
             "projectPath"
           ],
           "purpose": "How this spec was started, from Frame's own state — never guessed from the"
         },
         "trackSpecLifecycle": {
-          "line": 1602,
+          "line": 1606,
           "params": [
             "projectPath",
             "specs"
           ]
         },
         "pushSpecData": {
-          "line": 1630,
+          "line": 1634,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 1654,
+          "line": 1658,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1658,
+          "line": 1662,
           "params": [
             "ipcMain"
           ]
@@ -6938,7 +6949,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 76226,
+      "sizeBytes": 76434,
       "extraction": {
         "status": "parsed"
       },
@@ -8073,16 +8084,16 @@
           "purpose": "Copy the `copyFiles` selection from the main checkout into a worktree."
         },
         "server": {
-          "line": 148
+          "line": 155
         },
         "originOf": {
-          "line": 152,
+          "line": 159,
           "params": [
             "projectPath"
           ]
         },
         "serverProjectFor": {
-          "line": 162,
+          "line": 169,
           "params": [
             "projectPath",
             "{ ensure = false } = {}"
@@ -8090,7 +8101,7 @@
           "purpose": "The server's clone of `projectPath` (by remote), cloning it when `ensure`."
         },
         "toServerRow": {
-          "line": 183,
+          "line": 190,
           "params": [
             "row",
             "serverProjectPath",
@@ -8098,24 +8109,24 @@
           ]
         },
         "listServer": {
-          "line": 187,
+          "line": 194,
           "params": [
             "projectPath"
           ]
         },
         "serverRoots": {
-          "line": 210,
+          "line": 217,
           "purpose": "Every known server workspace folder (server-workspace-panels): what panel"
         },
         "serverLocation": {
-          "line": 221,
+          "line": 228,
           "params": [
             "workspaceId"
           ],
           "purpose": "Where a workspace id lives on the server, or null when it is not a server workspace."
         },
         "serverCall": {
-          "line": 229,
+          "line": 236,
           "params": [
             "method",
             "projectPath",
@@ -8124,7 +8135,7 @@
           ]
         },
         "createOnServer": {
-          "line": 238,
+          "line": 245,
           "params": [
             "projectPath",
             "{ from",
@@ -8133,29 +8144,35 @@
           ]
         },
         "notifyRenderer": {
-          "line": 257,
+          "line": 264,
           "params": [
             "projectPath"
           ],
           "purpose": "Tell the renderer only (no spec/git refresh — those are local concerns)."
         },
         "wireServerEvents": {
-          "line": 262
+          "line": 269
         },
         "list": {
-          "line": 276,
+          "line": 283,
           "params": [
             "projectPath"
           ]
         },
+        "realPath": {
+          "line": 291,
+          "params": [
+            "p"
+          ]
+        },
         "listLocal": {
-          "line": 284,
+          "line": 295,
           "params": [
             "projectPath"
           ]
         },
         "withBase": {
-          "line": 303,
+          "line": 314,
           "params": [
             "projectPath",
             "rows"
@@ -8163,7 +8180,7 @@
           "purpose": "Records stored before workspaces knew their base (`base: null`) read as the"
         },
         "baseForBranch": {
-          "line": 310,
+          "line": 321,
           "params": [
             "projectPath",
             "branch"
@@ -8171,14 +8188,14 @@
           "purpose": "The base to prefill for a workspace opened from `branch` (decision B2)."
         },
         "status": {
-          "line": 319,
+          "line": 330,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "create": {
-          "line": 338,
+          "line": 349,
           "params": [
             "projectPath",
             "{ from = 'new'",
@@ -8189,14 +8206,14 @@
           "purpose": "Create a workspace."
         },
         "refExists": {
-          "line": 426,
+          "line": 454,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "archive": {
-          "line": 442,
+          "line": 470,
           "params": [
             "projectPath",
             "id",
@@ -8207,7 +8224,7 @@
           "purpose": "Archive. With uncommitted changes and no `action`, nothing happens and"
         },
         "restore": {
-          "line": 497,
+          "line": 525,
           "params": [
             "projectPath",
             "id"
@@ -8215,7 +8232,7 @@
           "purpose": "Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere."
         },
         "rename": {
-          "line": 522,
+          "line": 550,
           "params": [
             "projectPath",
             "id",
@@ -8225,7 +8242,7 @@
           "purpose": "Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`)."
         },
         "removeRecord": {
-          "line": 556,
+          "line": 584,
           "params": [
             "projectPath",
             "id"
@@ -8233,13 +8250,13 @@
           "purpose": "Forget a record whose worktree is gone (missing) or that is archived."
         },
         "setupIPC": {
-          "line": 572,
+          "line": 600,
           "params": [
             "ipcMain"
           ]
         },
         "archiveQueued": {
-          "line": 599,
+          "line": 627,
           "params": [
             "projectPath",
             "id",
@@ -8266,7 +8283,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 26772,
+      "sizeBytes": 28071,
       "extraction": {
         "status": "parsed"
       },
@@ -14025,24 +14042,24 @@
           "purpose": "Confirmation + removal (also offered as the × in the switcher menu)."
         },
         "selectProject": {
-          "line": 145,
+          "line": 152,
           "params": [
             "projectPath"
           ],
           "purpose": "Select a project"
         },
         "setActiveProject": {
-          "line": 156,
+          "line": 163,
           "params": [
             "projectPath"
           ],
           "purpose": "Set active project (visual state lives in the switcher + project nav)"
         },
         "getActiveProject": {
-          "line": 162
+          "line": 169
         },
         "addProject": {
-          "line": 169,
+          "line": 176,
           "params": [
             "projectPath",
             "projectName"
@@ -14050,77 +14067,77 @@
           "purpose": "Add project to the registry"
         },
         "removeProject": {
-          "line": 180,
+          "line": 187,
           "params": [
             "projectPath"
           ],
           "purpose": "Remove project from the registry"
         },
         "setupIPC": {
-          "line": 196,
+          "line": 203,
           "purpose": "Setup IPC listeners"
         },
         "applyAgentStatuses": {
-          "line": 227,
+          "line": 234,
           "params": [
             "map"
           ],
           "purpose": "Per-project agent status counts (from projectStatusBadges). Stored for the"
         },
         "getAgentStatus": {
-          "line": 233,
+          "line": 240,
           "params": [
             "projectPath"
           ],
           "purpose": "{ approval, input } counts for one project, or undefined."
         },
         "selectNextProject": {
-          "line": 240,
+          "line": 247,
           "purpose": "Select next project in list"
         },
         "selectPrevProject": {
-          "line": 251,
+          "line": 258,
           "purpose": "Select previous project in list"
         },
         "focus": {
-          "line": 262,
+          "line": 269,
           "purpose": "\"Focus Project List\" now means: open the switcher dropdown."
         },
         "blur": {
-          "line": 267,
+          "line": 274,
           "purpose": "No list rows to blur anymore — kept for callers."
         },
         "getProjects": {
-          "line": 273,
+          "line": 280,
           "purpose": "Snapshot of the registered projects (switcher menu, file panels). Copy so"
         },
         "loadCollapsedGroups": {
-          "line": 337
+          "line": 344
         },
         "saveCollapsedGroups": {
-          "line": 346,
+          "line": 353,
           "params": [
             "state"
           ]
         },
         "buildProjectNav": {
-          "line": 354
+          "line": 361
         },
         "revealNavItem": {
-          "line": 423,
+          "line": 430,
           "params": [
             "view"
           ],
           "purpose": "Make a nav row reachable without changing the user's saved layout: expand"
         },
         "placeProjectNav": {
-          "line": 436
+          "line": 443
         },
         "refreshProjectNav": {
-          "line": 448
+          "line": 455
         },
         "updateProjectNav": {
-          "line": 526,
+          "line": 533,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -14138,7 +14155,7 @@
           "REMOVE_PROJECT_FROM_REGISTRY"
         ]
       },
-      "sizeBytes": 20589,
+      "sizeBytes": 21320,
       "extraction": {
         "status": "parsed"
       },
@@ -24623,6 +24640,7 @@
         "DEFAULT_COPY_FILES",
         "compile",
         "selectFiles",
+        "dirsToExpand",
         "normalize"
       ],
       "depends": [],
@@ -24654,22 +24672,30 @@
           "purpose": "Compile one pattern line into a tester, or null for blank/comment lines."
         },
         "compile": {
-          "line": 90,
+          "line": 98,
           "params": [
             "patterns"
           ],
           "purpose": "Compile a list of pattern lines (or one newline-separated string) into a"
         },
         "selectFiles": {
-          "line": 104,
+          "line": 112,
           "params": [
             "candidates",
             "patterns"
           ],
           "purpose": "Filter candidate relative paths down to the ones the patterns select."
+        },
+        "dirsToExpand": {
+          "line": 124,
+          "params": [
+            "candidates",
+            "patterns"
+          ],
+          "purpose": "into (`secrets/*.key`) without selecting the folder whole: the caller lists"
         }
       },
-      "sizeBytes": 3687,
+      "sizeBytes": 5239,
       "extraction": {
         "status": "parsed"
       },
@@ -24678,6 +24704,7 @@
         "purposes": {
           "compile": "636f864ee7338f78",
           "compilePattern": "10973b3cca0d5633",
+          "dirsToExpand": "caf3360ff20944b1",
           "globToRegexSource": "d10b60c8b5cf1eb4",
           "selectFiles": "8d5963438757bb2e"
         }
@@ -26265,26 +26292,27 @@
           "line": 195,
           "params": [
             "records",
-            "rows"
+            "rows",
+            "{ canon = (p"
           ],
           "purpose": "Mark active records whose worktree no longer appears in `git worktree list`"
         },
         "normalizeSettings": {
-          "line": 214,
+          "line": 217,
           "params": [
             "raw"
           ],
           "purpose": "Read `settings.workspaces` defensively: a missing or hand-mangled value"
         },
         "toStored": {
-          "line": 229,
+          "line": 232,
           "params": [
             "records"
           ],
           "purpose": "Strip transient fields before persisting."
         }
       },
-      "sizeBytes": 9398,
+      "sizeBytes": 9593,
       "extraction": {
         "status": "parsed"
       },
@@ -27499,7 +27527,7 @@
         "src/shared/copyFilesMatch"
       ],
       "functions": {},
-      "sizeBytes": 3068,
+      "sizeBytes": 3837,
       "extraction": {
         "status": "parsed"
       },
@@ -30770,7 +30798,10 @@
         "src/main/workspaceGitState",
         "src/main/gitDiffManager",
         "src/shared/ipcChannels",
-        "src/main/gitBranchesManager"
+        "src/main/gitBranchesManager",
+        "src/main/userSettings",
+        "src/main/frameProject",
+        "src/main/specManager"
       ],
       "functions": {
         "withGh": {
@@ -30814,7 +30845,7 @@
           "purpose": "A workspace whose worktree has one commit on a detached HEAD that no branch holds."
         }
       },
-      "sizeBytes": 20925,
+      "sizeBytes": 26122,
       "extraction": {
         "status": "parsed"
       },
@@ -30862,7 +30893,7 @@
           "line": 23
         }
       },
-      "sizeBytes": 7704,
+      "sizeBytes": 8130,
       "extraction": {
         "status": "parsed"
       },
@@ -33338,6 +33369,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "2cb579fb1ef35a05f5af21a4e72d6f191c222ea69dfac9f2859a68e7683a047c"
+    "revision": "6666b904542a2a141eccf5ec640ba854e20e9bed13c13fd15ae2a8e105fc9ae1"
   }
 }

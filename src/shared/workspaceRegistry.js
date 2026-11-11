@@ -192,11 +192,14 @@ function remove(records, id) {
  * `{ path }` objects as loadWorktrees returns them. Archived records are left
  * alone — having no worktree is their normal state.
  */
-function reconcile(records, rows) {
-  const present = new Set(list(rows).map((row) => normalizePath(row && row.path)));
+function reconcile(records, rows, { canon = (p) => p } = {}) {
+  // `canon` (realpath in the manager) lets a symlinked workspaces root match
+  // the real paths git lists (workspace-hardening L7).
+  const key = (p) => normalizePath(p ? canon(p) : p);
+  const present = new Set(list(rows).map((row) => key(row && row.path)));
   return list(records).map((r) => {
     if (!isActive(r)) return r;
-    const missing = !present.has(normalizePath(r.path));
+    const missing = !present.has(key(r.path));
     if (missing === !!r.missing) return r;
     const next = Object.assign({}, r);
     if (missing) next.missing = true;

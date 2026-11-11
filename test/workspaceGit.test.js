@@ -389,3 +389,100 @@ test('L12: a pushed branch cannot be renamed; an unpushed one can', async () => 
   assert.equal(ok.error, null, ok.error);
   assert.ok(git(['rev-parse', '--verify', '-q', 'refs/heads/feat/renamed-b'], project));
 });
+
+// ─── L6 / L7 / L9 / L10 / L13c / L13e: registry and filesystem edges ──
+
+test('L6: removing and re-adding a project keeps its workspace records', async () => {
+  const { project } = makeProject();
+  const created = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.equal(created.error, null, created.error);
+  projectRegistry.removeProject(project);
+  assert.deepEqual(projectRegistry.getWorkspaceRecords(project), []);
+  projectRegistry.addProject(project, 'again', false);
+  const back = projectRegistry.getWorkspaceRecords(project);
+  assert.ok(back.find((r) => r.id === created.workspace.id), 'the record came back');
+  const listed = await workspaceManager.list(project);
+  assert.ok(listed.workspaces.find((w) => w.id === created.workspace.id && !w.missing));
+});
+
+test('L7: a symlinked workspaces root does not mark workspaces missing', async () => {
+  const { project } = makeProject();
+  const userSettings = require('../src/main/userSettings');
+  const real = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-wsroot-'));
+  const link = path.join(SANDBOX, `wslink-${Date.now()}`);
+  fs.symlinkSync(real, link);
+  const before = userSettings.get('workspacesRoot');
+  userSettings.set('workspacesRoot', link);
+  try {
+    const created = await workspaceManager.create(project, { from: 'new', base: 'main' });
+    assert.equal(created.error, null, created.error);
+    const listed = await workspaceManager.list(project);
+    const row = listed.workspaces.find((w) => w.id === created.workspace.id);
+    assert.ok(row, 'listed');
+    assert.ok(!row.missing, 'not missing');
+  } finally {
+    userSettings.set('workspacesRoot', before);
+  }
+});
+
+test('L9 / L10: copied symlinks stay as written and certs/** copies an ignored folder', async () => {
+  const { project } = makeProject();
+  fs.writeFileSync(path.join(project, '.gitignore'), '.env*\ncerts/\n');
+  git(['add', '.gitignore'], project); git(['commit', '-qm', 'ignore'], project);
+  fs.mkdirSync(path.join(project, 'certs'));
+  fs.writeFileSync(path.join(project, 'certs', 'dev.pem'), 'pem\n');
+  fs.writeFileSync(path.join(project, '.env.shared'), 'A=1\n');
+  fs.symlinkSync('.env.shared', path.join(project, '.env'));
+  const frameProject = require('../src/main/frameProject');
+  const orig = frameProject.getWorkspaceSettings;
+  frameProject.getWorkspaceSettings = () => ({ ...orig(project), copyFiles: ['.env*', 'certs/**'] });
+  try {
+    const created = await workspaceManager.create(project, { from: 'new', base: 'main' });
+    assert.equal(created.error, null, created.error);
+    const wt = created.workspace.path;
+    assert.equal(fs.readlinkSync(path.join(wt, '.env')), '.env.shared', 'the relative link is kept, not pointed back into main');
+    assert.equal(fs.readFileSync(path.join(wt, 'certs', 'dev.pem'), 'utf8'), 'pem\n');
+  } finally {
+    frameProject.getWorkspaceSettings = orig;
+  }
+});
+
+test('L10: an anchored pattern inside a fully ignored folder copies just the matching files', async () => {
+  const { project } = makeProject();
+  fs.writeFileSync(path.join(project, '.gitignore'), 'secrets/\n');
+  git(['add', '.gitignore'], project); git(['commit', '-qm', 'ignore'], project);
+  fs.mkdirSync(path.join(project, 'secrets'));
+  fs.writeFileSync(path.join(project, 'secrets', 'a.key'), 'k\n');
+  fs.writeFileSync(path.join(project, 'secrets', 'big.bin'), 'b\n');
+  const frameProject = require('../src/main/frameProject');
+  const orig = frameProject.getWorkspaceSettings;
+  frameProject.getWorkspaceSettings = () => ({ ...orig(project), copyFiles: ['secrets/*.key'] });
+  try {
+    const created = await workspaceManager.create(project, { from: 'new', base: 'main' });
+    assert.equal(created.error, null, created.error);
+    const wt = created.workspace.path;
+    assert.equal(fs.existsSync(path.join(wt, 'secrets', 'a.key')), true);
+    assert.equal(fs.existsSync(path.join(wt, 'secrets', 'big.bin')), false);
+  } finally {
+    frameProject.getWorkspaceSettings = orig;
+  }
+});
+
+test('L13c: a create that fails after making its branch removes that branch', async () => {
+  const { project } = makeProject();
+  projectRegistry.removeProject(project); // persist will fail: not registered
+  const res = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.ok(res.error, 'create failed');
+  const left = git(['for-each-ref', '--format=%(refname:short)', 'refs/heads/'], project).split('\n').filter((b) => b && b !== 'main');
+  assert.deepEqual(left, [], 'no half-created branch is left');
+});
+
+test('L13e: spec locations of a project that is not watched follow its workspaces', async () => {
+  const { project } = makeProject();
+  const specManager = require('../src/main/specManager');
+  const a = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.equal(specManager.specRoot(project, 'later'), project, 'unknown slug → main (now cached)');
+  fs.mkdirSync(path.join(a.workspace.path, '.frame', 'specs', 'later'), { recursive: true });
+  await workspaceManager.create(project, { from: 'new', base: 'main' }); // any workspace change
+  assert.equal(specManager.specRoot(project, 'later'), a.workspace.path);
+});

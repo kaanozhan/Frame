@@ -72,6 +72,14 @@ function compilePattern(line) {
   const anchored = glob.includes('/');
   glob = glob.replace(/^\//, '');
   if (!glob) return null;
+  // `dir/**` also selects `dir` itself: git lists a fully ignored folder
+  // collapsed (`certs/`), with no files under it (workspace-hardening L10).
+  if (glob.endsWith('/**')) {
+    const dirSource = globToRegexSource(glob.slice(0, -3));
+    const whole = new RegExp(`^${dirSource}$`);
+    const inner = compilePattern(glob.slice(0, -3) + '/**/*');
+    return (relPath) => whole.test(relPath) || inner(relPath);
+  }
   const source = globToRegexSource(glob);
   // Anchored: the whole relative path (or a parent directory of it) matches.
   // Unanchored: any single path segment — or, for a directory match, the
@@ -106,4 +114,27 @@ function selectFiles(candidates, patterns) {
   return (candidates || []).filter((c) => match(c));
 }
 
-module.exports = { DEFAULT_COPY_FILES, compile, selectFiles, normalize };
+/**
+ * Collapsed ignored folders (`secrets/`) that an anchored pattern reaches
+ * into (`secrets/*.key`) without selecting the folder whole: the caller lists
+ * the files inside them and filters those again (workspace-hardening L10).
+ * Unanchored patterns never expand a folder — that would walk every ignored
+ * directory for a `.env*`.
+ */
+function dirsToExpand(candidates, patterns) {
+  const lines = patterns == null ? DEFAULT_COPY_FILES : (typeof patterns === 'string' ? patterns.split(/\r?\n/) : patterns);
+  const match = compile(patterns);
+  const prefixes = lines
+    .map((l) => String(l || '').trim().replace(/\\/g, '/'))
+    .filter((l) => l && !l.startsWith('#') && l.replace(/\/+$/, '').includes('/'))
+    .map((l) => l.replace(/^\//, ''))
+    .map((l) => l.slice(0, l.search(/[*?]|$/)));
+  return (candidates || []).filter((c) => {
+    if (!String(c).endsWith('/')) return false;
+    const dir = normalize(c);
+    if (!dir || dir.split('/').some((seg) => NEVER.has(seg)) || match(dir)) return false;
+    return prefixes.some((p) => p.startsWith(`${dir}/`) || (p && `${dir}/`.startsWith(p)));
+  });
+}
+
+module.exports = { DEFAULT_COPY_FILES, compile, selectFiles, dirsToExpand, normalize };

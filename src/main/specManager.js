@@ -1410,7 +1410,11 @@ function closeWorkspaceSpecWatchers() {
  * being watched.
  */
 function refreshWorkspaceWatchers(projectPath) {
-  if (!projectPath || projectPath !== activeWatchedProject) return;
+  if (!projectPath) return;
+  // Workspaces changed: whichever project this is, its slug → checkout map
+  // is stale (workspace-hardening L13e). It is rebuilt on next use.
+  specLocations.delete(projectPath);
+  if (projectPath !== activeWatchedProject) return;
   const wanted = new Set(activeWorkspaceRoots(projectPath).map((ws) => ws.root));
   for (const [root, watcher] of workspaceSpecWatchers) {
     if (wanted.has(root)) continue;
@@ -1731,6 +1735,7 @@ module.exports = {
   init,
   setupIPC,
   refreshWorkspaceWatchers,
+  specRoot,
   // Exported for tests
   validateSpecStatus,
   repairSpecStatus,

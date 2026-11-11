@@ -117,8 +117,15 @@ function setDefaultProject(projectPath) {
  * Confirmation + removal (also offered as the × in the switcher menu).
  */
 function confirmRemoveProject(projectPath, projectName) {
+  // Workspaces stay on disk, holding their branches; say where before removal.
+  // Their records are kept and come back if the project is added again (L6).
+  const record = projects.find(p => p.path === projectPath);
+  const folders = ((record && record.workspaces) || []).filter(w => w && !w.archivedAt && w.path).map(w => w.path);
+  const workspaceNote = folders.length
+    ? `\n\nIts ${folders.length} workspace folder${folders.length === 1 ? ' stays' : 's stay'} on disk (Frame keeps track and lists ${folders.length === 1 ? 'it' : 'them'} again if you add the project back):\n${folders.slice(0, 8).map(f => `  ${f}`).join('\n')}${folders.length > 8 ? `\n  …and ${folders.length - 8} more` : ''}`
+    : '';
   const confirmed = window.confirm(
-    `Remove "${projectName}" from the project list?\n\nThis will only remove it from Frame's list. The project files will not be deleted.`
+    `Remove "${projectName}" from the project list?\n\nThis will only remove it from Frame's list. The project files will not be deleted.${workspaceNote}`
   );
 
   if (confirmed) {

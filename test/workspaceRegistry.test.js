@@ -159,3 +159,11 @@ test('rename refuses a branch name that git would read as an option (workspace-h
   assert.match(res.error.message, /not a valid branch/);
   assert.equal(reg.rename(recs, 'a1', { branch: 'ws/ok' }).ok, true);
 });
+
+test('reconcile compares canonical paths when given canon', () => {
+  const recs = [{ id: 'a', name: 'a', branch: 'b', path: '/link/p/a', createdAt: 'x' }];
+  const rows = [{ path: '/real/p/a' }];
+  const canon = (p) => p.replace(/^\/link\//, '/real/');
+  assert.equal(reg.reconcile(recs, rows)[0].missing, true, 'string compare says missing');
+  assert.equal(reg.reconcile(recs, rows, { canon })[0].missing, undefined);
+});

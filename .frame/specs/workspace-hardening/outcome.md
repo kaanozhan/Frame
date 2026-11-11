@@ -38,3 +38,11 @@ Added prFlow.baseForBranch (the branch's upstream when it is another valid branc
 _Captured: 2026-11-11 · 9 file change(s)_
 
 ---
+
+## T06 — Fix registry and filesystem edges
+
+L6: projectRegistry.removeProject keeps a removed project's workspace records under the additive top-level key `detachedWorkspaceRecords`, and addProject restores them; the removal confirmation lists the workspace folders that stay on disk (live-checked). L7: workspaceRegistry.reconcile takes `{ canon }` and the manager passes realpath, so a symlinked workspaces root no longer marks every workspace missing. L9: copyFiles copies with `verbatimSymlinks`. L10: a trailing `/**` also selects the collapsed folder itself, and copyFilesMatch.dirsToExpand + gitBranchesManager.listIgnoredIn list files inside a fully ignored folder that an anchored pattern reaches into (unanchored patterns never expand a folder, and node_modules/.git never). L13c: create records the start commit and, when it fails after making the branch (worktree add or registry write), deletes it with `update-ref -d refs/heads/<b> <startSha>` — only while it still points there. L13e: refreshWorkspaceWatchers drops the project's specLocations entry before the watched-project early return; specRoot is exported for the test.
+
+_Captured: 2026-11-11 · 13 file change(s)_
+
+---

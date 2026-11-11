@@ -119,13 +119,18 @@ function addProject(projectPath, name, isFrameProject = false) {
   );
   if (exists) return false;
 
+  // Workspace records kept when the project was removed come back with it
+  // (workspace-hardening L6, decision B3).
+  const detached = registry.detachedWorkspaceRecords && registry.detachedWorkspaceRecords[projectPath];
   registry.workspaces[active].projects.push({
     path: projectPath,
     name: name || path.basename(projectPath),
     isFrameProject: isFrameProject,
     addedAt: new Date().toISOString(),
-    lastOpenedAt: null
+    lastOpenedAt: null,
+    ...(Array.isArray(detached) && detached.length ? { workspaces: detached } : {})
   });
+  if (detached) delete registry.detachedWorkspaceRecords[projectPath];
 
   saveRegistry(registry);
   return true;
@@ -138,6 +143,13 @@ function removeProject(projectPath) {
   const registry = loadRegistry();
   const active = registry.activeWorkspace;
 
+  // Keep its workspace records under an additive key: the worktrees stay on
+  // disk holding their branches, and re-adding the project restores them (L6).
+  const removed = registry.workspaces[active].projects.find(p => p.path === projectPath);
+  if (removed && Array.isArray(removed.workspaces) && removed.workspaces.length) {
+    registry.detachedWorkspaceRecords = registry.detachedWorkspaceRecords || {};
+    registry.detachedWorkspaceRecords[projectPath] = removed.workspaces;
+  }
   registry.workspaces[active].projects =
     registry.workspaces[active].projects.filter(p => p.path !== projectPath);
 
