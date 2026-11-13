@@ -14,7 +14,7 @@
  * check, branches, worktrees) stays in gitBranchesManager.
  */
 
-const { exec } = require('child_process');
+const { exec, execFile } = require('child_process');
 const { shell } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const envPath = require('./envPath');
@@ -63,6 +63,29 @@ async function run(cmd, cwd) {
         error: error ? ((stderr || '').trim() || error.message) : null
       });
     });
+  });
+}
+
+/**
+ * Run gh with an argv array — no shell, so a PR title or body (which the user
+ * edits and may contain quotes, backticks or `$`) is passed through as data.
+ * `stdin`, when given, is written to the process (for `--body-file -`).
+ * Resolves `{ ok, stdout, stderr, error }` — never rejects (workspace-pr-flow).
+ */
+async function runGh(args, cwd, { stdin = null, timeout = 60000 } = {}) {
+  const env = await envPath.childEnv();
+  return new Promise((resolve) => {
+    const child = execFile('gh', args, { cwd, env, timeout, maxBuffer: 8 * 1024 * 1024 }, (error, stdout, stderr) => {
+      resolve({
+        ok: !error,
+        stdout: (stdout || '').trim(),
+        stderr: (stderr || '').trim(),
+        error: error ? ((stderr || '').trim() || error.message) : null
+      });
+    });
+    // Always close stdin: with a body it carries `--body-file -`, without
+    // one a never-closed pipe could leave a command waiting for input.
+    if (child.stdin) child.stdin.end(stdin != null ? String(stdin) : undefined);
   });
 }
 
@@ -275,6 +298,7 @@ module.exports = {
   setProjectPath,
   setupIPC,
   checkAccess,
+  runGh,
   loadIssues,
   loadPullRequests,
   checkoutPullRequest,

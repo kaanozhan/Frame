@@ -224,3 +224,21 @@ test('planRestore drops invalid and duplicate entries and caps the count', () =>
 test('planRestore with no record restores nothing', () => {
   assert.deepEqual(store.planRestore(undefined, () => true), { sessions: [], activeSessionId: null });
 });
+
+// Workspaces spec (T06): a terminal remembers which workspace it ran in, and
+// the restore plan hands that back so the session reopens there.
+test('workspaceId round-trips from a terminal to the restore plan; main is the default', () => {
+  const live = {};
+  store.registerTerminal(live, 'term-1', { projectPath: P, createdAt: 1, workspaceId: 'a1b2c3d4' });
+  store.registerTerminal(live, 'term-2', { projectPath: P, createdAt: 2 });
+  store.applyReport(live, report('term-1', 'claude', S1));
+  store.applyReport(live, report('term-2', 'claude', S3));
+  const rec = store.projectRecord(live, P, 1);
+  assert.deepEqual(rec.sessions.map((s) => s.workspaceId), ['a1b2c3d4', 'main']);
+
+  const plan = store.planRestore(rec, () => true);
+  assert.deepEqual(plan.sessions.map((s) => s.workspaceId), ['a1b2c3d4', 'main']);
+
+  const legacy = { sessions: [{ ...rec.sessions[0], workspaceId: undefined }] };
+  assert.equal(store.planRestore(legacy, () => true).sessions[0].workspaceId, 'main', 'records written before workspaces restore in main');
+});

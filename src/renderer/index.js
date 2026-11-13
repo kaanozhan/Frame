@@ -105,12 +105,15 @@ function init() {
   // composes lanes + agentDispatch; opened from the command palette / Home.
   orchestrator.setHost(multiTerminalUI);
 
+  // Workspace review (workspace-review) — a section tab over a workspace's changes.
+  require('./reviewSection').setHost(multiTerminalUI);
+
   // Initialize project list UI
   projectListUI.init('projects-list', (projectPath) => {
     state.setProjectPath(projectPath);
   });
 
-  // Load projects from workspace
+  // Load projects from the registry
   projectListUI.loadProjects();
 
   // Surface background-project agent activity (needs-approval / waiting-for-input)
@@ -124,15 +127,18 @@ function init() {
   require('./statusBar').init();
 
   // Initialize file tree UI
-  fileTreeUI.init('file-tree', state.getProjectPath);
-  fileTreeUI.setProjectPathGetter(state.getProjectPath);
+  // The file tree (and the git watch it starts) follows the selected
+  // workspace's folder; main is the project itself (workspaces spec).
+  fileTreeUI.init('file-tree', state.getWorkspaceRoot);
+  fileTreeUI.setProjectPathGetter(state.getWorkspaceRoot);
+  fileTreeUI.setWorkspaceIdGetter(() => (state.getWorkspace() || {}).id || null);
 
   // Git Changes panel (Changes sidebar tab); a row click opens that file's
   // diff as a section tab (next to Home / Terminals), navigable with ◀ / ▶.
   gitChangesPanel.init({
     onRowClick: ({ projectPath, relPath, staged }) => {
       if (!projectPath || !relPath) return;
-      diffSection.open({ projectPath, relPath, staged });
+      diffSection.open({ projectPath, relPath, staged, workspaceId: (state.getWorkspace() || {}).id || null });
     }
   });
 
@@ -143,7 +149,7 @@ function init() {
 
   // Connect file tree clicks to editor
   fileTreeUI.setOnFileClick((filePath, source) => {
-    editor.openFile(filePath, source);
+    editor.openFile(filePath, source, fileTreeUI.getTreeContext());
   });
 
   // Initialize tasks panel
@@ -227,9 +233,11 @@ function init() {
   // Setup state change listeners
   state.onProjectChange((projectPath, previousPath) => {
     if (projectPath) {
-      fileTreeUI.loadFileTree(projectPath);
+      // The selected workspace's folder: main on a new project, but a
+      // re-select of the same project keeps its workspace (workspaces spec).
+      fileTreeUI.loadFileTree(state.getWorkspaceRoot() || projectPath);
 
-      // Add to workspace and update project list
+      // Add to the registry and update project list
       const projectName = projectPath.split('/').pop() || projectPath.split('\\').pop();
       projectListUI.addProject(projectPath, projectName);
       projectListUI.setActiveProject(projectPath);
@@ -245,10 +253,44 @@ function init() {
       fileTreeUI.clearFileTree({ unwatch: true });
       specPanel.stopWatching();
     }
-    // An open dock tab follows the switcher the way the workspace nav does:
+    // An open dock tab follows the switcher the way the project nav does:
     // Decisions and Structure re-render for the new project, the
     // re-parented panels reload through their own show().
     dock.remountActive();
+  });
+
+  // Selecting a workspace re-points the checkout-bound views at its folder:
+  // the file tree (which also moves the git-status watch, so Changes and the
+  // branch label follow) and the dock's open tab.
+  // A server workspace's folder is on the server: its tree and git status
+  // are read there (server-workspace-panels); while its server is offline
+  // the tree says so instead of showing stale or local files.
+  const showServerOffline = (rec) => {
+    ipcRenderer.send(IPC.UNWATCH_GIT_STATUS);
+    // A note the tree's late replies cannot wipe (server-hardening T7).
+    fileTreeUI.showNote(`${rec.host || 'The server'} is offline — reconnect (File ▸ Connect to Server…) to see “${rec.name}”. Its terminals and agents keep running there.`, 'ws-server-placeholder offline');
+  };
+  const serverRecordOf = (ws) => {
+    const rec = ws && require('./workspaceSection').getWorkspaces().find((w) => w.id === ws.id);
+    return rec && rec.location === 'server' ? rec : null;
+  };
+  const loadCheckout = (ws) => {
+    const rec = serverRecordOf(ws);
+    const up = require('./serverConnect').getStatus().state === 'connected';
+    if (rec && (rec.offline || !up)) showServerOffline(rec);
+    else if (ws && ws.root) fileTreeUI.loadFileTree(ws.root, ws.id);
+  };
+  state.onWorkspaceChange((ws) => {
+    loadCheckout(ws);
+    dock.remountActive();
+  });
+  // The link to a selected server workspace's server came back or dropped.
+  require('./serverConnect').onChange((s, prev) => {
+    if (s.state === prev.state) return;
+    const ws = state.getWorkspace();
+    if (!serverRecordOf(ws)) return;
+    if (s.state === 'connected') setTimeout(() => loadCheckout(state.getWorkspace()), 800); // after the list reloads
+    else if (prev.state === 'connected') showServerOffline(serverRecordOf(ws));
   });
 
   // Setup Frame status change listener
@@ -275,6 +317,22 @@ function init() {
 
   // Initialize the pinned Projects section (root-level project switcher)
   projectSection.init();
+  // Workspaces list under the project switcher, and the dialog behind its ＋
+  // (workspaces spec). Restoring a workspace reruns the setup script.
+  const workspaceSection = require('./workspaceSection');
+  const newWorkspaceModal = require('./newWorkspaceModal');
+  // Git / PR state of each workspace (workspace-pr-flow), before the list
+  // that draws it.
+  require('./workspacePr').init();
+  // Frame Server link (server-workspaces): status + the Connect dialog.
+  require('./serverConnect').init();
+  newWorkspaceModal.init();
+  workspaceSection.setActions({
+    onNew: () => newWorkspaceModal.open(),
+    // A restored folder came back without dependencies: rerun setup only.
+    onRestored: (ws, result) => newWorkspaceModal.runSetupThenAgent({ setupScript: result && result.setupScript, openAgent: false })
+  });
+  workspaceSection.init();
 
   // Setup button handlers
   setupButtonHandlers();
@@ -387,7 +445,7 @@ function setupButtonHandlers() {
 
   // Frame's own settings, from the gear at the foot of the rail (where the
   // app menu entry and Cmd+, also land); toggles, so a second click closes
-  // it. The project's settings are a row under the project in the workspace
+  // it. The project's settings are a row in the project
   // nav (dock-panel-readonly-views spec), running `settings.openProject`.
   const frameSettingsBtn = document.getElementById('frame-settings-btn');
   if (frameSettingsBtn) {
@@ -913,8 +971,151 @@ function registerCommands() {
     run: () => projectListUI.selectPrevProject()
   });
   r({
+    id: 'workspace.new',
+    title: 'New Workspace…',
+    category: 'Workspace',
+    shortcut: 'CmdOrCtrl+Shift+N',
+    when: () => !!state.getProjectPath(),
+    run: () => require('./newWorkspaceModal').open()
+  });
+  r({
+    id: 'workspace.review',
+    title: 'Review Changes…',
+    category: 'Workspace',
+    shortcut: 'CmdOrCtrl+Alt+R',
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./reviewSection').open(ws);
+    }
+  });
+  r({
+    id: 'workspace.updateFromBase',
+    title: 'Update Workspace from Base',
+    category: 'Workspace',
+    when: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      const s = ws && require('./workspacePr').rowState(ws.id);
+      return !!ws && !(s && s.merging);
+    },
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').updateFromBase(ws);
+    }
+  });
+  r({
+    id: 'workspace.resolveConflicts',
+    title: 'Resolve Update Conflicts with Agent',
+    category: 'Workspace',
+    when: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      const s = ws && require('./workspacePr').rowState(ws.id);
+      return !!(s && s.merging);
+    },
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').resolveConflicts(ws);
+    }
+  });
+  r({
+    id: 'workspace.abortUpdate',
+    title: 'Abort Workspace Update',
+    category: 'Workspace',
+    when: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      const s = ws && require('./workspacePr').rowState(ws.id);
+      return !!(s && s.merging);
+    },
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').abortUpdate(ws);
+    }
+  });
+  r({
+    id: 'workspace.push',
+    title: 'Push Workspace',
+    category: 'Workspace',
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').push(ws);
+    }
+  });
+  r({
+    id: 'workspace.createPr',
+    title: 'Create Pull Request…',
+    category: 'Workspace',
+    shortcut: 'CmdOrCtrl+Alt+P',
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').openCreatePr(ws);
+    }
+  });
+  r({
+    id: 'workspace.fixChecks',
+    title: 'Fix Failing Checks',
+    category: 'Workspace',
+    when: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      const s = ws && require('./workspacePr').rowState(ws.id);
+      return !!(s && s.pr && s.pr.checks && s.pr.checks.failing);
+    },
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').fixChecks(ws);
+    }
+  });
+  r({
+    id: 'workspace.merge',
+    title: 'Merge Pull Request',
+    category: 'Workspace',
+    when: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      const s = ws && require('./workspacePr').rowState(ws.id);
+      return !!(s && s.pr && s.pr.ready);
+    },
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspacePr').merge(ws);
+    }
+  });
+  r({
+    id: 'workspace.archive',
+    title: 'Archive Workspace…',
+    category: 'Workspace',
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspaceSection').archiveWorkspace(ws);
+    }
+  });
+  r({
+    id: 'workspace.rename',
+    title: 'Rename Workspace…',
+    category: 'Workspace',
+    when: () => !!require('./workspaceSection').selectedWorkspace(),
+    run: () => {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      if (ws) require('./workspaceSection').startRename(ws, 'name');
+    }
+  });
+  r({
+    id: 'server.connect',
+    title: 'Connect to Server…',
+    category: 'Server',
+    run: () => require('./serverConnect').open()
+  });
+  r({
+    id: 'server.disconnect',
+    title: 'Disconnect from Server',
+    category: 'Server',
+    when: () => require('./serverConnect').getStatus().state !== 'off',
+    run: () => require('./serverConnect').disconnect()
+  });
+  r({
     id: 'project.add',
-    title: 'Add Project to Workspace…',
+    title: 'Add Project…',
     category: 'Project',
     run: () => openProjectModal.open()
   });

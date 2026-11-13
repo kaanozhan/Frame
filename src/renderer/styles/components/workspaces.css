@@ -1,0 +1,529 @@
+/* ==================== WORKSPACES (workspaces spec) ==================== */
+/* The sidebar's Workspaces list: a main row (the project's checkout) then
+   one row per branch + worktree, above the project nav. Rows follow the
+   project nav's density (13px / 20px line) so the two read as one sidebar. */
+
+.workspace-section {
+  margin: 6px 0 4px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.workspace-section[hidden] { display: none; }
+
+.ws-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 8px 2px 12px;
+}
+
+.ws-title {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.ws-add {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 22px;
+  cursor: pointer;
+}
+
+.ws-add:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.ws-add:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ws-list,
+.ws-archived {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+}
+
+.ws-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 3px 6px 3px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  outline: none;
+}
+
+.ws-row:hover { background: var(--bg-hover); color: var(--text-primary); }
+.ws-row:focus-visible { box-shadow: inset 0 0 0 1px var(--accent-primary); }
+
+.ws-row.on {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  box-shadow: inset 2px 0 0 var(--accent-primary);
+}
+
+.ws-row.missing { opacity: 0.7; cursor: default; }
+.ws-row.archived { cursor: default; }
+
+.ws-labels {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.ws-primary,
+.ws-secondary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-primary { font-weight: 500; }
+
+.ws-secondary {
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--text-tertiary);
+}
+
+.ws-row.missing .ws-secondary { color: var(--warning); }
+
+/* Status dot: urgent states use the project switcher's colors. */
+.ws-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.ws-dot.approval { background: var(--error); }
+.ws-dot.input { background: var(--warning); }
+.ws-dot.working {
+  background: var(--accent-primary);
+  animation: ws-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ws-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-dot.working { animation: none; }
+}
+
+.ws-more,
+.ws-act {
+  flex: none;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+}
+
+.ws-more {
+  width: 22px;
+  height: 22px;
+  visibility: hidden;
+}
+
+.ws-row:hover .ws-more,
+.ws-row.on .ws-more,
+.ws-more:focus-visible { visibility: visible; }
+
+.ws-act {
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ws-more:hover,
+.ws-act:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.ws-rename {
+  width: 100%;
+  min-width: 0;
+  padding: 0 4px;
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.ws-archived-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 2px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ws-archived-toggle::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 150ms ease;
+}
+
+.ws-archived-toggle.open::before { transform: translateY(-2px) rotate(45deg); }
+.ws-archived-toggle:hover { color: var(--text-primary); }
+
+.ws-count { color: var(--text-muted); }
+
+/* ---------- New workspace dialog (reuses the task-run modal shell) ---------- */
+
+.new-workspace-modal { --modal-width: 460px; }
+
+.new-workspace-modal .task-run-modal-header p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.nw-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.nw-field[hidden] { display: none; }
+
+.nw-field-label {
+  flex: none;
+  width: 52px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.nw-field .task-run-input { flex: 1; margin: 0; }
+
+.nw-select { width: 100%; margin-bottom: 8px; }
+
+.nw-prompt {
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+  font-family: var(--font-sans);
+}
+
+.nw-error {
+  min-height: 16px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--error);
+}
+
+.nw-error:empty { display: none; }
+
+/* Archive dialog: the destructive choice reads as such. */
+#archive-workspace-modal .task-run-btn-primary.danger {
+  background: var(--error);
+  border-color: var(--error);
+}
+
+/* ---------- Project Settings → Workspaces ---------- */
+
+.settings-row.settings-row-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.settings-textarea,
+.settings-text-input {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+}
+
+.settings-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 56px;
+}
+
+.settings-text-input {
+  flex-shrink: 0;
+  align-self: flex-start;
+  width: 140px;
+}
+
+.settings-textarea:focus,
+.settings-text-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.settings-textarea:disabled,
+.settings-text-input:disabled { opacity: 0.5; }
+
+#settings-workspaces-note { margin: 0 0 8px; }
+
+/* ---------- Where a spec lives (spec-in-workspace) ---------- */
+
+.ws-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 0 6px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--accent-subtle, rgba(143, 240, 174, 0.15));
+  color: var(--accent-primary);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.ws-chip::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* The spec a workspace holds, under its name (spec-in-workspace). */
+.ws-spec {
+  align-self: flex-start;
+  max-width: 100%;
+  margin-top: 1px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent-primary);
+  font: inherit;
+  font-size: 11px;
+  line-height: 15px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ws-spec:hover { text-decoration: underline; }
+
+/* ---------- Git / PR state on a row (workspace-pr-flow) ---------- */
+
+.ws-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.ws-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-badge.dirty { color: var(--warning); }
+.ws-badge.ahead { color: var(--text-secondary); }
+.ws-badge.pr { color: var(--accent-primary); }
+.ws-badge.pr.draft { color: var(--text-tertiary); }
+.ws-badge.pr.merged { color: var(--info, #a6c0f0); }
+.ws-badge.pr.closed { color: var(--text-muted); text-decoration: line-through; }
+
+.ws-checks {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.ws-checks.passing { background: var(--success); }
+.ws-checks.failing { background: var(--error); }
+.ws-checks.pending { background: var(--warning); }
+
+.workspace-context-menu .context-menu-item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ---------- Create PR dialog ---------- */
+
+.create-pr-modal { --modal-width: 620px; }
+
+.create-pr-modal .task-run-input { width: 100%; box-sizing: border-box; }
+
+.cpr-body {
+  min-height: 180px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.cpr-draft { margin-top: 8px; }
+
+/* Update from base stopped half-way (update-from-base) */
+.ws-badge.merging { color: var(--error); font-weight: 600; }
+
+/* Conflict dialog (update-from-base) */
+.update-conflict-modal { --modal-width: 520px; }
+.uc-files {
+  margin: 0;
+  padding: 8px 12px;
+  list-style: none;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--error);
+}
+.uc-files li + li { margin-top: 3px; }
+.uc-hint { margin: 10px 0 0; font-size: 12px; color: var(--text-tertiary); }
+
+/* ─── Frame Server (server-workspaces) ─── */
+.server-connect-modal { --modal-width: 520px; }
+.server-connect-modal .task-run-modal-header p code { font-family: var(--font-mono); font-size: 11px; }
+.server-connect-modal .task-run-input { width: 100%; box-sizing: border-box; font-family: var(--font-mono); }
+.sc-status { margin: 8px 0 0; font-size: 12px; color: var(--text-secondary); }
+.sc-status[data-state="connected"] { color: var(--success); }
+.sc-status[data-state="error"] { color: var(--error); }
+.sc-status[data-state="connecting"],
+.sc-status[data-state="reconnecting"] { color: var(--warning); }
+.sc-disconnect { margin-right: auto; }
+
+.sb-server-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-left: 6px;
+  background: var(--text-muted);
+  flex: 0 0 auto;
+}
+.sb-server[data-state="connected"] .sb-server-dot { background: var(--success); }
+.sb-server[data-state="connecting"] .sb-server-dot,
+.sb-server[data-state="reconnecting"] .sb-server-dot { background: var(--warning); }
+.sb-server[data-state="error"] .sb-server-dot { background: var(--error); }
+
+/* Server workspaces in the list (server-workspaces) */
+.ws-loc {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 15px;
+  color: var(--info, #a6c0f0);
+  vertical-align: 1px;
+}
+.ws-row.server.offline .ws-labels { opacity: 0.55; }
+.ws-row.server.offline .ws-loc { color: var(--warning); }
+.nw-location-hint { margin: 6px 0 0; font-size: 11px; color: var(--text-tertiary); }
+.ws-server-placeholder {
+  padding: 16px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+/* Server terminal while the link is down (server-workspaces) */
+.srv-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--bg-primary);
+  background: var(--warning);
+  pointer-events: none;
+}
+
+/* Editor status for a server workspace's file (server-workspace-panels) */
+#editor-status.readonly { color: var(--info, #a6c0f0); }
+
+/* Install, update and check-up in the Connect dialog (server-install-update) */
+.server-connect-modal { --modal-width: 560px; }
+.sc-panel { margin-top: 12px; display: grid; gap: 8px; }
+.sc-install-reason { margin: 0; font-size: 12px; color: var(--text-secondary); }
+.sc-progress {
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.sc-consent { padding: 10px 12px; border: 1px solid var(--warning); border-radius: var(--radius-sm); }
+.sc-consent p { margin: 0; font-size: 12px; color: var(--text-primary); }
+.sc-agents { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-secondary); }
+.sc-consent-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.sc-doctor-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); }
+.sc-link { padding: 0; border: none; background: none; color: var(--text-tertiary); font-size: 11px; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.sc-link:hover { color: var(--text-primary); }
+.sc-doctor-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sc-check { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; font-size: 12px; }
+.sc-check-mark { font-weight: 700; color: var(--success); }
+.sc-check.missing .sc-check-mark { color: var(--warning); }
+.sc-check.optional .sc-check-mark { color: var(--text-muted); }
+.sc-check-label { color: var(--text-primary); }
+.sc-check-detail { color: var(--text-tertiary); }
+.sc-fix { display: flex; gap: 6px; align-items: center; margin-top: 3px; min-width: 0; }
+.sc-fix code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: 3px 6px; border-radius: var(--radius-sm); background: var(--bg-tertiary); font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.sb-server[data-state="needs-install"] .sb-server-dot,
+.sb-server[data-state="needs-update"] .sb-server-dot,
+.sb-server[data-state="installing"] .sb-server-dot { background: var(--warning); }
+.sc-status[data-state="needs-install"],
+.sc-status[data-state="needs-update"],
+.sc-status[data-state="installing"] { color: var(--warning); }
+.sc-panel[hidden], .sc-progress[hidden], .sc-agents[hidden] { display: none; }
+.server-connect-modal .task-run-modal-footer { flex-wrap: wrap; }
+.server-connect-modal .task-run-modal-footer .task-run-btn { white-space: nowrap; }

@@ -240,8 +240,17 @@ function worktreeSlug(worktreePath, projectPath) {
   return rest;
 }
 
-function worktreeRow(wt, projectPath) {
+/**
+ * @param {object} wt - a LOAD_GIT_WORKTREES row
+ * @param {string} projectPath
+ * @param {Map<string, {name: string}>} [workspacesByPath] - the project's
+ *   workspace records keyed by normalised folder path (workspaces spec): a
+ *   worktree that is a workspace is labelled with its name, the registry
+ *   being the source of truth rather than the folder's location
+ */
+function worktreeRow(wt, projectPath, workspacesByPath) {
   const path = normalizePath(wt.path);
+  const workspace = workspacesByPath ? workspacesByPath.get(path) : null;
   const name = path.split('/').filter(Boolean).pop() || path;
   const slug = worktreeSlug(path, projectPath);
   const isMain = wt.isMain === true;
@@ -251,6 +260,7 @@ function worktreeRow(wt, projectPath) {
   // The main worktree is marked by its icon and bold name (`current`), not
   // by meta — its branch already sits in `secondary`.
   const metaParts = [];
+  if (workspace) metaParts.push(`workspace · ${workspace.name}`);
   if (slug) metaParts.push(`spec · ${slug}`);
   return {
     kind: 'worktree',
@@ -264,13 +274,24 @@ function worktreeRow(wt, projectPath) {
     branch: branch || null,
     current: isMain,
     slug,
+    workspace: workspace ? workspace.name : null,
     actions
   };
 }
 
-function worktreeRows(result, projectPath) {
+/** Index workspace records by normalised folder path for worktreeRows. */
+function workspacesByPath(workspaces) {
+  const map = new Map();
+  for (const ws of workspaces || []) {
+    if (ws && ws.path) map.set(normalizePath(ws.path), ws);
+  }
+  return map;
+}
+
+function worktreeRows(result, projectPath, workspaces) {
   const worktrees = result && Array.isArray(result.worktrees) ? result.worktrees : [];
-  return worktrees.map((wt) => worktreeRow(wt, projectPath));
+  const byPath = workspaces ? workspacesByPath(workspaces) : null;
+  return worktrees.map((wt) => worktreeRow(wt, projectPath, byPath));
 }
 
 // ─── filter ───────────────────────────────────────────────

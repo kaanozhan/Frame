@@ -1,7 +1,7 @@
 /**
  * Projects Section
  *
- * The Projects rail view: a thin wrapper over the workspace panel, which
+ * The Projects rail view: a thin wrapper over the project panel, which
  * `projectListUI` renders and owns. The active project is shown by the
  * switcher above.
  *

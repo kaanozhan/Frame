@@ -183,7 +183,24 @@ class MultiTerminalUI {
   }
 
   /**
-   * Create a new terminal for the current project
+   * Select a workspace of the current project (workspaces spec): pinned
+   * section tabs belong to the previous workspace, the terminal manager
+   * switches scope, and the view re-renders for the new one.
+   * @param {string} workspaceId - 'main' or a workspace id
+   * @param {string|null} root - the workspace's folder
+   */
+  setCurrentWorkspace(workspaceId, root) {
+    if ((workspaceId || 'main') === this.manager.getCurrentWorkspaceId()
+        && (root || this.manager.getCurrentProject()) === this.manager.currentWorkspaceRoot) return;
+    this._disposeAllSections();
+    this.specDrawer = null;
+    this.taskDrawer = null;
+    this.manager.setCurrentWorkspace(workspaceId, root);
+    this._onStateChange(this._currentState());
+  }
+
+  /**
+   * Create a new terminal for the current project (in the selected workspace)
    * @param {Object} options - Terminal options
    * @param {string} options.shell - Shell path to use (optional)
    */
@@ -481,9 +498,9 @@ class MultiTerminalUI {
       ? this.terminalsView.barTerminals()
       : state.terminals;
 
-    // Keep the sidebar's workspace nav (Terminals count / active state) fresh
+    // Keep the sidebar's project nav (Terminals count / active state) fresh
     try {
-      require('./projectListUI').updateWorkspaceNav(state);
+      require('./projectListUI').updateProjectNav(state);
     } catch (_) { /* sidebar not initialized yet */ }
 
     // The inline dashboards live inside contentContainer — whenever the

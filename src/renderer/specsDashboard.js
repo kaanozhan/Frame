@@ -39,6 +39,12 @@ const SCOPE_FILTERS = [
   { id: 'done',   label: 'Done' }
 ];
 
+// Date sort, rendered as a second segmented control right of the scope.
+const SORT_OPTIONS = [
+  { id: 'newest', label: 'Newest', title: 'Newest first (last updated)' },
+  { id: 'oldest', label: 'Oldest', title: 'Oldest first (last updated)' }
+];
+
 let isVisible = false;
 let specs = [];
 let allTasks = [];
@@ -48,6 +54,7 @@ let selectedTab = 'spec';
 let renderedSlug = null;    // slug whose detail HTML is currently in detailContentEl
 let scope = 'active';        // 'all' | 'active' | 'done' — opens on Active; the user can pick All
 let phase = null;            // narrows Active only; cleared by any scope pick
+let sortOrder = 'newest';    // 'newest' | 'oldest' — by updated_at; kept across scope picks
 // Done specs older than the project's done window sit behind a ghost tile
 // in All and Done. The reveal is session state on the open project: it
 // resets on a scope pick and on a project change.
@@ -275,8 +282,14 @@ function renderFilters(model) {
     }).join('');
   }
 
+  const sortSegments = SORT_OPTIONS.map(o => {
+    const on = sortOrder === o.id;
+    return `<button type="button" class="specs-filter-seg${on ? ' active' : ''}" data-sort="${o.id}" aria-pressed="${on}" title="${o.title}">${o.label}</button>`;
+  }).join('');
+
   filtersEl.innerHTML = `
     <div class="specs-filter-scope" role="group" aria-label="Scope">${segments}</div>
+    <div class="specs-filter-scope specs-filter-sort" role="group" aria-label="Sort by date">${sortSegments}</div>
     ${chips ? `<span class="specs-filter-divider" aria-hidden="true"></span>
     <div class="specs-filter-phases" role="group" aria-label="Phase">${chips}</div>` : ''}
   `;
@@ -285,6 +298,13 @@ function renderFilters(model) {
       scope = btn.dataset.scope;
       phase = null;
       showOlderDone = false;
+      renderGrid();
+    });
+  });
+  filtersEl.querySelectorAll('[data-sort]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (sortOrder === btn.dataset.sort) return;
+      sortOrder = btn.dataset.sort;
       renderGrid();
     });
   });
@@ -303,7 +323,8 @@ function gridModel() {
     phase,
     searchMatches,
     windowDays: doneWindow.get().specs,
-    showOlder: showOlderDone
+    showOlder: showOlderDone,
+    sort: sortOrder
   });
 }
 
@@ -401,9 +422,26 @@ function renderGrid() {
   gridEl.innerHTML = filtered.map(renderCard).join('') + olderTile;
   gridEl.querySelectorAll('.specs-card').forEach(card => {
     if (card.dataset.malformed) return; // nothing to open — the reason is on the card
-    card.addEventListener('click', () => selectCard(card.dataset.slug));
+    card.addEventListener('click', () => openFromGrid(card.dataset.slug));
   });
   wireOlderTile();
+}
+
+/**
+ * A card click. A spec living in another checkout (spec-in-workspace) selects
+ * that workspace first; the switch lands the center on its terminals, so the
+ * grid is mounted again and the drawer opened over it.
+ */
+function openFromGrid(slug) {
+  const spec = specs.find((s) => s && s.slug === slug);
+  const switched = spec ? require('./workspaceSection').selectSpecWorkspace(spec.workspace) : false;
+  if (!switched) {
+    selectCard(slug);
+    return;
+  }
+  const ui = require('./terminal').getMultiTerminalUI();
+  if (ui) ui.showSpecsGrid();
+  selectCard(slug, { instant: true });
 }
 
 function wireOlderTile() {
@@ -449,6 +487,7 @@ function renderCard(spec) {
         ${require('./agentDispatch').specStatusDotHtml(spec.slug)}
         <span class="spec-phase-badge phase-${spec.phase}">${phaseLabel}</span>
         ${spec.ai_tool ? `<span class="specs-card-ai">${escapeHtml(spec.ai_tool)}</span>` : ''}
+        ${require('./workspaceSection').workspaceChipHtml(spec.workspace)}
       </div>
       <div class="specs-card-title">${escapeHtml(spec.title)}</div>
       <div class="specs-card-slug">${escapeHtml(spec.slug)}</div>

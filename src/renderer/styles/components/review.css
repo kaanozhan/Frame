@@ -1,0 +1,400 @@
+/* =========================
+   Workspace Review (workspace-review spec)
+   A section tab: file list + pending comments on the left, diff on the right.
+   Reuses .diff-section-mode and the .frame-diff diff2html theme.
+   ========================= */
+
+.review-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ── Left column ── */
+.review-side {
+  flex: 0 0 300px;
+  min-width: 220px;
+  max-width: 40%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+}
+
+.review-side-header {
+  flex: 0 0 auto;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.review-title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.review-branch {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-base,
+.review-summary {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.review-summary {
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-side-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.review-files {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.review-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px var(--space-md);
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.review-file:hover { background: var(--bg-hover); }
+
+.review-file.active {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+}
+
+.review-file.viewed .review-name { opacity: 0.55; }
+
+.review-viewed {
+  flex: 0 0 auto;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--accent-primary);
+}
+
+.review-status {
+  flex: 0 0 auto;
+  width: 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.review-status.s-A,
+.review-status.s-U { color: var(--success); }
+.review-status.s-M { color: var(--warning); }
+.review-status.s-D { color: var(--error); }
+.review-status.s-R { color: var(--info); }
+
+.review-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-dir { color: var(--text-tertiary); }
+
+.review-counts {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-add { color: var(--success); }
+.review-del { color: var(--error); }
+.review-bin { color: var(--text-tertiary); }
+
+.review-empty {
+  padding: 24px var(--space-md);
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+/* ── Right column ── */
+.review-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.review-diff-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+}
+
+.review-diff-path {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-diff-viewed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.review-diff-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.review-diff-host {
+  padding: var(--space-md);
+}
+
+/* ── Line comments ── */
+.review-diff-host td.review-commentable {
+  cursor: pointer;
+}
+
+.review-diff-host td.review-commentable:hover {
+  color: var(--accent-primary);
+  box-shadow: inset 2px 0 0 var(--accent-primary);
+}
+
+.review-diff-host tr.review-commented td.d2h-code-linenumber,
+.review-diff-host tr.review-commented td.d2h-code-side-linenumber {
+  color: var(--accent-primary);
+  box-shadow: inset 3px 0 0 var(--accent-primary);
+  font-weight: 700;
+}
+
+.review-comment-row td,
+.review-comment-spacer td {
+  padding: 0;
+  background: var(--bg-secondary);
+}
+
+.review-comment-box {
+  margin: 6px 10px 8px;
+  padding: 8px;
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  font-family: var(--font-sans, inherit);
+  white-space: normal;
+}
+
+.review-comment-label {
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.review-comment-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 56px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.review-comment-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.review-comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.review-spacer { flex: 1; }
+
+.review-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-btn:hover:not(:disabled) { color: var(--text-primary); }
+.review-btn:disabled { opacity: 0.5; cursor: default; }
+
+.review-btn.primary {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+.review-btn.danger { color: var(--error); }
+
+/* ── Pending comments (left column, under the files) ── */
+.review-pending {
+  border-top: 1px solid var(--border-subtle);
+  padding: var(--space-sm) 0;
+}
+
+.review-pending-header {
+  padding: 0 var(--space-md) 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.review-pending-count {
+  margin-left: 4px;
+  color: var(--accent-primary);
+}
+
+.review-comments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.review-comment {
+  padding: 6px var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+}
+
+.review-comment-where {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-primary);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-comment-code {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-comment-body {
+  margin-top: 3px;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.review-comment-tools {
+  display: flex;
+  gap: 10px;
+  margin-top: 3px;
+}
+
+.review-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.review-link:hover { color: var(--text-primary); }
+
+/* ── Send the review ── */
+.review-send {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-sm) var(--space-md) 0;
+}
+
+.review-send-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.review-send-target {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.review-send-btn { align-self: stretch; padding: 6px 10px; }
+
+/* A comment whose line changed since it was written (workspace-hardening R9). */
+.review-outdated {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-family: var(--font-sans, inherit);
+  font-size: 10px;
+  color: var(--text-tertiary, #999);
+  border: 1px solid var(--border-subtle, rgba(127, 127, 127, 0.35));
+}

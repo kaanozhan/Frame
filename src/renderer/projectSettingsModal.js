@@ -44,6 +44,7 @@ let migrationDecisionRowEl = null;
 let migrationDecisionBtnEl = null;
 let doneWindowSelectEls = {};   // { tasks, specs }
 let doneWindowNoteEl = null;
+let wsEls = null;               // { setup, copy, prefix, note }
 
 function init() {
   specDrivenToggleEl = document.getElementById('settings-spec-driven-toggle');
@@ -89,6 +90,24 @@ function init() {
   // Another writer (a project switch, a hand edit picked up on reload)
   // moves the value: keep the selects honest while the modal is open.
   doneWindow.onChange(() => renderDoneWindow());
+
+  // Workspaces (workspaces spec): saved on blur/change, read back normalised.
+  wsEls = {
+    setup: document.getElementById('settings-ws-setup'),
+    copy: document.getElementById('settings-ws-copy'),
+    prefix: document.getElementById('settings-ws-prefix'),
+    mergeMethod: document.getElementById('settings-ws-merge-method'),
+    archiveOnMerge: document.getElementById('settings-ws-archive-on-merge'),
+    note: document.getElementById('settings-workspaces-note')
+  };
+  // Each field saves only its own key, so a field still showing another
+  // project's value can never overwrite this project's setting.
+  if (wsEls.setup) wsEls.setup.addEventListener('change', () => saveWorkspaceSettings({ setupScript: wsEls.setup.value }));
+  if (wsEls.copy) wsEls.copy.addEventListener('change', () => saveWorkspaceSettings({ copyFiles: wsEls.copy.value.split(/\r?\n/) }));
+  if (wsEls.prefix) wsEls.prefix.addEventListener('change', () => saveWorkspaceSettings({ branchPrefix: wsEls.prefix.value }));
+  // workspace-pr-flow: merge method ('' = repository default) and archive-after-merge.
+  if (wsEls.mergeMethod) wsEls.mergeMethod.addEventListener('change', () => saveWorkspaceSettings({ mergeMethod: wsEls.mergeMethod.value || null }));
+  if (wsEls.archiveOnMerge) wsEls.archiveOnMerge.addEventListener('change', () => saveWorkspaceSettings({ archiveOnMerge: wsEls.archiveOnMerge.checked }));
 
   overlay = settingsOverlay.create('project-settings-overlay', syncFromProject);
   if (!overlay) return;
@@ -227,7 +246,7 @@ function init() {
   // land from the project open. Either way the row is stale until it is told.
   state.onFrameInitialized(() => syncFrameSetup());
 
-  // Make Default: move this project to the front of the workspace list, which
+  // Make Default: move this project to the front of the project list, which
   // is the whole of what "default" means (see projectListUI.isDefaultProject).
   if (makeDefaultBtnEl) {
     makeDefaultBtnEl.addEventListener('click', () => {
@@ -248,7 +267,59 @@ async function syncFromProject() {
   await syncSpecDrivenToggle();
   await syncGitSharing();
   renderDoneWindow();
+  await syncWorkspaceSettings();
   await syncMigrationDecision();
+}
+
+function setWorkspacesNote(message) {
+  if (!wsEls || !wsEls.note) return;
+  wsEls.note.textContent = message || '';
+  wsEls.note.style.display = message ? '' : 'none';
+}
+
+function paintWorkspaceSettings(settings) {
+  wsEls.setup.value = settings.setupScript || '';
+  wsEls.copy.value = (settings.copyFiles || []).join('\n');
+  wsEls.prefix.value = settings.branchPrefix || '';
+  if (wsEls.mergeMethod) wsEls.mergeMethod.value = settings.mergeMethod || '';
+  if (wsEls.archiveOnMerge) wsEls.archiveOnMerge.checked = settings.archiveOnMerge !== false;
+}
+
+/**
+ * Read `settings.workspaces`. Defaults show for a project without Frame —
+ * workspaces work there too — but editing needs `.frame/config.json`.
+ */
+async function syncWorkspaceSettings() {
+  if (!wsEls || !wsEls.setup) return;
+  const projectPath = state.getProjectPath();
+  let settings = null;
+  try {
+    settings = projectPath ? await ipcRenderer.invoke(IPC.GET_WORKSPACE_SETTINGS, projectPath) : null;
+  } catch (_) { /* leave the fields empty */ }
+  const editable = !!(settings && settings.frameProject);
+  if (settings) paintWorkspaceSettings(settings);
+  for (const el of [wsEls.setup, wsEls.copy, wsEls.prefix, wsEls.mergeMethod, wsEls.archiveOnMerge]) {
+    if (el) el.disabled = !editable;
+  }
+  setWorkspacesNote(!projectPath
+    ? 'Open a project to change this.'
+    : editable ? null : 'Initialize Frame to customize — new workspaces use these defaults until then.');
+}
+
+async function saveWorkspaceSettings(settings) {
+  const projectPath = state.getProjectPath();
+  if (!projectPath || !wsEls) return;
+  try {
+    const saved = await ipcRenderer.invoke(IPC.SET_WORKSPACE_SETTINGS, { projectPath, settings });
+    if (saved && saved.error) {
+      setWorkspacesNote('Could not save: ' + saved.error);
+      return;
+    }
+    setWorkspacesNote(null);
+    paintWorkspaceSettings(saved);
+  } catch (err) {
+    setWorkspacesNote('Could not save: ' + err.message);
+  }
 }
 
 /**

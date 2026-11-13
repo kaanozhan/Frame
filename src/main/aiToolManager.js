@@ -345,9 +345,39 @@ function setupIPC() {
 
   ipcMain.removeHandler(IPC.CHECK_AI_TOOL_AVAILABLE);
   ipcMain.handle(IPC.CHECK_AI_TOOL_AVAILABLE, async (event, payload = {}) => {
-    const { toolId, projectPath, launchFlags = null } = payload;
+    // A lane of a server workspace runs its CLI on the server: check there
+    // (server-workspaces), with this side's tool definition.
+    let loc = null;
+    if (payload.workspaceId && payload.workspaceId !== 'main') {
+      try { loc = require('./workspaceManager').serverLocation(payload.workspaceId); } catch (_) { loc = null; }
+    }
+    if (loc) {
+      try {
+        const res = await require('./serverConnection').call('tools.check', {
+          toolId: payload.toolId,
+          tool: getAvailableTools()[payload.toolId] || null,
+          launchFlags: payload.launchFlags || null,
+          projectPath: loc.serverProjectPath
+        });
+        return { ...res, onServer: loc.host || true };
+      } catch (err) {
+        return { available: false, resolvedCommand: null, name: payload.toolId || null, reason: 'server', error: err.message, onServer: loc.host || true };
+      }
+    }
+    return checkToolAvailable(payload);
+  });
+}
+
+/**
+ * Is the tool's CLI installed where this process runs? Returns
+ * `{ available, resolvedCommand, bareCommand?, name, reason? }`. `tool` may
+ * carry the definition itself (Frame Server checks a desktop's custom tool
+ * that its own config does not know).
+ */
+async function checkToolAvailable({ toolId, projectPath = null, launchFlags = null, tool: given = null } = {}) {
+  {
     const tools = getAvailableTools();
-    const tool = tools[toolId];
+    const tool = given && typeof given.command === 'string' ? given : tools[toolId];
     if (!tool) {
       return { available: false, resolvedCommand: null, name: toolId || null };
     }
@@ -394,7 +424,7 @@ function setupIPC() {
 
     trackProbeFailure(primary.reason);
     return { available: false, resolvedCommand: null, name: tool.name, reason: primary.reason };
-  });
+  }
 }
 
 /**
@@ -415,6 +445,7 @@ function getStartCommand() {
 module.exports = {
   init,
   getAvailableTools,
+  checkToolAvailable,
   getActiveTool,
   setActiveTool,
   getConfig,

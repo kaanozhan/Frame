@@ -4,9 +4,11 @@
  */
 
 const { ipcRenderer, clipboard } = require('electron');
+const { pruneScopes } = require('../shared/reviewModel');
 const { Terminal } = require('xterm');
 const { FitAddon } = require('xterm-addon-fit');
 const { IPC } = require('../shared/ipcChannels');
+const { isServerTerminalId, adoptPlan } = require('../shared/serverRouting');
 const terminalInput = require('./terminalInput');
 const themes = require('./themes');
 
@@ -68,6 +70,7 @@ function terminalName(n) {
 
 class TerminalManager {
   constructor() {
+    this._createSeq = 0; // request ids for TERMINAL_CREATE
     this.terminals = new Map(); // Map<id, {terminal, fitAddon, element, state}>
     this.activeTerminalId = null;
     this.viewMode = 'board'; // 'board' (default) | 'terminals' | 'specs' | 'tasks' | 'panel'
@@ -75,7 +78,16 @@ class TerminalManager {
     this.terminalCounter = 0;
     this.onStateChange = null;
     this.currentProjectPath = null; // Current active project (null = global)
+    // The selected workspace within it (workspaces spec): terminals carry a
+    // workspaceId, and only the selected workspace's terminals are "current".
+    // 'main' is the project's own checkout.
+    this.currentWorkspaceId = 'main';
+    this.currentWorkspaceRoot = null;
+    // Frame Server link (server-workspaces): server terminals (srv- ids) are
+    // adopted on connect and show a banner while the link is down.
+    this.serverState = { state: 'off', host: null };
     this._setupIPC();
+    this._setupServer();
     this._setupThemeObserver();
     installGlobalDropGuard();
   }
@@ -91,9 +103,14 @@ class TerminalManager {
     }
 
     this.currentProjectPath = projectPath;
+    // A project opens on main; the workspace list re-selects the remembered one.
+    this.currentWorkspaceId = 'main';
+    this.currentWorkspaceRoot = projectPath;
 
     // Restore session for new project (custom names)
     this.restoreProjectSession(projectPath);
+    // Its terminals on the server (they outlive this window).
+    if (this.serverState.state === 'connected') this.adoptServerTerminals(projectPath);
 
     // Land where the work is: a project with running terminals opens on its
     // Terminals section, one with none opens on Home. This also settles the
@@ -107,6 +124,53 @@ class TerminalManager {
     this.viewMode = this.getTerminalStates().length > 0 ? 'terminals' : 'board';
 
     this._notifyStateChange();
+  }
+
+  /**
+   * Select a workspace of the current project (workspaces spec). Saves the
+   * outgoing workspace's session, restores the incoming one's, and lands on
+   * its terminals when it has any — the same rule as a project switch.
+   * @param {string} workspaceId - 'main' or a workspace id
+   * @param {string|null} root - the workspace's folder (main: the project)
+   */
+  setCurrentWorkspace(workspaceId, root) {
+    const id = workspaceId || 'main';
+    const nextRoot = root || this.currentProjectPath;
+    if (id === this.currentWorkspaceId && nextRoot === this.currentWorkspaceRoot) return;
+    this.saveProjectSession(this.currentProjectPath);
+    this.currentWorkspaceId = id;
+    this.currentWorkspaceRoot = nextRoot;
+    this.restoreProjectSession(this.currentProjectPath);
+    this.viewMode = this.getTerminalStates().length > 0 ? 'terminals' : 'board';
+    this._notifyStateChange();
+  }
+
+  getCurrentWorkspaceId() {
+    return this.currentWorkspaceId;
+  }
+
+  /** Is this terminal state in the current project and selected workspace? */
+  _inScope(state) {
+    return state.projectPath === this.currentProjectPath
+      && (state.workspaceId || 'main') === this.currentWorkspaceId;
+  }
+
+  /** Terminals of one project + workspace, oldest first. */
+  getTerminalsInScope(projectPath, workspaceId) {
+    const ws = workspaceId || 'main';
+    return Array.from(this.terminals.values())
+      .filter(t => t.state.projectPath === projectPath && (t.state.workspaceId || 'main') === ws)
+      .map(t => ({ ...t.state }))
+      .sort((a, b) => a.createdAt - b.createdAt);
+  }
+
+  /**
+   * localStorage key for the current project's selected workspace. Main keeps
+   * the bare project path — exactly today's key, so nothing migrates.
+   */
+  _sessionKey(projectPath) {
+    const base = projectPath || GLOBAL_PROJECT_KEY;
+    return this.currentWorkspaceId && this.currentWorkspaceId !== 'main' ? `${base}#${this.currentWorkspaceId}` : base;
   }
 
   /**
@@ -132,8 +196,8 @@ class TerminalManager {
    * @param {string|null} projectPath - Project path or null for global
    */
   saveProjectSession(projectPath) {
-    const sessionKey = projectPath || GLOBAL_PROJECT_KEY;
-    const projectTerminals = this.getTerminalsByProject(projectPath);
+    const sessionKey = this._sessionKey(projectPath);
+    const projectTerminals = this.getTerminalsInScope(projectPath, this.currentWorkspaceId);
 
     if (projectTerminals.length === 0) {
       return; // Nothing to save
@@ -184,7 +248,7 @@ class TerminalManager {
    * @param {string|null} projectPath - Project path or null for global
    */
   restoreProjectSession(projectPath) {
-    const sessionKey = projectPath || GLOBAL_PROJECT_KEY;
+    const sessionKey = this._sessionKey(projectPath);
 
     try {
       const allSessions = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '{}');
@@ -200,7 +264,7 @@ class TerminalManager {
         // still exist in this process and are pruned otherwise.
 
         // Restore custom names for existing terminals
-        const projectTerminals = this.getTerminalsByProject(projectPath);
+        const projectTerminals = this.getTerminalsInScope(projectPath, this.currentWorkspaceId);
         projectTerminals.forEach(t => {
           if (sessionData.terminalNames && sessionData.terminalNames[t.id]) {
             const instance = this.terminals.get(t.id);
@@ -234,7 +298,8 @@ class TerminalManager {
         // Restore active terminal if it belongs to current project
         if (sessionData.activeTerminalId) {
           const terminal = this.terminals.get(sessionData.activeTerminalId);
-          if (terminal && terminal.state.projectPath === projectPath) {
+          if (terminal && terminal.state.projectPath === projectPath
+              && (terminal.state.workspaceId || 'main') === this.currentWorkspaceId) {
             this.setActiveTerminal(sessionData.activeTerminalId);
             return;
           }
@@ -242,7 +307,7 @@ class TerminalManager {
       }
 
       // If no valid active terminal found, select first terminal of current project
-      const projectTerminals = this.getTerminalsByProject(projectPath);
+      const projectTerminals = this.getTerminalsInScope(projectPath, this.currentWorkspaceId);
       if (projectTerminals.length > 0) {
         this.setActiveTerminal(projectTerminals[0].id);
       } else {
@@ -267,26 +332,42 @@ class TerminalManager {
       ? options.projectPath
       : this.currentProjectPath;
 
-    // Per-project cap (was previously global — but terminals from other
-    // projects are kept alive in memory for fast switch-back, so a global
-    // count of 9 silently locked users out at far fewer visible terminals).
-    const projectCount = Array.from(this.terminals.values())
-      .filter(t => t.state.projectPath === projectPath).length;
-    if (projectCount >= this.maxTerminals) {
-      console.error(`Maximum terminal limit (${this.maxTerminals}) reached for this project`);
+    // Which workspace the terminal belongs to (workspaces spec): explicit,
+    // else the selected one when it is for the current project, else main.
+    const inCurrentProject = projectPath === this.currentProjectPath;
+    const workspaceId = options.workspaceId || (inCurrentProject ? this.currentWorkspaceId : 'main');
+
+    // Per-workspace cap (main counts as one workspace). It was per project,
+    // and before that global — terminals from other projects/workspaces stay
+    // alive in memory for fast switch-back, so a wider count silently locked
+    // users out at far fewer visible terminals.
+    const scopeCount = Array.from(this.terminals.values())
+      .filter(t => t.state.projectPath === projectPath && (t.state.workspaceId || 'main') === workspaceId).length;
+    if (scopeCount >= this.maxTerminals) {
+      console.error(`Maximum terminal limit (${this.maxTerminals}) reached for this workspace`);
       return null;
     }
 
-    // Working directory: use provided cwd, or project path, or home directory
-    const workingDir = options.cwd || projectPath || null;
+    // Working directory: the provided cwd, else the selected workspace's
+    // folder (for its own terminals), else the project, else home.
+    const defaultDir = inCurrentProject && workspaceId === this.currentWorkspaceId
+      ? (this.currentWorkspaceRoot || projectPath)
+      : projectPath;
+    const workingDir = options.cwd || defaultDir || null;
 
+    // Replies are matched by request id: overlapping creates (two local, or a
+    // local one and a slower server one) each get their own terminal
+    // (server-hardening T1).
+    const requestId = `tc-${Date.now().toString(36)}-${++this._createSeq}`;
     return new Promise((resolve, reject) => {
       const handler = (event, response) => {
+        if (!response || response.requestId !== requestId) return;
         ipcRenderer.removeListener(IPC.TERMINAL_CREATED, handler);
         if (response.success) {
           this._initializeTerminal(response.terminalId, {
             ...options,
             projectPath,
+            workspaceId,
             cwd: workingDir
           });
           resolve(response.terminalId);
@@ -297,12 +378,41 @@ class TerminalManager {
 
       ipcRenderer.on(IPC.TERMINAL_CREATED, handler);
       ipcRenderer.send(IPC.TERMINAL_CREATE, {
+        requestId,
         cwd: workingDir,
         projectPath,
+        workspaceId,
         shell: options.shell || null,
-        extraEnv: options.extraEnv || null // orchestration worker lanes pass FRAME_ORCH_* env
+        extraEnv: options.extraEnv || null, // orchestration worker lanes pass FRAME_ORCH_* env
+        ...(options.location ? { location: options.location } : {}) // 'server-home' (server-onboarding)
       });
     });
+  }
+
+  /**
+   * A terminal on the connected server, in the user's home folder, shown in
+   * the current project and view (server-onboarding). `command`, when given,
+   * is typed once the shell has printed something — without Enter: the user
+   * runs it (sign-ins are interactive). Resolves the terminal id, or throws.
+   */
+  async createServerHomeTerminal({ command = null } = {}) {
+    const id = await this.createTerminal({ location: 'server-home' });
+    if (!id) throw new Error('Could not open a terminal on the server.');
+    const host = this.serverState.host || 'server';
+    this.renameTerminal(id, `Server · ${host}`);
+    if (command) {
+      const type = () => ipcRenderer.send(IPC.TERMINAL_INPUT_ID, { terminalId: id, data: String(command) });
+      let done = false;
+      const onOutput = (event, p) => {
+        if (done || !p || p.terminalId !== id) return;
+        done = true;
+        ipcRenderer.removeListener(IPC.TERMINAL_OUTPUT_ID, onOutput);
+        setTimeout(type, 150); // let the prompt finish drawing
+      };
+      ipcRenderer.on(IPC.TERMINAL_OUTPUT_ID, onOutput);
+      setTimeout(() => { if (!done) { done = true; ipcRenderer.removeListener(IPC.TERMINAL_OUTPUT_ID, onOutput); type(); } }, 2000);
+    }
+    return id;
   }
 
   /**
@@ -361,6 +471,7 @@ class TerminalManager {
       isActive: false,
       createdAt: Date.now(),
       projectPath: options.projectPath !== undefined ? options.projectPath : this.currentProjectPath,
+      workspaceId: options.workspaceId || 'main',
       // What this lane is working on (set by agentDispatch):
       // { kind: 'task'|'spec', label, ref } — presentation metadata only,
       // session-scoped, dies with the lane (never persisted).
@@ -638,8 +749,8 @@ class TerminalManager {
     let terminals = Array.from(this.terminals.values());
 
     if (!allProjects) {
-      // Filter by current project
-      terminals = terminals.filter(t => t.state.projectPath === this.currentProjectPath);
+      // Filter by current project and selected workspace
+      terminals = terminals.filter(t => this._inScope(t.state));
     }
 
     return terminals
@@ -752,11 +863,30 @@ class TerminalManager {
   clearProjectSession(projectPath) {
     const sessionKey = projectPath || GLOBAL_PROJECT_KEY;
     try {
-      const allSessions = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '{}');
+      // The project's workspace sessions (`<path>#<id>`) go with it (R14).
+      const allSessions = pruneScopes(JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '{}'), sessionKey, []);
       delete allSessions[sessionKey];
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(allSessions));
     } catch (err) {
       console.error('Failed to clear terminal session:', err);
+    }
+  }
+
+  /**
+   * Forget saved sessions of `projectPath`'s workspaces that no longer exist
+   * (R14) — stale keys otherwise take slots in the 20-session cap and evict
+   * live ones.
+   */
+  pruneWorkspaceSessions(projectPath, liveIds) {
+    if (!projectPath) return;
+    try {
+      const allSessions = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '{}');
+      const next = pruneScopes(allSessions, projectPath, liveIds);
+      if (Object.keys(next).length !== Object.keys(allSessions).length) {
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(next));
+      }
+    } catch (err) {
+      console.error('Failed to prune terminal sessions:', err);
     }
   }
 
@@ -803,6 +933,102 @@ class TerminalManager {
         this.closeTerminal(terminalId);
       }
     });
+  }
+
+  // ─── Server terminals (server-workspaces) ──────────────────
+
+  _setupServer() {
+    const apply = (s) => {
+      const prev = this.serverState.state;
+      this.serverState = { state: (s && s.state) || 'off', host: (s && s.host) || this.serverState.host };
+      if (this.serverState.state === 'connected') {
+        // With no project selected too: home terminals opened there come back (server-onboarding).
+        if (prev !== 'connected') this.adoptServerTerminals(this.currentProjectPath || null);
+      } else {
+        this._setServerBanners();
+      }
+    };
+    ipcRenderer.on(IPC.SERVER_STATUS_CHANGED, (event, s) => apply(s));
+    ipcRenderer.invoke(IPC.SERVER_STATUS).then(apply).catch(() => {});
+  }
+
+  /**
+   * Bring the server's live terminals of `projectPath` into this window:
+   * new ones get an xterm, known ones are reset; each is redrawn from the
+   * server's screen snapshot (exact, full-screen TUIs included).
+   */
+  async adoptServerTerminals(projectPath) {
+    let list = [];
+    try {
+      list = await ipcRenderer.invoke(IPC.TERMINAL_ADOPT, { projectPath });
+    } catch (err) {
+      console.error('terminalManager: adopting server terminals failed', err);
+      return;
+    }
+    if (!Array.isArray(list)) { this._setServerBanners(); return; } // main cannot tell: keep the lanes
+    // Lanes of this project's server terminals that the server no longer
+    // has (it restarted, or they were closed elsewhere) go; a lane whose
+    // terminal now belongs to another workspace is rebuilt for it (T3).
+    const known = [...this.terminals]
+      .filter(([id, inst]) => isServerTerminalId(id) && inst.state.projectPath === projectPath)
+      .map(([id, inst]) => ({ terminalId: id, workspaceId: inst.state.workspaceId || 'main' }));
+    const plan = adoptPlan(known, list || []);
+    let added = false;
+    for (const id of [...plan.dispose, ...plan.recreate]) this._disposeLocalLane(id);
+    for (const t of list || []) {
+      let inst = this.terminals.get(t.terminalId);
+      if (!inst) {
+        this._initializeTerminal(t.terminalId, { projectPath: t.projectPath, workspaceId: t.workspaceId });
+        inst = this.terminals.get(t.terminalId);
+        added = true;
+        if (inst && t.home && !inst.state.customName) inst.state.customName = `Server · ${this.serverState.host || 'server'}`;
+      }
+      if (!inst) continue;
+      inst.terminal.reset();
+      if (t.screen) inst.terminal.write(t.screen);
+    }
+    this._setServerBanners();
+    if (added || plan.dispose.length || plan.recreate.length) {
+      this.restoreProjectSession(this.currentProjectPath);
+      this._renumberTerminals(projectPath);
+    }
+    this._notifyStateChange();
+    // Fit to this window; the resize reaches the server PTY and its app redraws.
+    setTimeout(() => this.fitAll(), 50);
+  }
+
+  /** Drop a server terminal's lane in this window only — the server is not told. */
+  _disposeLocalLane(terminalId) {
+    const inst = this.terminals.get(terminalId);
+    if (!inst) return;
+    try { inst.terminal.dispose(); } catch (_) { /* gone */ }
+    if (inst.element && inst.element.parentNode) inst.element.remove();
+    this.terminals.delete(terminalId);
+    if (this.activeTerminalId === terminalId) this.activeTerminalId = null;
+  }
+
+  /** "Reconnecting to <host>…" over every server terminal while the link is down. */
+  _setServerBanners() {
+    const down = this.serverState.state !== 'connected';
+    const host = this.serverState.host || 'the server';
+    const text = this.serverState.state === 'off'
+      ? `Disconnected from ${host} — the terminal keeps running there. Connect to Server to continue.`
+      : `Reconnecting to ${host}… The terminal keeps running on the server; typing is paused.`;
+    for (const [id, inst] of this.terminals) {
+      if (!isServerTerminalId(id)) continue;
+      let banner = inst.element.querySelector(':scope > .srv-banner');
+      if (!down) {
+        if (banner) banner.remove();
+        continue;
+      }
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.className = 'srv-banner';
+        inst.element.style.position = 'relative';
+        inst.element.appendChild(banner);
+      }
+      banner.textContent = text;
+    }
   }
 
   /**

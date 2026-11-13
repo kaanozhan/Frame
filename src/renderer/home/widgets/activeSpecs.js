@@ -73,13 +73,19 @@ module.exports = {
     const dispatch = require('./../../agentDispatch');
     card.body.innerHTML = statsHtml(byPhase) + active.slice(0, MAX_ROWS).map(s => `
       <button type="button" class="home-card-row" data-slug="${escapeHtml(s.slug)}">
-        <span class="home-card-row-name">${dispatch.specStatusDotHtml(s.slug)}${escapeHtml(s.title || s.slug)}</span>
+        <span class="home-card-row-name">${dispatch.specStatusDotHtml(s.slug)}${escapeHtml(s.title || s.slug)}${require('./../../workspaceSection').workspaceChipHtml(s.workspace)}</span>
         <span class="spec-phase-badge phase-${escapeHtml(s.phase)}">${escapeHtml(String(s.phase).replace('_', ' '))}</span>
       </button>
     `).join('') + moreHtml(active.length - MAX_ROWS);
 
     card.body.querySelectorAll('.home-card-row').forEach((row) => {
-      row.addEventListener('click', () => require('./../../specSection').openInNewTab(row.dataset.slug));
+      row.addEventListener('click', () => {
+        // Select the spec's workspace first: a switch drops pinned section
+        // tabs, so the tab opens after it (spec-in-workspace).
+        const spec = active.find((x) => x.slug === row.dataset.slug);
+        if (spec) require('./../../workspaceSection').selectSpecWorkspace(spec.workspace);
+        require('./../../specSection').openInNewTab(row.dataset.slug);
+      });
     });
   },
 

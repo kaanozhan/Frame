@@ -30,7 +30,7 @@ const { execFile } = require('child_process');
 const fsSafe = require('./fsSafe');
 const core = require('./sessionRestoreStore');
 const { IPC } = require('../shared/ipcChannels');
-const { WORKSPACE_DIR } = require('../shared/frameConstants');
+const { FRAME_HOME_DIR } = require('../shared/frameConstants');
 
 const STORE_FILE = 'session-restore.json';
 const REPORT_DIR = 'session-reports';
@@ -53,7 +53,7 @@ let scanTimer = null;
  * are gone), load the store and start watching.
  */
 function init() {
-  const base = path.join(os.homedir(), WORKSPACE_DIR);
+  const base = path.join(os.homedir(), FRAME_HOME_DIR);
   storePath = path.join(base, STORE_FILE);
   reportDir = path.join(base, REPORT_DIR);
 
@@ -109,11 +109,11 @@ function persist(projectPath) {
 
 // ─── terminal lifecycle (ptyManager) ──────────────────────
 
-function registerTerminal(terminalId, { projectPath = null, shellPid = null } = {}) {
+function registerTerminal(terminalId, { projectPath = null, workspaceId = 'main', shellPid = null } = {}) {
   // A new terminal after a teardown means the app is in use again (reload).
   frozen = false;
   if (shellPid) shellPids.set(terminalId, shellPid);
-  core.registerTerminal(live, terminalId, { projectPath, createdAt: Date.now() });
+  core.registerTerminal(live, terminalId, { projectPath, workspaceId, createdAt: Date.now() });
 }
 
 function onForeground(terminalId, processName, shellName) {
@@ -217,7 +217,7 @@ function restoreDone(projectPath) {
 /**
  * The project to open on launch instead of the default one: the project the
  * user left, but only when it has sessions to resume. Otherwise null, and the
- * default project (the front of the workspace list) opens as it always has.
+ * default project (the front of the project list) opens as it always has.
  */
 function launchProject() {
   const last = state.lastActiveProject;

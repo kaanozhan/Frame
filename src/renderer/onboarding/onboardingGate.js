@@ -12,7 +12,7 @@
  * the moment a project exists rather than the moment someone dismisses it.
  */
 
-/** Boot: the loader consults the gate once, on the first WORKSPACE_DATA. */
+/** Boot: the loader consults the gate once, on the first PROJECT_REGISTRY_DATA. */
 const LAUNCH = 'launch';
 /** The palette's Show the Start Screen command, at any project count. */
 const COMMAND = 'command';
@@ -20,7 +20,7 @@ const COMMAND = 'command';
 /**
  * @param {object} input
  * @param {'launch'|'command'} input.trigger  what is asking
- * @param {Array} input.projects             the WORKSPACE_DATA payload
+ * @param {Array} input.projects             the PROJECT_REGISTRY_DATA payload
  * @returns {{ show: boolean, dismissible: boolean }}
  */
 function decide({ trigger, projects } = {}) {

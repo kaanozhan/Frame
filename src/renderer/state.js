@@ -7,12 +7,21 @@ const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 
 const SPOTLIGHT_SEEN_KEY = 'frame-init-spotlight-seen';
+// The workspace last selected per project (workspaces spec): { [projectPath]: workspaceId }.
+const ACTIVE_WORKSPACE_KEY = 'frame-active-workspace';
+const MAIN_WORKSPACE_ID = 'main';
 
 let currentProjectPath = null;
 let isCurrentProjectFrame = false;
 let sampleProjectPath = null;     // cached from main on init
 let isCurrentProjectSample = false;
 let onProjectChangeCallbacks = [];
+// The selected workspace within the current project (workspaces spec).
+// null means main — the project's own checkout. `root` is where
+// checkout-bound views (terminals, file tree, git, diff, sessions) point;
+// project-bound ones (specs, tasks, settings) keep using the project path.
+let currentWorkspace = null; // { id, root, name, branch } | null
+let onWorkspaceChangeCallbacks = [];
 let onFrameStatusChangeCallbacks = [];
 let onFrameInitializedCallbacks = [];
 let onSampleChangeCallbacks = [];
@@ -65,6 +74,87 @@ function getProjectPath() {
 }
 
 /**
+ * The selected workspace. Main (`id: 'main'`, root = the project path) when
+ * nothing else is selected; null when no project is open.
+ */
+function getWorkspace() {
+  if (!currentProjectPath) return null;
+  return currentWorkspace || { id: MAIN_WORKSPACE_ID, root: currentProjectPath, name: 'main', branch: null };
+}
+
+/** Where checkout-bound views point: the selected workspace's folder, or the project. */
+function getWorkspaceRoot() {
+  const ws = getWorkspace();
+  return ws ? ws.root : null;
+}
+
+function readRememberedWorkspaces() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ACTIVE_WORKSPACE_KEY) || '{}');
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function rememberWorkspace(projectPath, id) {
+  if (!projectPath) return;
+  const map = readRememberedWorkspaces();
+  if (!id || id === MAIN_WORKSPACE_ID) delete map[projectPath];
+  else map[projectPath] = id;
+  try { localStorage.setItem(ACTIVE_WORKSPACE_KEY, JSON.stringify(map)); } catch (_) { /* private mode */ }
+}
+
+/** The workspace id last selected in `projectPath` (main when none). */
+function getRememberedWorkspaceId(projectPath) {
+  return readRememberedWorkspaces()[projectPath] || MAIN_WORKSPACE_ID;
+}
+
+/**
+ * Select a workspace of the current project. Pass `null` or an object with
+ * `id: 'main'` for main. Listeners get (workspace, previousWorkspace); a
+ * re-select of the same workspace is a no-op.
+ */
+function setWorkspace(ws) {
+  if (!currentProjectPath) return;
+  const next = ws && ws.id && ws.id !== MAIN_WORKSPACE_ID && ws.root
+    ? { id: ws.id, root: ws.root, name: ws.name || ws.id, branch: ws.branch || null }
+    : null;
+  const prev = getWorkspace();
+  if ((next ? next.id : MAIN_WORKSPACE_ID) === prev.id && (!next || next.root === prev.root)) return;
+  currentWorkspace = next;
+  rememberWorkspace(currentProjectPath, next ? next.id : MAIN_WORKSPACE_ID);
+  const now = getWorkspace();
+  // Terminals switch scope first, the same way a project switch does.
+  if (multiTerminalUI) multiTerminalUI.setCurrentWorkspace(now.id, now.root);
+  onWorkspaceChangeCallbacks.forEach((cb) => cb(now, prev));
+}
+
+/**
+ * The selected workspace's branch or name changed (a rename) — update it in
+ * place. Not a switch: terminals and listeners stay as they are (R11).
+ */
+function updateWorkspaceMeta({ branch, name } = {}) {
+  if (!currentWorkspace) return;
+  currentWorkspace = {
+    ...currentWorkspace,
+    ...(branch !== undefined ? { branch: branch || null } : {}),
+    ...(name !== undefined ? { name: name || currentWorkspace.id } : {})
+  };
+}
+
+/** `{ projectPath, workspaceId }` of the live selection — what scopeGuard compares against. */
+function currentScope() {
+  const ws = getWorkspace();
+  return { projectPath: currentProjectPath, workspaceId: ws ? ws.id : MAIN_WORKSPACE_ID };
+}
+
+/** Register a callback for workspace selection changes: (workspace, previous). */
+function onWorkspaceChange(callback) {
+  onWorkspaceChangeCallbacks.push(callback);
+}
+
+/**
  * Set MultiTerminalUI reference for terminal session management
  */
 function setMultiTerminalUI(ui) {
@@ -77,6 +167,9 @@ function setMultiTerminalUI(ui) {
 function setProjectPath(path) {
   const previousPath = currentProjectPath;
   currentProjectPath = path;
+  // A new project starts on main; the workspace list re-selects the
+  // remembered workspace once it has loaded the project's records.
+  if (previousPath !== path) currentWorkspace = null;
 
   // Detect sample-project mode. Compared as strings — main resolved the
   // canonical path on startup, so any project opened at exactly that path
@@ -144,7 +237,7 @@ function setIsFrameProject(isFrame) {
 /**
  * Frame was removed from this project (Settings → Workflow). Flip the flag so
  * the spec panel and the workflow toggles stop acting on a project that has no
- * `.frame/` any more, and ask main to re-answer — the workspace record follows
+ * `.frame/` any more, and ask main to re-answer — the registry record follows
  * from that. The init prompt is suppressed first: removing Frame is a
  * decision, and offering to initialize it again in the same second is not an
  * answer to it.
@@ -476,6 +569,14 @@ module.exports = {
   init,
   getProjectPath,
   setProjectPath,
+  MAIN_WORKSPACE_ID,
+  getWorkspace,
+  getWorkspaceRoot,
+  setWorkspace,
+  updateWorkspaceMeta,
+  currentScope,
+  onWorkspaceChange,
+  getRememberedWorkspaceId,
   setMultiTerminalUI,
   onProjectChange,
   updateProjectUI,

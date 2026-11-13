@@ -2,7 +2,7 @@
 /*
  * Project selection lives in the sidebar's current-project switcher (styles
  * in layout.css); this file keeps the Open Project modal and the Projects
- * tab's workspace panel. The old list/rail row styles retired with their
+ * tab's project panel. The old list/rail row styles retired with their
  * markup (sidebar-project-section → project-rail → project-dropdown).
  */
 
@@ -14,8 +14,8 @@
   --modal-width: 680px;
 }
 
-/* ==================== WORKSPACE PANEL (project-dropdown spec) ==================== */
-/* The Projects tab: workspace nav for the selected project; project
+/* ==================== PROJECT PANEL (project-dropdown spec) ==================== */
+/* The Projects tab: project nav for the selected project; project
    selection lives in the current-project switcher above; Add new Project is
    pinned at the bottom, and only while no project is selected
    (projectSection). */
@@ -26,13 +26,13 @@
   min-height: 0;
 }
 
-.workspace-panel {
+.project-panel {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
 
-.workspace-panel .workspace-nav-item {
+.project-panel .project-nav-item {
   padding-left: 12px;
 }
 

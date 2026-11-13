@@ -24,6 +24,10 @@ const analytics = require('./analytics');
 const { diffSpecLifecycle, renameSpecLifecycle } = require('./analyticsEvents');
 const activityLog = require('./activityLog');
 const perfMonitor = require('./perfMonitor');
+const projectRegistry = require('./projectRegistry');
+const workspaceRegistry = require('../shared/workspaceRegistry');
+const { mergeSpecLists, commandPaths } = require('../shared/workspaceSpecs');
+const workspaceTooling = require('./workspaceTooling');
 
 const STATUS_FILE = 'status.json';
 const SPEC_FILE = 'spec.md';
@@ -66,8 +70,76 @@ function getSpecsRoot(projectPath) {
   return frameStore.specsRoot(projectPath);
 }
 
+// ─── Where a spec lives (spec-in-workspace) ─────────────────
+//
+// Specs are written inside a workspace's worktree and ride its branch, so a
+// project's specs live in more than one checkout: the main one (`projectPath`)
+// and each active workspace's folder. `specLocations` maps every slug of a
+// project to its checkout; getSpecDir resolves through it, so every reader and
+// writer below (status, phase, reports, tasks import, rename, delete) acts on
+// the right folder without knowing about workspaces. Task state never moves:
+// tasks.json is always read and written through `projectPath`.
+//
+// A slug present in main and in a workspace resolves to the workspace (the
+// copy being worked on); between two workspaces the first listed wins — the
+// same rule as shared/workspaceSpecs.mergeSpecLists.
+
+const specLocations = new Map(); // projectPath → Map<slug, { root, workspace }>
+
+/** Active workspaces of a project whose folder exists: `[{ id, name, branch, root }]`. */
+function activeWorkspaceRoots(projectPath) {
+  let records = [];
+  try {
+    records = workspaceRegistry.activeOf(projectRegistry.getWorkspaceRecords(projectPath));
+  } catch (_) {
+    return [];
+  }
+  return records
+    .filter((r) => r && r.path && r.path !== projectPath && fs.existsSync(r.path))
+    .map((r) => ({ id: r.id, name: r.name, branch: r.branch || null, root: r.path }));
+}
+
+function specFolderNames(root) {
+  try {
+    return fs.readdirSync(frameStore.specsRoot(root), { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+  } catch (_) {
+    return [];
+  }
+}
+
+/** Re-read which checkout holds each slug of `projectPath`. */
+function refreshSpecLocations(projectPath) {
+  const map = new Map();
+  for (const slug of specFolderNames(projectPath)) {
+    map.set(slug, { root: projectPath, workspace: null });
+  }
+  const claimed = new Set();
+  for (const ws of activeWorkspaceRoots(projectPath)) {
+    for (const slug of specFolderNames(ws.root)) {
+      if (claimed.has(slug)) continue;
+      claimed.add(slug);
+      map.set(slug, { root: ws.root, workspace: ws });
+    }
+  }
+  specLocations.set(projectPath, map);
+  return map;
+}
+
+/** The checkout a slug lives in (main when unknown — where a new spec would go). */
+function specLocation(projectPath, slug) {
+  const map = specLocations.get(projectPath) || refreshSpecLocations(projectPath);
+  return map.get(slug) || { root: projectPath, workspace: null };
+}
+
+/** Root folder for a slug: its workspace's worktree, or the main checkout. */
+function specRoot(projectPath, slug) {
+  return specLocation(projectPath, slug).root;
+}
+
 function getSpecDir(projectPath, slug) {
-  return frameStore.resolveSpecDir(projectPath, slug);
+  return frameStore.resolveSpecDir(specRoot(projectPath, slug), slug);
 }
 
 // ─── Validation ────────────────────────────────────────────
@@ -238,15 +310,11 @@ function buildSpecCatalog(projectPath) {
 // ─── Public API ────────────────────────────────────────────
 
 function listSpecs(projectPath) {
-  const root = getSpecsRoot(projectPath);
-  if (!fs.existsSync(root)) return [];
-  let entries;
-  try {
-    entries = fs.readdirSync(root, { withFileTypes: true });
-  } catch (err) {
-    console.error('specManager: listSpecs readdir failed', err);
-    return [];
-  }
+  // Every checkout of the project: main plus active workspaces. Each slug is
+  // read from the one checkout that holds it (see specLocations).
+  const locations = refreshSpecLocations(projectPath);
+  if (locations.size === 0) return [];
+  const entries = Array.from(locations.keys()).map((name) => ({ name, isDirectory: () => true }));
 
   // Load tasks once so reconcilePhase can look at task statuses (the
   // implementing → done transition is task-driven). Cheap on the order
@@ -318,13 +386,16 @@ function listSpecs(projectPath) {
       ...(reports.length ? { reports } : {})
     });
   }
-  // Malformed first: a spec Frame cannot read needs a human, and sorting it
-  // by a timestamp it doesn't have buried it under everything else.
-  specs.sort((a, b) => {
-    if (!!a.malformed !== !!b.malformed) return a.malformed ? -1 : 1;
-    return (b.updated_at || '').localeCompare(a.updated_at || '');
-  });
-  return specs;
+  // Tag each spec with its workspace (null = main) and keep listSpecs' order.
+  const tagged = specs.map((spec) => ({ spec, loc: locations.get(spec.slug) || { workspace: null } }));
+  const mainSpecs = tagged.filter((t) => !t.loc.workspace).map((t) => t.spec);
+  const byWorkspace = new Map();
+  for (const t of tagged) {
+    if (!t.loc.workspace) continue;
+    if (!byWorkspace.has(t.loc.workspace.id)) byWorkspace.set(t.loc.workspace.id, { workspace: t.loc.workspace, specs: [] });
+    byWorkspace.get(t.loc.workspace.id).specs.push(t.spec);
+  }
+  return mergeSpecLists(mainSpecs, Array.from(byWorkspace.values()));
 }
 
 /**
@@ -557,7 +628,7 @@ function interpolate(template, vars) {
 // that command only — every other command reads an existing status.json.
 const isSlugless = (slug, command) => !slug && command === 'spec.new';
 
-function getCommandPrompt(projectPath, slug, command, aiTool, description) {
+function getCommandPrompt(projectPath, slug, command, aiTool, description, rootOverride) {
   if (!SUPPORTED_COMMANDS.includes(command)) return { error: `unknown command: ${command}` };
   const tool = aiTool || 'claude-code';
   const slugless = isSlugless(slug, command);
@@ -569,6 +640,14 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
   if (!slugless && !status) return { error: 'spec not found' };
   const template = loadCommandTemplate(projectPath, tool, command);
   if (!template) return { error: `no ${tool} template for ${command}` };
+  // Where the agent works (spec-in-workspace): the spec's workspace folder, or
+  // the explicit target root for a new spec; task state always stays in the
+  // main checkout's tasks.json.
+  const paths = commandPaths({
+    projectPath,
+    root: rootOverride || (slug ? specRoot(projectPath, slug) : projectPath),
+    tasksPath: frameStore.resolvePath(projectPath, FRAME_FILES.TASKS)
+  });
   const vars = {
     // Phrases a template cannot state tool-neutrally — one CLI's structured
     // question tool is another's numbered list. Spread first so a real
@@ -579,8 +658,9 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description) {
     // prompt as literal text, telling the user to run a command against a
     // spec called "{slug}". One pass, not recursion — a value that names a
     // token is filled; a value that names itself is left alone.
-    ...interpolateValues(vocabulary.dialect(tool), { slug, project_path: projectPath }),
-    project_path: projectPath,
+    ...interpolateValues(vocabulary.dialect(tool), { slug, project_path: paths.project_path }),
+    project_path: paths.project_path,
+    tasks_path: paths.tasks_path,
     // The user's free-form text, verbatim. Empty for every command whose
     // template carries no {description} token.
     description: description == null ? '' : String(description),
@@ -810,10 +890,16 @@ function uniquePromptFilename(promptsDir, filename) {
   }
 }
 
-function buildSpecCommandFile(projectPath, slug, command, aiTool, description) {
-  const result = getCommandPrompt(projectPath, slug, command, aiTool, description);
+function buildSpecCommandFile(projectPath, slug, command, aiTool, description, rootOverride) {
+  // The prompt is staged where the agent runs (spec-in-workspace): the
+  // instruction below names it by a relative path, and an agent in a
+  // workspace has the worktree as its cwd. Staging it in the main checkout
+  // while the lane ran in a worktree left the agent with a path it could
+  // not open.
+  const root = rootOverride || (slug ? specRoot(projectPath, slug) : projectPath);
+  const result = getCommandPrompt(projectPath, slug, command, aiTool, description, root);
   if (result.error) return result;
-  const promptsDir = path.join(projectPath, RUNTIME_PROMPTS_DIR);
+  const promptsDir = path.join(root, RUNTIME_PROMPTS_DIR);
   fs.mkdirSync(promptsDir, { recursive: true });
   const slugless = isSlugless(slug, command);
   // Staging a slug-less spec.new prompt is the one thing only Frame's own New
@@ -830,6 +916,9 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool, description) {
   // stager used to provide — and an out-of-app helper launch always finds the
   // latest on disk.
   commandStaging.stageCommandFiles(projectPath);
+  // A workspace gets the freshly staged templates, helpers and index too, so
+  // the agent's hooks and the template's relative report paths resolve there.
+  if (root !== projectPath) workspaceTooling.provision(projectPath, root);
   const relPath = path.posix.join(RUNTIME_PROMPTS_DIR.replace(/\\/g, '/'), filename);
   return {
     success: true,
@@ -1021,18 +1110,12 @@ function arraysEqual(a, b) {
 }
 
 function syncAllSpecTasks(projectPath) {
-  const root = getSpecsRoot(projectPath);
-  if (!fs.existsSync(root)) return;
-  let entries;
-  try {
-    entries = fs.readdirSync(root, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const ent of entries) {
-    if (!ent.isDirectory()) continue;
-    if (fs.existsSync(path.join(root, ent.name, TASKS_FILE))) {
-      syncTasksFromMarkdown(projectPath, ent.name);
+  // Every checkout of the project (spec-in-workspace): a workspace spec's
+  // tasks.md is read from its worktree and imported into main's tasks.json —
+  // task state never lives on a branch.
+  for (const slug of refreshSpecLocations(projectPath).keys()) {
+    if (fs.existsSync(path.join(getSpecDir(projectPath, slug), TASKS_FILE))) {
+      syncTasksFromMarkdown(projectPath, slug);
     }
   }
 }
@@ -1056,7 +1139,9 @@ function getSpec(projectPath, slug) {
     // implement.defaultMode → null), so the modal's preselection and the
     // next-action button's label read one authoritative value instead of
     // re-deriving the resolution in the renderer.
-    implementHint: resolveImplementLaunchHint(projectPath, slug)
+    implementHint: resolveImplementLaunchHint(projectPath, slug),
+    // Where the spec lives (spec-in-workspace): null = the main checkout.
+    workspace: specLocation(projectPath, slug).workspace || null
   };
 }
 
@@ -1108,18 +1193,10 @@ function readSpecReport(projectPath, slug, kind) {
 function searchSpecs(projectPath, query) {
   const q = (query || '').trim().toLowerCase();
   if (!q) return null;
-  const root = getSpecsRoot(projectPath);
-  if (!fs.existsSync(root)) return [];
-  let entries;
-  try {
-    entries = fs.readdirSync(root, { withFileTypes: true });
-  } catch (err) {
-    console.error('specManager: searchSpecs readdir failed', err);
-    return [];
-  }
+  // Main and every active workspace (spec-in-workspace).
+  const entries = Array.from(refreshSpecLocations(projectPath).keys()).map((name) => ({ name }));
   const matches = [];
   for (const ent of entries) {
-    if (!ent.isDirectory()) continue;
     const body = readFileSafe(path.join(getSpecDir(projectPath, ent.name), SPEC_FILE));
     if (body && body.toLowerCase().includes(q)) matches.push(ent.name);
   }
@@ -1193,7 +1270,8 @@ function renameSpec(projectPath, oldSlug, opts) {
       return { error: `slug too long (max ${SLUG_MAX_LEN} chars)` };
     }
     if (candidate !== oldSlug) {
-      const collidingDir = getSpecDir(projectPath, candidate);
+      // The renamed folder stays in the checkout that holds the spec.
+      const collidingDir = frameStore.resolveSpecDir(specRoot(projectPath, oldSlug), candidate);
       if (fs.existsSync(collidingDir)) return { error: 'slug already in use' };
 
       // Move folder first; if anything fails after this, we still have data
@@ -1201,6 +1279,9 @@ function renameSpec(projectPath, oldSlug, opts) {
         fs.renameSync(oldDir, collidingDir);
         folderRenamed = true;
         newSlug = candidate;
+        // The new slug lives where the old one did (main or its workspace).
+        const known = specLocations.get(projectPath);
+        if (known) known.set(candidate, specLocation(projectPath, oldSlug));
       } catch (err) {
         return { error: 'could not rename folder: ' + err.message };
       }
@@ -1282,6 +1363,79 @@ function renameSpec(projectPath, oldSlug, opts) {
 let specsBurst = { fires: 0, files: new Set() };
 let specTasksFires = 0;
 
+/**
+ * One handler for every specs folder of the watched project — main's and each
+ * workspace's — so a change anywhere lands in the same debounced push.
+ */
+function specsWatchHandler(projectPath) {
+  return (_event, filename) => {
+    // Our own writeStatus calls fire this watcher too — drop them.
+    if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) {
+      activityLog.record('watch.suppressed', { watcher: 'specs', reason: 'self-write' });
+      return;
+    }
+    specsBurst.fires += 1;
+    if (filename) specsBurst.files.add(String(filename));
+    if (watchDebounce) clearTimeout(watchDebounce);
+    watchDebounce = setTimeout(() => {
+      // Reported when the debounce flushes, so the record carries what the
+      // burst actually was rather than one row per raw fs event.
+      activityLog.record('watch.fired', {
+        watcher: 'specs',
+        changes: specsBurst.files.size || specsBurst.fires,
+        collapsed: specsBurst.fires,
+        triggered: 'push'
+      });
+      specsBurst = { fires: 0, files: new Set() };
+      pushSpecData(projectPath);
+    }, WATCH_DEBOUNCE_MS);
+  };
+}
+
+// Specs folders of the watched project's active workspaces (spec-in-workspace):
+// root → watcher. Recomputed whenever workspaces change.
+const workspaceSpecWatchers = new Map();
+
+function closeWorkspaceSpecWatchers() {
+  for (const watcher of workspaceSpecWatchers.values()) {
+    try { watcher.close(); } catch (_) { /* ignore */ }
+  }
+  workspaceSpecWatchers.clear();
+}
+
+/**
+ * Watch each active workspace's `.frame/specs` alongside main's, then push
+ * the merged list. Called after every workspace mutation (workspaceManager)
+ * and when the watch starts. A no-op for a project that is not the one
+ * being watched.
+ */
+function refreshWorkspaceWatchers(projectPath) {
+  if (!projectPath) return;
+  // Workspaces changed: whichever project this is, its slug → checkout map
+  // is stale (workspace-hardening L13e). It is rebuilt on next use.
+  specLocations.delete(projectPath);
+  if (projectPath !== activeWatchedProject) return;
+  const wanted = new Set(activeWorkspaceRoots(projectPath).map((ws) => ws.root));
+  for (const [root, watcher] of workspaceSpecWatchers) {
+    if (wanted.has(root)) continue;
+    try { watcher.close(); } catch (_) { /* ignore */ }
+    workspaceSpecWatchers.delete(root);
+  }
+  for (const root of wanted) {
+    if (workspaceSpecWatchers.has(root)) continue;
+    const dir = frameStore.specsRoot(root);
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      const watcher = fsSafe.safeWatch(dir, { recursive: true }, specsWatchHandler(projectPath),
+        () => { workspaceSpecWatchers.delete(root); });
+      if (watcher) workspaceSpecWatchers.set(root, watcher);
+    } catch (err) {
+      console.error('specManager: workspace specs watch failed', root, err.message);
+    }
+  }
+  pushSpecData(projectPath);
+}
+
 function startWatching(projectPath) {
   stopWatching();
   if (!projectPath) return;
@@ -1317,28 +1471,7 @@ function startWatching(projectPath) {
     return;
   }
   try {
-    activeWatcher = fsSafe.safeWatch(root, { recursive: true }, (_event, filename) => {
-      // Our own writeStatus calls fire this watcher too — drop them.
-      if (Date.now() - lastSelfWriteAt < SELF_WRITE_GUARD_MS) {
-        activityLog.record('watch.suppressed', { watcher: 'specs', reason: 'self-write' });
-        return;
-      }
-      specsBurst.fires += 1;
-      if (filename) specsBurst.files.add(String(filename));
-      if (watchDebounce) clearTimeout(watchDebounce);
-      watchDebounce = setTimeout(() => {
-        // Reported when the debounce flushes, so the record carries what the
-        // burst actually was rather than one row per raw fs event.
-        activityLog.record('watch.fired', {
-          watcher: 'specs',
-          changes: specsBurst.files.size || specsBurst.fires,
-          collapsed: specsBurst.fires,
-          triggered: 'push'
-        });
-        specsBurst = { fires: 0, files: new Set() };
-        pushSpecData(projectPath);
-      }, WATCH_DEBOUNCE_MS);
-    }, () => { activeWatcher = null; });
+    activeWatcher = fsSafe.safeWatch(root, { recursive: true }, specsWatchHandler(projectPath), () => { activeWatcher = null; });
     activeWatchedProject = projectPath;
   } catch (err) {
     console.error('specManager: fs.watch failed', err);
@@ -1378,8 +1511,9 @@ function startWatching(projectPath) {
     }
   }
 
-  // Initial snapshot so the panel paints something immediately
-  pushSpecData(projectPath);
+  // Workspaces' specs folders (spec-in-workspace); this also pushes the
+  // initial snapshot so the panel paints something immediately.
+  refreshWorkspaceWatchers(projectPath);
 }
 
 function stopWatching() {
@@ -1391,6 +1525,7 @@ function stopWatching() {
     try { activeTasksWatcher.close(); } catch (err) { /* ignore */ }
   }
   activeTasksWatcher = null;
+  closeWorkspaceSpecWatchers();
   activeWatchedProject = null;
   busySpecSlugs.clear();
   // specLifecycle is kept: it is per project, and a spec created while the
@@ -1546,8 +1681,8 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.GET_SPEC_PROMPT, (event, { projectPath, slug, command, aiTool, description }) =>
     getCommandPrompt(projectPath, slug, command, aiTool, description)
   );
-  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, { projectPath, slug, command, aiTool, description }) =>
-    buildSpecCommandFile(projectPath, slug, command, aiTool, description)
+  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, { projectPath, slug, command, aiTool, description, root }) =>
+    buildSpecCommandFile(projectPath, slug, command, aiTool, description, root || null)
   );
   ipcMain.on(IPC.WATCH_SPECS, (event, projectPath) => {
     startWatching(projectPath);
@@ -1599,6 +1734,8 @@ function setupIPC(ipcMain) {
 module.exports = {
   init,
   setupIPC,
+  refreshWorkspaceWatchers,
+  specRoot,
   // Exported for tests
   validateSpecStatus,
   repairSpecStatus,

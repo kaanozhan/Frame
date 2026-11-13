@@ -4,9 +4,9 @@
  * The visible project list is gone (the sidebar list → far-left rail →
  * retired); selection lives in the current-project switcher at the top of
  * the sidebar (wired in index.js). This module keeps everything that isn't
- * a row: the workspace projects array, selection flow, first-boot
+ * a row: the registered projects array, selection flow, first-boot
  * auto-select, next/prev switching, add/remove, the per-project agent
- * status store the switcher menu reads, and the workspace nav block under
+ * status store the switcher menu reads, and the project nav block under
  * the Projects tab.
  */
 
@@ -17,7 +17,7 @@ let activeProjectPath = null;
 let onProjectSelectCallback = null;
 let projects = []; // Store projects list for navigation
 // On first launch, open the first project automatically. One-shot so later
-// workspace updates never yank the user to another project.
+// registry updates never yank the user to another project.
 let didInitialAutoSelect = false;
 // projectPath -> { approval, input } counts, from projectStatusBadges.
 let agentStatusMap = new Map();
@@ -39,14 +39,14 @@ function setSwitcherHooks(hooks) {
 }
 
 /**
- * Load projects from workspace
+ * Load projects from the registry
  */
 function loadProjects() {
-  ipcRenderer.send(IPC.LOAD_WORKSPACE);
+  ipcRenderer.send(IPC.LOAD_PROJECT_REGISTRY);
 }
 
 /**
- * Workspace data arrived — refresh state (no rows to render anymore).
+ * Registry data arrived — refresh state (no rows to render anymore).
  */
 function renderProjects(projectsList) {
   projects = [...(projectsList || [])];
@@ -59,7 +59,7 @@ function renderProjects(projectsList) {
     selectLaunchProject();
   }
 
-  placeWorkspaceNav();
+  placeProjectNav();
   if (switcherHooks.refresh) switcherHooks.refresh();
 }
 
@@ -97,7 +97,7 @@ function isDefaultProject(projectPath) {
  * told about in its existing relative order, so the whole message could be one
  * path — the full list is sent anyway, because a partial order is harder to
  * read in a log than a complete one. And main deliberately sends no
- * WORKSPACE_UPDATED echo for a reorder (it was built for drag, where
+ * PROJECT_REGISTRY_UPDATED echo for a reorder (it was built for drag, where
  * re-rendering mid-gesture fights the user), so the local order is updated
  * here or the switcher keeps showing the old one until a reload.
  *
@@ -108,7 +108,7 @@ function setDefaultProject(projectPath) {
   if (index <= 0) return false;
   const [moved] = projects.splice(index, 1);
   projects.unshift(moved);
-  ipcRenderer.send(IPC.REORDER_WORKSPACE_PROJECTS, projects.map(p => p.path));
+  ipcRenderer.send(IPC.REORDER_REGISTRY_PROJECTS, projects.map(p => p.path));
   if (switcherHooks.refresh) switcherHooks.refresh();
   return true;
 }
@@ -117,8 +117,15 @@ function setDefaultProject(projectPath) {
  * Confirmation + removal (also offered as the × in the switcher menu).
  */
 function confirmRemoveProject(projectPath, projectName) {
+  // Workspaces stay on disk, holding their branches; say where before removal.
+  // Their records are kept and come back if the project is added again (L6).
+  const record = projects.find(p => p.path === projectPath);
+  const folders = ((record && record.workspaces) || []).filter(w => w && !w.archivedAt && w.path).map(w => w.path);
+  const workspaceNote = folders.length
+    ? `\n\nIts ${folders.length} workspace folder${folders.length === 1 ? ' stays' : 's stay'} on disk (Frame keeps track and lists ${folders.length === 1 ? 'it' : 'them'} again if you add the project back):\n${folders.slice(0, 8).map(f => `  ${f}`).join('\n')}${folders.length > 8 ? `\n  …and ${folders.length - 8} more` : ''}`
+    : '';
   const confirmed = window.confirm(
-    `Remove "${projectName}" from the project list?\n\nThis will only remove it from Frame's list. The project files will not be deleted.`
+    `Remove "${projectName}" from the project list?\n\nThis will only remove it from Frame's list. The project files will not be deleted.${workspaceNote}`
   );
 
   if (confirmed) {
@@ -151,11 +158,11 @@ function selectProject(projectPath) {
 }
 
 /**
- * Set active project (visual state lives in the switcher + workspace nav)
+ * Set active project (visual state lives in the switcher + project nav)
  */
 function setActiveProject(projectPath) {
   activeProjectPath = projectPath;
-  placeWorkspaceNav();
+  placeProjectNav();
   if (switcherHooks.refresh) switcherHooks.refresh();
 }
 
@@ -164,18 +171,18 @@ function getActiveProject() {
 }
 
 /**
- * Add project to workspace
+ * Add project to the registry
  */
 function addProject(projectPath, projectName) {
   // Main reads the Frame status from disk itself.
-  ipcRenderer.send(IPC.ADD_PROJECT_TO_WORKSPACE, {
+  ipcRenderer.send(IPC.ADD_PROJECT_TO_REGISTRY, {
     projectPath,
     name: projectName
   });
 }
 
 /**
- * Remove project from workspace
+ * Remove project from the registry
  */
 function removeProject(projectPath) {
   // Drop the saved terminal session too — removed projects otherwise leave
@@ -187,37 +194,37 @@ function removeProject(projectPath) {
   } catch (err) {
     console.error('Failed to clear terminal session for removed project:', err);
   }
-  ipcRenderer.send(IPC.REMOVE_PROJECT_FROM_WORKSPACE, projectPath);
+  ipcRenderer.send(IPC.REMOVE_PROJECT_FROM_REGISTRY, projectPath);
 }
 
 /**
  * Setup IPC listeners
  */
 function setupIPC() {
-  ipcRenderer.on(IPC.WORKSPACE_DATA, (event, projects) => {
+  ipcRenderer.on(IPC.PROJECT_REGISTRY_DATA, (event, projects) => {
     renderProjects(projects);
   });
 
-  ipcRenderer.on(IPC.WORKSPACE_UPDATED, (event, projects) => {
+  ipcRenderer.on(IPC.PROJECT_REGISTRY_UPDATED, (event, projects) => {
     renderProjects(projects);
   });
 
-  // Workspace-nav counts: same pushes the panels/lane rail consume. Both are
+  // Project-nav counts: same pushes the panels/lane rail consume. Both are
   // scoped to the current project by the senders, which is exactly the nav's
   // scope (it only exists under the selected project).
   ipcRenderer.on(IPC.SPEC_DATA, (event, { specs }) => {
     // Active specs only — same semantics as the lane rail's count
     navSpecsCount = (specs || []).filter(s => s.phase !== 'done').length;
-    refreshWorkspaceNav();
+    refreshProjectNav();
   });
   ipcRenderer.on(IPC.TASKS_DATA, (event, { tasks }) => {
     const list = (tasks && Array.isArray(tasks.tasks)) ? tasks.tasks : [];
     navTasksCount = list.filter(t => t.status !== 'completed').length;
-    refreshWorkspaceNav();
+    refreshProjectNav();
   });
 
   // Running-agent indicator on the Terminals row tracks live lane status
-  require('./laneStatus').onChange(() => refreshWorkspaceNav());
+  require('./laneStatus').onChange(() => refreshProjectNav());
 }
 
 /**
@@ -267,22 +274,22 @@ function focus() {
 function blur() {}
 
 /**
- * Snapshot of the workspace projects (switcher menu, file panels). Copy so
+ * Snapshot of the registered projects (switcher menu, file panels). Copy so
  * callers can't mutate internal state.
  */
 function getProjects() {
   return [...projects];
 }
 
-// ─── Workspace nav (terminals-view spec) ─────────────────────
+// ─── Project nav (terminals-view spec) ─────────────────────
 // A prototype-style nav block under the selected project. One row per
-// workspace destination; counts ride existing data pushes.
+// project destination; counts ride existing data pushes.
 
-let workspaceNavEl = null;
+let projectNavEl = null;
 let navSpecsCount = 0;
 let navTasksCount = 0;
 
-// Workspace destinations, grouped (sidebar-nav-groups spec): Work is where
+// Project destinations, grouped (sidebar-nav-groups spec): Work is where
 // you act, Context is what the project knows about itself. The read-only
 // surfaces — Decisions, Structure, Prompts, Activity — and Feedback left for
 // the dock (status bar, View menu, palette), and GitHub for the icon rail,
@@ -293,7 +300,7 @@ let navTasksCount = 0;
 // of the rail, above Feedback.
 // `open` receives the multiTerminalUI instance. `surfaces` are the
 // getActiveSurface() values that light the row.
-const WORKSPACE_NAV_GROUPS = [
+const PROJECT_NAV_GROUPS = [
   {
     key: 'work',
     label: 'Work',
@@ -321,7 +328,7 @@ const WORKSPACE_NAV_GROUPS = [
 // is furniture). It opens a modal, which is never the active surface, so
 // it never lights. It runs the same registered command the View menu and
 // the palette run.
-const WORKSPACE_NAV_FOOT = {
+const PROJECT_NAV_FOOT = {
   view: 'project-settings',
   icon: '⚙',
   label: 'Project Settings',
@@ -330,7 +337,7 @@ const WORKSPACE_NAV_FOOT = {
 };
 
 /** Every row, flat — for the passes that don't care about grouping. */
-const WORKSPACE_NAV_ITEMS = [...WORKSPACE_NAV_GROUPS.flatMap(g => g.items), WORKSPACE_NAV_FOOT];
+const PROJECT_NAV_ITEMS = [...PROJECT_NAV_GROUPS.flatMap(g => g.items), PROJECT_NAV_FOOT];
 
 const NAV_GROUPS_KEY = 'frame-nav-groups';
 
@@ -351,38 +358,38 @@ function saveCollapsedGroups(state) {
   }
 }
 
-function buildWorkspaceNav() {
+function buildProjectNav() {
   const collapsed = loadCollapsedGroups();
   const nav = document.createElement('div');
-  nav.className = 'project-workspace-nav';
-  nav.innerHTML = WORKSPACE_NAV_GROUPS.map(group => `
-    <div class="workspace-nav-group${collapsed[group.key] ? ' collapsed' : ''}" data-group="${group.key}">
-      <div class="workspace-nav-group-header" tabindex="0" role="button" aria-expanded="${!collapsed[group.key]}">
-        <span class="workspace-nav-group-chevron" aria-hidden="true"></span>
-        <span class="workspace-nav-group-label">${group.label}</span>
+  nav.className = 'project-nav';
+  nav.innerHTML = PROJECT_NAV_GROUPS.map(group => `
+    <div class="project-nav-group${collapsed[group.key] ? ' collapsed' : ''}" data-group="${group.key}">
+      <div class="project-nav-group-header" tabindex="0" role="button" aria-expanded="${!collapsed[group.key]}">
+        <span class="project-nav-group-chevron" aria-hidden="true"></span>
+        <span class="project-nav-group-label">${group.label}</span>
       </div>
-      <div class="workspace-nav-group-items">
-        <div class="workspace-nav-group-rows">
+      <div class="project-nav-group-items">
+        <div class="project-nav-group-rows">
         ${group.items.map(item => `
-          <div class="workspace-nav-item" data-view="${item.view}" tabindex="0" role="button">
-            <span class="workspace-nav-label">${item.label}</span>
-            ${item.beta ? '<span class="workspace-nav-beta" title="Orchestration is in beta">Beta</span>' : ''}
-            <span class="workspace-nav-right">
-              ${item.view === 'terminals' ? '<span class="workspace-nav-agents" style="display:none"></span>' : ''}
-              ${item.view === 'orchestrator' ? '<span class="workspace-nav-running" style="display:none" title="A conductor session is running">running</span>' : ''}
-              ${item.view === 'terminals' || item.count ? `<span class="workspace-nav-count" data-count="${item.view}"></span>` : ''}
+          <div class="project-nav-item" data-view="${item.view}" tabindex="0" role="button">
+            <span class="project-nav-label">${item.label}</span>
+            ${item.beta ? '<span class="project-nav-beta" title="Orchestration is in beta">Beta</span>' : ''}
+            <span class="project-nav-right">
+              ${item.view === 'terminals' ? '<span class="project-nav-agents" style="display:none"></span>' : ''}
+              ${item.view === 'orchestrator' ? '<span class="project-nav-running" style="display:none" title="A conductor session is running">running</span>' : ''}
+              ${item.view === 'terminals' || item.count ? `<span class="project-nav-count" data-count="${item.view}"></span>` : ''}
             </span>
           </div>`).join('')}
         </div>
       </div>
     </div>`).join('') + `
-    <div class="workspace-nav-foot">
-      <div id="project-settings-btn" class="workspace-nav-item" data-view="${WORKSPACE_NAV_FOOT.view}" tabindex="0" role="button">
-        <span class="workspace-nav-label">${WORKSPACE_NAV_FOOT.label}</span>
+    <div class="project-nav-foot">
+      <div id="project-settings-btn" class="project-nav-item" data-view="${PROJECT_NAV_FOOT.view}" tabindex="0" role="button">
+        <span class="project-nav-label">${PROJECT_NAV_FOOT.label}</span>
       </div>
     </div>`;
 
-  WORKSPACE_NAV_ITEMS.forEach((item) => {
+  PROJECT_NAV_ITEMS.forEach((item) => {
     nav.querySelector(`[data-view="${item.view}"]`).addEventListener('click', () => {
       try {
         item.open(require('./terminal').getMultiTerminalUI());
@@ -392,9 +399,9 @@ function buildWorkspaceNav() {
     });
   });
 
-  nav.querySelectorAll('.workspace-nav-group-header').forEach((header) => {
+  nav.querySelectorAll('.project-nav-group-header').forEach((header) => {
     const toggle = () => {
-      const group = header.closest('.workspace-nav-group');
+      const group = header.closest('.project-nav-group');
       const key = group.dataset.group;
       const nowCollapsed = !group.classList.contains('collapsed');
       group.classList.toggle('collapsed', nowCollapsed);
@@ -402,7 +409,7 @@ function buildWorkspaceNav() {
       const state = loadCollapsedGroups();
       state[key] = nowCollapsed;
       saveCollapsedGroups(state);
-      refreshWorkspaceNav();
+      refreshProjectNav();
     };
     header.addEventListener('click', toggle);
     header.addEventListener('keydown', (e) => {
@@ -421,32 +428,32 @@ function buildWorkspaceNav() {
  * is no project nav (or no such row).
  */
 function revealNavItem(view) {
-  if (!workspaceNavEl || !workspaceNavEl.isConnected) return null;
-  const row = workspaceNavEl.querySelector(`.workspace-nav-item[data-view="${view}"]`);
+  if (!projectNavEl || !projectNavEl.isConnected) return null;
+  const row = projectNavEl.querySelector(`.project-nav-item[data-view="${view}"]`);
   if (!row) return null;
-  const group = row.closest('.workspace-nav-group');
+  const group = row.closest('.project-nav-group');
   if (group && group.classList.contains('collapsed')) {
     group.classList.remove('collapsed');
-    const header = group.querySelector('.workspace-nav-group-header');
+    const header = group.querySelector('.project-nav-group-header');
     if (header) header.setAttribute('aria-expanded', 'true');
   }
   return row;
 }
 
-function placeWorkspaceNav() {
-  const panel = document.getElementById('workspace-panel');
+function placeProjectNav() {
+  const panel = document.getElementById('project-panel');
   if (!panel) return;
   if (!activeProjectPath) {
-    if (workspaceNavEl) workspaceNavEl.remove();
+    if (projectNavEl) projectNavEl.remove();
     return;
   }
-  if (!workspaceNavEl) workspaceNavEl = buildWorkspaceNav();
-  if (workspaceNavEl.parentNode !== panel) panel.appendChild(workspaceNavEl);
-  refreshWorkspaceNav();
+  if (!projectNavEl) projectNavEl = buildProjectNav();
+  if (projectNavEl.parentNode !== panel) panel.appendChild(projectNavEl);
+  refreshProjectNav();
 }
 
-function refreshWorkspaceNav() {
-  if (!workspaceNavEl || !workspaceNavEl.isConnected) return;
+function refreshProjectNav() {
+  if (!projectNavEl || !projectNavEl.isConnected) return;
   let count = 0;
   let agents = 0;
   let waiting = { approval: 0, input: 0 };
@@ -456,7 +463,9 @@ function refreshWorkspaceNav() {
     const manager = ui && ui.getManager && ui.getManager();
     if (manager) {
       const laneStatus = require('./laneStatus');
-      const terminals = manager.getTerminalsByProject(activeProjectPath);
+      // The selected workspace's terminals — what the Terminals view shows
+      // (workspaces spec); other workspaces have their own row dots.
+      const terminals = manager.getTerminalStates();
       count = terminals.length;
       agents = terminals.filter(t => laneStatus.getStatus(t.id).agentName).length;
       // Same tally the project badges and the status bar slot use (D8) —
@@ -468,21 +477,21 @@ function refreshWorkspaceNav() {
     }
   } catch (_) { /* terminal UI not initialized yet */ }
 
-  const termItem = workspaceNavEl.querySelector('[data-view="terminals"]');
-  termItem.querySelector('.workspace-nav-count').textContent = String(count);
-  WORKSPACE_NAV_ITEMS.forEach((item) => {
-    workspaceNavEl.querySelector(`[data-view="${item.view}"]`)
+  const termItem = projectNavEl.querySelector('[data-view="terminals"]');
+  termItem.querySelector('.project-nav-count').textContent = String(count);
+  PROJECT_NAV_ITEMS.forEach((item) => {
+    projectNavEl.querySelector(`[data-view="${item.view}"]`)
       .classList.toggle('on', item.surfaces.includes(surface));
   });
 
   // A collapsed group hides its rows, and with them the active-surface
   // highlight. The header carries it instead, so "where am I" survives
   // collapsing (sidebar-nav-groups spec).
-  WORKSPACE_NAV_GROUPS.forEach((group) => {
-    const el = workspaceNavEl.querySelector(`[data-group="${group.key}"]`);
+  PROJECT_NAV_GROUPS.forEach((group) => {
+    const el = projectNavEl.querySelector(`[data-group="${group.key}"]`);
     if (!el) return;
     const holdsActive = group.items.some(item => item.surfaces.includes(surface));
-    el.querySelector('.workspace-nav-group-header')
+    el.querySelector('.project-nav-group-header')
       .classList.toggle('on', holdsActive && el.classList.contains('collapsed'));
   });
   // The ◆ chip counts this project's running agents and, from here on, says
@@ -493,9 +502,9 @@ function refreshWorkspaceNav() {
   const laneStatus = require('./laneStatus');
   const attention = waiting.approval ? 'agent-approval' : waiting.input ? 'agent-input' : null;
   const mark = attention ? laneStatus.attentionMark(attention) : '';
-  const agentsEl = termItem.querySelector('.workspace-nav-agents');
+  const agentsEl = termItem.querySelector('.project-nav-agents');
   agentsEl.style.display = agents > 0 ? '' : 'none';
-  agentsEl.className = `workspace-nav-agents${attention ? ` ${attention}` : ''}`;
+  agentsEl.className = `project-nav-agents${attention ? ` ${attention}` : ''}`;
   agentsEl.textContent = `◆ ${agents}${mark ? ` ${mark}` : ''}`;
   agentsEl.title = [
     `${agents} agent${agents === 1 ? '' : 's'} running`,
@@ -503,7 +512,7 @@ function refreshWorkspaceNav() {
     waiting.input ? `${waiting.input} awaiting input` : null
   ].filter(Boolean).join(' · ');
 
-  const orchEl = workspaceNavEl.querySelector('.workspace-nav-running');
+  const orchEl = projectNavEl.querySelector('.project-nav-running');
   if (orchEl) {
     let orchActive = false;
     try {
@@ -513,20 +522,20 @@ function refreshWorkspaceNav() {
     orchEl.style.display = orchActive ? '' : 'none';
   }
 
-  workspaceNavEl.querySelector('[data-count="specs"]').textContent = String(navSpecsCount);
-  workspaceNavEl.querySelector('[data-count="tasks"]').textContent = String(navTasksCount);
+  projectNavEl.querySelector('[data-count="specs"]').textContent = String(navSpecsCount);
+  projectNavEl.querySelector('[data-count="tasks"]').textContent = String(navTasksCount);
 }
 
 /**
  * Called by multiTerminalUI on every manager state change so the Terminals
  * count and active highlight track reality without polling.
  */
-function updateWorkspaceNav() {
-  if (!workspaceNavEl || !workspaceNavEl.isConnected) {
-    placeWorkspaceNav();
+function updateProjectNav() {
+  if (!projectNavEl || !projectNavEl.isConnected) {
+    placeProjectNav();
     return;
   }
-  refreshWorkspaceNav();
+  refreshProjectNav();
 }
 
 module.exports = {
@@ -549,6 +558,6 @@ module.exports = {
   focus,
   blur,
   applyAgentStatuses,
-  updateWorkspaceNav,
+  updateProjectNav,
   revealNavItem
 };

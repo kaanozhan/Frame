@@ -130,7 +130,7 @@ async function loadCurrentBranch() {
   const projectPath = state.getProjectPath();
   if (!projectPath) return;
   try {
-    const result = await ipcRenderer.invoke(IPC.LOAD_GIT_BRANCHES, projectPath);
+    const result = await ipcRenderer.invoke(IPC.LOAD_GIT_BRANCHES, projectPath, { workspaceId: 'main' });
     if (!result || result.error || !result.currentBranch) return;
     currentBranchEl.textContent = result.currentBranch;
   } catch (err) {

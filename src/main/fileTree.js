@@ -162,24 +162,46 @@ async function guarded(fn) {
  * Setup IPC handlers
  */
 function setupIPC(ipcMain) {
-  ipcMain.on(IPC.LOAD_FILE_TREE, async (event, projectPath) => {
-    const files = await getFileTree(projectPath);
+  const serverPanels = require('./serverPanels');
+  // Read-only on server workspaces (server-workspace-panels): no rename,
+  // paste or trash under a server root — the server has no trash.
+  // Routed by the caller's workspace id when it sends one (server-hardening T6).
+  const refuseRemote = (ctx, ...paths) => paths.some((p) => p && serverPanels.resolve(p, ctx))
+    ? { ok: false, error: serverPanels.READ_ONLY_ACTIONS }
+    : null;
+
+  ipcMain.on(IPC.LOAD_FILE_TREE, async (event, projectPath, ctx) => {
+    const remote = serverPanels.resolve(projectPath, serverPanels.ctxOf(ctx));
+    // The reply names its root, so a late answer for another folder is
+    // dropped, and carries a server error instead of an empty tree
+    // (server-hardening T7).
+    let files = [];
+    let error = null;
+    if (remote) {
+      try {
+        files = (await serverPanels.call(remote, 'files.tree', { root: projectPath })) || [];
+      } catch (err) {
+        error = err.message;
+      }
+    } else {
+      files = await getFileTree(projectPath);
+    }
     if (!event.sender.isDestroyed()) {
-      event.sender.send(IPC.FILE_TREE_DATA, files);
+      event.sender.send(IPC.FILE_TREE_DATA, { root: projectPath, files, error });
     }
   });
 
-  ipcMain.handle(IPC.FILE_TREE_RENAME, (event, oldPath, newName) =>
-    guarded(() => renameEntry(oldPath, newName)));
+  ipcMain.handle(IPC.FILE_TREE_RENAME, (event, oldPath, newName, ctx) =>
+    refuseRemote(serverPanels.ctxOf(ctx), oldPath) || guarded(() => renameEntry(oldPath, newName)));
 
-  ipcMain.handle(IPC.FILE_TREE_TRASH, (event, targetPath) =>
-    guarded(async () => {
+  ipcMain.handle(IPC.FILE_TREE_TRASH, (event, targetPath, ctx) =>
+    refuseRemote(serverPanels.ctxOf(ctx), targetPath) || guarded(async () => {
       await shell.trashItem(targetPath);
       return { ok: true };
     }));
 
   ipcMain.handle(IPC.FILE_TREE_PASTE, (event, payload) =>
-    guarded(() => pasteEntry(payload || {})));
+    refuseRemote(serverPanels.ctxOf(payload), payload && payload.source, payload && payload.destDir) || guarded(() => pasteEntry(payload || {})));
 }
 
 module.exports = {

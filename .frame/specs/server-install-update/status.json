@@ -1,0 +1,21 @@
+{
+  "slug": "server-install-update",
+  "title": "Install and update Frame Server from the desktop",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-server-install-update-T01",
+    "task-spec-server-install-update-T02",
+    "task-spec-server-install-update-T03",
+    "task-spec-server-install-update-T04",
+    "task-spec-server-install-update-T05",
+    "task-spec-server-install-update-T06",
+    "task-spec-server-install-update-T07",
+    "task-spec-server-install-update-T08",
+    "task-spec-server-install-update-T09"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-11-10T15:14:00.110Z",
+  "updated_at": "2026-11-10T23:53:10.450Z",
+  "last_phase_at": "2026-11-10T23:53:10.450Z",
+  "implement_mode": "guided"
+}

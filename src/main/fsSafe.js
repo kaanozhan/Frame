@@ -1,7 +1,7 @@
 /**
  * fsSafe — durable state-file primitives
  *
- * Every manager that persists JSON state (tasks, workspace, user settings,
+ * Every manager that persists JSON state (tasks, project registry, user settings,
  * tool config, spec status, orchestration bus) writes through here so that a
  * crash or full disk mid-write can never leave only a truncated file behind:
  *

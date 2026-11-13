@@ -181,15 +181,16 @@ function getAvailableShells() {
  * @param {string|null} shellPath - Shell to use (defaults to system default)
  * @returns {string} Terminal ID
  */
-function createTerminal(workingDir = null, projectPath = null, shellPath = null, extraEnv = null) {
-  // Per-project cap. The renderer keeps terminals from inactive projects
-  // alive in its Map for fast switch-back, so a global count would surface
-  // here as a confusing "you have 3 visible but can't open a 4th" because
-  // 6 hidden ones from a previous project are eating the global slot.
-  const projectCount = Array.from(ptyInstances.values())
-    .filter(p => p.projectPath === projectPath).length;
-  if (projectCount >= MAX_TERMINALS) {
-    throw new Error(`Maximum terminal limit (${MAX_TERMINALS}) reached for this project`);
+function createTerminal(workingDir = null, projectPath = null, shellPath = null, extraEnv = null, workspaceId = 'main') {
+  // Per-workspace cap (workspaces spec; main counts as one). The renderer
+  // keeps terminals from inactive projects and workspaces alive in its Map
+  // for fast switch-back, so a wider count would surface here as a confusing
+  // "you have 3 visible but can't open a 4th".
+  const ws = workspaceId || 'main';
+  const scopeCount = Array.from(ptyInstances.values())
+    .filter(p => p.projectPath === projectPath && (p.workspaceId || 'main') === ws).length;
+  if (scopeCount >= MAX_TERMINALS) {
+    throw new Error(`Maximum terminal limit (${MAX_TERMINALS}) reached for this workspace`);
   }
 
   const terminalId = `term-${++terminalCounter}`;
@@ -256,7 +257,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     }
   });
 
-  sessionRestore.registerTerminal(terminalId, { projectPath, shellPid: ptyProcess.pid });
+  sessionRestore.registerTerminal(terminalId, { projectPath, workspaceId: ws, shellPid: ptyProcess.pid });
 
   // Handle PTY exit
   ptyProcess.onExit(({ exitCode, signal }) => {
@@ -311,6 +312,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     pty: ptyProcess,
     cwd,
     projectPath,
+    workspaceId: ws,
     processPoll,
     lastOutputAt: Date.now(),
     outputChunks: [],
@@ -471,7 +473,148 @@ function hasTerminal(terminalId) {
 /**
  * Setup IPC handlers for multi-terminal
  */
+// ─── Server terminals (server-workspaces) ─────────────────────
+//
+// A terminal of a server workspace runs on Frame Server: its create goes
+// there, its `srv-` id routes input/resize/destroy there, and the server's
+// output/process/destroyed events come back as the same IPC the renderer
+// already handles. Local teardown (reload reconcile, quit) only ever sees
+// local PTYs, so server terminals outlive this window.
+
+const { isServerTerminalId, adoptPlan } = require('../shared/serverRouting');
+const serverTerminals = new Map(); // srv id → { projectPath (local), workspaceId }
+// Server terminals closed while the link was down: sent on reconnect, and
+// never adopted back while the server still lists them (server-hardening T4).
+const pendingDestroys = new Set();
+
+function serverLocationOf(workspaceId) {
+  if (!workspaceId || workspaceId === 'main') return null;
+  try {
+    return require('./workspaceManager').serverLocation(workspaceId);
+  } catch (_) {
+    return null;
+  }
+}
+
+function server() {
+  return require('./serverConnection');
+}
+
+async function createServerTerminal(loc, { cwd, projectPath, workspaceId, shell, cols, rows }) {
+  const res = await server().call('terminals.create', {
+    projectPath: loc.serverProjectPath,
+    workspaceId,
+    cwd: cwd || loc.path,
+    shell: shell || null,
+    cols: cols || 80,
+    rows: rows || 24
+  });
+  serverTerminals.set(res.terminalId, { projectPath, workspaceId });
+  return res.terminalId;
+}
+
+/** Local project/workspace of a server terminal this window knows, or null. */
+function serverTerminalInfo(terminalId) {
+  return serverTerminals.get(terminalId) || null;
+}
+
+/** Remember a server terminal found on reconnect (adopted by the renderer). */
+function noteServerTerminal(terminalId, info) {
+  serverTerminals.set(terminalId, info);
+}
+
+let serverEventsWired = false;
+function wireServerEvents() {
+  if (serverEventsWired) return;
+  serverEventsWired = true;
+  const sc = server();
+  const toWindow = (channel, payload) => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
+  };
+  sc.on('terminal.output', (p) => { if (p && p.terminalId) toWindow(IPC.TERMINAL_OUTPUT_ID, { terminalId: p.terminalId, data: p.data }); });
+  sc.on('terminal.process', (p) => {
+    if (p && p.terminalId) toWindow(IPC.TERMINAL_PROCESS_DATA, { terminalId: p.terminalId, processName: p.processName, shellName: p.shellName, commandLine: p.commandLine });
+  });
+  let lastHost = null;
+  sc.on('connected', (s) => {
+    const host = (s && s.host) || null;
+    // Another host: the previous host's terminal ids mean nothing here (T2).
+    if (lastHost && host && host !== lastHost) {
+      serverTerminals.clear();
+      pendingDestroys.clear();
+    }
+    lastHost = host || lastHost;
+    for (const terminalId of pendingDestroys) sc.send('terminals.destroy', { terminalId });
+  });
+  sc.on('terminal.destroyed', (p) => {
+    if (!p || !p.terminalId) return;
+    pendingDestroys.delete(p.terminalId);
+    serverTerminals.delete(p.terminalId);
+    toWindow(IPC.TERMINAL_DESTROYED, { terminalId: p.terminalId, exitCode: p.exitCode });
+  });
+}
+
+/**
+ * The connected server's live terminals of a local project, with a screen
+ * snapshot each — the renderer adopts them on connect / reconnect / reload.
+ * Their last process info is re-sent so lane detection sees the agents.
+ */
+async function adoptServerTerminals(projectPath) {
+  // null = cannot tell (not connected, rows offline): the renderer then keeps
+  // its lanes; [] = the server has none for this project (T3).
+  if (!server().isConnected()) return null;
+  let serverIds = new Set();
+  if (projectPath) {
+    const wm = require('./workspaceManager');
+    const listed = await wm.list(projectPath);
+    const rows = ((listed && listed.workspaces) || []).filter((w) => w.location === 'server');
+    if (rows.some((w) => w.offline)) return null;
+    serverIds = new Set(rows.map((w) => w.id));
+  }
+  // Workspace terminals by their server workspace; home terminals
+  // (server-onboarding) by the desktop project they were opened for —
+  // null for one opened with no project selected.
+  const onServer = (await server().call('terminals.list', {})) || [];
+  const mine = (t) => (t.home ? (t.homeFor || null) === (projectPath || null) : serverIds.has(t.workspaceId));
+  const live = onServer
+    .filter((t) => mine(t) && !pendingDestroys.has(t.terminalId))
+    .map((t) => (t.home ? { ...t, workspaceId: t.homeWorkspace || 'main' } : t));
+  // Forget this project's terminals the server no longer has (a restart, a
+  // close elsewhere): their ids must not route anywhere (T3).
+  const known = [...serverTerminals].filter(([, info]) => info.projectPath === projectPath).map(([terminalId, info]) => ({ terminalId, workspaceId: info.workspaceId }));
+  for (const id of adoptPlan(known, live).dispose) serverTerminals.delete(id);
+  for (const id of pendingDestroys) if (!onServer.some((t) => t.terminalId === id)) pendingDestroys.delete(id);
+  const out = [];
+  const processes = [];
+  for (const t of live) {
+    try {
+      const snap = await server().call('terminals.attach', { terminalId: t.terminalId });
+      noteServerTerminal(t.terminalId, { projectPath, workspaceId: t.workspaceId, ...(t.home ? { home: true } : {}) });
+      out.push({ terminalId: t.terminalId, projectPath, workspaceId: t.workspaceId, ...(t.home ? { home: true } : {}), screen: snap.screen, cols: snap.cols, rows: snap.rows });
+      if (snap.process) processes.push(snap.process);
+    } catch (err) {
+      logger.warn('ptyManager', `could not attach ${t.terminalId}: ${err.message}`);
+    }
+  }
+  setTimeout(() => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    for (const p of processes) mainWindow.webContents.send(IPC.TERMINAL_PROCESS_DATA, p);
+  }, 100);
+  return out;
+}
+
 function setupIPC(ipcMain) {
+  ipcMain.removeHandler(IPC.TERMINAL_ADOPT);
+  ipcMain.handle(IPC.TERMINAL_ADOPT, async (event, { projectPath } = {}) => {
+    try {
+      return await adoptServerTerminals(projectPath);
+    } catch (err) {
+      logger.warn('ptyManager', `adopting server terminals failed: ${err.message}`);
+      return null; // unknown, not "none"
+    }
+  });
+  try { wireServerEvents(); } catch (err) { logger.warn('ptyManager', `server terminal events not wired: ${err.message}`); }
+
   // Get available shells
   ipcMain.on(IPC.GET_AVAILABLE_SHELLS, (event) => {
     try {
@@ -484,12 +627,18 @@ function setupIPC(ipcMain) {
 
   // Create new terminal
   ipcMain.on(IPC.TERMINAL_CREATE, (event, data) => {
+    // Every reply names the request it answers: a server create answers
+    // after a round trip, so replies of overlapping creates can cross
+    // (server-hardening T1).
+    const requestId = data && typeof data === 'object' ? data.requestId || null : null;
+    const reply = (payload) => event.reply(IPC.TERMINAL_CREATED, { ...payload, requestId });
     try {
       // Support both old format (string) and new format (object)
       let workingDir = null;
       let projectPath = null;
       let shellPath = null;
       let extraEnv = null;
+      let workspaceId = 'main';
 
       if (typeof data === 'string') {
         // Legacy format: just working directory
@@ -500,29 +649,70 @@ function setupIPC(ipcMain) {
         projectPath = data.projectPath;
         shellPath = data.shell;
         extraEnv = data.extraEnv || null; // orchestration worker lanes pass FRAME_ORCH_* here
+        workspaceId = data.workspaceId || 'main';
       }
 
-      const terminalId = createTerminal(workingDir, projectPath, shellPath, extraEnv);
-      event.reply(IPC.TERMINAL_CREATED, { terminalId, success: true });
+      // A home terminal on the server (server-onboarding): the user's home
+      // folder there, shown in this project and view. Never a local shell.
+      if (data && data.location === 'server-home') {
+        if (!server().isConnected()) {
+          reply({ success: false, error: 'Connect to a server first (File ▸ Connect to Server…).' });
+          return;
+        }
+        server().call('terminals.create', { home: true, homeFor: projectPath || null, homeWorkspace: workspaceId || 'main', shell: shellPath, cols: (data && data.cols) || 80, rows: (data && data.rows) || 24 })
+          .then((res) => {
+            serverTerminals.set(res.terminalId, { projectPath, workspaceId, home: true });
+            reply({ terminalId: res.terminalId, success: true });
+          })
+          .catch((err) => reply({ success: false, error: `Server terminal: ${err.message}` }));
+        return;
+      }
+
+      const loc = serverLocationOf(workspaceId);
+      if (loc) {
+        createServerTerminal(loc, { cwd: workingDir, projectPath, workspaceId, shell: shellPath, cols: data && data.cols, rows: data && data.rows })
+          .then((terminalId) => reply({ terminalId, success: true }))
+          .catch((err) => reply({ success: false, error: `Server terminal: ${err.message}` }));
+        return;
+      }
+      const terminalId = createTerminal(workingDir, projectPath, shellPath, extraEnv, workspaceId);
+      reply({ terminalId, success: true });
     } catch (error) {
       analytics.track('error_occurred', { category: 'terminal_create_failed' });
-      event.reply(IPC.TERMINAL_CREATED, { success: false, error: error.message });
+      reply({ success: false, error: error.message });
     }
   });
 
   // Destroy terminal
   ipcMain.on(IPC.TERMINAL_DESTROY, (event, terminalId) => {
+    if (isServerTerminalId(terminalId)) {
+      serverTerminals.delete(terminalId);
+      // Offline: keep the close and send it on reconnect, instead of the
+      // terminal running on and coming back (T4).
+      if (server().isConnected()) server().send('terminals.destroy', { terminalId });
+      else pendingDestroys.add(terminalId);
+      return;
+    }
     destroyTerminal(terminalId);
   });
 
   // Input to specific terminal
   ipcMain.on(IPC.TERMINAL_INPUT_ID, (event, { terminalId, data }) => {
+    if (isServerTerminalId(terminalId)) {
+      // Dropped while the link is down; the reconnecting banner says typing is paused.
+      if (server().isConnected()) server().send('terminals.input', { terminalId, data });
+      return;
+    }
     writeToTerminal(terminalId, data);
     promptLogger.logInput(data);
   });
 
   // Resize specific terminal
   ipcMain.on(IPC.TERMINAL_RESIZE_ID, (event, { terminalId, cols, rows }) => {
+    if (isServerTerminalId(terminalId)) {
+      if (server().isConnected()) server().send('terminals.resize', { terminalId, cols, rows });
+      return;
+    }
     resizeTerminal(terminalId, cols, rows);
   });
 }
@@ -543,5 +733,7 @@ module.exports = {
   wasDestroyedOnRequest,
   getLastOutputAt,
   getAvailableShells,
+  serverTerminalInfo,
+  noteServerTerminal,
   setupIPC
 };

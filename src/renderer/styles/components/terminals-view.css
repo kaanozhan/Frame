@@ -437,9 +437,9 @@ span.tv-pane-assign {
   }
 }
 
-/* ─── Sidebar workspace nav (under the selected project) ─── */
+/* ─── Sidebar project nav (under the selected project) ─── */
 
-.project-workspace-nav {
+.project-nav {
   margin: 4px 0 8px;
   font-family: var(--font-sans);
   font-size: 13px;
@@ -451,11 +451,11 @@ span.tv-pane-assign {
    front — the only mark in the nav, since only groups fold. Folding
    slides the rows open/closed (grid 0fr ↔ 1fr) instead of snapping,
    and the rows hang off a guide line instead of carrying icons. */
-.workspace-nav-group + .workspace-nav-group {
+.project-nav-group + .project-nav-group {
   margin-top: 4px;
 }
 
-.workspace-nav-group-header {
+.project-nav-group-header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -467,11 +467,11 @@ span.tv-pane-assign {
   transition: color var(--transition-fast), background var(--transition-fast);
 }
 
-.workspace-nav-group-header:hover {
+.project-nav-group-header:hover {
   background: var(--bg-hover);
 }
 
-.workspace-nav-group-header:focus-visible {
+.project-nav-group-header:focus-visible {
   outline: 1px solid var(--accent-primary);
   outline-offset: -1px;
 }
@@ -479,12 +479,12 @@ span.tv-pane-assign {
 /* When the group is folded and the active surface lives inside it, the
    header carries the highlight — otherwise "where am I" disappears with
    the rows. */
-.workspace-nav-group-header.on {
+.project-nav-group-header.on {
   color: var(--accent-primary);
 }
 
 /* A small drawn chevron: points down when open, right when folded. */
-.workspace-nav-group-chevron {
+.project-nav-group-chevron {
   width: 6px;
   height: 6px;
   flex: none;
@@ -494,25 +494,25 @@ span.tv-pane-assign {
   transition: transform 200ms ease;
 }
 
-.workspace-nav-group.collapsed .workspace-nav-group-chevron {
+.project-nav-group.collapsed .project-nav-group-chevron {
   transform: rotate(-45deg);
 }
 
-.workspace-nav-group-items {
+.project-nav-group-items {
   display: grid;
   grid-template-rows: 1fr;
   opacity: 1;
   transition: grid-template-rows 200ms ease, opacity 200ms ease, visibility 0s;
 }
 
-.workspace-nav-group.collapsed .workspace-nav-group-items {
+.project-nav-group.collapsed .project-nav-group-items {
   grid-template-rows: 0fr;
   opacity: 0;
   visibility: hidden;
   transition: grid-template-rows 200ms ease, opacity 200ms ease, visibility 0s 200ms;
 }
 
-.workspace-nav-group-rows {
+.project-nav-group-rows {
   min-height: 0;
   overflow: hidden;
   display: flex;
@@ -522,7 +522,7 @@ span.tv-pane-assign {
   border-left: 1px solid var(--divider);
 }
 
-.workspace-nav-item {
+.project-nav-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -535,57 +535,57 @@ span.tv-pane-assign {
 
 /* Rows inside a group sit over the guide line, so the active marker
    replaces that stretch of the line. */
-.workspace-nav-group-rows .workspace-nav-item {
+.project-nav-group-rows .project-nav-item {
   margin-left: -1px;
   border-left: 1px solid transparent;
 }
 
-.workspace-nav-item:hover {
+.project-nav-item:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
 
-.workspace-nav-item.on {
+.project-nav-item.on {
   background: var(--bg-tertiary);
   color: var(--text-primary);
   font-weight: 500;
 }
 
-.workspace-nav-group-rows .workspace-nav-item.on {
+.project-nav-group-rows .project-nav-item.on {
   border-left-color: var(--accent-primary);
 }
 
-.workspace-nav-foot .workspace-nav-item {
+.project-nav-foot .project-nav-item {
   padding-left: 8px;
   border-radius: var(--radius-sm);
 }
 
-.workspace-nav-foot .workspace-nav-item.on {
+.project-nav-foot .project-nav-item.on {
   box-shadow: inset 2px 0 0 var(--accent-primary);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .workspace-nav-group-chevron,
-  .workspace-nav-group-items,
-  .workspace-nav-group.collapsed .workspace-nav-group-items {
+  .project-nav-group-chevron,
+  .project-nav-group-items,
+  .project-nav-group.collapsed .project-nav-group-items {
     transition: none;
   }
 }
 
-.workspace-nav-right {
+.project-nav-right {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 7px;
 }
 
-.workspace-nav-count {
+.project-nav-count {
   color: var(--text-tertiary);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
-.workspace-nav-agents {
+.project-nav-agents {
   color: var(--accent-primary);
   font-size: 9px;
   font-weight: 700;
@@ -594,7 +594,7 @@ span.tv-pane-assign {
 /* Project Settings: the one ungrouped row, pinned at the foot below the
    groups and set apart by a hairline (dock-panel-readonly-views spec, D1).
    Its text lines up with the group headers. */
-.workspace-nav-foot {
+.project-nav-foot {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--divider);
@@ -602,7 +602,7 @@ span.tv-pane-assign {
 
 /* Orchestration's live session used to announce itself on Home's card; the
    row carries it now that the card is gone. */
-.workspace-nav-running {
+.project-nav-running {
   font-size: 9px;
   font-weight: 700;
   color: var(--success, #23d18b);
@@ -614,7 +614,7 @@ span.tv-pane-assign {
 
 /* Orchestration is still settling — the row says so with a small pill after
    its label; the native menu's "Open Orchestrator (Beta)" matches. */
-.workspace-nav-beta {
+.project-nav-beta {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -628,5 +628,5 @@ span.tv-pane-assign {
 
 /* Waiting on the user: the same two colours every other surface uses for
    these two statuses (§7). */
-.workspace-nav-agents.agent-approval { color: var(--error, #d45555); }
-.workspace-nav-agents.agent-input    { color: var(--warning, #e5a50a); }
+.project-nav-agents.agent-approval { color: var(--error, #d45555); }
+.project-nav-agents.agent-input    { color: var(--warning, #e5a50a); }

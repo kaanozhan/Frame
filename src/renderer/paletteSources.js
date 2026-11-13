@@ -3,7 +3,7 @@
  *
  * Registers the command palette's dynamic jump targets as registry
  * providers: projects, terminals (across projects), the current project's
- * specs, and the workspace views. Items are computed at search time from
+ * specs, and the project views. Items are computed at search time from
  * live state; the spec list is the one push-fed cache (SPEC_DATA), because
  * providers must stay synchronous.
  */

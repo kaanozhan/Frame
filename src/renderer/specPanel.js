@@ -189,7 +189,12 @@ function renderList() {
 
   contentEl.innerHTML = specs.map(renderSpecRow).join('');
   contentEl.querySelectorAll('.spec-row').forEach(row => {
-    row.addEventListener('click', () => openDetail(row.dataset.slug));
+    row.addEventListener('click', () => {
+      // A spec in a workspace opens with that workspace selected (spec-in-workspace).
+      const spec = specs.find((s) => s && s.slug === row.dataset.slug);
+      if (spec) require('./workspaceSection').selectSpecWorkspace(spec.workspace);
+      openDetail(row.dataset.slug);
+    });
   });
 }
 
@@ -209,6 +214,7 @@ function renderSpecRow(spec) {
         <span class="spec-phase-badge phase-${phaseClass}">${phaseLabel}</span>
         ${tasksLabel ? `<span class="spec-row-tasks">${tasksLabel}</span>` : ''}
         <span class="spec-row-time">${updated}</span>
+        ${require('./workspaceSection').workspaceChipHtml(spec.workspace)}
       </div>
     </div>
   `;

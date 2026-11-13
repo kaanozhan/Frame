@@ -24,6 +24,11 @@
 
 const { ipcRenderer } = require('electron');
 const { IPC } = require('../../shared/ipcChannels');
+// Branch calls name the selected workspace (server-hardening T6).
+const wsCtx = () => {
+  const ws = require('../state').getWorkspace();
+  return ws && ws.id ? { workspaceId: ws.id } : {};
+};
 const { GitBranch, Cloud, Plus, Settings2, Check } = require('lucide');
 const state = require('../state');
 const dock = require('../dock');
@@ -111,6 +116,7 @@ function init(opts) {
   });
   // Between projects the list would be the wrong repo's.
   state.onProjectChange(() => { if (opened) close(); });
+  state.onWorkspaceChange(() => { if (opened) close(); });
 }
 
 function isOpen() {
@@ -123,7 +129,8 @@ function toggle() {
 
 async function open() {
   if (!rootEl || opened) return;
-  const projectPath = state.getProjectPath();
+  // The selected workspace's checkout (main = the project itself).
+  const projectPath = state.getWorkspaceRoot();
   if (!projectPath) return;
 
   if (onOpenCb) onOpenCb();
@@ -144,15 +151,15 @@ async function open() {
   let worktrees;
   try {
     [branches, worktrees] = await Promise.all([
-      ipcRenderer.invoke(IPC.LOAD_GIT_BRANCHES, projectPath),
-      ipcRenderer.invoke(IPC.LOAD_GIT_WORKTREES, projectPath)
+      ipcRenderer.invoke(IPC.LOAD_GIT_BRANCHES, projectPath, wsCtx()),
+      ipcRenderer.invoke(IPC.LOAD_GIT_WORKTREES, projectPath, wsCtx())
     ]);
   } catch (err) {
     branches = { error: (err && err.message) || 'Could not read branches', branches: [] };
     worktrees = { worktrees: [] };
   }
   // A reopen or a project switch happened while we were reading.
-  if (seq !== openSeq || !opened || state.getProjectPath() !== projectPath) return;
+  if (seq !== openSeq || !opened || state.getWorkspaceRoot() !== projectPath) return;
 
   if (branches.error) {
     // No git, not a repo, or a read failure: say so where the list would be.
@@ -301,12 +308,13 @@ async function _activate(index) {
     let result;
     if (item.kind === 'create') {
       result = await ipcRenderer.invoke(IPC.CREATE_GIT_BRANCH, {
+        ...wsCtx(),
         projectPath, branchName: item.name, checkout: true
       });
     } else {
-      result = await ipcRenderer.invoke(IPC.SWITCH_GIT_BRANCH, { projectPath, branchName: item.ref });
+      result = await ipcRenderer.invoke(IPC.SWITCH_GIT_BRANCH, { projectPath, branchName: item.ref, ...wsCtx() });
     }
-    if (!opened || state.getProjectPath() !== projectPath) return;
+    if (!opened || state.getWorkspaceRoot() !== projectPath) return;
 
     if (result && result.error === 'uncommitted_changes') {
       const n = Array.isArray(result.changes) ? result.changes.length : 0;

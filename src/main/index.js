@@ -20,7 +20,7 @@ const menu = require('./menu');
 const dialogs = require('./dialogs');
 const fileTree = require('./fileTree');
 const promptLogger = require('./promptLogger');
-const workspace = require('./workspace');
+const projectRegistry = require('./projectRegistry');
 const frameProject = require('./frameProject');
 const frameStore = require('./frameStore');
 const gitSharing = require('./gitSharing');
@@ -32,6 +32,9 @@ const githubManager = require('./githubManager');
 const claudeUsageManager = require('./claudeUsageManager');
 const projectInsights = require('./projectInsights');
 const gitBranchesManager = require('./gitBranchesManager');
+const workspaceManager = require('./workspaceManager');
+const workspaceGitState = require('./workspaceGitState');
+const serverConnection = require('./serverConnection');
 const aiToolManager = require('./aiToolManager');
 const claudeSessionsManager = require('./claudeSessionsManager');
 const codexSessionsManager = require('./codexSessionsManager');
@@ -217,7 +220,7 @@ function setupAllIPC() {
   dialogs.setupIPC(ipcMain);
   fileTree.setupIPC(ipcMain);
   promptLogger.setupIPC(ipcMain);
-  workspace.setupIPC(ipcMain);
+  projectRegistry.setupIPC(ipcMain);
   frameProject.setupIPC(ipcMain);
   frameStore.setupIPC(ipcMain);
   fileEditor.setupIPC(ipcMain);
@@ -227,6 +230,9 @@ function setupAllIPC() {
   claudeUsageManager.setupIPC(ipcMain);
   projectInsights.setupIPC(ipcMain);
   gitBranchesManager.setupIPC(ipcMain);
+  workspaceManager.setupIPC(ipcMain);
+  workspaceGitState.setupIPC(ipcMain);
+  serverConnection.setupIPC(ipcMain);
   claudeSessionsManager.setupIPC(ipcMain);
   codexSessionsManager.setupIPC(ipcMain);
   updateChecker.setupIPC();
@@ -350,7 +356,7 @@ function init() {
  * Initialize modules that need window reference
  */
 function initModulesWithWindow(window) {
-  workspace.init(app, window);
+  projectRegistry.init(app, window);
   frameProject.init(window);
   fileEditor.init(window);
   tasksManager.init(window);
@@ -359,11 +365,14 @@ function initModulesWithWindow(window) {
   claudeUsageManager.init(window);
   projectInsights.init(window);
   gitBranchesManager.init(window);
+  workspaceManager.init(window);
+  workspaceGitState.init(window);
   claudeSessionsManager.init(window);
   gitStatusManager.init(window);
   specManager.init(window);
   orchestrationManager.init(window);
   activityLog.attachWindow(window);
+  serverConnection.init(window, app.getVersion());
 }
 
 // Initialize Aptabase and build the PostHog client. Aptabase MUST run before
@@ -422,6 +431,8 @@ app.on('before-quit', (e) => {
 // will-quit only fires after before-quit's live-agent confirmation passed.
 app.on('will-quit', () => {
   structureLifecycle.disposeAll();
+  // Close the SSH tunnel; server terminals keep running on the server.
+  serverConnection.disconnect({ forget: false, quiet: true });
 });
 
 app.on('window-all-closed', () => {

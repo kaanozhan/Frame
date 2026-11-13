@@ -1,0 +1,17 @@
+{
+  "slug": "workspace-review",
+  "title": "Workspace review",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-workspace-review-T01",
+    "task-spec-workspace-review-T02",
+    "task-spec-workspace-review-T03",
+    "task-spec-workspace-review-T04",
+    "task-spec-workspace-review-T05"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-11-10T01:20:11Z",
+  "updated_at": "2026-11-10T01:45:36.034Z",
+  "last_phase_at": "2026-11-10T01:45:36.034Z",
+  "implement_mode": "guided"
+}

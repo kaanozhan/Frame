@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Logging systemctl stand-in for installScript.test.js. Only `--user` calls.
+# State lives in $FAKE_SYSTEMD_DIR: enabled, pid. "restart" runs the unit's
+# ExecStart (~/.frame-server/current/bin/frame-server run) in the background.
+echo "systemctl $*" >> "${FAKE_STUB_LOG:-/dev/null}"
+[ "${FAKE_NO_SYSTEMD:-}" = "1" ] && exit 1
+D="${FAKE_SYSTEMD_DIR:?}"; mkdir -p "$D"
+[ "$1" = "--user" ] && shift
+alive() { [ -f "$D/pid" ] && kill -0 "$(cat "$D/pid")" 2>/dev/null; }
+stop() { if alive; then kill -TERM "$(cat "$D/pid")" 2>/dev/null; for _ in $(seq 1 50); do alive || break; sleep 0.1; done; fi; rm -f "$D/pid"; }
+case "$1" in
+  show-environment|daemon-reload) exit 0 ;;
+  enable) touch "$D/enabled"; exit 0 ;;
+  disable) rm -f "$D/enabled"; exit 0 ;;
+  is-enabled) [ -f "$D/enabled" ] ;;
+  is-active) alive ;;
+  stop) stop; exit 0 ;;
+  start|restart)
+    stop
+    nohup "$HOME/.frame-server/current/bin/frame-server" run >> "$D/unit.log" 2>&1 < /dev/null &
+    echo $! > "$D/pid"; exit 0 ;;
+  *) exit 0 ;;
+esac

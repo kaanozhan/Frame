@@ -20,8 +20,10 @@ let isPreviewMode = false;
 let currentEditingFile = null;
 let originalContent = '';
 let isModified = false;
+let readOnlyFile = false; // a server workspace's file (server-workspace-panels)
 let onFileTreeRefreshCallback = null;
 let openedFromSource = null; // Track where the file was opened from ('fileTree', 'terminal', etc.)
+let openedWorkspaceId = null; // the workspace the open file was opened in
 
 /**
  * Initialize editor module
@@ -46,9 +48,13 @@ function init(onRefreshFileTree) {
  * @param {string} filePath - Path to the file
  * @param {string} source - Where the file was opened from ('fileTree', 'terminal', etc.)
  */
-function openFile(filePath, source = 'terminal') {
+function openFile(filePath, source = 'terminal', ctx = null) {
   openedFromSource = source;
-  ipcRenderer.send(IPC.READ_FILE, filePath);
+  // The opener's workspace travels with the file: reads and saves route by
+  // it, not by the path (server-hardening T6).
+  const id = (ctx && ctx.workspaceId) || (require('./state').getWorkspace() || {}).id || null;
+  openedWorkspaceId = id;
+  ipcRenderer.send(IPC.READ_FILE, filePath, id ? { workspaceId: id } : null);
 }
 
 /**
@@ -87,11 +93,16 @@ function closeEditor() {
  */
 function saveFile() {
   if (!currentEditingFile) return;
+  if (readOnlyFile) {
+    updateStatus('Read-only: this file is on the server — editing comes in a later update', 'error');
+    return;
+  }
 
   const content = editorTextarea.value;
   ipcRenderer.send(IPC.WRITE_FILE, {
     filePath: currentEditingFile,
-    content: content
+    content: content,
+    ...(openedWorkspaceId ? { workspaceId: openedWorkspaceId } : {})
   });
 }
 
@@ -212,13 +223,21 @@ function setupIPC() {
       currentEditingFile = result.filePath;
       originalContent = result.content;
       isModified = false;
+      // A server workspace's file (server-workspace-panels): read-only for now.
+      readOnlyFile = !!result.readOnly;
+      if (editorTextarea) editorTextarea.readOnly = readOnlyFile;
+      const saveButton = document.getElementById('btn-editor-save');
+      if (saveButton) {
+        saveButton.disabled = readOnlyFile;
+        saveButton.title = readOnlyFile ? 'Editing files of a server workspace comes in a later update' : '';
+      }
 
       // Update UI
       if (editorFilename) editorFilename.textContent = result.fileName;
       if (editorExt) editorExt.textContent = result.extension.toUpperCase() || 'FILE';
       if (editorTextarea) editorTextarea.value = result.content;
       if (editorPath) editorPath.textContent = result.filePath;
-      updateStatus('Ready', '');
+      updateStatus(readOnlyFile ? 'Read-only · on the server' : 'Ready', readOnlyFile ? 'readonly' : '');
 
       // Markdown: show preview by default, show toggle button
       const isMd = result.extension.toLowerCase() === 'md';
@@ -243,6 +262,7 @@ function setupIPC() {
       if (editorTextarea && !isMd) editorTextarea.focus();
     } else {
       console.error('Error opening file:', result.error);
+      if (result.readOnly) require('./notify').error(`Couldn't open ${result.fileName || 'the file'}: ${result.error}`);
     }
   });
 

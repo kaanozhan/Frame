@@ -9,7 +9,7 @@
  *   attach(projectPath)            start (or reuse) the checkout's worker
  *   requestReconcile(path, reason) ask it for a full check (re-attaching a
  *                                  worker that exited)
- *   detach(projectPath)            stop it (workspace removal, Remove Frame)
+ *   detach(projectPath)            stop it (registry removal, Remove Frame)
  *   disposeAll()                   stop every worker (app shutdown)
  *
  * Disabled until `configure({ enabled: true })` — the app does that at

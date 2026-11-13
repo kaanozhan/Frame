@@ -20,6 +20,7 @@
  */
 
 const { execFile } = require('child_process');
+const { isGitMissing } = require('../shared/gitMissing');
 const fs = require('fs');
 const path = require('path');
 const fsSafe = require('./fsSafe');
@@ -47,20 +48,98 @@ function init(window) {
   window.on('focus', () => pushStatus());
 }
 
-function setupIPC(ipcMain) {
-  ipcMain.on(IPC.WATCH_GIT_STATUS, (event, projectPath) => {
+// ─── Server workspaces (server-workspace-panels) ──────────────
+//
+// One watch at a time, as before — but it may be on the server: watching a
+// server workspace's folder stops the local watcher and asks Frame Server to
+// watch it (its own gitStatusManager); the server's status comes back as
+// `git.status` and goes to the window as GIT_STATUS_DATA. A reconnect
+// re-issues the watch.
+
+let remoteWatch = null; // { entry, root }
+let remoteWired = false;
+
+function serverPanels() {
+  return require('./serverPanels');
+}
+
+function wireRemote() {
+  if (remoteWired) return;
+  remoteWired = true;
+  const sc = require('./serverConnection');
+  sc.on('git.status', (payload) => {
+    if (!remoteWatch || !payload || payload.projectPath !== remoteWatch.root) return;
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(IPC.GIT_STATUS_DATA, payload);
+  });
+  sc.on('connected', () => {
+    if (remoteWatch) serverPanels().call(remoteWatch.entry, 'git.watch', { root: remoteWatch.root }).catch(() => {});
+  });
+}
+
+function unwatchRemote() {
+  if (!remoteWatch) return;
+  const { entry } = remoteWatch;
+  remoteWatch = null;
+  serverPanels().call(entry, 'git.unwatch', {}).catch(() => {});
+}
+
+function watch(projectPath, ctx = null) {
+  const entry = projectPath && serverPanels().resolve(projectPath, ctx);
+  if (!entry) {
+    unwatchRemote();
     startWatching(projectPath);
+    return;
+  }
+  stopWatching();
+  remoteWatch = { entry, root: projectPath };
+  serverPanels().call(entry, 'git.watch', { root: projectPath }).catch((err) => {
+    logger.warn('gitStatus', `server watch failed: ${err.message}`);
+  });
+}
+
+function setupIPC(ipcMain) {
+  try { wireRemote(); } catch (err) { logger.warn('gitStatus', `server status not wired: ${err.message}`); }
+
+  ipcMain.on(IPC.WATCH_GIT_STATUS, (event, projectPath, ctx) => {
+    watch(projectPath, serverPanels().ctxOf(ctx));
   });
 
   ipcMain.on(IPC.UNWATCH_GIT_STATUS, () => {
+    unwatchRemote();
     stopWatching();
   });
 
   // On-demand refresh (e.g. the Changes tab was opened). Silent unless the
   // status actually changed — see lastSerialized de-dupe in pushStatus().
   ipcMain.on(IPC.REFRESH_GIT_STATUS, () => {
-    pushStatus();
+    if (remoteWatch) serverPanels().call(remoteWatch.entry, 'git.refresh', {}).catch(() => {});
+    else pushStatus();
   });
+}
+
+/**
+ * The git dir a `.git` *file* points at (`gitdir: <path>`), resolved against
+ * the worktree it sits in. Linked worktrees and submodules use this form.
+ * Pure: takes the file's contents. Returns null for anything else.
+ */
+function gitDirFromDotGitFile(contents, worktreePath) {
+  const match = /^gitdir:\s*(.+?)\s*$/m.exec(String(contents || ''));
+  if (!match) return null;
+  return path.resolve(worktreePath, match[1]);
+}
+
+/** The real git dir for `projectPath`: `.git` itself, or where a `.git` file points. */
+function resolveGitDir(projectPath) {
+  const dotGit = path.join(projectPath, '.git');
+  let stat;
+  try { stat = fs.statSync(dotGit); } catch (_) { return null; }
+  if (stat.isDirectory()) return dotGit;
+  if (!stat.isFile()) return null;
+  try {
+    return gitDirFromDotGitFile(fs.readFileSync(dotGit, 'utf8'), projectPath);
+  } catch (_) {
+    return null;
+  }
 }
 
 function startWatching(projectPath) {
@@ -68,7 +147,7 @@ function startWatching(projectPath) {
   currentProjectPath = projectPath;
   // Point the activity record at this project. Doing it here rather than
   // only on the open-project dialog matters: at boot the project is restored
-  // from the workspace, that dialog callback never runs, and every record
+  // from the project registry, that dialog callback never runs, and every record
   // for a restored project was landing in the `app` bucket.
   activityLog.setProject(projectPath);
   if (!projectPath) return;
@@ -93,13 +172,14 @@ function startWatching(projectPath) {
   }
 
   // `.git` watcher: commit / stage / unstage / checkout / branch only ever
-  // mutate files inside `.git` (index, HEAD, refs/…). Only watch when `.git`
-  // is a real directory — for linked worktrees / submodules it's a file, in
-  // which case the worktree watcher alone is acceptable.
+  // mutate files inside the git dir (index, HEAD, refs/…). In a linked
+  // worktree (a workspace, workspaces spec) or a submodule `.git` is a file
+  // pointing at the real git dir; that dir is watched instead, so commits and
+  // stages made inside a workspace refresh the Changes panel too.
   try {
-    const gitDir = path.join(projectPath, '.git');
-    const stat = fs.statSync(gitDir);
-    if (stat.isDirectory()) {
+    const gitDir = resolveGitDir(projectPath);
+    const stat = gitDir ? fs.statSync(gitDir) : null;
+    if (stat && stat.isDirectory()) {
       gitDirWatcher = fsSafe.safeWatch(
         gitDir,
         { recursive: true, persistent: false },
@@ -268,11 +348,13 @@ function readGitStatus(projectPath) {
   return new Promise((resolve) => {
     execFile(
       'git',
-      ['status', '--porcelain=v1', '-z', '--branch', '--untracked-files=all'],
+      // Never take index.lock for a read: an agent's own git write in the
+      // same checkout would fail on it (see gitBranchesManager).
+      ['--no-optional-locks', 'status', '--porcelain=v1', '-z', '--branch', '--untracked-files=all'],
       { cwd: projectPath, maxBuffer: MAX_BUFFER },
       (err, stdout) => {
         if (err) {
-          if (err.code === 'ENOENT' && !gitMissing) {
+          if (isGitMissing(err, projectPath) && !gitMissing) {
             gitMissing = true;
             logger.warn('gitStatus', 'git executable not found — file-tree status decorations disabled');
           }
@@ -377,4 +459,4 @@ function classify(index, worktree) {
   return 'modified';
 }
 
-module.exports = { init, setupIPC, isIgnoredWorktreePath };
+module.exports = { init, setupIPC, readGitStatus, startWatching, stopWatching, pushStatus, isIgnoredWorktreePath, gitDirFromDotGitFile, resolveGitDir };

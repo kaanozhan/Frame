@@ -10,6 +10,18 @@ const taskConfirmModal = require('./taskConfirmModal');
 
 let fileTreeElement = null;
 let currentProjectPath = null;
+// The workspace the shown tree belongs to: every call about it carries this
+// id, so main routes by workspace, not by path (server-hardening T6).
+let treeWorkspaceId = null;
+// The folder the tree is waiting for: a reply for any other root (a late
+// answer after a workspace switch) is dropped; null while a note is shown
+// (server-hardening T7).
+let expectedRoot = null;
+let workspaceIdGetter = null;
+const treeCtx = () => {
+  const id = treeWorkspaceId || (workspaceIdGetter && workspaceIdGetter()) || null;
+  return id ? { workspaceId: id } : null;
+};
 let onFileClickCallback = null;
 let focusedItem = null;
 
@@ -65,6 +77,11 @@ function init(elementId, getProjectPath) {
  */
 function setProjectPathGetter(getter) {
   currentProjectPath = getter;
+}
+
+/** Where the selected workspace's id comes from when a load names none. */
+function setWorkspaceIdGetter(getter) {
+  workspaceIdGetter = getter;
 }
 
 /**
@@ -190,23 +207,65 @@ function clearFileTree({ unwatch = false } = {}) {
 function refreshFileTree(projectPath) {
   const path = projectPath || (currentProjectPath && currentProjectPath());
   if (path) {
-    ipcRenderer.send(IPC.LOAD_FILE_TREE, path);
+    // A refresh never replaces the server-offline note; selecting the
+    // workspace again (loadFileTree) does.
+    if (!projectPath && offlineNoteShown()) return;
+    expectedRoot = path;
+    ipcRenderer.send(IPC.LOAD_FILE_TREE, path, treeCtx());
   }
+}
+
+function offlineNoteShown() {
+  return !!(fileTreeElement && fileTreeElement.querySelector('.ws-server-placeholder.offline'));
 }
 
 /**
  * Load file tree for path
  */
-function loadFileTree(projectPath) {
-  ipcRenderer.send(IPC.LOAD_FILE_TREE, projectPath);
-  ipcRenderer.send(IPC.WATCH_GIT_STATUS, projectPath);
+function loadFileTree(projectPath, workspaceId = null) {
+  treeWorkspaceId = workspaceId || (workspaceIdGetter && workspaceIdGetter()) || null;
+  expectedRoot = projectPath;
+  ipcRenderer.send(IPC.LOAD_FILE_TREE, projectPath, treeCtx());
+  ipcRenderer.send(IPC.WATCH_GIT_STATUS, projectPath, treeCtx());
+}
+
+/**
+ * Show a note instead of the tree (a server workspace offline, an error).
+ * Replies still in flight are dropped, so they cannot wipe the note.
+ */
+function showNote(text, className = 'ws-server-placeholder') {
+  expectedRoot = null;
+  clearFileTree();
+  if (!fileTreeElement) return;
+  const note = document.createElement('div');
+  note.className = className;
+  note.textContent = text;
+  fileTreeElement.replaceChildren(note);
+}
+
+/** The `{ workspaceId }` of the shown tree, for files opened from it. */
+function getTreeContext() {
+  return treeCtx();
 }
 
 /**
  * Setup IPC listeners
  */
 function setupIPC() {
-  ipcRenderer.on(IPC.FILE_TREE_DATA, (event, files) => {
+  ipcRenderer.on(IPC.FILE_TREE_DATA, (event, payload) => {
+    // `{ root, files, error }`; the project-open path still sends a bare array.
+    const reply = Array.isArray(payload) ? { root: null, files: payload, error: null } : (payload || {});
+    if (reply.root) {
+      if (reply.root !== expectedRoot) return; // another folder's late answer, or a note is up
+    } else if (offlineNoteShown()) {
+      return; // a bare project tree must not replace the offline note either
+    }
+    if (reply.error) {
+      showNote(`Could not read this workspace's files: ${reply.error}`, 'ws-server-placeholder tree-error');
+      expectedRoot = reply.root || null;
+      return;
+    }
+    const files = reply.files || [];
     // A re-render (refresh, or after a rename/paste/delete) keeps the open
     // folders and the scroll position instead of collapsing everything.
     const expanded = getExpandedFolderPaths();
@@ -591,10 +650,26 @@ function applyCutDecoration() {
   });
 }
 
+/**
+ * Server workspaces are read-only in the tree for now
+ * (server-workspace-panels): their files are on the server, which has no
+ * trash. True — after saying so — when `p` is under a server workspace.
+ */
+function refuseOnServer(...paths) {
+  let rows = [];
+  try { rows = require('./workspaceSection').getWorkspaces().filter((w) => w.location === 'server'); } catch (_) { rows = []; }
+  const { serverRootFor } = require('../shared/serverRouting');
+  const roots = rows.map((w) => w.path);
+  if (!paths.some((p) => p && serverRootFor(p, roots))) return false;
+  notify.info('File actions on server workspaces come in a later update.');
+  return true;
+}
+
 async function pasteInto(destDir) {
+  if (fileClipboard && refuseOnServer(destDir, fileClipboard.path)) return;
   if (!fileClipboard || !destDir) return;
   const { path: source, mode } = fileClipboard;
-  const result = await ipcRenderer.invoke(IPC.FILE_TREE_PASTE, { source, mode, destDir });
+  const result = await ipcRenderer.invoke(IPC.FILE_TREE_PASTE, { source, mode, destDir, ...(treeCtx() || {}) });
   if (!result || !result.ok) {
     notify.error(`Couldn't paste "${baseName(source)}": ${result ? result.error : 'unknown error'}`);
     return;
@@ -618,6 +693,7 @@ function findItem(p) {
  * keyboard navigation and row click (open file / toggle folder) don't fire.
  */
 function startRename(targetPath) {
+  if (refuseOnServer(targetPath)) return;
   const item = findItem(targetPath);
   if (!item) return;
   const nameEl = item.querySelector('span:last-child');
@@ -639,7 +715,7 @@ function startRename(targetPath) {
     input.replaceWith(nameEl);
     if (!commit || !newName || newName === oldName) return;
 
-    const result = await ipcRenderer.invoke(IPC.FILE_TREE_RENAME, targetPath, newName);
+    const result = await ipcRenderer.invoke(IPC.FILE_TREE_RENAME, targetPath, newName, treeCtx());
     if (!result || !result.ok) {
       notify.error(`Couldn't rename "${oldName}": ${result ? result.error : 'unknown error'}`);
       return;
@@ -670,13 +746,14 @@ function startRename(targetPath) {
 }
 
 function confirmDelete(target) {
+  if (target && refuseOnServer(target.path)) return;
   const name = baseName(target.path);
   taskConfirmModal.open({
     heading: target.isDirectory ? 'Delete folder?' : 'Delete file?',
     message: `"${name}" will be moved to the Trash.`,
     confirmLabel: 'Move to Trash',
     onConfirm: async () => {
-      const result = await ipcRenderer.invoke(IPC.FILE_TREE_TRASH, target.path);
+      const result = await ipcRenderer.invoke(IPC.FILE_TREE_TRASH, target.path, treeCtx());
       if (!result || !result.ok) {
         notify.error(`Couldn't delete "${name}": ${result ? result.error : 'unknown error'}`);
         return;
@@ -743,6 +820,9 @@ function applyGitStatusDecoration() {
 module.exports = {
   init,
   setProjectPathGetter,
+  setWorkspaceIdGetter,
+  getTreeContext,
+  showNote,
   setOnFileClick,
   renderFileTree,
   clearFileTree,

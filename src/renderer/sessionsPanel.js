@@ -71,6 +71,9 @@ function init() {
   const refreshBtn = document.getElementById('sessions-refresh-btn');
   if (refreshBtn) refreshBtn.addEventListener('click', refreshSessions);
 
+  // An open list follows the selected workspace (workspaces spec).
+  state.onWorkspaceChange(() => { if (isVisible) loadSessions(); });
+
   try {
     const saved = localStorage.getItem(TAB_KEY);
     if (TOOLS[saved]) activeTool = saved;
@@ -121,7 +124,21 @@ function hide() {
  * Load both lists — the tab counts need both, whichever tab is showing.
  */
 async function loadSessions() {
-  const projectPath = state.getProjectPath();
+  // Sessions belong to the folder they ran in: the selected workspace's
+  // worktree, or the project itself on main (workspaces spec).
+  const projectPath = state.getWorkspaceRoot();
+
+  // A server workspace's sessions are recorded on the server, not in this
+  // machine's transcripts: say so rather than list the wrong ones
+  // (server-hardening T10).
+  const ws = state.getWorkspace();
+  const rec = ws && require('./workspaceSection').getWorkspaces().find((w) => w.id === ws.id);
+  if (rec && rec.location === 'server') {
+    lists = { claude: { sessions: [], reason: null }, codex: { sessions: [], reason: null } };
+    paintTabs();
+    renderSessionsEmpty('Sessions are not listed for server workspaces yet — they are recorded on the server.');
+    return;
+  }
 
   if (!projectPath) {
     lists = { claude: { sessions: [], reason: null }, codex: { sessions: [], reason: null } };
@@ -268,18 +285,19 @@ function resumeSession(tool, session) {
   // place.
   ipcRenderer.send(IPC.ANALYTICS_TRACK, 'session_resumed');
   const agentDispatch = require('./agentDispatch');
+  const projectPath = state.getProjectPath();
+  if (!projectPath) return;
+  const root = state.getWorkspaceRoot() || projectPath;
   if (tool === 'codex') {
-    const projectPath = state.getProjectPath();
-    if (!projectPath) return;
-    // A Codex session started in a folder inside the project (a worktree)
-    // resumes in that folder — unless the folder is gone since.
-    const cwd = session.cwd && session.cwd !== projectPath && fs.existsSync(session.cwd)
+    // A Codex session started in a folder inside the listed root resumes in
+    // that folder — unless the folder is gone since.
+    const cwd = session.cwd && session.cwd !== root && fs.existsSync(session.cwd)
       ? session.cwd
-      : null;
+      : root;
     agentDispatch.resumeAgentSession('codex', session.sessionId, { projectPath, cwd, focus: true });
     return;
   }
-  agentDispatch.resumeClaudeSession(session.sessionId);
+  agentDispatch.resumeAgentSession('claude', session.sessionId, { projectPath, cwd: root, focus: true });
 }
 
 /**

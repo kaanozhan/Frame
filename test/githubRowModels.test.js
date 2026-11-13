@@ -256,6 +256,23 @@ test('worktreeRows: id is the full path; tolerates a missing result', () => {
   assert.deepEqual(worktreeRows(null, PROJECT), []);
 });
 
+// Workspaces spec (T11): a worktree that is a workspace is labelled from the
+// registry, wherever its folder lives; the rest are unchanged.
+test('worktreeRows: workspace worktrees carry their workspace name', () => {
+  const result = { worktrees: [
+    { path: PROJECT, branch: 'main', isMain: true },
+    { path: '/Users/me/frame/workspaces/Frame/teal', branch: 'ws/teal' },
+    { path: '/Users/me/elsewhere/hotfix', branch: 'hotfix' }
+  ] };
+  const r = worktreeRows(result, PROJECT, [{ name: 'teal', path: '/Users/me/frame/workspaces/Frame/teal/' }]);
+  assert.equal(r[1].workspace, 'teal');
+  assert.equal(r[1].meta, 'workspace · teal');
+  assert.equal(r[0].workspace, null);
+  assert.equal(r[2].workspace, null);
+  assert.equal(r[2].meta, '');
+  assert.equal(worktreeRows(result, PROJECT)[1].workspace, null, 'no registry, no label');
+});
+
 // ─── filterRows ───────────────────────────────────────────
 
 test('filterRows: empty query keeps every row, as a copy', () => {

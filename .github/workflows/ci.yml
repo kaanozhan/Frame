@@ -4,10 +4,11 @@
 # repos — so "works on any project" is asserted by a machine, not by
 # eyeballing Frame's own repo.
 #
-# No `npm ci` on purpose: the suite uses Node's built-in runner and
-# repo-local modules only (verified by running it without node_modules),
-# and postinstall (electron-rebuild) would need Electron binaries — slow
-# and fragile for zero benefit here.
+# Dependencies install with `--ignore-scripts`: the Frame Server tests
+# (server-workspaces) load real packages (xterm-headless for the screen
+# mirror), while postinstall (electron-rebuild) and Electron's own binary
+# download stay skipped — they would be slow and fragile for zero benefit
+# here. The rest of the suite still uses Node's built-in runner only.
 name: CI
 
 on:
@@ -27,4 +28,34 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - run: npm ci --ignore-scripts
       - run: npm test
+
+  # The install script's systemd path on a real user session (server-hardening
+  # C1). If the runner cannot give this user a systemd session, the job says so
+  # and the path is verified on a real server in the field test instead.
+  systemd:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --ignore-scripts
+      - name: User systemd session
+        id: session
+        run: |
+          sudo loginctl enable-linger "$USER"
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          for _ in $(seq 1 30); do systemctl --user show-environment >/dev/null 2>&1 && break; sleep 0.5; done
+          if systemctl --user show-environment >/dev/null 2>&1; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" >> "$GITHUB_ENV"
+            echo "DBUS_SESSION_BUS_ADDRESS=unix:path=$XDG_RUNTIME_DIR/bus" >> "$GITHUB_ENV"
+          else
+            echo "::warning::This runner has no systemd user session; the install script's systemd path is not exercised here (verify it in the field test)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install script on real systemd
+        if: steps.session.outputs.ok == 'true'
+        run: FRAME_TEST_SYSTEMD=1 node --test test/installScript.test.js

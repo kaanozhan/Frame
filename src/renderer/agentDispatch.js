@@ -141,9 +141,12 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     // otherwise the lane shows "command not found" and the prompt is lost.
     let check;
     try {
+      const lane = multiTerminalUI.getManager().getTerminal(targetId);
       check = await ipcRenderer.invoke(IPC.CHECK_AI_TOOL_AVAILABLE, {
         toolId: chosenToolId,
         projectPath: state.getProjectPath(),
+        // Server workspaces check the CLI on the server (server-workspaces).
+        workspaceId: (lane && lane.state && lane.state.workspaceId) || 'main',
         launchFlags
       });
     } catch (err) {
@@ -152,11 +155,14 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
     }
     if (!check || !check.available) {
       const name = (check && check.name) || chosenToolId;
-      const why = check && check.reason === 'timeout'
-        ? 'availability check timed out — try again'
-        : check && check.reason === 'spawn-error'
-          ? 'could not run the probe shell'
-          : 'not found on your system';
+      const where = check && check.onServer ? `on ${check.onServer === true ? 'the server' : check.onServer}` : 'on your system';
+      const why = check && check.reason === 'server'
+        ? `could not reach the server (${check.error || 'not connected'})`
+        : check && check.reason === 'timeout'
+          ? 'availability check timed out — try again'
+          : check && check.reason === 'spawn-error'
+            ? 'could not run the probe shell'
+            : `not found ${where} — install it and sign in there`;
       return _fail(targetId, `${name} CLI: ${why}`);
     }
 
@@ -357,10 +363,12 @@ const RESUME_ARGS = {
  *
  * @param {'claude'|'codex'} tool
  * @param {string} sessionId - UUID; it reaches a command line
- * @param {{projectPath: string, cwd?: string|null, name?: string|null, focus?: boolean}} opts
+ * @param {{projectPath: string, cwd?: string|null, name?: string|null, focus?: boolean, workspaceId?: string|null}} opts
+ *   workspaceId: the workspace the terminal joins (workspaces spec); omitted =
+ *   the selected one when `projectPath` is current, else main
  * @returns {Promise<string|null>} the new terminal's id, or null
  */
-async function resumeAgentSession(tool, sessionId, { projectPath, cwd = null, name = null, focus = false } = {}) {
+async function resumeAgentSession(tool, sessionId, { projectPath, cwd = null, name = null, focus = false, workspaceId = null } = {}) {
   if (!multiTerminalUI) {
     notify.error('Terminal system is not ready yet');
     return null;
@@ -380,12 +388,13 @@ async function resumeAgentSession(tool, sessionId, { projectPath, cwd = null, na
   const manager = multiTerminalUI.getManager();
   let id = null;
   try {
-    id = await manager.createTerminal({ projectPath, cwd: cwd || projectPath });
+    // No cwd → the terminal manager picks the workspace's folder.
+    id = await manager.createTerminal({ projectPath, cwd: cwd || undefined, workspaceId: workspaceId || undefined });
   } catch (err) {
     console.error('agentDispatch: terminal creation failed', err);
   }
   if (!id) {
-    notify.error(`Could not create a new terminal — maximum (${manager.maxTerminals}) may be reached for this project`);
+    notify.error(`Could not create a new terminal — maximum (${manager.maxTerminals}) may be reached for this workspace`);
     return null;
   }
 
@@ -459,6 +468,60 @@ const specLanes = new Map(); // Map<slug, terminalId>
  * @param {string} opts.command  - e.g. 'spec.plan', 'spec.implement'
  * @returns {Promise<{success: boolean, terminalId: string|null, error: string|null}>}
  */
+// ─── Where spec work runs (spec-in-workspace) ─────────────────
+//
+// Specs live in workspaces: a spec's lanes run in the workspace that holds
+// it, so its prompt, cwd and hooks all point at that worktree. Before a
+// command is staged, the spec's workspace (or main) is selected — terminals
+// open in the selected workspace's folder.
+
+/** Select the checkout a spec lives in; returns its root (main = projectPath). */
+async function _selectSpecWorkspace(projectPath, slug) {
+  let spec = null;
+  try {
+    spec = await ipcRenderer.invoke(IPC.GET_SPEC, { projectPath, slug });
+  } catch (_) { /* unknown spec — stays where the user is */ }
+  if (!spec) return state.getWorkspaceRoot() || projectPath;
+  const ws = spec.workspace;
+  const current = state.getWorkspace();
+  const section = require('./workspaceSection');
+  if (ws && (!current || current.id !== ws.id)) {
+    section.select({ id: ws.id, path: ws.root, name: ws.name, branch: ws.branch });
+  } else if (!ws && current && current.id !== state.MAIN_WORKSPACE_ID) {
+    section.select(null);
+  }
+  return ws ? ws.root : projectPath;
+}
+
+/**
+ * The workspace a new spec is written in: the selected one, or — from main —
+ * a new workspace created for it (Conductor's model, spec-in-workspace D2).
+ * Its setup script runs alongside, without an agent. Returns the root, or
+ * null when no workspace could be made (not a git repo, git error).
+ */
+async function _workspaceForNewSpec(projectPath) {
+  const current = state.getWorkspace();
+  if (current && current.id !== state.MAIN_WORKSPACE_ID) return current.root;
+  let result;
+  try {
+    result = await ipcRenderer.invoke(IPC.WORKSPACE_CREATE, { projectPath, from: 'new' });
+  } catch (err) {
+    result = { error: err.message };
+  }
+  if (!result || result.error) {
+    notify.error(`Could not create a workspace for the spec: ${(result && result.error) || 'unknown error'}`);
+    return null;
+  }
+  const section = require('./workspaceSection');
+  await section.load();
+  section.select(result.workspace);
+  if (result.setupScript) {
+    require('./newWorkspaceModal').runSetupThenAgent({ setupScript: result.setupScript, openAgent: false })
+      .catch((err) => console.error('agentDispatch: setup for the spec workspace failed', err));
+  }
+  return result.workspace.path;
+}
+
 async function dispatchSpecCommand({ slug, title = null, command } = {}) {
   if (!multiTerminalUI) {
     return _fail(null, 'Terminal system is not ready yet');
@@ -469,6 +532,9 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
   }
 
   const assignment = { kind: 'spec', label: `spec: ${slug}`, ref: slug };
+
+  // The spec's own workspace (or main) — its lanes open there.
+  await _selectSpecWorkspace(projectPath, slug);
 
   // spec.implement flips the ordering: the mode is chosen in the unified
   // modal *before* anything is staged, so the recorded implement_mode is what
@@ -726,6 +792,11 @@ async function dispatchSpecNew(description) {
     return _fail(null, 'Nothing to dispatch — describe the spec first');
   }
 
+  // The spec is written inside a workspace (spec-in-workspace): the selected
+  // one, or a new one when the user is on main.
+  const root = await _workspaceForNewSpec(projectPath);
+  if (!root) return _fail(null, 'A spec needs a workspace — this project could not get one');
+
   let staged;
   try {
     staged = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
@@ -733,7 +804,8 @@ async function dispatchSpecNew(description) {
       slug: null,
       command: 'spec.new',
       aiTool: 'claude-code',
-      description: text
+      description: text,
+      root
     });
   } catch (err) {
     console.error('agentDispatch: spec.new staging failed', err);

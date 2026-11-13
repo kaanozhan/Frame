@@ -113,8 +113,12 @@ class TerminalsView {
 
   // ─── Preferences ────────────────────────────────────────
 
+  // Per project and workspace (workspaces spec). Main keeps the bare project
+  // key — today's key, so existing layouts carry over untouched.
   _projectKey() {
-    return this.manager.getCurrentProject() || GLOBAL_PROJECT_KEY;
+    const base = this.manager.getCurrentProject() || GLOBAL_PROJECT_KEY;
+    const ws = this.manager.getCurrentWorkspaceId ? this.manager.getCurrentWorkspaceId() : 'main';
+    return ws && ws !== 'main' ? `${base}#${ws}` : base;
   }
 
   _prefs() {

@@ -1,0 +1,17 @@
+{
+  "slug": "update-from-base",
+  "title": "Update workspace from base",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-update-from-base-T01",
+    "task-spec-update-from-base-T02",
+    "task-spec-update-from-base-T03",
+    "task-spec-update-from-base-T04",
+    "task-spec-update-from-base-T05"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-11-10T12:55:21.022Z",
+  "updated_at": "2026-11-10T13:17:03.195Z",
+  "last_phase_at": "2026-11-10T13:17:03.195Z",
+  "implement_mode": "guided"
+}

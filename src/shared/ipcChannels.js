@@ -36,13 +36,13 @@ const IPC = {
   RUN_APP_COMMAND: 'run-app-command',                // main → renderer: run this command-registry id (the View menu; dock-panel-readonly-views spec)
   THEME_CHANGED: 'theme-changed',                    // renderer → main: the applied theme id, so View › Theme can check the current one
 
-  // Workspace
-  LOAD_WORKSPACE: 'load-workspace',
-  WORKSPACE_DATA: 'workspace-data',
-  WORKSPACE_UPDATED: 'workspace-updated',
-  ADD_PROJECT_TO_WORKSPACE: 'add-project-to-workspace',
-  REMOVE_PROJECT_FROM_WORKSPACE: 'remove-project-from-workspace',
-  REORDER_WORKSPACE_PROJECTS: 'reorder-workspace-projects',
+  // Project registry (~/.frame/workspaces.json)
+  LOAD_PROJECT_REGISTRY: 'load-project-registry',
+  PROJECT_REGISTRY_DATA: 'project-registry-data',
+  PROJECT_REGISTRY_UPDATED: 'project-registry-updated',
+  ADD_PROJECT_TO_REGISTRY: 'add-project-to-registry',
+  REMOVE_PROJECT_FROM_REGISTRY: 'remove-project-from-registry',
+  REORDER_REGISTRY_PROJECTS: 'reorder-registry-projects',
 
   // Frame Project
   INITIALIZE_FRAME_PROJECT: 'initialize-frame-project',
@@ -234,6 +234,46 @@ const IPC = {
   // Done window (how many days of completed tasks / done specs a board shows)
   GET_DONE_WINDOW: 'get-done-window',                // renderer → main (invoke): projectPath → { tasks, specs } days, normalised
   SET_DONE_WINDOW: 'set-done-window',                // renderer → main (invoke): { projectPath, board, days } → { tasks, specs }
+
+  // Workspaces (workspaces spec): branch + worktree + terminals, per project
+  WORKSPACES_LIST: 'workspaces-list',                // renderer → main (invoke): projectPath → { error, isRepo, workspaces, archived }
+  WORKSPACE_CREATE: 'workspace-create',              // renderer → main (invoke): { projectPath, from: 'new'|'branch', base?, branch? } → { error, workspace, copied, fetch, setupScript }
+  WORKSPACE_STATUS: 'workspace-status',              // renderer → main (invoke): { projectPath, id } → { error, dirty, count }
+  WORKSPACE_BASE_FOR_BRANCH: 'workspace-base-for-branch', // renderer → main (invoke): { projectPath, branch } → { error, base } (workspace-hardening L4)
+  WORKSPACE_ARCHIVE: 'workspace-archive',            // renderer → main (invoke): { projectPath, id, action?: 'commit'|'discard', message? } → { error, dirty?, workspace }
+  WORKSPACE_RESTORE: 'workspace-restore',            // renderer → main (invoke): { projectPath, id } → { error, workspace, copied, setupScript }
+  WORKSPACE_RENAME: 'workspace-rename',              // renderer → main (invoke): { projectPath, id, name?, branch? } → { error, workspace }
+  WORKSPACE_REMOVE_RECORD: 'workspace-remove-record', // renderer → main (invoke): { projectPath, id } → { error } (missing/archived records only)
+  WORKSPACES_UPDATED: 'workspaces-updated',          // main → renderer: { projectPath } after any workspace change
+  WORKSPACE_PROVISION: 'workspace-provision',
+  // Workspace PR flow (workspace-pr-flow)
+  WORKSPACE_GIT_STATE: 'workspace-git-state',        // main → renderer: { projectPath, access: { gh, authed, repoName }, workspaces: { [id]: RowState } }
+  WORKSPACE_GIT_REFRESH: 'workspace-git-refresh',    // renderer → main (invoke): { projectPath } → payload; also makes it the polled project
+  WORKSPACE_PUSH: 'workspace-push',                  // renderer → main (invoke): { projectPath, id } → { error, dirty }
+  WORKSPACE_PR_DRAFT: 'workspace-pr-draft',          // renderer → main (invoke): { projectPath, id } → { error, title, body, base, branch }
+  WORKSPACE_PR_CREATE: 'workspace-pr-create',        // renderer → main (invoke): { projectPath, id, title, body, draft } → { error, url }
+  WORKSPACE_PR_MERGE: 'workspace-pr-merge',          // renderer → main (invoke): { projectPath, id } → { error, method, fastForward, archived }        // renderer → main (invoke): { projectPath, id } → { error, copied } — Frame tooling into the worktree (spec-in-workspace)
+  // Frame Server connection (server-workspaces)
+  SERVER_STATUS: 'server-status',                    // renderer → main (invoke): → { state: off|connecting|connected|reconnecting|error, host, error, frameVersion, platform, saved }
+  SERVER_CONNECT: 'server-connect',                  // renderer → main (invoke): { host } → { error, status }
+  SERVER_DISCONNECT: 'server-disconnect',            // renderer → main (invoke): → { error, status }
+  SERVER_SSH_HOSTS: 'server-ssh-hosts',              // renderer → main (invoke): → string[] (Host aliases from ~/.ssh/config)
+  SERVER_STATUS_CHANGED: 'server-status-changed',    // main → renderer: status (as SERVER_STATUS)
+  TERMINAL_ADOPT: 'terminal-adopt',                  // renderer → main (invoke): { projectPath } → [{ terminalId, projectPath, workspaceId, screen, cols, rows }] (the server's live terminals of that project)
+  SERVER_INSTALL: 'server-install',                  // renderer → main (invoke): { host? } → { error, result }   (server-install-update)
+  SERVER_UPDATE: 'server-update',                    // renderer → main (invoke): { host?, confirmAgents? } → { error, result } | { needsConsent, agents }
+  SERVER_ROLLBACK: 'server-rollback',                // renderer → main (invoke): { host?, confirmAgents? } → { error, result } | { needsConsent, agents }
+  SERVER_INSTALL_PROGRESS: 'server-install-progress',// main → renderer: { host, line }
+  SERVER_DOCTOR: 'server-doctor',                    // renderer → main (invoke): → { error, raw, items }
+  // Update from base (update-from-base)
+  WORKSPACE_UPDATE_FROM_BASE: 'workspace-update-from-base', // renderer → main (invoke): { projectPath, id } → { state: updated|up-to-date|conflict|dirty, base, commits?, files?, count?, fetchNote? } | { error }
+  WORKSPACE_UPDATE_ABORT: 'workspace-update-abort',         // renderer → main (invoke): { projectPath, id } → { error, aborted }
+  // Workspace review (workspace-review)
+  REVIEW_FILES: 'review-files',                      // renderer → main (invoke): { root, base } → { error, mergeBase, files: ReviewFile[] }
+  REVIEW_FILE_DIFF: 'review-file-diff',              // renderer → main (invoke): { root, mergeBase, path, oldPath?, untracked } → { diff, isBinary, tooLarge }
+  GIT_DEFAULT_BRANCH: 'git-default-branch',          // renderer → main (invoke): projectPath → { error, branch, hasOrigin }
+  GET_WORKSPACE_SETTINGS: 'get-workspace-settings',  // renderer → main (invoke): projectPath → { setupScript, copyFiles, branchPrefix, frameProject }
+  SET_WORKSPACE_SETTINGS: 'set-workspace-settings',  // renderer → main (invoke): { projectPath, settings } → normalised settings | { error }
 
   // Layout migration (pre-overlay project → .frame/), consented per project
   GET_MIGRATION_DECISIONS: 'get-migration-decisions',      // renderer → main (invoke): what is left to ask, or []

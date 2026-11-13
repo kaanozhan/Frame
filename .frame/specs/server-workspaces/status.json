@@ -1,0 +1,22 @@
+{
+  "slug": "server-workspaces",
+  "title": "Server workspaces with remote terminals",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-server-workspaces-T01",
+    "task-spec-server-workspaces-T02",
+    "task-spec-server-workspaces-T03",
+    "task-spec-server-workspaces-T04",
+    "task-spec-server-workspaces-T05",
+    "task-spec-server-workspaces-T06",
+    "task-spec-server-workspaces-T07",
+    "task-spec-server-workspaces-T08",
+    "task-spec-server-workspaces-T09",
+    "task-spec-server-workspaces-T10"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-11-10T13:18:10.121Z",
+  "updated_at": "2026-11-10T13:57:43.814Z",
+  "last_phase_at": "2026-11-10T13:57:43.814Z",
+  "implement_mode": "guided"
+}

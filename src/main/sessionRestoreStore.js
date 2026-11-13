@@ -91,10 +91,13 @@ function parseReport(name, text) {
 
 // ─── live map ─────────────────────────────────────────────
 
-function emptyEntry(terminalId, projectPath, createdAt) {
+function emptyEntry(terminalId, projectPath, createdAt, workspaceId) {
   return {
     terminalId,
     projectPath: projectPath || null,
+    // Which workspace of the project the terminal belongs to (workspaces
+    // spec); 'main' is the project's own checkout.
+    workspaceId: workspaceId || 'main',
     createdAt,
     tool: null,
     sessionId: null,
@@ -114,8 +117,8 @@ function hasSession(entry) {
 }
 
 /** A PTY was spawned. Terminals without a project (global) are never restored. */
-function registerTerminal(live, terminalId, { projectPath = null, createdAt = 0 } = {}) {
-  if (!live[terminalId]) live[terminalId] = emptyEntry(terminalId, projectPath, createdAt);
+function registerTerminal(live, terminalId, { projectPath = null, createdAt = 0, workspaceId = 'main' } = {}) {
+  if (!live[terminalId]) live[terminalId] = emptyEntry(terminalId, projectPath, createdAt, workspaceId);
   return null;
 }
 
@@ -232,7 +235,8 @@ function projectRecord(live, projectPath, now) {
       sessionId: e.sessionId,
       transcriptPath: e.transcriptPath,
       cwd: e.cwd,
-      name: e.name
+      name: e.name,
+      workspaceId: e.workspaceId || 'main'
     }))
   };
 }
@@ -279,7 +283,8 @@ function planRestore(record, exists) {
       sessionId: s.sessionId,
       transcriptPath: s.transcriptPath,
       cwd: s.cwd || null,
-      name: s.name || null
+      name: s.name || null,
+      workspaceId: typeof s.workspaceId === 'string' && s.workspaceId ? s.workspaceId : 'main'
     });
     if (sessions.length >= MAX_RESTORE) break;
   }

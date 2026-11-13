@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+# frame-server — run and manage Frame Server on this machine
+# (server-install-update spec).
+#
+#   frame-server run [--port N] [--bind ADDR]   run in the foreground (what the service runs)
+#   frame-server status [--json]                installed versions, service mode, running state
+#   frame-server logs                           the last lines of the server log
+#   frame-server update [VERSION]               install VERSION (default: the latest release)
+#   frame-server rollback                       go back to the previous installed version
+#   frame-server install-service                (re)create the user service for the current version
+#
+# Layout (managed by scripts/install-frame-server.sh):
+#   ~/.frame-server/versions/<v>/{node/bin/node,app/,bin/frame-server,VERSION}
+#   ~/.frame-server/current  → versions/<v>      ~/.frame-server/previous → versions/<v>
+#   ~/.frame-server/bin/frame-server → current/bin/frame-server
+set -euo pipefail
+
+FRAME_HOME="${FRAME_SERVER_HOME:-$HOME/.frame-server}"
+export FRAME_SERVER_HOME="$FRAME_HOME"
+
+self="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "${BASH_SOURCE[0]}")"
+VDIR="$(cd "$(dirname "$self")/.." && pwd)"
+NODE="$VDIR/node/bin/node"
+[ -x "$NODE" ] || NODE="$(command -v node || true)"
+INSTALLER="$VDIR/app/scripts/install-frame-server.sh"
+
+link_version() {
+  local link="$FRAME_HOME/$1"
+  [ -L "$link" ] || { echo ""; return; }
+  basename "$(readlink "$link")"
+}
+
+FRAME_HOME_REAL="$(cd "$FRAME_HOME" 2>/dev/null && pwd -P || echo "$FRAME_HOME")"
+
+# Is <pid> this home's Frame Server? Its command line must run from this home:
+# a recorded pid may since belong to another process (server-hardening S7).
+is_frame_pid() {
+  local pid="$1" args=""
+  [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || return 1
+  if [ -r "/proc/$pid/cmdline" ]; then args="$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)"; fi
+  [ -n "$args" ] || args="$(ps -o args= -p "$pid" 2>/dev/null || true)"
+  case "$args" in *"$FRAME_HOME/"*|*"$FRAME_HOME_REAL/"*) return 0 ;; esac
+  return 1
+}
+
+# The user unit serves the default home only (S6).
+uses_systemd() {
+  local def
+  def="$(cd "$HOME/.frame-server" 2>/dev/null && pwd -P || echo "$HOME/.frame-server")"
+  [ "$FRAME_HOME_REAL" = "$def" ] && command -v systemctl >/dev/null 2>&1
+}
+
+service_mode() {
+  if uses_systemd && systemctl --user is-enabled frame-server >/dev/null 2>&1; then
+    echo systemd
+  elif [ -f "$FRAME_HOME/server.pid" ] && is_frame_pid "$(cat "$FRAME_HOME/server.pid" 2>/dev/null || true)"; then
+    echo detached
+  else
+    echo none
+  fi
+}
+
+linger() {
+  if command -v loginctl >/dev/null 2>&1; then
+    [ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null || true)" = "yes" ] && echo true || echo false
+  else
+    echo false
+  fi
+}
+
+running_pid() {
+  local f="$FRAME_HOME/connection.json" pid
+  [ -f "$f" ] || { echo ""; return; }
+  pid="$(sed -n 's/.*"pid": *\([0-9][0-9]*\).*/\1/p' "$f" | head -n1)"
+  if is_frame_pid "$pid"; then echo "$pid"; else echo ""; fi
+}
+
+running_version() {
+  local f="$FRAME_HOME/connection.json"
+  [ -f "$f" ] && sed -n 's/.*"frameVersion": *"\([^"]*\)".*/\1/p' "$f" | head -n1 || true
+}
+
+json_list() {
+  local first=1 out="["
+  for v in "$@"; do
+    if [ $first -eq 1 ]; then first=0; else out="$out,"; fi
+    out="$out\"$v\""
+  done
+  echo "$out]"
+}
+
+cmd_status() {
+  local current previous mode lng pid rv versions=()
+  current="$(link_version current)"
+  previous="$(link_version previous)"
+  if [ -d "$FRAME_HOME/versions" ]; then
+    while IFS= read -r v; do versions+=("$v"); done < <(ls -1 "$FRAME_HOME/versions" 2>/dev/null)
+  fi
+  mode="$(service_mode)"; lng="$(linger)"; pid="$(running_pid)"; rv="$(running_version)"
+  if [ "${1:-}" = "--json" ]; then
+    printf '{"current":%s,"previous":%s,"versions":%s,"service":"%s","linger":%s,"running":%s,"pid":%s,"runningVersion":%s}\n' \
+      "$([ -n "$current" ] && echo "\"$current\"" || echo null)" \
+      "$([ -n "$previous" ] && echo "\"$previous\"" || echo null)" \
+      "$(json_list "${versions[@]+"${versions[@]}"}")" "$mode" "$lng" \
+      "$([ -n "$pid" ] && echo true || echo false)" "${pid:-null}" \
+      "$([ -n "$rv" ] && echo "\"$rv\"" || echo null)"
+    return
+  fi
+  echo "current:   ${current:-none}"
+  echo "previous:  ${previous:-none}"
+  echo "installed: ${versions[*]:-none}"
+  echo "service:   $mode (linger: $lng)"
+  if [ -n "$pid" ]; then echo "running:   yes (pid $pid, Frame Server ${rv:-?})"; else echo "running:   no"; fi
+}
+
+cmd_logs() {
+  if [ "$(service_mode)" = "systemd" ]; then
+    journalctl --user -u frame-server -n 200 --no-pager
+  elif [ -f "$FRAME_HOME/server.log" ]; then
+    tail -n 200 "$FRAME_HOME/server.log"
+  else
+    echo "No server log yet."
+  fi
+}
+
+case "${1:-}" in
+  run)
+    shift
+    [ -n "$NODE" ] || { echo "frame-server: no Node.js found for $VDIR" >&2; exit 1; }
+    exec "$NODE" "$VDIR/app/src/server/index.js" "$@"
+    ;;
+  status) shift; cmd_status "${1:-}" ;;
+  logs) cmd_logs ;;
+  update) shift; exec bash "$INSTALLER" --version "${1:-latest}" ;;
+  rollback) exec bash "$INSTALLER" --rollback ;;
+  install-service) exec bash "$INSTALLER" --service-only ;;
+  version|--version) cat "$VDIR/VERSION" 2>/dev/null || echo unknown ;;
+  ""|help|-h|--help) sed -n '2,11p' "$self" | sed 's/^# \{0,1\}//' ;;
+  *) echo "frame-server: unknown command '$1' (try: frame-server help)" >&2; exit 2 ;;
+esac

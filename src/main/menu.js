@@ -93,12 +93,18 @@ function getMenuTemplate() {
     });
   }
 
-  // File — workspace-level: opening and adding things. Current-project
+  // File — app-level: opening and adding things. Current-project
   // actions live under Project.
   template.push({
     label: 'File',
     submenu: [
-      cmd('Add Project to Workspace…', 'project.add'),
+      cmd('New Workspace…', 'workspace.new', 'CmdOrCtrl+Shift+N'),
+      cmd('Review Changes…', 'workspace.review', 'CmdOrCtrl+Alt+R'),
+      cmd('Create Pull Request…', 'workspace.createPr', 'CmdOrCtrl+Alt+P'),
+      SEP,
+      cmd('Connect to Server…', 'server.connect'),
+      SEP,
+      cmd('Add Project…', 'project.add'),
       cmd('Create New Project…', 'project.create'),
       SEP,
       { label: 'Open History File', accelerator: 'CmdOrCtrl+H', click: () => openHistoryFile() },
@@ -190,7 +196,7 @@ function getMenuTemplate() {
     submenu: [
       cmd('Project Settings…', 'settings.openProject'),
       cmd('Initialize as Frame Project', 'project.initializeFrame')
-      // Orchestrator hidden from the menu for now (see WORKSPACE_NAV_GROUPS in
+      // Orchestrator hidden from the menu for now (see PROJECT_NAV_GROUPS in
       // projectListUI.js); the feature stays reachable from the command palette.
       // SEP,
       // cmd('Open Orchestrator (Beta)', 'orchestrator.open', 'CmdOrCtrl+Shift+O')

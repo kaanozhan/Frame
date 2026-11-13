@@ -30,6 +30,12 @@ const {
   ArrowRightLeft, Play, ExternalLink, Trash2, SquareTerminal
 } = require('lucide');
 const { IPC } = require('../shared/ipcChannels');
+// Branch and worktree calls name the selected workspace, so main routes them
+// by id, not by path (server-hardening T6).
+const wsCtx = () => {
+  const ws = require('./state').getWorkspace();
+  return ws && ws.id ? { workspaceId: ws.id } : {};
+};
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
 const taskConfirmModal = require('./taskConfirmModal');
@@ -496,12 +502,17 @@ async function invokeSection(id, path) {
       return { error: result.error, rows: rowModels.issueRows(result) };
     }
     case 'branches': {
-      const result = await ipcRenderer.invoke(IPC.LOAD_GIT_BRANCHES, path);
+      const result = await ipcRenderer.invoke(IPC.LOAD_GIT_BRANCHES, path, wsCtx());
       return { error: result.error, rows: rowModels.branchRows(result) };
     }
     case 'worktrees': {
-      const result = await ipcRenderer.invoke(IPC.LOAD_GIT_WORKTREES, path);
-      return { error: result.error, rows: rowModels.worktreeRows(result, path) };
+      const [result, listed] = await Promise.all([
+        ipcRenderer.invoke(IPC.LOAD_GIT_WORKTREES, path, wsCtx()),
+        ipcRenderer.invoke(IPC.WORKSPACES_LIST, path).catch(() => null)
+      ]);
+      // Worktrees that are workspaces carry their name (workspaces spec).
+      const workspaces = listed && Array.isArray(listed.workspaces) ? listed.workspaces : [];
+      return { error: result.error, rows: rowModels.worktreeRows(result, path, workspaces) };
     }
     default:
       return { error: null, rows: [] };
@@ -823,7 +834,7 @@ async function switchBranch(row) {
   const path = projectPath();
   if (!path) return;
   try {
-    const result = await ipcRenderer.invoke(IPC.SWITCH_GIT_BRANCH, { projectPath: path, branchName: row.id });
+    const result = await ipcRenderer.invoke(IPC.SWITCH_GIT_BRANCH, { projectPath: path, branchName: row.id, ...wsCtx() });
     if (reportDirty(result)) return;
     if (result.error) {
       notify.error(`Failed: ${result.error}`);
@@ -860,6 +871,7 @@ async function startWork(row) {
   const branchName = rowModels.issueBranchName(row.number, row.primary);
   try {
     const result = await ipcRenderer.invoke(IPC.CREATE_GIT_BRANCH, {
+      ...wsCtx(),
       projectPath: path,
       branchName,
       baseBranch: null,
@@ -906,7 +918,7 @@ async function deleteBranch(row) {
   if (!ok) return;
 
   try {
-    let result = await ipcRenderer.invoke(IPC.DELETE_GIT_BRANCH, { projectPath: path, branchName: name, force: false });
+    let result = await ipcRenderer.invoke(IPC.DELETE_GIT_BRANCH, { projectPath: path, branchName: name, force: false, ...wsCtx() });
     if (result.error) {
       const force = await confirmModal({
         heading: 'Force delete branch?',
@@ -914,7 +926,7 @@ async function deleteBranch(row) {
         confirmLabel: 'Force delete'
       });
       if (!force) return;
-      result = await ipcRenderer.invoke(IPC.DELETE_GIT_BRANCH, { projectPath: path, branchName: name, force: true });
+      result = await ipcRenderer.invoke(IPC.DELETE_GIT_BRANCH, { projectPath: path, branchName: name, force: true, ...wsCtx() });
       if (result.error) {
         notify.error(`Failed: ${result.error}`);
         return;
@@ -947,7 +959,7 @@ async function removeWorktree(row) {
   if (!ok) return;
 
   try {
-    let result = await ipcRenderer.invoke(IPC.REMOVE_GIT_WORKTREE, { projectPath: path, worktreePath: row.path, force: false });
+    let result = await ipcRenderer.invoke(IPC.REMOVE_GIT_WORKTREE, { projectPath: path, worktreePath: row.path, force: false, ...wsCtx() });
     if (result.error) {
       const force = await confirmModal({
         heading: 'Force remove worktree?',
@@ -955,7 +967,7 @@ async function removeWorktree(row) {
         confirmLabel: 'Force remove'
       });
       if (!force) return;
-      result = await ipcRenderer.invoke(IPC.REMOVE_GIT_WORKTREE, { projectPath: path, worktreePath: row.path, force: true });
+      result = await ipcRenderer.invoke(IPC.REMOVE_GIT_WORKTREE, { projectPath: path, worktreePath: row.path, force: true, ...wsCtx() });
       if (result.error) {
         notify.error(`Failed: ${result.error}`);
         return;
@@ -1026,7 +1038,7 @@ async function populateBaseBranchSelect(select) {
   }
 
   try {
-    const result = await ipcRenderer.invoke(IPC.LOAD_GIT_BRANCHES, path);
+    const result = await ipcRenderer.invoke(IPC.LOAD_GIT_BRANCHES, path, wsCtx());
     if (result.error || !result.branches) {
       select.innerHTML = '<option value="">Failed to load branches</option>';
       return;
@@ -1066,6 +1078,7 @@ async function handleCreateBranch() {
 
   try {
     const result = await ipcRenderer.invoke(IPC.CREATE_GIT_BRANCH, {
+      ...wsCtx(),
       projectPath: path,
       branchName,
       baseBranch,

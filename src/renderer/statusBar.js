@@ -46,7 +46,7 @@ const { formatShortcut } = require('./platform');
 const { escapeHtml } = require('./htmlUtils');
 const tooltip = require('./tooltip');
 const uiZoom = require('../shared/uiZoom');
-const { GitBranch, Bot } = require('lucide');
+const { GitBranch, Bot, Server } = require('lucide');
 const branchPicker = require('./statusBar/branchPicker');
 const noticeTray = require('./statusBar/noticeTray');
 const githubPanel = require('./githubPanel');
@@ -94,6 +94,7 @@ function init() {
   ipcRenderer.on(IPC.CLAUDE_USAGE_DATA, (event, data) => updateUsage(data));
   ipcRenderer.send(IPC.LOAD_CLAUDE_USAGE);
 
+  _buildServer();
   _buildBranch();
   _buildDockIcons();
   _buildAgentSlot();
@@ -166,6 +167,33 @@ function _buildNoticeTray() {
 
 // ─── The left slot, first: the current git branch ───────────
 
+// ─── The left slot, first of all: the Frame Server link ─────
+// server-workspaces spec. Shown once a server has been used: host and a
+// state dot (connected / connecting / reconnecting / error); a click opens
+// the Connect dialog.
+
+function _buildServer() {
+  const slot = barEl.querySelector('.status-bar-left');
+  if (!slot) return;
+  const serverConnect = require('./serverConnect');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'sb-branch sb-server';
+  btn.hidden = true;
+  btn.addEventListener('click', () => serverConnect.open());
+  slot.appendChild(btn);
+  const paint = (s) => {
+    const host = s.host || (s.saved && s.saved.host);
+    if (!host || (s.state === 'off' && !(s.saved && s.saved.host))) { btn.hidden = true; return; }
+    btn.hidden = false;
+    btn.dataset.state = s.state;
+    btn.innerHTML = `${dock.lucideIcon(Server, 16)}<span class="sb-branch-name">${escapeHtml(host)}</span><span class="sb-server-dot" aria-hidden="true"></span>`;
+    btn.title = `${serverConnect.LABELS[s.state] || s.state} · ${host}${s.error && s.state !== 'connected' ? ` — ${s.error}` : ''}`;
+  };
+  serverConnect.onChange(paint);
+  paint(serverConnect.getStatus());
+}
+
 function _buildBranch() {
   const slot = barEl.querySelector('.status-bar-left');
   if (!slot) return;
@@ -197,13 +225,20 @@ function _buildBranch() {
   // one on screen, so a late push from the previous project cannot label
   // this one with its branch.
   ipcRenderer.on(IPC.GIT_STATUS_DATA, (event, payload) => {
-    if (!payload || payload.projectPath !== state.getProjectPath()) return;
+    // Main watches the selected workspace's folder, so that is what a push
+    // is for — compare against the workspace root, not the project path.
+    if (!payload || payload.projectPath !== state.getWorkspaceRoot()) return;
     _renderBranch(payload.isRepo ? payload.branch : null);
   });
   // Between projects the old name must not linger until the next push, and
   // the picker (its own onProjectChange closes it too) must not show the
   // previous repo's list.
   state.onProjectChange(() => {
+    branchPicker.close();
+    _renderBranch(null);
+  });
+  // Same between workspaces: each has its own branch.
+  state.onWorkspaceChange(() => {
     branchPicker.close();
     _renderBranch(null);
   });

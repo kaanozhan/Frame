@@ -1,0 +1,146 @@
+# Frame Server packages (server-install-update spec).
+#
+# Builds the Frame Server package on real Linux machines — x64 and arm64 —
+# inside manylinux_2_28 containers (AlmaLinux 8, glibc 2.28: the floor of the
+# bundled Node 20), so node-pty runs on every distribution Node 20 runs on
+# (server-hardening S2). Each package is smoke-booted (terminal through
+# node-pty, screen mirror, clone and workspace) in its build container and
+# again on the oldest supported distributions, where the install script also
+# installs it. Pull requests that touch the
+# server run build + smoke; a published release also attaches every package,
+# its .sha256 and the install script to that release, so Connect to Server
+# can download them. The desktop release itself is built elsewhere; this
+# only adds the server assets to it.
+name: Server package
+
+on:
+  pull_request:
+    paths:
+      - 'src/server/**'
+      - 'src/main/**'
+      - 'src/shared/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/server-package.yml'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-x64
+            image: quay.io/pypa/manylinux_2_28_x86_64
+          - runner: ubuntu-24.04-arm
+            platform: linux-arm64
+            image: quay.io/pypa/manylinux_2_28_aarch64
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.image }}
+    env:
+      # node-gyp (node-pty) needs a Python; manylinux keeps them under /opt/python.
+      npm_config_python: /opt/python/cp312-cp312/bin/python
+    steps:
+      - name: Tools
+        run: command -v git >/dev/null 2>&1 || dnf install -y git
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Release tag matches package.json
+        if: github.event_name == 'release'
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$version" ]; then
+            echo "Release tag v$tag does not match package.json version $version" >&2
+            exit 1
+          fi
+
+      - name: Build the package (glibc 2.28)
+        run: node scripts/build-server-package.js --out dist-server
+
+      - name: Smoke-boot the package
+        run: node scripts/smoke-server-package.js dist-server/frame-server-*-${{ matrix.platform }}.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frame-server-${{ matrix.platform }}
+          path: dist-server/
+          retention-days: 14
+
+  # The oldest distributions Frame Server supports: boot each package with its
+  # own Node and install it with the real script.
+  old-distros:
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux-x64, linux-arm64]
+        image: ['rockylinux:8', 'debian:11', 'ubuntu:20.04']
+    runs-on: ${{ matrix.platform == 'linux-arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    container: ${{ matrix.image }}
+    steps:
+      - name: Tools
+        run: |
+          if command -v dnf >/dev/null 2>&1; then
+            dnf install -y git tar gzip procps-ng findutils
+          else
+            # Debian 11's security updates moved to archive.debian.org after its LTS ended.
+            if grep -qs bullseye /etc/os-release; then
+              sed -i 's|deb.debian.org/debian-security|archive.debian.org/debian-security|' /etc/apt/sources.list
+            fi
+            apt-get -o Acquire::Check-Valid-Until=false update && DEBIAN_FRONTEND=noninteractive apt-get install -y git ca-certificates procps
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frame-server-${{ matrix.platform }}
+          path: dist-server
+
+      - name: Smoke-boot with the package's own Node
+        run: |
+          tarball="$(ls dist-server/frame-server-*-${{ matrix.platform }}.tar.gz)"
+          mkdir -p /tmp/pkg && tar -xzf "$tarball" -C /tmp/pkg
+          node_bin="$(ls -d /tmp/pkg/frame-server-*/node/bin/node)"
+          "$node_bin" --version
+          "$node_bin" scripts/smoke-server-package.js "$tarball"
+
+      - name: Install with the install script
+        run: |
+          tarball="$(ls dist-server/frame-server-*-${{ matrix.platform }}.tar.gz)"
+          bash scripts/install-frame-server.sh --package-file "$tarball" --checksum "$(awk '{print $1}' "$tarball.sha256")" --service detached
+          "$HOME/.frame-server/bin/frame-server" status --json
+
+  release:
+    if: github.event_name == 'release'
+    needs: [package, old-distros]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write   # gh release upload
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: frame-server-*
+          path: dist-server
+          merge-multiple: true
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$GITHUB_REF_NAME" dist-server/* scripts/install-frame-server.sh --clobber

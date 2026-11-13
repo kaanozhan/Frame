@@ -1,0 +1,21 @@
+{
+  "slug": "workspace-hardening",
+  "title": "Workspace hardening",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-workspace-hardening-T01",
+    "task-spec-workspace-hardening-T02",
+    "task-spec-workspace-hardening-T03",
+    "task-spec-workspace-hardening-T04",
+    "task-spec-workspace-hardening-T05",
+    "task-spec-workspace-hardening-T06",
+    "task-spec-workspace-hardening-T07",
+    "task-spec-workspace-hardening-T08",
+    "task-spec-workspace-hardening-T09"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-11-11T00:09:09.093Z",
+  "updated_at": "2026-11-11T01:11:40.661Z",
+  "last_phase_at": "2026-11-11T01:11:40.661Z",
+  "implement_mode": "guided"
+}

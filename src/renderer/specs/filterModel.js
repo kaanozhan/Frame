@@ -16,6 +16,9 @@
  * - in `all` and `done`, done specs older than `windowDays` are dropped
  *   from `visible` and reported as `olderCount`, unless `showOlder`.
  *   Active is never windowed. Age is read from `updated_at` (D6).
+ * - `sort` orders `visible` by date: `newest` (default) or `oldest` first.
+ *   The date is `updated_at`, falling back to `created_at`; a spec with
+ *   neither sorts as the oldest. Ties keep input order.
  * - `counts` answer "what will I see if I click": they follow the search
  *   pool and, for `all` / `done`, the window. `doneTotal` is the unwindowed
  *   done count for the tooltip.
@@ -33,7 +36,22 @@ const PHASES = Object.freeze([
   { id: 'implementing',    label: 'Implementing' }
 ]);
 
+const SORTS = Object.freeze(['newest', 'oldest']);
+
 const isDone = (s) => s && s.phase === 'done';
+
+function dateValue(s) {
+  const t = Date.parse((s && (s.updated_at || s.created_at)) || '');
+  return Number.isFinite(t) ? t : -Infinity;
+}
+
+function sortByDate(list, sort) {
+  const dir = sort === 'oldest' ? 1 : -1;
+  return list
+    .map((s, i) => ({ s, i, t: dateValue(s) }))
+    .sort((a, b) => (a.t === b.t ? a.i - b.i : (a.t < b.t ? -dir : dir)))
+    .map(x => x.s);
+}
 
 function buildGridModel({
   specs = [],
@@ -42,6 +60,7 @@ function buildGridModel({
   searchMatches = null,
   windowDays = 0,
   showOlder = false,
+  sort = 'newest',
   now = Date.now()
 } = {}) {
   const pool = searchMatches ? specs.filter(s => searchMatches.has(s.slug)) : specs;
@@ -80,7 +99,10 @@ function buildGridModel({
     olderCount = olderDone.length;
   }
 
-  return { visible, olderCount, counts, scope: effectiveScope, phase: effectivePhase };
+  const effectiveSort = SORTS.includes(sort) ? sort : 'newest';
+  visible = sortByDate(visible, effectiveSort);
+
+  return { visible, olderCount, counts, scope: effectiveScope, phase: effectivePhase, sort: effectiveSort };
 }
 
-module.exports = { SCOPES, PHASES, buildGridModel };
+module.exports = { SCOPES, PHASES, SORTS, buildGridModel };

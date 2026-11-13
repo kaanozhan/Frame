@@ -57,10 +57,9 @@ function setHost(h) {
   host = h;
 
   // Main asks us to bring a worker lane to life for a dispatched spec.
-  // Serialize spawns: terminalManager.createTerminal correlates its
-  // TERMINAL_CREATED reply only by channel, so two concurrent creations both
-  // latch onto the first reply and collapse into ONE terminal. Running them
-  // one-at-a-time guarantees each worker gets its own lane.
+  // Spawns run one at a time so lanes appear in dispatch order (replies are
+  // matched by request id since server-hardening T1, so concurrent creates no
+  // longer collapse into one terminal).
   ipcRenderer.on(IPC.ORCH_SPAWN_WORKER, (event, payload) => {
     spawnChain = spawnChain
       .then(() => spawnWorkerLane(payload))
@@ -122,7 +121,9 @@ async function ensureSession() {
 
   let conductorId = null;
   try {
-    conductorId = await host.createTerminalForCurrentProject({ projectPath, extraEnv: orchEnv(projectPath) });
+    // Orchestration lanes are always local, in main — never on whatever
+    // (server) workspace is selected (server-hardening T5).
+    conductorId = await host.createTerminalForCurrentProject({ projectPath, workspaceId: 'main', extraEnv: orchEnv(projectPath) });
   } catch (err) {
     console.error('orchestrator: conductor lane creation failed', err);
   }
@@ -161,7 +162,7 @@ async function spawnWorkerLane({ projectPath, slug, worktreePath, env, promptIns
   try {
     // File the lane under its own project (not "current") — a background
     // project may dispatch a worker while the user is viewing another one.
-    terminalId = await host.createTerminalForCurrentProject({ projectPath, cwd: worktreePath, extraEnv: env });
+    terminalId = await host.createTerminalForCurrentProject({ projectPath, workspaceId: 'main', cwd: worktreePath, extraEnv: env });
   } catch (err) {
     console.error('orchestrator: worker lane creation failed', err);
   }
