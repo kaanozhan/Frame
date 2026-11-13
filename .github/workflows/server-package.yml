@@ -96,7 +96,11 @@ jobs:
           if command -v dnf >/dev/null 2>&1; then
             dnf install -y git tar gzip procps-ng findutils
           else
-            apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git ca-certificates procps
+            # Debian 11's security updates moved to archive.debian.org after its LTS ended.
+            if grep -qs bullseye /etc/os-release; then
+              sed -i 's|deb.debian.org/debian-security|archive.debian.org/debian-security|' /etc/apt/sources.list
+            fi
+            apt-get -o Acquire::Check-Valid-Until=false update && DEBIAN_FRONTEND=noninteractive apt-get install -y git ca-certificates procps
           fi
 
       - uses: actions/checkout@v4

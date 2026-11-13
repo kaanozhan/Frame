@@ -47,8 +47,11 @@ function fail(msg) {
   const origin = path.join(work, 'origin.git');
   const seed = path.join(work, 'seed');
   const git = (args, cwd) => execFileSync('git', args, { cwd, stdio: 'ignore', env: { ...process.env, GIT_AUTHOR_NAME: 'smoke', GIT_AUTHOR_EMAIL: 'smoke@frame', GIT_COMMITTER_NAME: 'smoke', GIT_COMMITTER_EMAIL: 'smoke@frame' } });
-  git(['init', '-q', '--bare', '-b', 'main', origin], work);
-  git(['init', '-q', '-b', 'main', seed], work);
+  // `init -b` needs git 2.28; the old-distro images ship 2.25.
+  git(['init', '-q', '--bare', origin], work);
+  git(['symbolic-ref', 'HEAD', 'refs/heads/main'], origin);
+  git(['init', '-q', seed], work);
+  git(['symbolic-ref', 'HEAD', 'refs/heads/main'], seed);
   fs.writeFileSync(path.join(seed, 'README.md'), 'smoke\n');
   git(['add', '.'], seed);
   git(['commit', '-qm', 'init'], seed);

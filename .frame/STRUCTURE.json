@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-11",
+  "lastUpdated": "2026-11-13",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -46,7 +46,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 4924,
+      "sizeBytes": 5236,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -21827,7 +21827,7 @@
           ]
         }
       },
-      "sizeBytes": 6388,
+      "sizeBytes": 6542,
       "extraction": {
         "status": "parsed"
       }
@@ -34512,6 +34512,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "5edf5390ee4843df966b9c379edadc9d55624e5753660935088dcc02d4ecd8fa"
+    "revision": "62d4a69d85991b5d971da331d8add5380cedf16cefeb61765a760254a5a12d8d"
   }
 }
