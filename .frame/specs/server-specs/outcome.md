@@ -14,3 +14,11 @@ Added `src/server/specs.js` with `specs.list` (which first imports each spec's t
 _Captured: 2026-11-14 · 4 file change(s)_
 
 ---
+
+## T03 — Frame Server watches specs and pushes changes
+
+Added `specs.watch { projectPath, roots }` (replaces the watched set; every root passes the same project/workspace guard) and `specs.unwatch` to `src/server/specs.js`. A recursive `fsSafe.safeWatch` on each root's `.frame/specs` pushes one debounced (300 ms) `specs.changed { root }` per burst. The part's `idle`/`stop` close every watcher when the last desktop leaves. Tests in `test/serverSpecs.test.js` settle before asserting, because macOS FSEvents replays writes made just before a watch starts, and an `after` hook closes watchers so the run cannot hang.
+
+_Captured: 2026-11-14 · 2 file change(s)_
+
+---

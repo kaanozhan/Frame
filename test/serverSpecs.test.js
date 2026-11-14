@@ -8,7 +8,7 @@
  * project and workspace (projects.receive + workspaces.create).
  */
 
-const { test } = require('node:test');
+const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
@@ -33,6 +33,8 @@ const register = (m) => Object.assign(methods, m);
 require('../src/server/projects').setup({ shim: handle, registerMethods: register, broadcast() {} });
 const specsPart = require('../src/server/specs').setup({ shim: handle, registerMethods: register, broadcast: (...a) => events.push(a) });
 const events = [];
+// Open watchers would keep the test process alive.
+after(() => specsPart.idle());
 
 const specManager = require('../src/main/specManager');
 
@@ -191,4 +193,51 @@ test('T02: a folder that is not a server project or its workspace is refused', a
   await assert.rejects(methods['specs.list']({ projectPath, root: elsewhere }), /not a workspace of this project/);
   await assert.rejects(methods['specs.list']({ projectPath: elsewhere, root: elsewhere }), /not on the server/);
   await assert.rejects(methods['specs.get']({ projectPath, root: ws, slug: '../../etc' }), /Not a spec name/);
+});
+
+// ─── T03: watch and push ─────────────────────────────────────
+
+async function waitFor(pred, ms, what) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (pred()) return;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error(`timed out waiting for ${what}`);
+}
+
+test('T03: a change under a watched workspace\'s specs pushes one specs.changed for that root', async () => {
+  const { projectPath, ws, dir } = await serverWorkspace();
+  const r = await methods['specs.watch']({ projectPath, roots: [ws] });
+  assert.deepEqual(r.watching, [path.resolve(ws)]);
+  events.length = 0;
+  fs.writeFileSync(path.join(dir, 'plan.md'), '# Plan\n');
+  fs.writeFileSync(path.join(dir, 'status.json'), JSON.stringify({ slug: 'on-server', title: 'On server', phase: 'planned', generated_task_ids: [] }));
+  await waitFor(() => events.some(([name]) => name === 'specs.changed'), 3000, 'specs.changed');
+  await new Promise((res) => setTimeout(res, 500));
+  const pushes = events.filter(([name]) => name === 'specs.changed');
+  assert.equal(pushes.length, 1, 'a burst of writes is one push');
+  assert.deepEqual(pushes[0][1], { root: path.resolve(ws) });
+  await methods['specs.unwatch']();
+});
+
+test('T03: watching stops on unwatch, on a new set without the root, and when the last desktop leaves', async () => {
+  const a = await serverWorkspace();
+  const b = await serverWorkspace();
+  await methods['specs.watch']({ projectPath: a.projectPath, roots: [a.ws] });
+  await methods['specs.watch']({ projectPath: b.projectPath, roots: [b.ws] });
+  // FSEvents may still replay writes made just before a watch started, so
+  // settle first and then look only at pushes for the root in question.
+  await new Promise((res) => setTimeout(res, 700));
+  const pushesFor = (root) => events.filter(([n, p]) => n === 'specs.changed' && p.root === path.resolve(root)).length;
+  events.length = 0;
+  fs.writeFileSync(path.join(a.dir, 'plan.md'), 'changed\n');
+  await new Promise((res) => setTimeout(res, 700));
+  assert.equal(pushesFor(a.ws), 0, 'a root dropped from the set is no longer watched');
+  specsPart.idle();
+  events.length = 0;
+  fs.writeFileSync(path.join(b.dir, 'plan.md'), 'changed\n');
+  await new Promise((res) => setTimeout(res, 700));
+  assert.equal(pushesFor(b.ws), 0, 'idle stops every watcher');
+  await assert.rejects(methods['specs.watch']({ projectPath: a.projectPath, roots: [path.join(SANDBOX, 'home')] }), /not a workspace/);
 });

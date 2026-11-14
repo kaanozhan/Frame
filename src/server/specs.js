@@ -10,6 +10,13 @@
  *   specs.get    { projectPath, root, slug }        getSpecIn
  *   specs.report { projectPath, root, slug, kind }  readSpecReportIn
  *   specs.status { projectPath, root, slug, partial } updateSpecStatusIn (phase, implement_mode)
+ *   specs.watch  { projectPath, roots }             watch each root's .frame/specs (replaces the set)
+ *   specs.unwatch                                   stop watching
+ *
+ * Event: specs.changed { root } — a debounced change under a watched root's
+ * .frame/specs (an agent wrote status.json, a plan or a report). The desktop
+ * re-lists that root; it never polls. Watching stops when the last desktop
+ * disconnects (idle) and starts again when one asks.
  *
  * `projectPath` is the server clone (task state lives in its tasks.json, the
  * server's counterpart of the main checkout); `root` is the clone itself or
@@ -17,14 +24,19 @@
  * and write only inside the server's own projects and workspaces.
  */
 
+const fs = require('fs');
 const path = require('path');
 
 const SLUG_RE = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
 // What the desktop may change on a server spec: what the spec flow needs.
 const STATUS_KEYS = ['phase', 'implement_mode'];
+const CHANGE_DEBOUNCE_MS = 300;
 
-function setup({ registerMethods }) {
+function setup({ registerMethods, broadcast }) {
   const specManager = require('../main/specManager');
+  const fsSafe = require('../main/fsSafe');
+  const frameStore = require('../main/frameStore');
+  const watchers = new Map(); // root → { watcher, timer }
   const projectRegistry = require('../main/projectRegistry');
   const workspaceRegistry = require('../shared/workspaceRegistry');
 
@@ -47,6 +59,37 @@ function setup({ registerMethods }) {
     return slug;
   }
 
+  function unwatch(root) {
+    const entry = watchers.get(root);
+    if (!entry) return;
+    if (entry.timer) clearTimeout(entry.timer);
+    try { entry.watcher.close(); } catch (_) { /* already closed */ }
+    watchers.delete(root);
+  }
+
+  function unwatchAll() {
+    for (const root of Array.from(watchers.keys())) unwatch(root);
+  }
+
+  function watch(root) {
+    if (watchers.has(root)) return;
+    const dir = frameStore.specsRoot(root);
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      const entry = { watcher: null, timer: null };
+      entry.watcher = fsSafe.safeWatch(dir, { recursive: true }, () => {
+        if (entry.timer) clearTimeout(entry.timer);
+        entry.timer = setTimeout(() => {
+          entry.timer = null;
+          broadcast('specs.changed', { root });
+        }, CHANGE_DEBOUNCE_MS);
+      }, () => { watchers.delete(root); });
+      watchers.set(root, entry);
+    } catch (err) {
+      console.warn(`[frame-server] could not watch specs in ${root}: ${err.message}`);
+    }
+  }
+
   registerMethods({
     'specs.list': async ({ projectPath, root } = {}) => {
       const dir = checkout(projectPath, root);
@@ -63,10 +106,21 @@ function setup({ registerMethods }) {
       }
       if (!Object.keys(allowed).length) return { error: 'Only the phase and implement mode of a server spec can be changed from the desktop.' };
       return specManager.updateSpecStatusIn(dir, needSlug(slug), allowed);
-    }
+    },
+    'specs.watch': async ({ projectPath, roots } = {}) => {
+      const wanted = (Array.isArray(roots) ? roots : []).map((r) => checkout(projectPath, r));
+      for (const root of Array.from(watchers.keys())) if (!wanted.includes(root)) unwatch(root);
+      for (const root of wanted) watch(root);
+      return { watching: Array.from(watchers.keys()) };
+    },
+    'specs.unwatch': async () => { unwatchAll(); return null; }
   });
 
-  return {};
+  return {
+    stop: unwatchAll,
+    // No desktop is connected: nobody receives specs.changed.
+    idle: unwatchAll
+  };
 }
 
 module.exports = { setup };

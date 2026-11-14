@@ -25042,20 +25042,24 @@
         "setup"
       ],
       "depends": [
+        "fs",
         "path",
         "main/specManager",
+        "main/fsSafe",
+        "main/frameStore",
         "main/projectRegistry",
         "shared/workspaceRegistry"
       ],
       "functions": {
         "setup": {
-          "line": 26,
+          "line": 35,
           "params": [
-            "{ registerMethods }"
+            "{ registerMethods",
+            "broadcast }"
           ]
         }
       },
-      "sizeBytes": 3517,
+      "sizeBytes": 5759,
       "extraction": {
         "status": "parsed"
       },
@@ -30762,25 +30766,33 @@
       ],
       "functions": {
         "write": {
-          "line": 39,
+          "line": 41,
           "params": [
             "file",
             "body"
           ]
         },
         "fixture": {
-          "line": 45,
+          "line": 47,
           "params": [
             "name"
           ],
           "purpose": "A worktree with one planned spec, and a separate clone holding task state."
         },
         "serverWorkspace": {
-          "line": 136,
+          "line": 138,
           "purpose": "A server project received by bundle, with one server workspace holding a spec."
+        },
+        "waitFor": {
+          "line": 200,
+          "params": [
+            "pred",
+            "ms",
+            "what"
+          ]
         }
       },
-      "sizeBytes": 10939,
+      "sizeBytes": 13576,
       "extraction": {
         "status": "parsed"
       },
@@ -34673,6 +34685,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "409278c26a99ccbd7a103b387880edcd5ba13040f8cb184c8e39f1473617bbc5"
+    "revision": "a77f49a2eaea309fc7c516152a223aef766886f521f63b84ecc667bed9dc74ec"
   }
 }
