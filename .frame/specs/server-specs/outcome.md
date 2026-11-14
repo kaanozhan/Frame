@@ -30,3 +30,11 @@ Added `specs.stage` to `src/server/specs.js`. It provisions the server clone fro
 _Captured: 2026-11-14 · 2 file change(s)_
 
 ---
+
+## T05 — Desktop lists server specs
+
+specManager now caches each server workspace's `specs.list` for the watched project. The cache fills after the workspace-watch push and on `connected`, refreshes one root on `specs.changed`, is re-listed 1.5 s after the server's `workspaces.updated` (server rows reach workspaceManager only when the renderer re-lists), and is tagged offline on `disconnected`. The cache is merged into `listSpecs` through `listSpecsCore(…, extraLists)`. An older server's 'Unknown method' lists nothing. `stopWatching` also sends `specs.unwatch` and is now exported for tests. `mergeSpecLists` carries `host`/`offline` for server entries only, and `chipLabel` gives `name · host [· offline]`. Deviation: the workspace's branch is `null` for server specs, because `serverRoots` does not expose it. Tests in `test/specManagerServer.test.js` and `test/workspaceSpecs.test.js`.
+
+_Captured: 2026-11-14 · 4 file change(s)_
+
+---

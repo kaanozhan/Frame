@@ -312,11 +312,11 @@ function buildSpecCatalog(projectPath) {
 function listSpecs(projectPath) {
   // Every checkout of the project: main plus active workspaces. Each slug is
   // read from the one checkout that holds it (see specLocations).
-  return listSpecsCore(projectPath, projectPath, refreshSpecLocations(projectPath));
+  return listSpecsCore(projectPath, projectPath, refreshSpecLocations(projectPath), serverSpecLists(projectPath));
 }
 
-function listSpecsCore(projectPath, tasksProject, locations) {
-  if (locations.size === 0) return [];
+function listSpecsCore(projectPath, tasksProject, locations, extraLists = []) {
+  if (locations.size === 0 && !extraLists.length) return [];
   const entries = Array.from(locations.keys()).map((name) => ({ name, isDirectory: () => true }));
 
   // Load tasks once so reconcilePhase can look at task statuses (the
@@ -398,7 +398,7 @@ function listSpecsCore(projectPath, tasksProject, locations) {
     if (!byWorkspace.has(t.loc.workspace.id)) byWorkspace.set(t.loc.workspace.id, { workspace: t.loc.workspace, specs: [] });
     byWorkspace.get(t.loc.workspace.id).specs.push(t.spec);
   }
-  return mergeSpecLists(mainSpecs, Array.from(byWorkspace.values()));
+  return mergeSpecLists(mainSpecs, [...byWorkspace.values(), ...extraLists]);
 }
 
 /**
@@ -1440,6 +1440,7 @@ function refreshWorkspaceWatchers(projectPath) {
     }
   }
   pushSpecData(projectPath);
+  refreshServerSpecs(projectPath).catch((err) => console.warn('specManager: server specs refresh failed', err.message));
 }
 
 function startWatching(projectPath) {
@@ -1532,6 +1533,7 @@ function stopWatching() {
   }
   activeTasksWatcher = null;
   closeWorkspaceSpecWatchers();
+  unwatchServerSpecs();
   activeWatchedProject = null;
   busySpecSlugs.clear();
   // specLifecycle is kept: it is per project, and a spec created while the
@@ -1659,6 +1661,136 @@ function pushSpecData(projectPath) {
   mainWindow.webContents.send(IPC.SPEC_DATA, { projectPath, specs });
 }
 
+// ─── Server workspaces' specs (server-specs T05) ──────────
+//
+// A server workspace's worktree is not on this disk, so its specs come from
+// Frame Server: `specs.list` per server workspace of the watched project,
+// cached here and merged into listSpecs like any workspace's specs. The
+// server watches those folders and pushes `specs.changed { root }`; the
+// desktop never polls. While disconnected, the last known entries stay,
+// tagged offline (their names only — opening one says the host is offline).
+
+const serverSpecs = new Map(); // workspaceId → { projectPath, serverProjectPath, root, workspace, specs }
+const SERVER_ROWS_SETTLE_MS = 1500;
+let serverSpecsWired = false;
+let serverRowsTimer = null;
+
+function serverConn() {
+  return require('./serverConnection');
+}
+
+/** The watched project's server workspaces: `[{ id, root, host, projectPath, serverProjectPath, name }]`. */
+function serverWorkspacesOf(projectPath) {
+  let wm;
+  try { wm = require('./workspaceManager'); } catch (_) { return []; }
+  let roots = [];
+  try { roots = wm.serverRoots() || []; } catch (_) { roots = []; }
+  return roots.filter((r) => r && r.projectPath === projectPath).map((r) => {
+    let name = null;
+    try { name = (wm.serverLocation(r.id) || {}).name || null; } catch (_) { name = null; }
+    return { ...r, name: name || path.basename(r.root) };
+  });
+}
+
+/** `[{ workspace, specs }]` for mergeSpecLists — the cached server lists of `projectPath`. */
+function serverSpecLists(projectPath) {
+  const out = [];
+  for (const entry of serverSpecs.values()) {
+    if (entry.projectPath === projectPath) out.push({ workspace: entry.workspace, specs: entry.specs });
+  }
+  return out;
+}
+
+function markServerSpecsOffline() {
+  let changed = false;
+  for (const entry of serverSpecs.values()) {
+    if (!entry.workspace.offline) { entry.workspace = { ...entry.workspace, offline: true }; changed = true; }
+  }
+  return changed;
+}
+
+/**
+ * Re-list the server workspaces of `projectPath` (only `onlyRoot` when given),
+ * ask the server to watch them, and push. Unknown method (an older Frame
+ * Server) lists nothing rather than failing the panel.
+ */
+async function refreshServerSpecs(projectPath, onlyRoot = null) {
+  if (!projectPath) return;
+  const rows = serverWorkspacesOf(projectPath);
+  const ids = new Set(rows.map((r) => r.id));
+  let changed = false;
+  for (const [id, entry] of serverSpecs) {
+    if (entry.projectPath === projectPath && !ids.has(id)) { serverSpecs.delete(id); changed = true; }
+  }
+  const sc = serverConn();
+  if (!sc.isConnected()) {
+    if (markServerSpecsOffline() || changed) pushSpecData(projectPath);
+    return;
+  }
+  for (const r of rows) {
+    if (onlyRoot && r.root !== onlyRoot) continue;
+    const workspace = { id: r.id, name: r.name, branch: null, root: r.root, host: r.host, offline: false };
+    try {
+      const specs = await sc.call('specs.list', { projectPath: r.serverProjectPath, root: r.root });
+      serverSpecs.set(r.id, { projectPath, serverProjectPath: r.serverProjectPath, root: r.root, workspace, specs: Array.isArray(specs) ? specs : [] });
+    } catch (err) {
+      if (/Unknown method/.test(String(err && err.message))) serverSpecs.delete(r.id);
+      else if (serverSpecs.has(r.id)) serverSpecs.get(r.id).workspace = { ...workspace, offline: !sc.isConnected() };
+      console.warn('specManager: specs.list failed for', r.root, err && err.message);
+    }
+    changed = true;
+  }
+  // One watched set per server project (the watched project has one).
+  const bySp = new Map();
+  for (const r of rows) {
+    if (!bySp.has(r.serverProjectPath)) bySp.set(r.serverProjectPath, []);
+    bySp.get(r.serverProjectPath).push(r.root);
+  }
+  for (const [sp, roots] of bySp) {
+    sc.call('specs.watch', { projectPath: sp, roots }).catch(() => { /* older server, or gone — the next connect retries */ });
+  }
+  if (changed) pushSpecData(projectPath);
+}
+
+function unwatchServerSpecs() {
+  if (!serverSpecs.size) return;
+  try {
+    const sc = serverConn();
+    if (sc.isConnected()) sc.call('specs.unwatch', {}).catch(() => { /* gone */ });
+  } catch (_) { /* no connection module */ }
+}
+
+function wireServerSpecs() {
+  if (serverSpecsWired) return;
+  serverSpecsWired = true;
+  let sc;
+  try { sc = serverConn(); } catch (_) { return; }
+  sc.on('specs.changed', ({ root } = {}) => {
+    for (const entry of serverSpecs.values()) {
+      if (entry.root === root && entry.projectPath === activeWatchedProject) {
+        refreshServerSpecs(entry.projectPath, root).catch(() => { /* reported inside */ });
+        return;
+      }
+    }
+  });
+  sc.on('connected', () => {
+    if (activeWatchedProject) refreshServerSpecs(activeWatchedProject).catch(() => { /* reported inside */ });
+  });
+  sc.on('disconnected', () => {
+    if (markServerSpecsOffline() && activeWatchedProject) pushSpecData(activeWatchedProject);
+  });
+  // Server workspace rows reach workspaceManager when the renderer re-lists
+  // after this event; give that a moment, then follow the new set.
+  sc.on('workspaces.updated', () => {
+    if (serverRowsTimer) clearTimeout(serverRowsTimer);
+    serverRowsTimer = setTimeout(() => {
+      serverRowsTimer = null;
+      if (activeWatchedProject) refreshServerSpecs(activeWatchedProject).catch(() => { /* reported inside */ });
+    }, SERVER_ROWS_SETTLE_MS);
+    if (typeof serverRowsTimer.unref === 'function') serverRowsTimer.unref();
+  });
+}
+
 // ─── Per-checkout readers (server-specs T01) ──────────────
 //
 // Frame Server reads and stages specs in one worktree at a time and keeps no
@@ -1726,6 +1858,7 @@ function buildSpecCommandFileIn(root, tasksProject, slug, command, aiTool, descr
 
 function init(window) {
   mainWindow = window;
+  wireServerSpecs();
 }
 
 function setupIPC(ipcMain) {
@@ -1818,6 +1951,7 @@ module.exports = {
   derivePhase,
   reconcilePhase,
   startWatching,
+  stopWatching,
   getCommandPrompt,
   buildSpecCommandFile,
   listSpecsIn,
@@ -1826,6 +1960,7 @@ module.exports = {
   updateSpecStatusIn,
   buildSpecCommandFileIn,
   syncSpecTasksIn,
+  refreshServerSpecs,
   specNewPromptFilename,
   buildImplementPermissions,
   resolveVerificationCommand,
