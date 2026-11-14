@@ -4,6 +4,8 @@
  * T01: specManager's per-checkout readers — the same readers scoped to one
  * checkout root, with task state read from a separate tasks project (on the
  * server: the worktree, and the server clone's tasks.json).
+ * T02: Frame Server's specs.list / get / report / status on a real server
+ * project and workspace (projects.receive + workspaces.create).
  */
 
 const { test } = require('node:test');
@@ -11,21 +13,26 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const Module = require('node:module');
+
+const { execFileSync } = require('child_process');
 
 const SANDBOX = fs.mkdtempSync(path.join(os.tmpdir(), 'frame-srvspecs-'));
-process.env.HOME = SANDBOX;
+process.env.HOME = path.join(SANDBOX, 'home');
+fs.mkdirSync(process.env.HOME, { recursive: true });
+process.env.FRAME_SERVER_PROJECTS = path.join(SANDBOX, 'projects');
+process.env.FRAME_SERVER_HOME = path.join(SANDBOX, 'server-home');
+process.env.GIT_CONFIG_NOSYSTEM = '1';
+const git = (args, cwd) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' } }).trim();
 
-const STUBS = {
-  '@aptabase/electron/main': { initialize() {}, trackEvent() {} },
-  'posthog-node': { PostHog: class { capture() {} captureException() {} identify() {} shutdown() { return Promise.resolve(); } } },
-  electron: { app: { getPath: () => SANDBOX, getVersion: () => '0.0.0', on() {} }, ipcMain: { handle() {}, on() {} }, BrowserWindow: { getAllWindows: () => [] } }
-};
-const loadOriginal = Module._load;
-Module._load = function (request, ...rest) {
-  if (Object.prototype.hasOwnProperty.call(STUBS, request)) return STUBS[request];
-  return loadOriginal.call(this, request, ...rest);
-};
+// The server's own headless environment: electron and analytics are stubbed
+// by the shim, as in Frame Server.
+const shim = require('../src/server/electronShim');
+const handle = shim.install({ home: path.join(SANDBOX, 'server-home'), version: '0.0.0' });
+const methods = {};
+const register = (m) => Object.assign(methods, m);
+require('../src/server/projects').setup({ shim: handle, registerMethods: register, broadcast() {} });
+const specsPart = require('../src/server/specs').setup({ shim: handle, registerMethods: register, broadcast: (...a) => events.push(a) });
+const events = [];
 
 const specManager = require('../src/main/specManager');
 
@@ -120,4 +127,68 @@ test('T01: a per-checkout read leaves the project\'s own slug map alone', () => 
   specManager.listSpecsIn(worktree, worktree);
   assert.deepEqual(specManager.listSpecs(project).map((s) => s.slug), ['local-one']);
   assert.equal(specManager.getSpec(project, 'remote-thing'), null, 'the worktree\'s spec does not leak into the project');
+});
+
+// ─── T02: Frame Server reads specs ───────────────────────────
+
+let seq = 0;
+/** A server project received by bundle, with one server workspace holding a spec. */
+async function serverWorkspace() {
+  const local = path.join(SANDBOX, `local-${++seq}`);
+  git(['init', '-q', '-b', 'main', local]);
+  write(path.join(local, 'a.txt'), 'one\n');
+  write(path.join(local, '.frame', 'tasks.json'), { tasks: [] });
+  git(['add', '.'], local); git(['commit', '-qm', 'first'], local);
+  const root = git(['rev-list', '--max-parents=0', 'HEAD'], local);
+  const tmp = path.join(SANDBOX, 'server-home', 'tmp');
+  fs.mkdirSync(tmp, { recursive: true });
+  const bundle = path.join(tmp, `receive-${seq}.bundle`);
+  git(['bundle', 'create', '-q', bundle, 'HEAD', '--branches', '--tags'], local);
+  const { projectPath } = await methods['projects.receive']({ bundlePath: bundle, originUrl: null, root, name: `proj-${seq}` });
+  const created = await methods['workspaces.create']({ projectPath, from: 'new' });
+  assert.ok(created && created.workspace, JSON.stringify(created));
+  const ws = created.workspace.path;
+  const dir = path.join(ws, '.frame', 'specs', 'on-server');
+  write(path.join(dir, 'status.json'), { slug: 'on-server', title: 'On server', phase: 'tasks_generated', generated_task_ids: [] });
+  write(path.join(dir, 'spec.md'), '# On server\n');
+  write(path.join(dir, 'tasks.md'), '# Tasks\n\n- T01 · First\n- T02 · Second\n');
+  write(path.join(dir, 'plan-report.html'), '<html>server report</html>');
+  return { projectPath, ws, dir };
+}
+
+test('T02: specs.list lists a server workspace\'s specs and imports their tasks into the clone\'s tasks.json', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  const specs = await methods['specs.list']({ projectPath, root: ws });
+  assert.deepEqual(specs.map((s) => s.slug), ['on-server']);
+  assert.equal(specs[0].task_count, 2);
+  const cloneTasks = JSON.parse(fs.readFileSync(path.join(projectPath, '.frame', 'tasks.json'), 'utf8'));
+  assert.deepEqual(cloneTasks.tasks.map((t) => t.source).sort(), ['spec:on-server:T01', 'spec:on-server:T02']);
+  const wsTasks = JSON.parse(fs.readFileSync(path.join(ws, '.frame', 'tasks.json'), 'utf8'));
+  assert.deepEqual(wsTasks.tasks, [], 'the branch never carries task state');
+});
+
+test('T02: specs.get and specs.report read from the server workspace', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  const full = await methods['specs.get']({ projectPath, root: ws, slug: 'on-server' });
+  assert.equal(full.spec, '# On server\n');
+  const report = await methods['specs.report']({ projectPath, root: ws, slug: 'on-server', kind: 'plan' });
+  assert.equal(report.html, '<html>server report</html>');
+});
+
+test('T02: specs.status changes only the phase and implement mode', async () => {
+  const { projectPath, ws, dir } = await serverWorkspace();
+  const r = await methods['specs.status']({ projectPath, root: ws, slug: 'on-server', partial: { implement_mode: 'guided', title: 'Hijacked' } });
+  assert.equal(r.status.implement_mode, 'guided');
+  const onDisk = JSON.parse(fs.readFileSync(path.join(dir, 'status.json'), 'utf8'));
+  assert.equal(onDisk.title, 'On server', 'other keys are not written');
+  const none = await methods['specs.status']({ projectPath, root: ws, slug: 'on-server', partial: { title: 'x' } });
+  assert.match(none.error, /phase and implement mode/);
+});
+
+test('T02: a folder that is not a server project or its workspace is refused', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  const elsewhere = path.join(SANDBOX, 'home');
+  await assert.rejects(methods['specs.list']({ projectPath, root: elsewhere }), /not a workspace of this project/);
+  await assert.rejects(methods['specs.list']({ projectPath: elsewhere, root: elsewhere }), /not on the server/);
+  await assert.rejects(methods['specs.get']({ projectPath, root: ws, slug: '../../etc' }), /Not a spec name/);
 });

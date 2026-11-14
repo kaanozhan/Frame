@@ -6,3 +6,11 @@ Added `listSpecsIn`, `getSpecIn`, `readSpecReportIn`, `updateSpecStatusIn` and `
 _Captured: 2026-11-14 · 2 file change(s)_
 
 ---
+
+## T02 — Frame Server reads specs
+
+Added `src/server/specs.js` with `specs.list` (which first imports each spec's tasks.md into the server clone's tasks.json through the new `specManager.syncSpecTasksIn`), `specs.get`, `specs.report` and `specs.status` (phase and implement_mode only), registered in `src/server/index.js`; `syncTasksFromMarkdown` gained an optional tasks project. Deviation: the guard checks that `root` is the server project or one of its active workspaces in the server's project registry, not that it sits under the projects folder — server worktrees live in `~/frame/workspaces`, outside it — so `specs.report` also takes `projectPath`. Tests in `test/serverSpecs.test.js` against a project received by bundle and a real server workspace.
+
+_Captured: 2026-11-14 · 4 file change(s)_
+
+---

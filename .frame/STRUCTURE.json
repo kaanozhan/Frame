@@ -6491,6 +6491,7 @@
         "readSpecReportIn",
         "updateSpecStatusIn",
         "buildSpecCommandFileIn",
+        "syncSpecTasksIn",
         "specNewPromptFilename",
         "buildImplementPermissions",
         "resolveVerificationCommand",
@@ -6876,31 +6877,32 @@
           "line": 1023,
           "params": [
             "projectPath",
-            "slug"
+            "slug",
+            "tasksProject"
           ]
         },
         "arraysEqual": {
-          "line": 1108,
+          "line": 1111,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 1115,
+          "line": 1118,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 1126,
+          "line": 1129,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "readSpecReport": {
-          "line": 1167,
+          "line": 1170,
           "params": [
             "projectPath",
             "slug",
@@ -6909,7 +6911,7 @@
           "purpose": "Read one of a spec's two generated HTML reports, for the in-app viewer."
         },
         "searchSpecs": {
-          "line": 1196,
+          "line": 1199,
           "params": [
             "projectPath",
             "query"
@@ -6917,7 +6919,7 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "updateSpecStatus": {
-          "line": 1209,
+          "line": 1212,
           "params": [
             "projectPath",
             "slug",
@@ -6925,14 +6927,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1233,
+          "line": 1236,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1250,
+          "line": 1253,
           "params": [
             "projectPath",
             "oldSlug",
@@ -6941,78 +6943,78 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "specsWatchHandler": {
-          "line": 1373,
+          "line": 1376,
           "params": [
             "projectPath"
           ],
           "purpose": "One handler for every specs folder of the watched project — main's and each"
         },
         "closeWorkspaceSpecWatchers": {
-          "line": 1402
+          "line": 1405
         },
         "refreshWorkspaceWatchers": {
-          "line": 1415,
+          "line": 1418,
           "params": [
             "projectPath"
           ],
           "purpose": "Watch each active workspace's `.frame/specs` alongside main's, then push"
         },
         "startWatching": {
-          "line": 1442,
+          "line": 1445,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1522
+          "line": 1525
         },
         "markSpecNewLaunch": {
-          "line": 1576,
+          "line": 1579,
           "params": [
             "projectPath"
           ]
         },
         "consumeSpecNewLaunch": {
-          "line": 1582,
+          "line": 1585,
           "params": [
             "projectPath"
           ]
         },
         "resolveSpecOrigin": {
-          "line": 1598,
+          "line": 1601,
           "params": [
             "projectPath"
           ],
           "purpose": "How this spec was started, from Frame's own state — never guessed from the"
         },
         "trackSpecLifecycle": {
-          "line": 1609,
+          "line": 1612,
           "params": [
             "projectPath",
             "specs"
           ]
         },
         "pushSpecData": {
-          "line": 1637,
+          "line": 1640,
           "params": [
             "projectPath"
           ]
         },
         "checkoutLocations": {
-          "line": 1669,
+          "line": 1672,
           "params": [
             "root"
           ]
         },
         "inCheckout": {
-          "line": 1675,
+          "line": 1678,
           "params": [
             "root",
             "fn"
           ]
         },
         "listSpecsIn": {
-          "line": 1688,
+          "line": 1691,
           "params": [
             "root",
             "tasksProject"
@@ -7020,14 +7022,14 @@
           "purpose": "listSpecs over one checkout; task counts come from `tasksProject`'s tasks.json."
         },
         "getSpecIn": {
-          "line": 1692,
+          "line": 1695,
           "params": [
             "root",
             "slug"
           ]
         },
         "readSpecReportIn": {
-          "line": 1696,
+          "line": 1699,
           "params": [
             "root",
             "slug",
@@ -7035,15 +7037,23 @@
           ]
         },
         "updateSpecStatusIn": {
-          "line": 1700,
+          "line": 1703,
           "params": [
             "root",
             "slug",
             "partial"
           ]
         },
+        "syncSpecTasksIn": {
+          "line": 1708,
+          "params": [
+            "root",
+            "tasksProject"
+          ],
+          "purpose": "Import every spec's tasks.md in `root` into `tasksProject`'s tasks.json."
+        },
         "buildSpecCommandFileIn": {
-          "line": 1705,
+          "line": 1721,
           "params": [
             "root",
             "tasksProject",
@@ -7055,13 +7065,13 @@
           "purpose": "Stage a spec command's prompt in `root`, with `{tasks_path}` naming `tasksProject`'s tasks.json."
         },
         "init": {
-          "line": 1711,
+          "line": 1727,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1715,
+          "line": 1731,
           "params": [
             "ipcMain"
           ]
@@ -7088,7 +7098,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 78601,
+      "sizeBytes": 79228,
       "extraction": {
         "status": "parsed"
       },
@@ -7118,6 +7128,7 @@
           "specNewPromptFilename": "f040681603f82c98",
           "specRoot": "9532b9928312db1c",
           "specsWatchHandler": "3a40ae42b16ad131",
+          "syncSpecTasksIn": "d9b916c97cc59d6d",
           "writeImplementPermissions": "e2f719c000546433"
         }
       }
@@ -24800,6 +24811,7 @@
         "terminals",
         "projects",
         "panels",
+        "specs",
         "doctor"
       ],
       "functions": {
@@ -24890,7 +24902,7 @@
           "purpose": "An installed package carries its exact version (a dev build's is"
         }
       },
-      "sizeBytes": 10380,
+      "sizeBytes": 10448,
       "extraction": {
         "status": "parsed"
       },
@@ -25021,6 +25033,34 @@
         "purposes": {
           "loadXterm": "4b95af42b3ca39f2"
         }
+      }
+    },
+    "server/specs": {
+      "file": "src/server/specs.js",
+      "description": "Server specs — the spec flow in a server workspace (server-specs spec).",
+      "exports": [
+        "setup"
+      ],
+      "depends": [
+        "path",
+        "main/specManager",
+        "main/projectRegistry",
+        "shared/workspaceRegistry"
+      ],
+      "functions": {
+        "setup": {
+          "line": 26,
+          "params": [
+            "{ registerMethods }"
+          ]
+        }
+      },
+      "sizeBytes": 3517,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "4142b2f3632d43f3"
       }
     },
     "server/terminals": {
@@ -30714,33 +30754,41 @@
         "fs",
         "os",
         "path",
-        "node:module",
+        "child_process",
+        "src/server/electronShim",
+        "src/server/projects",
+        "src/server/specs",
         "src/main/specManager"
       ],
       "functions": {
         "write": {
-          "line": 32,
+          "line": 39,
           "params": [
             "file",
             "body"
           ]
         },
         "fixture": {
-          "line": 38,
+          "line": 45,
           "params": [
             "name"
           ],
           "purpose": "A worktree with one planned spec, and a separate clone holding task state."
+        },
+        "serverWorkspace": {
+          "line": 136,
+          "purpose": "A server project received by bundle, with one server workspace holding a spec."
         }
       },
-      "sizeBytes": 6288,
+      "sizeBytes": 10939,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "0a84247a2e91ae82",
         "purposes": {
-          "fixture": "d5fadc6230f26023"
+          "fixture": "d5fadc6230f26023",
+          "serverWorkspace": "378bdd4f9a689c25"
         }
       }
     },
@@ -34551,7 +34599,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 379,
+        "parsed": 380,
         "unsupported": 91,
         "partial": 0
       }
@@ -34598,9 +34646,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 564,
+      "visitedEntries": 565,
       "traversedDirectories": 86,
-      "eligibleFiles": 470,
+      "eligibleFiles": 471,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -34617,7 +34665,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 470,
+      "indexedFiles": 471,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34625,6 +34673,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "a4851aa7a9056ac519686721865340b614f6dcb626317841bc308ee56e69ac5f"
+    "revision": "409278c26a99ccbd7a103b387880edcd5ba13040f8cb184c8e39f1473617bbc5"
   }
 }

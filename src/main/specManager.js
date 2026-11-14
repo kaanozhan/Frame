@@ -1020,7 +1020,10 @@ function initialTaskState(status, outcomeIds, taskId, now) {
   return { status: 'pending', completedAt: null };
 }
 
-function syncTasksFromMarkdown(projectPath, slug) {
+function syncTasksFromMarkdown(projectPath, slug, tasksProject) {
+  // Where task state lives: the project itself, or (server-specs) the server
+  // clone when `projectPath` is one of its worktrees.
+  const tasksHome = tasksProject || projectPath;
   const tasksMdPath = path.join(getSpecDir(projectPath, slug), TASKS_FILE);
   const md = readFileSafe(tasksMdPath);
   if (!md) return { synced: 0 };
@@ -1032,7 +1035,7 @@ function syncTasksFromMarkdown(projectPath, slug) {
   // legacy nested shape transparently migrated). Going through it also
   // wires us into the self-write guard so our writes don't trigger the
   // tasks.json file watcher into a loop.
-  const tasksData = tasksManager.loadTasks(projectPath);
+  const tasksData = tasksManager.loadTasks(tasksHome);
   if (!tasksData) return { synced: 0, error: 'no tasks.json in project' };
   if (!Array.isArray(tasksData.tasks)) tasksData.tasks = [];
 
@@ -1082,7 +1085,7 @@ function syncTasksFromMarkdown(projectPath, slug) {
   // Only save if something actually changed — saveTasks bumps lastUpdated and
   // the self-write guard, both of which we want to keep stable on no-op syncs.
   if (added > 0 || updated > 0) {
-    tasksManager.saveTasks(projectPath, tasksData);
+    tasksManager.saveTasks(tasksHome, tasksData);
   }
 
   // Reflect the latest mapping in status.json so the panel shows accurate
@@ -1099,7 +1102,7 @@ function syncTasksFromMarkdown(projectPath, slug) {
   // Push a fresh TASKS_DATA so any open Tasks panel / Kanban dashboard
   // picks up the new rows without needing a manual reload.
   if ((added > 0 || updated > 0) && mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(IPC.TASKS_DATA, { projectPath, tasks: tasksData });
+    mainWindow.webContents.send(IPC.TASKS_DATA, { projectPath: tasksHome, tasks: tasksData });
   }
 
   return { synced: parsed.length, added, updated, unchanged };
@@ -1701,6 +1704,19 @@ function updateSpecStatusIn(root, slug, partial) {
   return inCheckout(root, () => updateSpecStatus(root, slug, partial));
 }
 
+/** Import every spec's tasks.md in `root` into `tasksProject`'s tasks.json. */
+function syncSpecTasksIn(root, tasksProject) {
+  return inCheckout(root, () => {
+    for (const slug of specFolderNames(root)) {
+      try {
+        syncTasksFromMarkdown(root, slug, tasksProject || root);
+      } catch (err) {
+        console.warn('specManager: task sync failed', slug, err.message);
+      }
+    }
+  });
+}
+
 /** Stage a spec command's prompt in `root`, with `{tasks_path}` naming `tasksProject`'s tasks.json. */
 function buildSpecCommandFileIn(root, tasksProject, slug, command, aiTool, description) {
   return inCheckout(root, () => buildSpecCommandFile(root, slug, command, aiTool, description, root, tasksProject || root));
@@ -1809,6 +1825,7 @@ module.exports = {
   readSpecReportIn,
   updateSpecStatusIn,
   buildSpecCommandFileIn,
+  syncSpecTasksIn,
   specNewPromptFilename,
   buildImplementPermissions,
   resolveVerificationCommand,
