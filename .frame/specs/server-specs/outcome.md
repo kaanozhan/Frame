@@ -54,3 +54,11 @@ _Captured: 2026-11-14 · 2 file change(s)_
 _Captured: 2026-11-14 · 3 file change(s)_
 
 ---
+
+## T08 — Chip, offline view, docs and live check
+
+`workspaceChipHtml` now renders `chipLabel` (`navy · box`, `· offline`) with the host in its title. `src/server/README.md` documents specs in server workspaces. Deviation: `specPanel.js` is untouched. An offline `GET_SPEC` became getSpec-shaped instead (last known title and phase, `**<host> is offline** — reconnect to open this spec.` as spec.md, no other content), because four views read `status` from it. The live check (isolated app, fake ssh, a server package built from this branch) found that a `gitSharing: local` project was not refused: its `.frame/` never reaches git, so the server clone has no config. `handleBuildSpecCommandFile` now decides local mode on the desktop. After that the live check passed: local mode refused with no lane; in repo mode the Spec Creator lane opened on the server (`srv-…`), the prompt and tooling were in the server worktree, a spec written there appeared as `navy · box` and opened from the server, a server-side phase change reached the board, and after disconnect it showed `navy · box · offline` with the offline text.
+
+_Captured: 2026-11-14 · 6 file change(s)_
+
+---

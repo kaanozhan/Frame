@@ -6531,7 +6531,8 @@
         "orchestrationManager",
         "serverConnection",
         "workspaceManager",
-        "serverPanels"
+        "serverPanels",
+        "gitSharing"
       ],
       "functions": {
         "getSpecsRoot": {
@@ -7075,7 +7076,7 @@
           "purpose": "GET_SPEC for a server spec: the server's getSpec, tagged with its workspace; `{ offline: host }` while unreachable."
         },
         "readServerSpecReport": {
-          "line": 1795,
+          "line": 1813,
           "params": [
             "entry",
             "slug",
@@ -7083,7 +7084,7 @@
           ]
         },
         "updateServerSpecStatus": {
-          "line": 1804,
+          "line": 1822,
           "params": [
             "entry",
             "slug",
@@ -7091,26 +7092,26 @@
           ]
         },
         "unwatchServerSpecs": {
-          "line": 1815
+          "line": 1833
         },
         "wireServerSpecs": {
-          "line": 1823
+          "line": 1841
         },
         "checkoutLocations": {
-          "line": 1864,
+          "line": 1882,
           "params": [
             "root"
           ]
         },
         "inCheckout": {
-          "line": 1870,
+          "line": 1888,
           "params": [
             "root",
             "fn"
           ]
         },
         "listSpecsIn": {
-          "line": 1883,
+          "line": 1901,
           "params": [
             "root",
             "tasksProject"
@@ -7118,14 +7119,14 @@
           "purpose": "listSpecs over one checkout; task counts come from `tasksProject`'s tasks.json."
         },
         "getSpecIn": {
-          "line": 1887,
+          "line": 1905,
           "params": [
             "root",
             "slug"
           ]
         },
         "readSpecReportIn": {
-          "line": 1891,
+          "line": 1909,
           "params": [
             "root",
             "slug",
@@ -7133,7 +7134,7 @@
           ]
         },
         "updateSpecStatusIn": {
-          "line": 1895,
+          "line": 1913,
           "params": [
             "root",
             "slug",
@@ -7141,7 +7142,7 @@
           ]
         },
         "syncSpecTasksIn": {
-          "line": 1900,
+          "line": 1918,
           "params": [
             "root",
             "tasksProject"
@@ -7149,7 +7150,7 @@
           "purpose": "Import every spec's tasks.md in `root` into `tasksProject`'s tasks.json."
         },
         "buildSpecCommandFileIn": {
-          "line": 1913,
+          "line": 1931,
           "params": [
             "root",
             "tasksProject",
@@ -7161,13 +7162,13 @@
           "purpose": "Stage a spec command's prompt in `root`, with `{tasks_path}` naming `tasksProject`'s tasks.json."
         },
         "init": {
-          "line": 1919,
+          "line": 1937,
           "params": [
             "window"
           ]
         },
         "handleGetSpec": {
-          "line": 1927,
+          "line": 1945,
           "params": [
             "projectPath",
             "slug"
@@ -7175,7 +7176,7 @@
           "purpose": "The spec IPC handlers route a server spec to Frame Server (server-specs"
         },
         "handleReadSpecReport": {
-          "line": 1932,
+          "line": 1950,
           "params": [
             "projectPath",
             "slug",
@@ -7183,7 +7184,7 @@
           ]
         },
         "handleUpdateSpecStatus": {
-          "line": 1937,
+          "line": 1955,
           "params": [
             "projectPath",
             "slug",
@@ -7191,7 +7192,7 @@
           ]
         },
         "serverStagingTarget": {
-          "line": 1950,
+          "line": 1969,
           "params": [
             "projectPath",
             "slug",
@@ -7200,7 +7201,7 @@
           "purpose": "Where a spec command for `workspaceId` / `slug` runs when that is a server"
         },
         "handleBuildSpecCommandFile": {
-          "line": 1965,
+          "line": 1984,
           "params": [
             "{ projectPath",
             "slug = null",
@@ -7213,7 +7214,7 @@
           "purpose": "BUILD_SPEC_COMMAND_FILE: stage locally, or — for a server workspace — have"
         },
         "setupIPC": {
-          "line": 1985,
+          "line": 2009,
           "params": [
             "ipcMain"
           ]
@@ -7240,7 +7241,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 90544,
+      "sizeBytes": 91721,
       "extraction": {
         "status": "parsed"
       },
@@ -19865,6 +19866,7 @@
         "modalKeys",
         "scopeGuard",
         "shared/ipcChannels",
+        "shared/workspaceSpecs",
         "state",
         "laneStatus",
         "notify",
@@ -19876,42 +19878,42 @@
       ],
       "functions": {
         "setActions": {
-          "line": 53,
+          "line": 54,
           "params": [
             "next"
           ],
           "purpose": "Let the dialogs plug in without this module requiring them."
         },
         "init": {
-          "line": 57
+          "line": 58
         },
         "load": {
-          "line": 111,
+          "line": 112,
           "params": [
             "{ reselect = false } = {}"
           ],
           "purpose": "Re-read the project's workspaces; with `reselect`, restore the remembered selection."
         },
         "select": {
-          "line": 156,
+          "line": 157,
           "params": [
             "ws"
           ]
         },
         "scheduleRender": {
-          "line": 170
+          "line": 171
         },
         "summaries": {
-          "line": 180
+          "line": 181
         },
         "dotHtml": {
-          "line": 197,
+          "line": 198,
           "params": [
             "summary"
           ]
         },
         "rowHtml": {
-          "line": 202,
+          "line": 203,
           "params": [
             "ws",
             "{ selectedId",
@@ -19919,34 +19921,34 @@
           ]
         },
         "render": {
-          "line": 230
+          "line": 231
         },
         "findWs": {
-          "line": 281,
+          "line": 282,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 285,
+          "line": 286,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 314,
+          "line": 315,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 326,
+          "line": 327,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 339,
+          "line": 340,
           "params": [
             "ws",
             "x",
@@ -19954,39 +19956,39 @@
           ]
         },
         "hideMenu": {
-          "line": 364
+          "line": 365
         },
         "onMenuClick": {
-          "line": 368,
+          "line": 369,
           "params": [
             "e"
           ]
         },
         "openNew": {
-          "line": 381
+          "line": 382
         },
         "startRename": {
-          "line": 389,
+          "line": 390,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 394,
+          "line": 395,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 414,
+          "line": 415,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "rescueBranchName": {
-          "line": 455,
+          "line": 456,
           "params": [
             "ws",
             "head"
@@ -19994,7 +19996,7 @@
           "purpose": "The branch name archive's rescue creates; the sha may be unknown before a commit is made."
         },
         "askRescue": {
-          "line": 461,
+          "line": 462,
           "params": [
             "ws",
             "head"
@@ -20002,7 +20004,7 @@
           "purpose": "The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false."
         },
         "openHeldSpec": {
-          "line": 498,
+          "line": 499,
           "params": [
             "ws",
             "slug"
@@ -20010,14 +20012,14 @@
           "purpose": "Select a workspace and open the spec it holds in the specs drawer."
         },
         "closeWorkspaceTerminals": {
-          "line": 507,
+          "line": 508,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 520,
+          "line": 521,
           "params": [
             "ws",
             "count"
@@ -20025,37 +20027,37 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 578,
+          "line": 579,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 584,
+          "line": 585,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 597,
+          "line": 598,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 606,
+          "line": 607,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 616,
+          "line": 620,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 630,
+          "line": 634,
           "purpose": "Active workspaces of the current project, as last loaded."
         }
       },
@@ -20066,7 +20068,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 27512,
+      "sizeBytes": 27778,
       "extraction": {
         "status": "parsed"
       },
@@ -24810,7 +24812,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 7103,
+      "sizeBytes": 8879,
       "extraction": {
         "status": "parsed"
       },
@@ -31328,7 +31330,7 @@
           ]
         }
       },
-      "sizeBytes": 13539,
+      "sizeBytes": 14563,
       "extraction": {
         "status": "parsed"
       },
@@ -34884,6 +34886,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "1a8aebe2159034ed8af366852cb39760950546cb546a3cc3b8290dccd74f2e8c"
+    "revision": "1f9b8118b76a58425c67ebc276eb4ff218b88ffdd666aec28c788e70673fa4e4"
   }
 }

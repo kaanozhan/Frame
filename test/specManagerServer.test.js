@@ -170,6 +170,10 @@ test('T06: offline, a server spec answers { offline: host } and its report and s
   try {
     const full = await specManager.handleGetSpec(PROJECT, 'on-server');
     assert.equal(full.offline, 'box');
+    assert.equal(full.status.title, 'On server', 'the last known title');
+    assert.equal(full.status.phase, 'planned', 'the last known phase');
+    assert.match(full.spec, /box is offline\*\* — reconnect to open this spec/);
+    assert.equal(full.plan, null, 'no cached content');
     const report = await specManager.handleReadSpecReport(PROJECT, 'on-server', 'plan');
     assert.equal(report.success, false);
     assert.match(report.error, /box is offline/);
@@ -242,5 +246,20 @@ test('T07: an older Frame Server is told to update; offline fails before anythin
     assert.equal(serverCalls.filter((c) => c.method === 'specs.stage').length, 0);
   } finally {
     fakeServer.connected = true;
+  }
+});
+
+test('T07: a local-mode project is refused on the desktop, since its server clone carries no Frame config', async () => {
+  const cfg = path.join(PROJECT, '.frame', 'config.json');
+  const saved = fs.readFileSync(cfg, 'utf8');
+  write(cfg, { version: '1.0', name: 'project', settings: { gitSharing: 'local' } });
+  try {
+    serverCalls.length = 0;
+    const r = await specManager.handleBuildSpecCommandFile({ projectPath: PROJECT, slug: null, command: 'spec.new', workspaceId: 'srv-ws-1' });
+    assert.equal(r.success, false);
+    assert.match(r.error, /local mode/);
+    assert.equal(serverCalls.filter((c) => c.method === 'specs.stage').length, 0, 'the server is never asked');
+  } finally {
+    fs.writeFileSync(cfg, saved);
   }
 });

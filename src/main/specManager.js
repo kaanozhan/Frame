@@ -1787,7 +1787,25 @@ function serverSpecCall(entry, method, params) {
 
 /** GET_SPEC for a server spec: the server's getSpec, tagged with its workspace; `{ offline: host }` while unreachable. */
 async function getServerSpec(entry, slug) {
-  if (serverOffline(entry)) return { offline: entry.workspace.host || 'the server', workspace: entry.workspace };
+  if (serverOffline(entry)) {
+    // Shaped like getSpec so every view renders it: the last known title and
+    // phase, and the reason in place of spec.md. No other content is served
+    // from the cache.
+    const host = entry.workspace.host || 'the server';
+    const known = entry.specs.find((s) => s && s.slug === slug) || {};
+    return {
+      offline: host,
+      status: { slug, title: known.title || slug, phase: known.phase || 'specified', ai_tool: known.ai_tool || null, generated_task_ids: [] },
+      spec: `**${host} is offline** — reconnect to open this spec.\n`,
+      plan: null,
+      tasks: null,
+      outcome: null,
+      planReportPath: null,
+      implementReportPath: null,
+      implementHint: null,
+      workspace: entry.workspace
+    };
+  }
   const full = await serverSpecCall(entry, 'specs.get', { slug });
   return full ? { ...full, workspace: entry.workspace } : null;
 }
@@ -1940,6 +1958,7 @@ function handleUpdateSpecStatus(projectPath, slug, partial) {
 }
 
 const UPDATE_SERVER = 'Update Frame Server to run specs on this server (File ▸ Connect to Server…).';
+const SERVER_LOCAL_MODE = 'This project keeps Frame files out of git (local mode), so a spec on the server would be lost when the workspace is archived — write it in a local workspace.';
 
 /**
  * Where a spec command for `workspaceId` / `slug` runs when that is a server
@@ -1965,6 +1984,11 @@ function serverStagingTarget(projectPath, slug, workspaceId) {
 async function handleBuildSpecCommandFile({ projectPath, slug = null, command, aiTool, description, root = null, workspaceId = null } = {}) {
   const target = serverStagingTarget(projectPath, slug, workspaceId);
   if (!target) return buildSpecCommandFile(projectPath, slug, command, aiTool, description, root || null);
+  // Decided here, not only on the server: in local mode `.frame/` never
+  // reaches git, so the server's clone has no config saying so.
+  let mode = 'repo';
+  try { mode = require('./gitSharing').getMode(projectPath); } catch (_) { mode = 'repo'; }
+  if (mode === 'local') return { success: false, error: SERVER_LOCAL_MODE };
   if (!serverConn().isConnected()) {
     return { success: false, error: `${target.host || 'The server'} is offline — reconnect to run this spec command there.` };
   }
