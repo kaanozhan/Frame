@@ -210,6 +210,9 @@ test('T03: a change under a watched workspace\'s specs pushes one specs.changed 
   const { projectPath, ws, dir } = await serverWorkspace();
   const r = await methods['specs.watch']({ projectPath, roots: [ws] });
   assert.deepEqual(r.watching, [path.resolve(ws)]);
+  // FSEvents may replay the fixture's own writes from just before the watch:
+  // let them land before the burst under test.
+  await new Promise((res) => setTimeout(res, 700));
   events.length = 0;
   fs.writeFileSync(path.join(dir, 'plan.md'), '# Plan\n');
   fs.writeFileSync(path.join(dir, 'status.json'), JSON.stringify({ slug: 'on-server', title: 'On server', phase: 'planned', generated_task_ids: [] }));
@@ -240,4 +243,50 @@ test('T03: watching stops on unwatch, on a new set without the root, and when th
   await new Promise((res) => setTimeout(res, 700));
   assert.equal(pushesFor(b.ws), 0, 'idle stops every watcher');
   await assert.rejects(methods['specs.watch']({ projectPath: a.projectPath, roots: [path.join(SANDBOX, 'home')] }), /not a workspace/);
+});
+
+// ─── T04: staging a spec command on the server ───────────────
+
+test('T04: specs.stage writes the prompt in the server workspace, where its relative path resolves', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  const r = await methods['specs.stage']({ projectPath, root: ws, slug: 'on-server', command: 'spec.plan', aiTool: 'claude-code' });
+  assert.equal(r.success, true, r.error);
+  assert.equal(r.relPath, '.frame/runtime/prompts/on-server__spec.plan.md');
+  assert.ok(fs.existsSync(path.join(ws, r.relPath)), 'the instruction\'s relative path exists in the worktree');
+  assert.match(r.instruction, /^Read \.frame\/runtime\/prompts\/on-server__spec\.plan\.md/);
+  assert.ok(fs.readFileSync(path.join(ws, r.relPath), 'utf8').includes(ws), 'project_path is the server workspace');
+});
+
+test('T04: specs.stage provisions Frame tooling in the clone and the worktree', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  await methods['specs.stage']({ projectPath, root: ws, slug: 'on-server', command: 'spec.tasks' });
+  for (const rel of ['.frame/bin/spec-hint.js', '.frame/bin/spec-context.js', '.frame/runtime/commands/claude-code/spec.plan.md', '.frame/runtime/commands/claude-code/plan-report-template.html']) {
+    assert.ok(fs.existsSync(path.join(projectPath, rel)), `clone has ${rel}`);
+    assert.ok(fs.existsSync(path.join(ws, rel)), `worktree has ${rel}`);
+  }
+  assert.ok(fs.existsSync(path.join(ws, '.frame', 'index', 'spec-index.json')), 'the spec index reaches the worktree');
+});
+
+test('T04: spec.implement names the clone\'s tasks.json; spec.new stages without a slug', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  const impl = await methods['specs.stage']({ projectPath, root: ws, slug: 'on-server', command: 'spec.implement' });
+  const prompt = fs.readFileSync(path.join(ws, impl.relPath), 'utf8');
+  assert.ok(prompt.includes(path.join(projectPath, '.frame', 'tasks.json')), 'tasks_path is the server clone');
+  assert.ok(!prompt.includes(path.join(ws, '.frame', 'tasks.json')), 'never the worktree\'s copy');
+  const fresh = await methods['specs.stage']({ projectPath, root: ws, slug: null, command: 'spec.new', description: 'Make a thing' });
+  assert.equal(fresh.success, true, fresh.error);
+  assert.match(fresh.relPath, /^\.frame\/runtime\/prompts\/spec\.new__.*\.md$/);
+  assert.ok(fs.readFileSync(path.join(ws, fresh.relPath), 'utf8').includes('Make a thing'));
+});
+
+test('T04: specs.stage refuses local-mode projects and unknown commands', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  const bad = await methods['specs.stage']({ projectPath, root: ws, slug: 'on-server', command: 'spec.ship' });
+  assert.equal(bad.success, false);
+  assert.match(bad.error, /Unknown spec command/);
+  write(path.join(projectPath, '.frame', 'config.json'), { settings: { gitSharing: 'local' } });
+  const local = await methods['specs.stage']({ projectPath, root: ws, slug: 'on-server', command: 'spec.plan' });
+  assert.equal(local.success, false);
+  assert.match(local.error, /local mode/);
+  assert.equal(fs.existsSync(path.join(ws, '.frame', 'runtime', 'prompts', 'on-server__spec.plan.md')), false, 'nothing staged');
 });

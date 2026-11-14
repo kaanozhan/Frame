@@ -22,3 +22,11 @@ Added `specs.watch { projectPath, roots }` (replaces the watched set; every root
 _Captured: 2026-11-14 · 2 file change(s)_
 
 ---
+
+## T04 — Frame Server stages spec commands
+
+Added `specs.stage` to `src/server/specs.js`. It provisions the server clone from this package (`structureBootstrap.stageParserScripts`, `commandStaging.stageCommandFiles`, `spec-index.ensureFresh`), copies the tooling into the worktree with `workspaceTooling.provision`, then calls `buildSpecCommandFileIn(worktree, clone, …)`, so `{tasks_path}` names the clone's tasks.json. Unknown commands, bad slugs and `gitSharing: local` projects are refused before anything is written. `module-hint.js` is staged only for projects with the STRUCTURE map, as locally. Also hardened the T03 burst test to settle before measuring; it flaked once under full-suite load, when FSEvents replayed the fixture's setup writes.
+
+_Captured: 2026-11-14 · 2 file change(s)_
+
+---

@@ -12,6 +12,15 @@
  *   specs.status { projectPath, root, slug, partial } updateSpecStatusIn (phase, implement_mode)
  *   specs.watch  { projectPath, roots }             watch each root's .frame/specs (replaces the set)
  *   specs.unwatch                                   stop watching
+ *   specs.stage  { projectPath, root, slug, command, aiTool, description }
+ *                provision Frame's tooling, then stage the command's prompt in root
+ *
+ * specs.stage does what the desktop does for a local workspace, here: the
+ * clone gets Frame's gitignored tooling from this package (hook scripts in
+ * .frame/bin, the staged command templates, the spec index), the worktree gets
+ * a copy (workspaceTooling.provision), and the prompt is built from this
+ * package's templates with {tasks_path} naming the clone's tasks.json. The
+ * desktop only sends the instruction to a lane in that workspace.
  *
  * Event: specs.changed { root } — a debounced change under a watched root's
  * .frame/specs (an agent wrote status.json, a plan or a report). The desktop
@@ -27,6 +36,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const COMMANDS = ['spec.new', 'spec.plan', 'spec.tasks', 'spec.implement'];
+const LOCAL_MODE = 'This project keeps Frame files out of git (local mode), so a spec on the server would be lost when the workspace is archived — write it in a local workspace.';
 const SLUG_RE = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
 // What the desktop may change on a server spec: what the spec flow needs.
 const STATUS_KEYS = ['phase', 'implement_mode'];
@@ -36,6 +47,11 @@ function setup({ registerMethods, broadcast }) {
   const specManager = require('../main/specManager');
   const fsSafe = require('../main/fsSafe');
   const frameStore = require('../main/frameStore');
+  const commandStaging = require('../main/commandStaging');
+  const structureBootstrap = require('../main/structureBootstrap');
+  const workspaceTooling = require('../main/workspaceTooling');
+  const gitSharing = require('../main/gitSharing');
+  const specIndex = require('../../scripts/spec-index.js');
   const watchers = new Map(); // root → { watcher, timer }
   const projectRegistry = require('../main/projectRegistry');
   const workspaceRegistry = require('../shared/workspaceRegistry');
@@ -90,6 +106,18 @@ function setup({ registerMethods, broadcast }) {
     }
   }
 
+  /** Frame's gitignored tooling, in the clone from this package and then in the worktree. */
+  async function provision(projectPath, root) {
+    structureBootstrap.stageParserScripts(projectPath);
+    commandStaging.stageCommandFiles(projectPath);
+    try {
+      await specIndex.ensureFresh(projectPath);
+    } catch (err) {
+      console.warn(`[frame-server] spec index not refreshed for ${projectPath}: ${err.message}`);
+    }
+    if (root !== path.resolve(projectPath)) workspaceTooling.provision(projectPath, root);
+  }
+
   registerMethods({
     'specs.list': async ({ projectPath, root } = {}) => {
       const dir = checkout(projectPath, root);
@@ -113,7 +141,17 @@ function setup({ registerMethods, broadcast }) {
       for (const root of wanted) watch(root);
       return { watching: Array.from(watchers.keys()) };
     },
-    'specs.unwatch': async () => { unwatchAll(); return null; }
+    'specs.unwatch': async () => { unwatchAll(); return null; },
+    'specs.stage': async ({ projectPath, root, slug = null, command, aiTool = 'claude-code', description = '' } = {}) => {
+      const dir = checkout(projectPath, root);
+      if (!COMMANDS.includes(command)) return { success: false, error: `Unknown spec command: ${command}` };
+      if (slug !== null || command !== 'spec.new') needSlug(slug);
+      let mode = 'repo';
+      try { mode = gitSharing.getMode(projectPath); } catch (_) { mode = 'repo'; }
+      if (mode === 'local') return { success: false, error: LOCAL_MODE };
+      await provision(projectPath, dir);
+      return specManager.buildSpecCommandFileIn(dir, projectPath, slug, command, aiTool, description);
+    }
   });
 
   return {
