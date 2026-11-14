@@ -1234,6 +1234,8 @@ function updateSpecStatus(projectPath, slug, partial) {
 }
 
 function deleteSpec(projectPath, slug) {
+  // A server spec is not on this disk; never delete a same-named local copy in its place.
+  if (remoteSpecEntry(projectPath, slug)) return false;
   const dir = getSpecDir(projectPath, slug);
   if (!fs.existsSync(dir)) return false;
   fs.rmSync(dir, { recursive: true, force: true });
@@ -1251,6 +1253,7 @@ function deleteSpec(projectPath, slug) {
 //
 // Returns { success: true, slug, status } on success, { error } on failure.
 function renameSpec(projectPath, oldSlug, opts) {
+  if (remoteSpecEntry(projectPath, oldSlug)) return { error: SERVER_SPEC_READ_ONLY };
   const next = opts || {};
   const wantSlug = next.slug != null;
   const wantTitle = next.title != null && typeof next.title === 'string';
@@ -1752,6 +1755,63 @@ async function refreshServerSpecs(projectPath, onlyRoot = null) {
   if (changed) pushSpecData(projectPath);
 }
 
+/**
+ * The server workspace entry that holds `slug` for `projectPath`, or null when
+ * the slug is local. Same precedence as listSpecs: a local workspace's copy
+ * wins, then a server workspace's, then main.
+ */
+function remoteSpecEntry(projectPath, slug) {
+  if (!projectPath || !slug) return null;
+  const local = specLocations.get(projectPath) || refreshSpecLocations(projectPath);
+  const loc = local.get(slug);
+  if (loc && loc.workspace) return null;
+  for (const entry of serverSpecs.values()) {
+    if (entry.projectPath === projectPath && entry.specs.some((s) => s && s.slug === slug)) return entry;
+  }
+  return null;
+}
+
+const SERVER_SPEC_READ_ONLY = 'Renaming or deleting a spec on a server workspace comes in a later update.';
+
+function serverOffline(entry) {
+  return entry.workspace.offline || !serverConn().isConnected();
+}
+
+function offlineText(entry) {
+  return `${entry.workspace.host || 'The server'} is offline — reconnect to open this spec.`;
+}
+
+function serverSpecCall(entry, method, params) {
+  return require('./serverPanels').call({ host: entry.workspace.host }, method, { projectPath: entry.serverProjectPath, root: entry.root, ...params });
+}
+
+/** GET_SPEC for a server spec: the server's getSpec, tagged with its workspace; `{ offline: host }` while unreachable. */
+async function getServerSpec(entry, slug) {
+  if (serverOffline(entry)) return { offline: entry.workspace.host || 'the server', workspace: entry.workspace };
+  const full = await serverSpecCall(entry, 'specs.get', { slug });
+  return full ? { ...full, workspace: entry.workspace } : null;
+}
+
+async function readServerSpecReport(entry, slug, kind) {
+  if (serverOffline(entry)) return { success: false, error: offlineText(entry) };
+  try {
+    return await serverSpecCall(entry, 'specs.report', { slug, kind });
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+async function updateServerSpecStatus(entry, slug, partial) {
+  if (serverOffline(entry)) return { error: offlineText(entry) };
+  try {
+    const res = await serverSpecCall(entry, 'specs.status', { slug, partial });
+    refreshServerSpecs(entry.projectPath, entry.root).catch(() => { /* reported inside */ });
+    return res;
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
 function unwatchServerSpecs() {
   if (!serverSpecs.size) return;
   try {
@@ -1861,6 +1921,24 @@ function init(window) {
   wireServerSpecs();
 }
 
+// The spec IPC handlers route a server spec to Frame Server (server-specs
+// T06); getSpec / readSpecReport / updateSpecStatus stay synchronous and
+// local for their in-process callers (workspaceGitState).
+function handleGetSpec(projectPath, slug) {
+  const entry = remoteSpecEntry(projectPath, slug);
+  return entry ? getServerSpec(entry, slug) : getSpec(projectPath, slug);
+}
+
+function handleReadSpecReport(projectPath, slug, kind) {
+  const entry = remoteSpecEntry(projectPath, slug);
+  return entry ? readServerSpecReport(entry, slug, kind) : readSpecReport(projectPath, slug, kind);
+}
+
+function handleUpdateSpecStatus(projectPath, slug, partial) {
+  const entry = remoteSpecEntry(projectPath, slug);
+  return entry ? updateServerSpecStatus(entry, slug, partial) : updateSpecStatus(projectPath, slug, partial);
+}
+
 function setupIPC(ipcMain) {
   ipcMain.handle(IPC.LIST_SPECS, (event, projectPath) =>
     listSpecs(projectPath)
@@ -1869,13 +1947,13 @@ function setupIPC(ipcMain) {
     searchSpecs(projectPath, query)
   );
   ipcMain.handle(IPC.GET_SPEC, (event, { projectPath, slug }) =>
-    getSpec(projectPath, slug)
+    handleGetSpec(projectPath, slug)
   );
   ipcMain.handle(IPC.READ_SPEC_REPORT, (event, { projectPath, slug, kind }) =>
-    readSpecReport(projectPath, slug, kind)
+    handleReadSpecReport(projectPath, slug, kind)
   );
   ipcMain.handle(IPC.UPDATE_SPEC_STATUS, (event, { projectPath, slug, partial }) =>
-    updateSpecStatus(projectPath, slug, partial)
+    handleUpdateSpecStatus(projectPath, slug, partial)
   );
   ipcMain.handle(IPC.RENAME_SPEC, (event, { projectPath, oldSlug, opts }) =>
     renameSpec(projectPath, oldSlug, opts)
@@ -1961,6 +2039,9 @@ module.exports = {
   buildSpecCommandFileIn,
   syncSpecTasksIn,
   refreshServerSpecs,
+  handleGetSpec,
+  handleReadSpecReport,
+  handleUpdateSpecStatus,
   specNewPromptFilename,
   buildImplementPermissions,
   resolveVerificationCommand,

@@ -38,3 +38,11 @@ specManager now caches each server workspace's `specs.list` for the watched proj
 _Captured: 2026-11-14 · 4 file change(s)_
 
 ---
+
+## T06 — Route server spec reads and status updates
+
+The `GET_SPEC`, `READ_SPEC_REPORT` and `UPDATE_SPEC_STATUS` handlers now go through `handleGetSpec` / `handleReadSpecReport` / `handleUpdateSpecStatus`. These look up the slug with `remoteSpecEntry`, which follows listSpecs' precedence: a local workspace's copy, then a server workspace's, then main. A server slug is called on Frame Server via `serverPanels.call`. Offline, `GET_SPEC` answers `{ offline: host, workspace }` and the report and status say '<host> is offline — reconnect to open this spec.' A status update re-lists that root. The synchronous `getSpec` / `readSpecReport` / `updateSpecStatus` are unchanged for in-process callers. `renameSpec` refuses a server slug, and `deleteSpec` returns false for one, so a same-named main copy is never removed in its place. Tests in `test/specManagerServer.test.js`.
+
+_Captured: 2026-11-14 · 2 file change(s)_
+
+---

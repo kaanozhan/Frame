@@ -6,6 +6,8 @@
  *
  * T05: the server spec cache — listed on refresh, merged into listSpecs with
  * the workspace's host, refreshed on specs.changed, offline on disconnect.
+ * T06: GET_SPEC / READ_SPEC_REPORT / UPDATE_SPEC_STATUS route a server spec
+ * to Frame Server; rename and delete refuse it.
  */
 
 const { test, after } = require('node:test');
@@ -31,6 +33,9 @@ Object.assign(fakeServer, {
     serverCalls.push({ method, params });
     if (!this.connected) throw new Error('box is offline');
     if (method === 'specs.list') return remote[params.root] || [];
+    if (method === 'specs.get') return { status: { slug: params.slug, phase: 'planned' }, spec: '# from the server\n', planReportPath: '/srv/plan-report.html', workspace: null };
+    if (method === 'specs.report') return { success: true, html: '<html>server</html>', path: '/srv/plan-report.html' };
+    if (method === 'specs.status') return { status: { slug: params.slug, ...params.partial } };
     return null;
   }
 });
@@ -130,4 +135,56 @@ test('T05: an older Frame Server (Unknown method) lists nothing instead of faili
   } finally {
     fakeServer.call = saved;
   }
+});
+
+// ─── T06: routed handlers ────────────────────────────────────
+
+test('T06: a server spec is read, reported and updated through Frame Server', async () => {
+  remote[ROOT] = [serverSpec('planned')];
+  await specManager.refreshServerSpecs(PROJECT);
+  serverCalls.length = 0;
+  const full = await specManager.handleGetSpec(PROJECT, 'on-server');
+  assert.equal(full.spec, '# from the server\n');
+  assert.equal(full.workspace.host, 'box', 'tagged with its server workspace');
+  const call = serverCalls.find((c) => c.method === 'specs.get');
+  assert.deepEqual(call.params, { projectPath: '/home/u/frame/projects/project', root: ROOT, slug: 'on-server' });
+  const report = await specManager.handleReadSpecReport(PROJECT, 'on-server', 'plan');
+  assert.equal(report.html, '<html>server</html>');
+  const upd = await specManager.handleUpdateSpecStatus(PROJECT, 'on-server', { implement_mode: 'guided' });
+  assert.equal(upd.status.implement_mode, 'guided');
+  assert.deepEqual(serverCalls.find((c) => c.method === 'specs.status').params.partial, { implement_mode: 'guided' });
+});
+
+test('T06: a local spec still reads from disk', async () => {
+  serverCalls.length = 0;
+  const local = await specManager.handleGetSpec(PROJECT, 'local-one');
+  assert.equal(local.status.title, 'Local one');
+  assert.equal(serverCalls.filter((c) => c.method.startsWith('specs.')).length, 0);
+});
+
+test('T06: offline, a server spec answers { offline: host } and its report and status say so', async () => {
+  fakeServer.connected = false;
+  fakeServer.emit('disconnected', {});
+  try {
+    const full = await specManager.handleGetSpec(PROJECT, 'on-server');
+    assert.equal(full.offline, 'box');
+    const report = await specManager.handleReadSpecReport(PROJECT, 'on-server', 'plan');
+    assert.equal(report.success, false);
+    assert.match(report.error, /box is offline/);
+    const upd = await specManager.handleUpdateSpecStatus(PROJECT, 'on-server', { phase: 'done' });
+    assert.match(upd.error, /box is offline/);
+  } finally {
+    fakeServer.connected = true;
+    fakeServer.emit('connected', { host: 'box' });
+    await new Promise((r) => setTimeout(r, 50));
+  }
+});
+
+test('T06: renaming or deleting a server spec is refused, and no local copy is touched in its place', () => {
+  const r = specManager.renameSpec(PROJECT, 'on-server', { title: 'New' });
+  assert.match(r.error, /server workspace comes in a later update/);
+  write(path.join(PROJECT, '.frame', 'specs', 'on-server', 'status.json'), { slug: 'on-server', title: 'Main copy', phase: 'done', generated_task_ids: [] });
+  assert.equal(specManager.deleteSpec(PROJECT, 'on-server'), false);
+  assert.ok(fs.existsSync(path.join(PROJECT, '.frame', 'specs', 'on-server', 'status.json')), 'the main copy is still there');
+  fs.rmSync(path.join(PROJECT, '.frame', 'specs', 'on-server'), { recursive: true, force: true });
 });
