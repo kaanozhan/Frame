@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-13",
+  "lastUpdated": "2026-11-14",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -6486,6 +6486,11 @@
         "startWatching",
         "getCommandPrompt",
         "buildSpecCommandFile",
+        "listSpecsIn",
+        "getSpecIn",
+        "readSpecReportIn",
+        "updateSpecStatusIn",
+        "buildSpecCommandFileIn",
         "specNewPromptFilename",
         "buildImplementPermissions",
         "resolveVerificationCommand",
@@ -6629,8 +6634,16 @@
             "projectPath"
           ]
         },
+        "listSpecsCore": {
+          "line": 318,
+          "params": [
+            "projectPath",
+            "tasksProject",
+            "locations"
+          ]
+        },
         "listSpecReports": {
-          "line": 410,
+          "line": 413,
           "params": [
             "projectPath",
             "slug"
@@ -6638,7 +6651,7 @@
           "purpose": "Which of a spec's two generated reports exist on disk, named as the viewer"
         },
         "looksLikeSpecFolder": {
-          "line": 419,
+          "line": 422,
           "params": [
             "projectPath",
             "folderName"
@@ -6646,7 +6659,7 @@
           "purpose": "A folder is a spec if it carries at least one of the chain's artifacts."
         },
         "malformedSpec": {
-          "line": 431,
+          "line": 434,
           "params": [
             "folderName",
             "status",
@@ -6655,7 +6668,7 @@
           "purpose": "A spec folder Frame cannot read as a spec, rendered as itself rather than"
         },
         "fileExists": {
-          "line": 451,
+          "line": 454,
           "params": [
             "projectPath",
             "slug",
@@ -6663,7 +6676,7 @@
           ]
         },
         "derivePhase": {
-          "line": 455,
+          "line": 458,
           "params": [
             "projectPath",
             "slug",
@@ -6673,7 +6686,7 @@
           ]
         },
         "recordedTaskCount": {
-          "line": 496,
+          "line": 499,
           "params": [
             "projectPath",
             "slug",
@@ -6681,14 +6694,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 502,
+          "line": 505,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "countPhaseWrite": {
-          "line": 523,
+          "line": 526,
           "params": [
             "projectPath",
             "slug",
@@ -6697,7 +6710,7 @@
           ]
         },
         "reconcilePhase": {
-          "line": 531,
+          "line": 534,
           "params": [
             "projectPath",
             "slug",
@@ -6705,14 +6718,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 577,
+          "line": 580,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 581,
+          "line": 584,
           "params": [
             "projectPath",
             "aiTool",
@@ -6720,7 +6733,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 601,
+          "line": 604,
           "params": [
             "projectPath",
             "aiTool",
@@ -6728,7 +6741,7 @@
           ]
         },
         "interpolateValues": {
-          "line": 610,
+          "line": 613,
           "params": [
             "obj",
             "vars"
@@ -6736,25 +6749,26 @@
           "purpose": "Run `interpolate` over each value of an object. One pass, no recursion."
         },
         "interpolate": {
-          "line": 618,
+          "line": 621,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 631,
+          "line": 634,
           "params": [
             "projectPath",
             "slug",
             "command",
             "aiTool",
             "description",
-            "rootOverride"
+            "rootOverride",
+            "tasksProject"
           ]
         },
         "reportAssetRel": {
-          "line": 718,
+          "line": 721,
           "params": [
             "projectPath",
             "tool",
@@ -6763,34 +6777,34 @@
           "purpose": "Which staged report asset a tool's prompt should name."
         },
         "resolveVerificationCommand": {
-          "line": 785,
+          "line": 788,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 800,
+          "line": 803,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 818,
+          "line": 821,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 842,
+          "line": 845,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 858,
+          "line": 861,
           "params": [
             "projectPath",
             "slug",
@@ -6799,57 +6813,58 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "specNewPromptFilename": {
-          "line": 879,
+          "line": 882,
           "params": [
             "date"
           ],
           "purpose": "A slug-less run has no stable name to key the prompt file on — `${slug}__`"
         },
         "uniquePromptFilename": {
-          "line": 884,
+          "line": 887,
           "params": [
             "promptsDir",
             "filename"
           ]
         },
         "buildSpecCommandFile": {
-          "line": 893,
+          "line": 896,
           "params": [
             "projectPath",
             "slug",
             "command",
             "aiTool",
             "description",
-            "rootOverride"
+            "rootOverride",
+            "tasksProject"
           ]
         },
         "parseTasksMarkdown": {
-          "line": 946,
+          "line": 949,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 972,
+          "line": 975,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 991,
+          "line": 994,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "completedTaskIdsFromOutcome": {
-          "line": 1005,
+          "line": 1008,
           "params": [
             "content"
           ]
         },
         "initialTaskState": {
-          "line": 1012,
+          "line": 1015,
           "params": [
             "status",
             "outcomeIds",
@@ -6858,34 +6873,34 @@
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 1020,
+          "line": 1023,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 1105,
+          "line": 1108,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 1112,
+          "line": 1115,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 1123,
+          "line": 1126,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "readSpecReport": {
-          "line": 1164,
+          "line": 1167,
           "params": [
             "projectPath",
             "slug",
@@ -6894,7 +6909,7 @@
           "purpose": "Read one of a spec's two generated HTML reports, for the in-app viewer."
         },
         "searchSpecs": {
-          "line": 1193,
+          "line": 1196,
           "params": [
             "projectPath",
             "query"
@@ -6902,7 +6917,7 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "updateSpecStatus": {
-          "line": 1206,
+          "line": 1209,
           "params": [
             "projectPath",
             "slug",
@@ -6910,14 +6925,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1230,
+          "line": 1233,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1247,
+          "line": 1250,
           "params": [
             "projectPath",
             "oldSlug",
@@ -6926,71 +6941,127 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "specsWatchHandler": {
-          "line": 1370,
+          "line": 1373,
           "params": [
             "projectPath"
           ],
           "purpose": "One handler for every specs folder of the watched project — main's and each"
         },
         "closeWorkspaceSpecWatchers": {
-          "line": 1399
+          "line": 1402
         },
         "refreshWorkspaceWatchers": {
-          "line": 1412,
+          "line": 1415,
           "params": [
             "projectPath"
           ],
           "purpose": "Watch each active workspace's `.frame/specs` alongside main's, then push"
         },
         "startWatching": {
-          "line": 1439,
+          "line": 1442,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1519
+          "line": 1522
         },
         "markSpecNewLaunch": {
-          "line": 1573,
+          "line": 1576,
           "params": [
             "projectPath"
           ]
         },
         "consumeSpecNewLaunch": {
-          "line": 1579,
+          "line": 1582,
           "params": [
             "projectPath"
           ]
         },
         "resolveSpecOrigin": {
-          "line": 1595,
+          "line": 1598,
           "params": [
             "projectPath"
           ],
           "purpose": "How this spec was started, from Frame's own state — never guessed from the"
         },
         "trackSpecLifecycle": {
-          "line": 1606,
+          "line": 1609,
           "params": [
             "projectPath",
             "specs"
           ]
         },
         "pushSpecData": {
-          "line": 1634,
+          "line": 1637,
           "params": [
             "projectPath"
           ]
         },
+        "checkoutLocations": {
+          "line": 1669,
+          "params": [
+            "root"
+          ]
+        },
+        "inCheckout": {
+          "line": 1675,
+          "params": [
+            "root",
+            "fn"
+          ]
+        },
+        "listSpecsIn": {
+          "line": 1688,
+          "params": [
+            "root",
+            "tasksProject"
+          ],
+          "purpose": "listSpecs over one checkout; task counts come from `tasksProject`'s tasks.json."
+        },
+        "getSpecIn": {
+          "line": 1692,
+          "params": [
+            "root",
+            "slug"
+          ]
+        },
+        "readSpecReportIn": {
+          "line": 1696,
+          "params": [
+            "root",
+            "slug",
+            "kind"
+          ]
+        },
+        "updateSpecStatusIn": {
+          "line": 1700,
+          "params": [
+            "root",
+            "slug",
+            "partial"
+          ]
+        },
+        "buildSpecCommandFileIn": {
+          "line": 1705,
+          "params": [
+            "root",
+            "tasksProject",
+            "slug",
+            "command",
+            "aiTool",
+            "description"
+          ],
+          "purpose": "Stage a spec command's prompt in `root`, with `{tasks_path}` naming `tasksProject`'s tasks.json."
+        },
         "init": {
-          "line": 1658,
+          "line": 1711,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 1662,
+          "line": 1715,
           "params": [
             "ipcMain"
           ]
@@ -7017,7 +7088,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 76434,
+      "sizeBytes": 78601,
       "extraction": {
         "status": "parsed"
       },
@@ -7026,10 +7097,12 @@
         "purposes": {
           "activeWorkspaceRoots": "188147f8c6c09b48",
           "buildSpecCatalog": "c0e0dc84b1debf77",
+          "buildSpecCommandFileIn": "bbbac7aa25660450",
           "getImplementLaunchFlags": "c96e947927709160",
           "indexStamp": "759797531edafff5",
           "interpolateValues": "72397f6a1df7e05f",
           "listSpecReports": "ab610b28817533e2",
+          "listSpecsIn": "c54319e6e2d34eef",
           "looksLikeSpecFolder": "48b25d6c330697cf",
           "malformedSpec": "8d1f316ef92d3106",
           "readSpecReport": "9c5b897e277cfa95",
@@ -30631,6 +30704,46 @@
         "description": "1c2fd5404ac60a75"
       }
     },
+    "test/serverSpecs.test": {
+      "file": "test/serverSpecs.test.js",
+      "description": "Specs in server workspaces (server-specs spec).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "node:module",
+        "src/main/specManager"
+      ],
+      "functions": {
+        "write": {
+          "line": 32,
+          "params": [
+            "file",
+            "body"
+          ]
+        },
+        "fixture": {
+          "line": 38,
+          "params": [
+            "name"
+          ],
+          "purpose": "A worktree with one planned spec, and a separate clone holding task state."
+        }
+      },
+      "sizeBytes": 6288,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0a84247a2e91ae82",
+        "purposes": {
+          "fixture": "d5fadc6230f26023"
+        }
+      }
+    },
     "test/serverTerminalsHome.test": {
       "file": "test/serverTerminalsHome.test.js",
       "description": "Frame Server home terminals (server-onboarding T04): a terminal in the",
@@ -34438,7 +34551,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 378,
+        "parsed": 379,
         "unsupported": 91,
         "partial": 0
       }
@@ -34485,9 +34598,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 563,
+      "visitedEntries": 564,
       "traversedDirectories": 86,
-      "eligibleFiles": 469,
+      "eligibleFiles": 470,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -34504,7 +34617,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 469,
+      "indexedFiles": 470,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34512,6 +34625,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "62d4a69d85991b5d971da331d8add5380cedf16cefeb61765a760254a5a12d8d"
+    "revision": "a4851aa7a9056ac519686721865340b614f6dcb626317841bc308ee56e69ac5f"
   }
 }

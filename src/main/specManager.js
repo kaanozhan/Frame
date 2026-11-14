@@ -312,7 +312,10 @@ function buildSpecCatalog(projectPath) {
 function listSpecs(projectPath) {
   // Every checkout of the project: main plus active workspaces. Each slug is
   // read from the one checkout that holds it (see specLocations).
-  const locations = refreshSpecLocations(projectPath);
+  return listSpecsCore(projectPath, projectPath, refreshSpecLocations(projectPath));
+}
+
+function listSpecsCore(projectPath, tasksProject, locations) {
   if (locations.size === 0) return [];
   const entries = Array.from(locations.keys()).map((name) => ({ name, isDirectory: () => true }));
 
@@ -321,7 +324,7 @@ function listSpecs(projectPath) {
   // of dozens of specs; if this ever becomes a hot path we can cache.
   let tasksData = null;
   try {
-    tasksData = tasksManager.loadTasks(projectPath);
+    tasksData = tasksManager.loadTasks(tasksProject);
   } catch (err) {
     tasksData = null;
   }
@@ -628,7 +631,7 @@ function interpolate(template, vars) {
 // that command only — every other command reads an existing status.json.
 const isSlugless = (slug, command) => !slug && command === 'spec.new';
 
-function getCommandPrompt(projectPath, slug, command, aiTool, description, rootOverride) {
+function getCommandPrompt(projectPath, slug, command, aiTool, description, rootOverride, tasksProject) {
   if (!SUPPORTED_COMMANDS.includes(command)) return { error: `unknown command: ${command}` };
   const tool = aiTool || 'claude-code';
   const slugless = isSlugless(slug, command);
@@ -646,7 +649,7 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description, rootO
   const paths = commandPaths({
     projectPath,
     root: rootOverride || (slug ? specRoot(projectPath, slug) : projectPath),
-    tasksPath: frameStore.resolvePath(projectPath, FRAME_FILES.TASKS)
+    tasksPath: frameStore.resolvePath(tasksProject || projectPath, FRAME_FILES.TASKS)
   });
   const vars = {
     // Phrases a template cannot state tool-neutrally — one CLI's structured
@@ -890,14 +893,14 @@ function uniquePromptFilename(promptsDir, filename) {
   }
 }
 
-function buildSpecCommandFile(projectPath, slug, command, aiTool, description, rootOverride) {
+function buildSpecCommandFile(projectPath, slug, command, aiTool, description, rootOverride, tasksProject) {
   // The prompt is staged where the agent runs (spec-in-workspace): the
   // instruction below names it by a relative path, and an agent in a
   // workspace has the worktree as its cwd. Staging it in the main checkout
   // while the lane ran in a worktree left the agent with a path it could
   // not open.
   const root = rootOverride || (slug ? specRoot(projectPath, slug) : projectPath);
-  const result = getCommandPrompt(projectPath, slug, command, aiTool, description, root);
+  const result = getCommandPrompt(projectPath, slug, command, aiTool, description, root, tasksProject);
   if (result.error) return result;
   const promptsDir = path.join(root, RUNTIME_PROMPTS_DIR);
   fs.mkdirSync(promptsDir, { recursive: true });
@@ -1653,6 +1656,56 @@ function pushSpecData(projectPath) {
   mainWindow.webContents.send(IPC.SPEC_DATA, { projectPath, specs });
 }
 
+// ─── Per-checkout readers (server-specs T01) ──────────────
+//
+// Frame Server reads and stages specs in one worktree at a time and keeps no
+// project registry, so the slug → checkout lookup above has nothing to look
+// in there. These run the same readers scoped to one checkout `root`: while
+// one runs, `root` maps every slug to itself. `tasksProject` is where task
+// state lives (the server clone's main checkout), never the worktree.
+// Everything inside is synchronous, so the temporary map cannot leak into
+// another call.
+
+function checkoutLocations(root) {
+  const map = new Map();
+  for (const slug of specFolderNames(root)) map.set(slug, { root, workspace: null });
+  return map;
+}
+
+function inCheckout(root, fn) {
+  const had = specLocations.has(root);
+  const saved = specLocations.get(root);
+  specLocations.set(root, checkoutLocations(root));
+  try {
+    return fn();
+  } finally {
+    if (had) specLocations.set(root, saved);
+    else specLocations.delete(root);
+  }
+}
+
+/** listSpecs over one checkout; task counts come from `tasksProject`'s tasks.json. */
+function listSpecsIn(root, tasksProject) {
+  return inCheckout(root, () => listSpecsCore(root, tasksProject || root, specLocations.get(root)));
+}
+
+function getSpecIn(root, slug) {
+  return inCheckout(root, () => getSpec(root, slug));
+}
+
+function readSpecReportIn(root, slug, kind) {
+  return inCheckout(root, () => readSpecReport(root, slug, kind));
+}
+
+function updateSpecStatusIn(root, slug, partial) {
+  return inCheckout(root, () => updateSpecStatus(root, slug, partial));
+}
+
+/** Stage a spec command's prompt in `root`, with `{tasks_path}` naming `tasksProject`'s tasks.json. */
+function buildSpecCommandFileIn(root, tasksProject, slug, command, aiTool, description) {
+  return inCheckout(root, () => buildSpecCommandFile(root, slug, command, aiTool, description, root, tasksProject || root));
+}
+
 // ─── Init + IPC ────────────────────────────────────────────
 
 function init(window) {
@@ -1751,6 +1804,11 @@ module.exports = {
   startWatching,
   getCommandPrompt,
   buildSpecCommandFile,
+  listSpecsIn,
+  getSpecIn,
+  readSpecReportIn,
+  updateSpecStatusIn,
+  buildSpecCommandFileIn,
   specNewPromptFilename,
   buildImplementPermissions,
   resolveVerificationCommand,
