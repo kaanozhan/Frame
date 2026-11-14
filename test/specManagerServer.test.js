@@ -8,6 +8,7 @@
  * the workspace's host, refreshed on specs.changed, offline on disconnect.
  * T06: GET_SPEC / READ_SPEC_REPORT / UPDATE_SPEC_STATUS route a server spec
  * to Frame Server; rename and delete refuse it.
+ * T07: BUILD_SPEC_COMMAND_FILE stages on the server for a server workspace.
  */
 
 const { test, after } = require('node:test');
@@ -36,6 +37,7 @@ Object.assign(fakeServer, {
     if (method === 'specs.get') return { status: { slug: params.slug, phase: 'planned' }, spec: '# from the server\n', planReportPath: '/srv/plan-report.html', workspace: null };
     if (method === 'specs.report') return { success: true, html: '<html>server</html>', path: '/srv/plan-report.html' };
     if (method === 'specs.status') return { status: { slug: params.slug, ...params.partial } };
+    if (method === 'specs.stage') return { success: true, relPath: `.frame/runtime/prompts/${params.slug || 'spec.new__x'}__${params.command}.md`, instruction: 'Read it.', launchFlags: [] };
     return null;
   }
 });
@@ -187,4 +189,58 @@ test('T06: renaming or deleting a server spec is refused, and no local copy is t
   assert.equal(specManager.deleteSpec(PROJECT, 'on-server'), false);
   assert.ok(fs.existsSync(path.join(PROJECT, '.frame', 'specs', 'on-server', 'status.json')), 'the main copy is still there');
   fs.rmSync(path.join(PROJECT, '.frame', 'specs', 'on-server'), { recursive: true, force: true });
+});
+
+// ─── T07: staging on the server ──────────────────────────────
+
+test('T07: a new spec in a selected server workspace is staged by Frame Server, not on this disk', async () => {
+  serverCalls.length = 0;
+  const r = await specManager.handleBuildSpecCommandFile({ projectPath: PROJECT, slug: null, command: 'spec.new', aiTool: 'claude-code', description: 'Make it', root: ROOT, workspaceId: 'srv-ws-1' });
+  assert.equal(r.success, true, r.error);
+  const call = serverCalls.find((c) => c.method === 'specs.stage');
+  assert.deepEqual(call.params, { projectPath: '/home/u/frame/projects/project', root: ROOT, slug: null, command: 'spec.new', aiTool: 'claude-code', description: 'Make it' });
+  assert.equal(fs.existsSync(ROOT), false, 'nothing was written under the server path on this machine');
+  assert.ok(serverCalls.some((c) => c.method === 'specs.list' && c.params.root === ROOT), 'the workspace is re-listed so the new spec shows up');
+});
+
+test('T07: a command for a server spec is staged on the server even with main selected', async () => {
+  remote[ROOT] = [serverSpec('planned')];
+  await specManager.refreshServerSpecs(PROJECT);
+  serverCalls.length = 0;
+  const r = await specManager.handleBuildSpecCommandFile({ projectPath: PROJECT, slug: 'on-server', command: 'spec.tasks', aiTool: 'claude-code' });
+  assert.equal(r.success, true, r.error);
+  assert.equal(serverCalls.find((c) => c.method === 'specs.stage').params.slug, 'on-server');
+});
+
+test('T07: a local spec is still staged locally', async () => {
+  serverCalls.length = 0;
+  const r = await specManager.handleBuildSpecCommandFile({ projectPath: PROJECT, slug: 'local-one', command: 'spec.plan', aiTool: 'claude-code' });
+  assert.equal(r.success, true, r.error);
+  assert.ok(fs.existsSync(path.join(PROJECT, r.relPath)));
+  assert.equal(serverCalls.filter((c) => c.method === 'specs.stage').length, 0);
+});
+
+test('T07: an older Frame Server is told to update; offline fails before anything is dispatched', async () => {
+  const saved = fakeServer.call;
+  fakeServer.call = async (method, params) => {
+    if (method === 'specs.stage') throw new Error('Unknown method specs.stage');
+    return saved.call(fakeServer, method, params);
+  };
+  try {
+    const old = await specManager.handleBuildSpecCommandFile({ projectPath: PROJECT, slug: null, command: 'spec.new', workspaceId: 'srv-ws-1' });
+    assert.equal(old.success, false);
+    assert.match(old.error, /Update Frame Server to run specs on this server/);
+  } finally {
+    fakeServer.call = saved;
+  }
+  fakeServer.connected = false;
+  try {
+    serverCalls.length = 0;
+    const off = await specManager.handleBuildSpecCommandFile({ projectPath: PROJECT, slug: null, command: 'spec.new', workspaceId: 'srv-ws-1' });
+    assert.equal(off.success, false);
+    assert.match(off.error, /box is offline/);
+    assert.equal(serverCalls.filter((c) => c.method === 'specs.stage').length, 0);
+  } finally {
+    fakeServer.connected = true;
+  }
 });

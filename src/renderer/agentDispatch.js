@@ -475,6 +475,15 @@ const specLanes = new Map(); // Map<slug, terminalId>
 // command is staged, the spec's workspace (or main) is selected — terminals
 // open in the selected workspace's folder.
 
+/**
+ * The selected workspace's id, sent with BUILD_SPEC_COMMAND_FILE: for a
+ * server workspace the prompt is staged on the server (server-specs).
+ */
+function _selectedWorkspaceId() {
+  const ws = state.getWorkspace();
+  return ws && ws.id !== state.MAIN_WORKSPACE_ID ? ws.id : null;
+}
+
 /** Select the checkout a spec lives in; returns its root (main = projectPath). */
 async function _selectSpecWorkspace(projectPath, slug) {
   let spec = null;
@@ -558,7 +567,8 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
       projectPath,
       slug,
       command,
-      aiTool: 'claude-code'
+      aiTool: 'claude-code',
+      workspaceId: _selectedWorkspaceId()
     });
   } catch (err) {
     console.error('agentDispatch: prompt staging failed', err);
@@ -642,7 +652,8 @@ async function _dispatchImplement({ slug, title, projectPath, assignment }) {
       projectPath,
       slug,
       command: 'spec.implement',
-      aiTool: 'claude-code'
+      aiTool: 'claude-code',
+      workspaceId: _selectedWorkspaceId()
     });
   } catch (err) {
     console.error('agentDispatch: prompt staging failed', err);
@@ -805,7 +816,8 @@ async function dispatchSpecNew(description) {
       command: 'spec.new',
       aiTool: 'claude-code',
       description: text,
-      root
+      root,
+      workspaceId: _selectedWorkspaceId()
     });
   } catch (err) {
     console.error('agentDispatch: spec.new staging failed', err);

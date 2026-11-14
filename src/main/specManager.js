@@ -1939,6 +1939,49 @@ function handleUpdateSpecStatus(projectPath, slug, partial) {
   return entry ? updateServerSpecStatus(entry, slug, partial) : updateSpecStatus(projectPath, slug, partial);
 }
 
+const UPDATE_SERVER = 'Update Frame Server to run specs on this server (File ▸ Connect to Server…).';
+
+/**
+ * Where a spec command for `workspaceId` / `slug` runs when that is a server
+ * workspace: `{ serverProjectPath, root, host }`, or null for a local one. The
+ * selected workspace decides first (a new spec has no slug yet); a slug held
+ * only by a server workspace decides otherwise.
+ */
+function serverStagingTarget(projectPath, slug, workspaceId) {
+  if (workspaceId) {
+    let loc = null;
+    try { loc = require('./workspaceManager').serverLocation(workspaceId); } catch (_) { loc = null; }
+    if (loc) return { serverProjectPath: loc.serverProjectPath, root: loc.path, host: loc.host };
+  }
+  const entry = slug ? remoteSpecEntry(projectPath, slug) : null;
+  return entry ? { serverProjectPath: entry.serverProjectPath, root: entry.root, host: entry.workspace.host } : null;
+}
+
+/**
+ * BUILD_SPEC_COMMAND_FILE: stage locally, or — for a server workspace — have
+ * Frame Server stage it there (specs.stage) so the lane on the server finds
+ * the prompt at the relative path the instruction names.
+ */
+async function handleBuildSpecCommandFile({ projectPath, slug = null, command, aiTool, description, root = null, workspaceId = null } = {}) {
+  const target = serverStagingTarget(projectPath, slug, workspaceId);
+  if (!target) return buildSpecCommandFile(projectPath, slug, command, aiTool, description, root || null);
+  if (!serverConn().isConnected()) {
+    return { success: false, error: `${target.host || 'The server'} is offline — reconnect to run this spec command there.` };
+  }
+  let res;
+  try {
+    res = await require('./serverPanels').call({ host: target.host }, 'specs.stage', {
+      projectPath: target.serverProjectPath, root: target.root, slug, command, aiTool, description
+    }, 5 * 60 * 1000);
+  } catch (err) {
+    const message = String((err && err.message) || err);
+    return { success: false, error: /Unknown method/.test(message) ? UPDATE_SERVER : message };
+  }
+  // Follow the workspace from now on: a new spec there must reach the list.
+  refreshServerSpecs(projectPath, target.root).catch(() => { /* reported inside */ });
+  return res || { success: false, error: 'Frame Server did not stage the prompt.' };
+}
+
 function setupIPC(ipcMain) {
   ipcMain.handle(IPC.LIST_SPECS, (event, projectPath) =>
     listSpecs(projectPath)
@@ -1961,9 +2004,7 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.GET_SPEC_PROMPT, (event, { projectPath, slug, command, aiTool, description }) =>
     getCommandPrompt(projectPath, slug, command, aiTool, description)
   );
-  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, { projectPath, slug, command, aiTool, description, root }) =>
-    buildSpecCommandFile(projectPath, slug, command, aiTool, description, root || null)
-  );
+  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, payload) => handleBuildSpecCommandFile(payload));
   ipcMain.on(IPC.WATCH_SPECS, (event, projectPath) => {
     startWatching(projectPath);
     // Project open, in three steps whose order is load-bearing:
@@ -2042,6 +2083,7 @@ module.exports = {
   handleGetSpec,
   handleReadSpecReport,
   handleUpdateSpecStatus,
+  handleBuildSpecCommandFile,
   specNewPromptFilename,
   buildImplementPermissions,
   resolveVerificationCommand,

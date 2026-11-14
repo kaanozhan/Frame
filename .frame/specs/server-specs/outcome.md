@@ -46,3 +46,11 @@ The `GET_SPEC`, `READ_SPEC_REPORT` and `UPDATE_SPEC_STATUS` handlers now go thro
 _Captured: 2026-11-14 · 2 file change(s)_
 
 ---
+
+## T07 — Run spec commands on the server
+
+`BUILD_SPEC_COMMAND_FILE` now goes through the async `handleBuildSpecCommandFile`. `serverStagingTarget` picks the server: first by the payload's `workspaceId` (`workspaceManager.serverLocation`), else by a slug that only a server workspace holds. That target is staged with `specs.stage` through `serverPanels.call` (5 min timeout), and the root is then re-listed so a new spec there shows up. An older server's 'Unknown method' becomes 'Update Frame Server to run specs on this server (File ▸ Connect to Server…).' Offline fails before any call, and the renderer's existing `staged.success` check keeps that from opening a lane. `src/renderer/agentDispatch.js` sends `workspaceId` (the selected non-main workspace) on all three staging calls. Tests in `test/specManagerServer.test.js`.
+
+_Captured: 2026-11-14 · 3 file change(s)_
+
+---

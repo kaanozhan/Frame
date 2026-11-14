@@ -6497,6 +6497,7 @@
         "handleGetSpec",
         "handleReadSpecReport",
         "handleUpdateSpecStatus",
+        "handleBuildSpecCommandFile",
         "specNewPromptFilename",
         "buildImplementPermissions",
         "resolveVerificationCommand",
@@ -7189,8 +7190,30 @@
             "partial"
           ]
         },
+        "serverStagingTarget": {
+          "line": 1950,
+          "params": [
+            "projectPath",
+            "slug",
+            "workspaceId"
+          ],
+          "purpose": "Where a spec command for `workspaceId` / `slug` runs when that is a server"
+        },
+        "handleBuildSpecCommandFile": {
+          "line": 1965,
+          "params": [
+            "{ projectPath",
+            "slug = null",
+            "command",
+            "aiTool",
+            "description",
+            "root = null",
+            "workspaceId = null } = {}"
+          ],
+          "purpose": "BUILD_SPEC_COMMAND_FILE: stage locally, or — for a server workspace — have"
+        },
         "setupIPC": {
-          "line": 1942,
+          "line": 1985,
           "params": [
             "ipcMain"
           ]
@@ -7217,7 +7240,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 88354,
+      "sizeBytes": 90544,
       "extraction": {
         "status": "parsed"
       },
@@ -7229,6 +7252,7 @@
           "buildSpecCommandFileIn": "bbbac7aa25660450",
           "getImplementLaunchFlags": "c96e947927709160",
           "getServerSpec": "6cbde7de73d5ec78",
+          "handleBuildSpecCommandFile": "878be91ffff3c925",
           "handleGetSpec": "efd625e996fc0bec",
           "indexStamp": "759797531edafff5",
           "interpolateValues": "72397f6a1df7e05f",
@@ -7248,6 +7272,7 @@
           "resolveVerificationCommand": "55df517cdd84f001",
           "searchSpecs": "5b88c3481ad48aba",
           "serverSpecLists": "3468fa0b8c5e65ba",
+          "serverStagingTarget": "8879e83c8838781d",
           "serverWorkspacesOf": "4fdf28674837be98",
           "specLocation": "4655e5ba85a04400",
           "specNewPromptFilename": "f040681603f82c98",
@@ -9088,8 +9113,12 @@
           ],
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
+        "_selectedWorkspaceId": {
+          "line": 482,
+          "purpose": "The selected workspace's id, sent with BUILD_SPEC_COMMAND_FILE: for a"
+        },
         "_selectSpecWorkspace": {
-          "line": 479,
+          "line": 488,
           "params": [
             "projectPath",
             "slug"
@@ -9097,14 +9126,14 @@
           "purpose": "Select the checkout a spec lives in; returns its root (main = projectPath)."
         },
         "_workspaceForNewSpec": {
-          "line": 502,
+          "line": 511,
           "params": [
             "projectPath"
           ],
           "purpose": "The workspace a new spec is written in: the selected one, or — from main —"
         },
         "dispatchSpecCommand": {
-          "line": 525,
+          "line": 534,
           "params": [
             "{ slug",
             "title = null",
@@ -9112,7 +9141,7 @@
           ]
         },
         "_dispatchImplement": {
-          "line": 603,
+          "line": 613,
           "params": [
             "{ slug",
             "title",
@@ -9122,107 +9151,107 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "_isSpecCreatorLane": {
-          "line": 710,
+          "line": 721,
           "params": [
             "terminalId"
           ],
           "purpose": "Still open, and still carrying the transient name we gave it."
         },
         "_onSpecData": {
-          "line": 726,
+          "line": 737,
           "params": [
             "specs"
           ],
           "purpose": "A new slug appeared — attach it to the lane that produced it."
         },
         "_bindSpecCreatorLane": {
-          "line": 746,
+          "line": 757,
           "params": [
             "terminalId",
             "slug"
           ]
         },
         "dispatchSpecNew": {
-          "line": 782,
+          "line": 793,
           "params": [
             "description"
           ],
           "purpose": "Hand the user's free-form text to the standard `spec.new` flow."
         },
         "getSpecLaneInfo": {
-          "line": 876,
+          "line": 888,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 900,
+          "line": 912,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 921,
+          "line": 933,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 925,
+          "line": 937,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 929,
+          "line": 941,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 946,
+          "line": 958,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 954,
+          "line": 966,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 977,
+          "line": 989,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 985,
+          "line": 997,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 1003,
+          "line": 1015,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 1013,
+          "line": 1025,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 1022,
+          "line": 1034,
           "params": [
             "frameName",
             "specName"
@@ -9230,14 +9259,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 1063,
+          "line": 1075,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 1092,
+          "line": 1104,
           "params": [
             "terminalId",
             "message"
@@ -9256,7 +9285,7 @@
           "SPEC_AGENT_ACTIVITY"
         ]
       },
-      "sizeBytes": 46227,
+      "sizeBytes": 46645,
       "extraction": {
         "status": "parsed"
       },
@@ -9270,6 +9299,7 @@
           "_isSpecCreatorLane": "18da917b1fa2beef",
           "_onSpecData": "139e794738ce5f20",
           "_selectSpecWorkspace": "7edc3dacf77b1f79",
+          "_selectedWorkspaceId": "19a49c3a3816d5f5",
           "_startAgentIn": "da2fe978df3538aa",
           "_trackAgentRunWhenReady": "7545c616a53c7960",
           "_waitForAgentReady": "a626843d6a626ace",
@@ -31291,14 +31321,14 @@
       ],
       "functions": {
         "write": {
-          "line": 75,
+          "line": 77,
           "params": [
             "file",
             "body"
           ]
         }
       },
-      "sizeBytes": 10235,
+      "sizeBytes": 13539,
       "extraction": {
         "status": "parsed"
       },
@@ -34854,6 +34884,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "fce10e7248c4a3d8f7f6a6015402c7599b74972bcdfcc5bcee0c0822c7de0c2a"
+    "revision": "1a8aebe2159034ed8af366852cb39760950546cb546a3cc3b8290dccd74f2e8c"
   }
 }
