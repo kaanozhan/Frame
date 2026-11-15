@@ -176,12 +176,16 @@ function setRows(projectPath, entry) {
   serverRows.get(projectPath).set(entry.serverKey, entry);
 }
 
-/** `[projectPath, entry]` of every saved server: a removed server's rows never list or route. */
+/**
+ * `[projectPath, entry]` of every saved server, in the saved list's order (the
+ * servers are listed in parallel, so the cache's insertion order is whichever
+ * answered first): a removed server's rows never list or route.
+ */
 function currentEntries() {
-  const saved = new Set(links().map((l) => l.key));
+  const order = links().map((l) => l.key);
   const out = [];
   for (const [projectPath, byServer] of serverRows) {
-    for (const [key, entry] of byServer) if (saved.has(key)) out.push([projectPath, entry]);
+    for (const key of order) if (byServer.has(key)) out.push([projectPath, byServer.get(key)]);
   }
   return out;
 }
