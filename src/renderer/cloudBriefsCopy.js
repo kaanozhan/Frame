@@ -20,6 +20,13 @@
  *
  * A write the workspace role cannot make (`roleForbidden`, refused in main or
  * by the server) reads the one role sentence from cloudRoles in every table.
+ *
+ * GitHub tracking (FrameCloud brief-github-tracking, the web's `partRow`): while
+ * the project's tracking is `ready`, a part's pull request takes its row —
+ * "PR #N · Open / In review / Approved / Changes requested", or "Merged into
+ * <base>, not <target>" — unless a live agent lane is working on it. A PR is
+ * a pointer, never a merge: only the cloud's `mergedAt` counts. The history
+ * reads `part-merged` as the web does, an observation with no actor.
  */
 
 const { ROLE_FORBIDDEN } = require('./cloudRoles');
@@ -215,6 +222,18 @@ function eventAction(event, meId) {
       const reason = text(data.reason);
       return reason ? `moved this brief back to Active: “${reason}”` : 'moved this brief back to Active';
     }
+    // Observed by the cloud, not done by a person, so it reads as a whole
+    // sentence without an actor (see isObserved).
+    case 'part-merged': {
+      const title = text(data.title);
+      const sha = text(data.sha);
+      const target = text(data.target);
+      const subject = title ? `“${title}”` : 'A part';
+      const into = target ? ` into ${target}` : '';
+      // A merge GitHub reported through a pull request (brief-github-tracking).
+      const through = typeof data.pr === 'number' ? ` through PR #${data.pr}` : '';
+      return sha ? `${subject} merged${into} at ${sha.slice(0, 7)}${through}` : `${subject} merged${into}${through}`;
+    }
     default:
       // A server newer than this port: say something true rather than nothing.
       return 'changed this brief';
@@ -222,14 +241,16 @@ function eventAction(event, meId) {
 }
 
 /**
- * Whether the cloud observed this event rather than a person doing it: a
- * `done` from before manual Done, whose data has no `missing` list. The web
- * also counts `part-merged`; Frame does not draw that event yet (plan D8), so
- * it still reads "changed this brief" with its actor.
+ * Whether the cloud observed this event rather than a person doing it, as the
+ * web reads it: a part merged (`part-merged`), and a `done` from before
+ * manual Done, whose data has no `missing` list. Drawing `part-merged`
+ * overturns frame-cloud-brief-manual-done D8, which left it reading "changed
+ * this brief" with its actor (frame-cloud-github-tracking D19).
  */
 function isObserved(event) {
   const e = event || {};
   const data = e.data && typeof e.data === 'object' ? e.data : {};
+  if (e.event === 'part-merged') return true;
   return e.event === 'done' && !Array.isArray(data.missing);
 }
 
@@ -662,43 +683,93 @@ function mergedLabel(target) {
   return `Merged into ${target}`;
 }
 
+/** An open pull request's review after its number (the web's `REVIEW_LABEL`); no review reads "Open". */
+const REVIEW_LABELS = {
+  requested: 'In review',
+  approved: 'Approved',
+  changes_requested: 'Changes requested',
+};
+const PR_OPEN_LABEL = 'Open';
+
+/** "PR #7", the number a PR row shows (and links when the server gave a URL). */
+function prLabel(number) {
+  return `PR #${number}`;
+}
+
+/**
+ * A part's pull request as a row, while tracking is `ready` (the web's
+ * `partRow`): merged into a base other than the target ("Merged into <base>,
+ * not <target>", attention), or open ("PR #N · Open / In review / Approved",
+ * review; "PR #N · Changes requested", attention). Null for no PR, a closed
+ * one, or one merged into the target before the cloud counts the part. `run`
+ * is the folder record's next step, kept so a task added after "Changes
+ * requested" can run from the row (plan D7).
+ */
+function prStatus(p, target, run) {
+  if (!Number.isInteger(p.prNumber) || p.prNumber <= 0) return null;
+  const pr = (kind) => ({ number: p.prNumber, url: p.prUrl || null, kind, base: p.prBase || null });
+  if (p.prState === 'merged' && p.prBase && p.prBase !== target) {
+    return { label: `Merged into ${p.prBase}, not ${target}`, tone: 'attention', laneName: null, run, pr: pr('offTarget') };
+  }
+  if (p.prState === 'open') {
+    const changes = p.prReview === 'changes_requested';
+    return {
+      label: `${prLabel(p.prNumber)} · ${REVIEW_LABELS[p.prReview] || PR_OPEN_LABEL}`,
+      tone: changes ? 'attention' : 'review',
+      laneName: null,
+      run,
+      pr: pr(changes ? 'changes' : 'review'),
+    };
+  }
+  return null;
+}
+
 /**
  * Where one part of a started brief stands. `spec` is its `SPEC_DATA` entry
  * and `task` its `tasks.json` row (either absent when this folder does not
  * hold it), `lane` its lane info, `target` the brief's target branch,
- * `part.branch` the branch the cloud has for it, and `part.begunBranch` the
- * branch this machine began it on. With `done` (the brief is Done) the row
- * keeps its label but offers no Begin or Run (plan D7): a Done brief's facts
- * are frozen until it moves back to Active. In order:
+ * `tracking` the brief's `mergeTracking`, `part.branch` the branch the cloud
+ * has for it, and `part.begunBranch` the branch this machine began it on.
+ * With `done` (the brief is Done) the row keeps its label but offers no Begin
+ * or Run (plan D7): a Done brief's facts are frozen until it moves back to
+ * Active. In order:
  * - the cloud dropped it → "Dropped · <reason>";
  * - it counts as merged into `target` → "Merged into <target>";
- * - the folder holds its record → the record's state, where a live agent's
- *   wins (and then there is no Run: the lane is the way in), and a finished
+ * - the folder holds an unfinished record and a live agent lane → the lane's
+ *   state, with no Run: the lane is the way in;
+ * - only while tracking is `ready`, its pull request (see prStatus), keeping
+ *   the record's Run;
+ * - the folder holds its record → the record's state, where a finished
  *   record reads "Implemented";
+ * - the cloud recorded its completion → "Implemented";
  * - the cloud has its branch (unless `part.branchGone`: this machine's own
  *   branch was deleted) → "On <branch>";
  * - this machine began it → "On <branch>";
  * - else it waits on the brief → Not started, with Begin.
- * → `{ label, tone: 'idle' | 'active' | 'attention' | 'implemented' | 'done'
- * | 'dropped' | 'elsewhere', laneName, run: 'spec.plan' | 'spec.tasks' |
- * 'spec.implement' | 'task' | 'begin' | null }`.
+ * → `{ label, tone: 'idle' | 'active' | 'attention' | 'implemented' |
+ * 'review' | 'done' | 'dropped' | 'elsewhere', laneName, run: 'spec.plan' |
+ * 'spec.tasks' | 'spec.implement' | 'task' | 'begin' | null }`, and on a PR
+ * row only `pr: { number, url, kind: 'review' | 'changes' | 'offTarget', base }`.
  */
 function partStatus({ done, ...facts } = {}) {
   const status = partStatusOf(facts);
   return done === true ? { ...status, run: null } : status;
 }
 
-function partStatusOf({ part, spec, task, lane, target } = {}) {
+function partStatusOf({ part, spec, task, lane, target, tracking = 'ready' } = {}) {
   const p = part || {};
   if (!p.recordRef) return { label: '', tone: 'idle', laneName: null, run: null };
   if (p.droppedAt) return { label: droppedLabel(p.dropReason), tone: 'dropped', laneName: null, run: null };
   if (countsAsMerged(p, target)) return { label: mergedLabel(target), tone: 'done', laneName: null, run: null };
   const record = p.shape === 'spec' ? spec : task;
-  if (record) {
-    const own = p.shape === 'spec' ? specState(record) : taskState(record);
-    if (own.tone === 'implemented' || !lane || !lane.agentName) return { ...own, laneName: null };
+  const own = record ? (p.shape === 'spec' ? specState(record) : taskState(record)) : null;
+  if (own && own.tone !== 'implemented' && lane && lane.agentName) {
     return { ...(LANE_STATES[lane.status] || LANE_WAITING), laneName: lane.name || '', run: null };
   }
+  const pr = tracking === 'ready' ? prStatus(p, target, own ? own.run : null) : null;
+  if (pr) return pr;
+  if (own) return { ...own, laneName: null };
+  if (p.completionSha) return { ...IMPLEMENTED, laneName: null };
   if (p.branch && !p.branchGone) return { label: `On ${p.branch}`, tone: 'elsewhere', laneName: null, run: null };
   if (p.begunBranch) return { label: `On ${p.begunBranch}`, tone: 'elsewhere', laneName: null, run: null };
   return { label: 'Not started', tone: 'idle', laneName: null, run: 'begin' };
@@ -730,18 +801,36 @@ function laneLine(laneName) {
 }
 
 /**
- * A started brief's line under its parts, only with more than one:
- * "1 of 3 merged · 1 in progress · 1 on another branch · 1 dropped". Merged
- * counts out of the live parts; dropped parts are counted beside them.
- * `statuses` are partStatus results.
+ * A started brief's line under its parts, only with more than one. While
+ * tracking is `ready` (the web's `partsSummarySegments`, plus Frame's own
+ * "in progress" and "on another branch"): "1 of 5 merged · 1 in review ·
+ * 1 changes requested · 1 implemented · 1 in progress · 1 on another branch ·
+ * 1 dropped". Otherwise only completions are known, and a merged part counts
+ * as implemented: "2 of 3 implemented · 1 in progress · 1 dropped". The head
+ * counts out of the live parts; dropped parts are counted beside them, and a
+ * zero piece is left out. "In progress" counts a lane's attention, not a
+ * PR's. `statuses` are partStatus results.
  */
-function partsSummary(statuses) {
+function partsSummary(statuses, tracking = 'ready') {
   const list = Array.isArray(statuses) ? statuses : [];
   if (list.length < 2) return '';
-  const count = (...tones) => list.filter((s) => s && tones.includes(s.tone)).length;
+  const matching = (test) => list.filter((s) => s && test(s)).length;
+  const count = (...tones) => matching((s) => tones.includes(s.tone));
   const dropped = count('dropped');
-  const pieces = [`${count('done')} of ${list.length - dropped} merged`];
-  const active = count('active', 'attention');
+  const live = list.length - dropped;
+  const pieces = [];
+  if (tracking === 'ready') {
+    pieces.push(`${count('done')} of ${live} merged`);
+    const review = count('review');
+    if (review > 0) pieces.push(`${review} in review`);
+    const changes = matching((s) => s.pr && s.pr.kind === 'changes');
+    if (changes > 0) pieces.push(`${changes} changes requested`);
+    const implemented = count('implemented');
+    if (implemented > 0) pieces.push(`${implemented} implemented`);
+  } else {
+    pieces.push(`${count('implemented', 'done')} of ${live} implemented`);
+  }
+  const active = matching((s) => s.tone === 'active' || (s.tone === 'attention' && !s.pr));
   if (active > 0) pieces.push(`${active} in progress`);
   const elsewhere = count('elsewhere');
   if (elsewhere > 0) pieces.push(`${elsewhere} on ${elsewhere === 1 ? 'another branch' : 'other branches'}`);
@@ -750,11 +839,51 @@ function partsSummary(statuses) {
 }
 
 /**
- * The board's line while the project's merges cannot be seen
- * (`mergeTracking: 'needs_github'`): parts stay short of merged until then.
+ * A card's attention line (the web's K2 row): the first part, in order, a
+ * person should look at — "Changes requested on <title>" or "<title> merged
+ * into <base>, not <target>" — plus " · N more", or '' when nothing asks.
+ * `entries` are `[{ title, status }]` with partStatus results, so the line
+ * never contradicts its rows: a part whose lane wins is not flagged, and
+ * there are no PR rows unless tracking is `ready`.
  */
-const MERGE_TRACKING_NOTICE = 'Merges are tracked once GitHub is connected.';
+function partAttention(entries, target) {
+  const list = Array.isArray(entries) ? entries : [];
+  const flagged = [];
+  for (const entry of list) {
+    const status = entry && entry.status;
+    const pr = status && status.tone === 'attention' ? status.pr : null;
+    if (!pr) continue;
+    const title = entry.title || '';
+    if (pr.kind === 'changes') flagged.push(`Changes requested on ${title}`);
+    else if (pr.kind === 'offTarget') flagged.push(`${title} merged into ${pr.base || 'another branch'}, not ${target}`);
+  }
+  if (flagged.length === 0) return '';
+  return flagged.length > 1 ? `${flagged[0]} · ${flagged.length - 1} more` : flagged[0];
+}
+
+/**
+ * The board's box while the project's pull requests and merges are not
+ * tracked, word for word the web's (`project-header.tsx` `WARNING`): no
+ * GitHub, or tracking turned off. Both lead to the project's Settings, the
+ * only place either changes. This overturns frame-cloud-brief-done D2's
+ * "Merges are tracked once GitHub is connected." (plan D4).
+ */
+const TRACKING_WARNINGS = {
+  needs_github: {
+    title: 'Not connected to GitHub',
+    description: 'Pull requests and merges are not tracked. Connect GitHub in Settings.',
+  },
+  off: {
+    title: 'GitHub tracking is off',
+    description: 'Pull requests and merges are not tracked. Turn it on in Settings.',
+  },
+};
 const OPEN_ON_WEB_LABEL = 'Open on web';
+
+/** The board's tracking box for a `mergeTracking` → `{ title, description }`, or null while tracking is ready. */
+function trackingWarning(tracking) {
+  return Object.prototype.hasOwnProperty.call(TRACKING_WARNINGS, tracking) ? TRACKING_WARNINGS[tracking] : null;
+}
 
 /** A part link whose task this folder does not hold. */
 function partNotHereMessage(ref) {
@@ -978,11 +1107,14 @@ module.exports = {
   OPEN_TASK_LABEL,
   partNotHereMessage,
   IMPLEMENTED_LABEL,
-  MERGE_TRACKING_NOTICE,
+  TRACKING_WARNINGS,
+  trackingWarning,
   OPEN_ON_WEB_LABEL,
   countsAsMerged,
   droppedLabel,
   mergedLabel,
+  REVIEW_LABELS,
+  prLabel,
   partStatus,
   RUN_LABEL,
   BEGIN_LABEL,
@@ -990,6 +1122,7 @@ module.exports = {
   runHint,
   laneLine,
   partsSummary,
+  partAttention,
   MOVE_TO_DONE_LABEL,
   MOVE_BACK_LABEL,
   MOVING_TO_DONE_LABEL,

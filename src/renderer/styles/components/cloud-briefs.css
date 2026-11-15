@@ -577,7 +577,7 @@
   flex-shrink: 0;
 }
 
-/* The GitHub-not-connected line: a standing fact, quieter than a notice. */
+/* The tracking box (no GitHub, or tracking off): a standing fact, quieter than a notice. */
 .cloud-briefs-tracking {
   display: flex;
   align-items: center;
@@ -594,6 +594,16 @@
 .cloud-briefs-tracking p {
   margin: 0;
   line-height: 1.5;
+}
+
+.cloud-briefs-tracking-text {
+  min-width: 0;
+}
+
+/* The box's title ("GitHub tracking is off"), over its description, as on the web. */
+.cloud-briefs-tracking .cloud-briefs-tracking-title {
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
 .cloud-briefs-tracking .cloud-briefs-web-btn {
@@ -1469,6 +1479,37 @@ button.cloud-briefs-prow-title:hover {
   font-size: 11px;
 }
 
+/* Review: an open pull request, open, in review or approved (the web's info tone). */
+.tone-review .cloud-briefs-prow-dot {
+  border-color: var(--info);
+  background: color-mix(in srgb, var(--info) 40%, transparent);
+}
+
+.tone-review .cloud-briefs-prow-status {
+  color: var(--info);
+}
+
+/* "PR #N": the pull request on GitHub, in the foreground colour so it reads as a link on every tone. */
+.cloud-briefs-prow-pr {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+button.cloud-briefs-prow-pr {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+button.cloud-briefs-prow-pr:hover {
+  color: var(--accent-primary);
+}
+
 .cloud-briefs-prow-action {
   grid-area: action;
   justify-self: end;
@@ -1513,6 +1554,25 @@ button.cloud-briefs-prow-title:hover {
   margin: 0;
   font-size: 11px;
   color: var(--text-tertiary);
+}
+
+/* The card's attention line: the first part with changes requested or merged into another base. */
+.cloud-briefs-prows-attention {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  font-size: 11px;
+  color: var(--warning-ink);
+}
+
+.cloud-briefs-prows-attention::before {
+  content: '';
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warning);
 }
 
 /* In the Parts tab the row heads each part, over its definition. */

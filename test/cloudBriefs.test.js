@@ -237,12 +237,74 @@ test('normalizeBriefDetail reads a part\'s Done fields, null when absent or empt
   );
 });
 
-test('normalizeBrief reads mergeTracking, ready unless the server says needs_github', () => {
+test('normalizeBrief reads mergeTracking, ready unless the server says needs_github or off', () => {
   assert.equal(core.normalizeBrief(BRIEF).mergeTracking, 'ready');
   assert.equal(core.normalizeBrief({ ...BRIEF, mergeTracking: 'needs_github' }).mergeTracking, 'needs_github');
+  assert.equal(core.normalizeBrief({ ...BRIEF, mergeTracking: 'off' }).mergeTracking, 'off');
   assert.equal(core.normalizeBrief({ ...BRIEF, mergeTracking: 'ready' }).mergeTracking, 'ready');
   assert.equal(core.normalizeBrief({ ...BRIEF, mergeTracking: 'maybe' }).mergeTracking, 'ready');
   assert.equal(core.normalizeBriefDetail({ ...BRIEF, mergeTracking: 'needs_github' }).mergeTracking, 'needs_github');
+  assert.equal(core.normalizeBriefDetail({ ...BRIEF, mergeTracking: 'off' }).mergeTracking, 'off');
+});
+
+/** One part with the given PR fields, through normalizeBriefDetail. */
+function prPart(fields) {
+  return core.normalizeBriefDetail({
+    ...BRIEF,
+    parts: [{ id: 'p1', position: 0, title: 'A', shape: 'spec', type: 'feature', ...fields }],
+  }).parts[0];
+}
+
+const PR_URL = 'https://github.com/lab/my-app/pull/7';
+
+test('normalizeBriefDetail reads a part\'s pull request', () => {
+  const p = prPart({ prNumber: 7, prState: 'open', prBase: 'main', prReview: 'approved', prUrl: PR_URL });
+  assert.deepEqual(
+    [p.prNumber, p.prState, p.prBase, p.prReview, p.prUrl],
+    [7, 'open', 'main', 'approved', PR_URL]
+  );
+});
+
+test('normalizeBriefDetail gives null PR fields to a part from an older server', () => {
+  const p = prPart({});
+  assert.deepEqual([p.prNumber, p.prState, p.prBase, p.prReview, p.prUrl], [null, null, null, null, null]);
+});
+
+test('normalizeBriefDetail keeps every PR state and review the server knows', () => {
+  for (const state of ['open', 'closed', 'merged']) assert.equal(prPart({ prState: state }).prState, state);
+  for (const review of ['requested', 'approved', 'changes_requested']) assert.equal(prPart({ prReview: review }).prReview, review);
+});
+
+test('normalizeBriefDetail folds an unknown PR state or review to null', () => {
+  for (const bad of ['draft', 'OPEN', '', 7, null]) assert.equal(prPart({ prState: bad }).prState, null, String(bad));
+  for (const bad of ['commented', 'APPROVED', '', 1, null]) assert.equal(prPart({ prReview: bad }).prReview, null, String(bad));
+});
+
+test('normalizeBriefDetail keeps only a positive whole PR number', () => {
+  for (const bad of [0, -3, 1.5, '7', NaN, null]) assert.equal(prPart({ prNumber: bad }).prNumber, null, String(bad));
+  assert.equal(prPart({ prNumber: 1 }).prNumber, 1);
+});
+
+test('normalizeBriefDetail reads an empty or non-string PR base as null', () => {
+  assert.equal(prPart({ prBase: '' }).prBase, null);
+  assert.equal(prPart({ prBase: 3 }).prBase, null);
+  assert.equal(prPart({ prBase: 'release/1.0' }).prBase, 'release/1.0');
+});
+
+test('normalizeBriefDetail keeps a PR URL only when it is http(s)', () => {
+  assert.equal(prPart({ prUrl: 'http://ghe.lab.test/lab/my-app/pull/7' }).prUrl, 'http://ghe.lab.test/lab/my-app/pull/7');
+  for (const bad of ['javascript:alert(1)', 'ftp://github.com/x', 'file:///etc/passwd', 'not a url', '', 7, null]) {
+    assert.equal(prPart({ prUrl: bad }).prUrl, null, String(bad));
+  }
+});
+
+test('mergeTrackingOf: needs_github wins, then off, else ready', () => {
+  assert.equal(core.mergeTrackingOf([]), 'ready');
+  assert.equal(core.mergeTrackingOf(undefined), 'ready');
+  assert.equal(core.mergeTrackingOf([{ mergeTracking: 'ready' }, { mergeTracking: 'ready' }]), 'ready');
+  assert.equal(core.mergeTrackingOf([{ mergeTracking: 'ready' }, { mergeTracking: 'off' }]), 'off');
+  assert.equal(core.mergeTrackingOf([{ mergeTracking: 'off' }, { mergeTracking: 'needs_github' }]), 'needs_github');
+  assert.equal(core.mergeTrackingOf([{ mergeTracking: 'needs_github' }, { mergeTracking: 'off' }]), 'needs_github');
 });
 
 // Overturns frame-cloud-brief-done's "normalizeBrief does not carry doneAt":
@@ -350,6 +412,17 @@ test('buildBriefWebUrl refuses a number that is not a positive integer', () => {
 test('buildBriefWebUrl keeps the project URL guards', () => {
   assert.equal(core.buildBriefWebUrl({ ...WEB, number: 1, webOrigin: 'javascript:alert(1)' }), null);
   assert.equal(core.buildBriefWebUrl({ ...WEB, number: 1, projectSlug: '../x' }), null);
+});
+
+test('buildSettingsWebUrl points at the project\'s Settings, GitHub section', () => {
+  assert.equal(core.buildSettingsWebUrl(WEB), 'https://app.frame.test/lab/my-app/settings#github');
+});
+
+test('buildSettingsWebUrl keeps the project URL guards', () => {
+  assert.equal(core.buildSettingsWebUrl({ ...WEB, webOrigin: 'javascript:alert(1)' }), null);
+  assert.equal(core.buildSettingsWebUrl({ ...WEB, projectSlug: '../x' }), null);
+  assert.equal(core.buildSettingsWebUrl({ ...WEB, workspaceSlug: '' }), null);
+  assert.equal(core.buildSettingsWebUrl(), null);
 });
 
 // ─── Creating ─────────────────────────────────────────────────
@@ -604,7 +677,18 @@ test('addPartCounts reads open shaped work only, keeps its part rows, and surviv
     { id: 'p5', number: 5, kind: 'proposal', status: 'backlog', shapedAt: null },
   ];
   const details = {
-    1: { ...BRIEF, number: 1, parts: [{ id: 'a', position: 0, shape: 'spec', definition: 'secret' }, { id: 'b', position: 1, shape: 'task', recordRef: 'task-b' }, { id: 'c', position: 2, shape: 'spec' }] },
+    1: {
+      ...BRIEF,
+      number: 1,
+      parts: [
+        { id: 'a', position: 0, shape: 'spec', definition: 'secret' },
+        { id: 'b', position: 1, shape: 'task', recordRef: 'task-b' },
+        {
+          id: 'c', position: 2, shape: 'spec',
+          prNumber: 9, prState: 'open', prBase: 'main', prReview: 'changes_requested', prUrl: 'https://github.com/lab/my-app/pull/9',
+        },
+      ],
+    },
   };
   const asked = [];
   const call = async (fn) => {
@@ -623,10 +707,14 @@ test('addPartCounts reads open shaped work only, keeps its part rows, and surviv
   const counted = await core.addPartCounts(call, briefs, 'my-app');
   assert.deepEqual(counted.map((b) => b.partCounts), [{ spec: 2, task: 1 }, null, null, null, null]);
   const done = { branch: null, completionSha: null, mergedAt: null, mergedBase: null, droppedAt: null, dropReason: null };
+  const noPr = { prNumber: null, prState: null, prBase: null, prReview: null, prUrl: null };
   assert.deepEqual(counted[0].parts, [
-    { id: 'a', title: '', shape: 'spec', type: 'feature', key: null, recordRef: null, ...done },
-    { id: 'b', title: '', shape: 'task', type: 'feature', key: null, recordRef: 'task-b', ...done },
-    { id: 'c', title: '', shape: 'spec', type: 'feature', key: null, recordRef: null, ...done },
+    { id: 'a', title: '', shape: 'spec', type: 'feature', key: null, recordRef: null, ...done, ...noPr },
+    { id: 'b', title: '', shape: 'task', type: 'feature', key: null, recordRef: 'task-b', ...done, ...noPr },
+    {
+      id: 'c', title: '', shape: 'spec', type: 'feature', key: null, recordRef: null, ...done,
+      prNumber: 9, prState: 'open', prBase: 'main', prReview: 'changes_requested', prUrl: 'https://github.com/lab/my-app/pull/9',
+    },
   ]);
   assert.deepEqual(counted.slice(1).map((b) => b.parts), [null, null, null, null]);
   assert.deepEqual(asked.map((i) => i.number).sort(), [1, 2]);

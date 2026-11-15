@@ -15,6 +15,13 @@
  * "a brief Done stays on the server". Every other brief or milestone mutation
  * — a part merged, dropped or linked — stays on the server or the web.
  *
+ * Reads also carry what GitHub tracking adds (FrameCloud brief-github-tracking):
+ * every brief names its project's `mergeTracking` (`ready`, `needs_github` or
+ * `off`), and each part its pull request (`prNumber`, `prState`, `prBase`,
+ * `prReview`, `prUrl`). A PR is a pointer the cloud keeps; only the cloud
+ * decides a part is merged. The tracking setting changes only on the web, so
+ * Frame builds its Settings link (buildSettingsWebUrl) and nothing else.
+ *
  * Like cloudProjects.js, nothing here imports Electron or touches a file:
  * every call takes `{ api, token, fetchJson, signal }`, so
  * `cloudBriefsService.js` is a thin shell and `node --test` runs the whole
@@ -32,8 +39,11 @@ const STATUSES = new Set(['backlog', 'active', 'done', 'closed']);
 const PART_SHAPES = new Set(['spec', 'task']);
 const PART_TYPES = new Set(['feature', 'fix', 'refactor', 'docs', 'test']);
 const MILESTONE_STATUSES = new Set(['planned', 'started', 'closed']);
-/** Whether the cloud can see the project's merges: GitHub connected, or not yet. */
-const MERGE_TRACKING = new Set(['ready', 'needs_github']);
+/** Whether the cloud can see the project's merges: GitHub connected, not yet, or tracking turned off. */
+const MERGE_TRACKING = new Set(['ready', 'needs_github', 'off']);
+/** A part's pull request as the cloud last saw it, and its review. */
+const PR_STATES = new Set(['open', 'closed', 'merged']);
+const PR_REVIEWS = new Set(['requested', 'approved', 'changes_requested']);
 
 /**
  * The server's limits (FrameCloud `BRIEF_TITLE_MAX`, `BRIEF_TEXT_MAX`,
@@ -121,6 +131,14 @@ function normalizePart(raw) {
     mergedBase: strOrNull(p.mergedBase),
     droppedAt: strOrNull(p.droppedAt),
     dropReason: strOrNull(p.dropReason),
+    // GitHub tracking (FrameCloud brief-github-tracking): the part's pull
+    // request. An older server sends none of these. The URL is kept only when
+    // it is http(s), since Frame opens it as it is and never builds one.
+    prNumber: Number.isInteger(p.prNumber) && p.prNumber > 0 ? p.prNumber : null,
+    prState: PR_STATES.has(p.prState) ? p.prState : null,
+    prBase: strOrNull(p.prBase),
+    prReview: PR_REVIEWS.has(p.prReview) ? p.prReview : null,
+    prUrl: typeof p.prUrl === 'string' && isHttpUrl(p.prUrl) ? p.prUrl : null,
   };
 }
 
@@ -568,6 +586,11 @@ function partRow(part) {
     mergedBase: part.mergedBase,
     droppedAt: part.droppedAt,
     dropReason: part.dropReason,
+    prNumber: part.prNumber,
+    prState: part.prState,
+    prBase: part.prBase,
+    prReview: part.prReview,
+    prUrl: part.prUrl,
   };
 }
 
@@ -590,6 +613,20 @@ async function addPartCounts(call, briefs, projectSlug) {
   }));
 }
 
+// ─── Tracking ─────────────────────────────────────────────────
+
+/**
+ * Whether the cloud can see the project's merges, from the listed briefs
+ * (every brief carries its project's state): `needs_github` when any says so,
+ * then `off`, else `ready`, which also covers no briefs.
+ */
+function mergeTrackingOf(briefs) {
+  const listed = arr(briefs);
+  if (listed.some((b) => b && b.mergeTracking === 'needs_github')) return 'needs_github';
+  if (listed.some((b) => b && b.mergeTracking === 'off')) return 'off';
+  return 'ready';
+}
+
 // ─── Web links ────────────────────────────────────────────────
 
 /**
@@ -601,6 +638,16 @@ function buildBriefWebUrl({ apiUrl, webOrigin, workspaceSlug, projectSlug, numbe
   if (!base) return null;
   if (number === undefined || number === null) return base;
   return Number.isInteger(number) && number > 0 ? `${base}/briefs/${number}` : null;
+}
+
+/**
+ * `{project url}/settings#github` (the project's Settings at its GitHub
+ * section, where tracking is turned on or off); null under buildWebUrl's
+ * guards.
+ */
+function buildSettingsWebUrl({ apiUrl, webOrigin, workspaceSlug, projectSlug } = {}) {
+  const base = buildWebUrl({ apiUrl, webOrigin, workspaceSlug, projectSlug });
+  return base ? `${base}/settings#github` : null;
 }
 
 module.exports = {
@@ -636,5 +683,7 @@ module.exports = {
   moveToDone,
   moveBackToActive,
   moveThrough,
+  mergeTrackingOf,
   buildBriefWebUrl,
+  buildSettingsWebUrl,
 };

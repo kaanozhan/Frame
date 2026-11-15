@@ -19,6 +19,12 @@
  * After a read answers, cloudDoneService reports the parts' branches and
  * finishes (frame-cloud-brief-done). No other brief or milestone mutation is
  * called from here.
+ *
+ * GitHub tracking (frame-cloud-github-tracking): the board's `mergeTracking`
+ * comes from the core's `mergeTrackingOf`, and Open on web also opens the
+ * project's Settings at its GitHub section, the only place tracking is turned
+ * on or off. Frame never asks GitHub for anything itself (`brief.refresh` is
+ * not called, plan D2).
  */
 
 const { IPC } = require('../../shared/ipcChannels');
@@ -54,25 +60,26 @@ function reportAfter(folderPath, project, briefs) {
   });
 }
 
-function webUrl(project, number) {
+/** What every web link of the project is built from, or null when signed out. */
+function webInputs(project) {
   const auth = cloudSession.getAuth();
   if (!auth || !project) return null;
-  return core.buildBriefWebUrl({
+  return {
     apiUrl: auth.serverUrl,
     webOrigin: auth.webOrigin,
     workspaceSlug: auth.cloudWorkspace && auth.cloudWorkspace.slug,
     projectSlug: project.slug,
-    number,
-  });
+  };
 }
 
-/**
- * Whether the cloud can see the project's merges, from the listed briefs
- * (every brief carries its project's state): `needs_github` until GitHub is
- * connected, `ready` otherwise and when nothing is listed.
- */
-function mergeTrackingOf(briefs) {
-  return briefs.some((b) => b.mergeTracking === 'needs_github') ? 'needs_github' : 'ready';
+function webUrl(project, number) {
+  const inputs = webInputs(project);
+  return inputs ? core.buildBriefWebUrl({ ...inputs, number }) : null;
+}
+
+function settingsWebUrl(project) {
+  const inputs = webInputs(project);
+  return inputs ? core.buildSettingsWebUrl(inputs) : null;
 }
 
 /**
@@ -101,7 +108,7 @@ async function list(folderPath, { includeClosed } = {}) {
     project: { name: project.name, slug: project.slug },
     briefs: begun,
     milestones: milestones.value,
-    mergeTracking: mergeTrackingOf(briefs.value),
+    mergeTracking: core.mergeTrackingOf(briefs.value),
     meId: meId(),
     canOpenWeb: Boolean(webUrl(project)),
   };
@@ -214,11 +221,18 @@ function flushMoves() {
   return moveHold.flush({ timeoutMs: FLUSH_TIMEOUT_MS });
 }
 
-/** The project on the web, or one brief when a number is given. The URL is built and opened here. */
-function openOnWeb(folderPath, number) {
+/**
+ * The project on the web: its Settings at the GitHub section for
+ * `'settings'`, one brief for a number, the project page for nothing. Any
+ * other target opens nothing. The URL is built and opened here.
+ */
+function openOnWeb(folderPath, target) {
   const project = cloudProjectsService.connectedProject(folderPath);
   if (!project) return false;
-  const url = webUrl(project, number === undefined ? undefined : number);
+  let url = null;
+  if (target === 'settings') url = settingsWebUrl(project);
+  else if (target === undefined || target === null) url = webUrl(project);
+  else if (typeof target === 'number') url = webUrl(project, target);
   if (!url) return false;
   cloudSession.openUrl(url);
   return true;
@@ -227,7 +241,7 @@ function openOnWeb(folderPath, number) {
 function setupIPC(ipcMain) {
   ipcMain.handle(IPC.CLOUD_BRIEFS_LIST, (event, folderPath, options) => list(folderPath, options || {}));
   ipcMain.handle(IPC.CLOUD_BRIEF_GET, (event, folderPath, number) => get(folderPath, number));
-  ipcMain.handle(IPC.CLOUD_BRIEFS_OPEN_ON_WEB, (event, folderPath, number) => openOnWeb(folderPath, number));
+  ipcMain.handle(IPC.CLOUD_BRIEFS_OPEN_ON_WEB, (event, folderPath, target) => openOnWeb(folderPath, target));
   ipcMain.handle(IPC.CLOUD_BRIEF_CREATE, (event, folderPath, request) => create(folderPath, request));
   ipcMain.handle(IPC.CLOUD_BRIEF_DECIDE, (event, folderPath, number, priority) => decide(folderPath, number, priority));
   ipcMain.handle(IPC.CLOUD_BRIEF_MOVE, (event, folderPath, number, options) => move(folderPath, number, options || {}));

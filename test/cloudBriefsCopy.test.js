@@ -530,8 +530,8 @@ test('partsSummary counts merged, in progress and elsewhere, only with more than
   assert.equal(copy.partsSummary([s('done'), s('idle')]), '1 of 2 merged');
   assert.equal(copy.partsSummary([s('active'), s('attention'), s('elsewhere'), s('done')]), '1 of 4 merged · 2 in progress · 1 on another branch');
   assert.equal(copy.partsSummary([s('elsewhere'), s('elsewhere'), s('idle')]), '0 of 3 merged · 2 on other branches');
-  // An implemented part is neither merged nor in progress.
-  assert.equal(copy.partsSummary([s('implemented'), s('done')]), '1 of 2 merged');
+  // An implemented part is neither merged nor in progress: it has its own piece (the web's).
+  assert.equal(copy.partsSummary([s('implemented'), s('done')]), '1 of 2 merged · 1 implemented');
 });
 
 test('partsSummary counts merged out of the live parts and the dropped beside them', () => {
@@ -609,8 +609,211 @@ test('partStatus skips the cloud\'s branch when this machine\'s own branch is go
   assert.deepEqual(copy.partStatus({ part: gone, target: 'main' }), { label: 'Not started', tone: 'idle', laneName: null, run: 'begin' });
 });
 
-test('the GitHub-not-connected words', () => {
-  assert.equal(copy.MERGE_TRACKING_NOTICE, 'Merges are tracked once GitHub is connected.');
+// ─── GitHub tracking: a part's pull request ───────────────────
+
+const PR_URL = 'https://github.com/lab/my-app/pull/7';
+/** A part with an open PR #7 into main, and the given review. */
+const openPr = (review = null, extra = {}) => ({
+  ...taskPart, branch: 'fix/typo', prNumber: 7, prState: 'open', prBase: 'main', prReview: review, prUrl: PR_URL, ...extra,
+});
+
+test('partStatus reads an open PR by its review, after its number', () => {
+  const at = (review) => copy.partStatus({ part: openPr(review), target: 'main' });
+  const pr = (kind) => ({ number: 7, url: PR_URL, kind, base: 'main' });
+  assert.deepEqual(at(null), { label: 'PR #7 · Open', tone: 'review', laneName: null, run: null, pr: pr('review') });
+  assert.deepEqual(at('requested'), { label: 'PR #7 · In review', tone: 'review', laneName: null, run: null, pr: pr('review') });
+  assert.deepEqual(at('approved'), { label: 'PR #7 · Approved', tone: 'review', laneName: null, run: null, pr: pr('review') });
+  assert.deepEqual(at('changes_requested'),
+    { label: 'PR #7 · Changes requested', tone: 'attention', laneName: null, run: null, pr: pr('changes') });
+});
+
+test('partStatus reads a PR merged into another base as Merged into <base>, not <target>', () => {
+  const part = openPr(null, { prState: 'merged', prBase: 'release' });
+  assert.deepEqual(copy.partStatus({ part, target: 'main' }), {
+    label: 'Merged into release, not main', tone: 'attention', laneName: null, run: null,
+    pr: { number: 7, url: PR_URL, kind: 'offTarget', base: 'release' },
+  });
+});
+
+test('partStatus still reads a part the cloud counts as merged into the target as Merged into <target>', () => {
+  const part = openPr(null, { prState: 'merged', ...MERGED });
+  assert.deepEqual(copy.partStatus({ part, target: 'main' }), { label: 'Merged into main', tone: 'done', laneName: null, run: null });
+});
+
+test('partStatus lets a closed PR, or one merged into the target before the cloud counts it, fall through', () => {
+  assert.equal(copy.partStatus({ part: openPr(null, { prState: 'closed' }), target: 'main' }).label, 'On fix/typo');
+  assert.equal(copy.partStatus({ part: openPr('approved', { prState: 'merged' }), target: 'main' }).label, 'On fix/typo');
+  assert.equal(copy.partStatus({ part: openPr(null, { prState: 'closed' }), task: { status: 'in_progress' }, target: 'main' }).label,
+    'In progress');
+});
+
+test('partStatus lets a live lane on an unfinished record win over an open PR', () => {
+  const lane = { name: 'Frame 3', status: 'agent-working', agentName: 'claude' };
+  assert.deepEqual(copy.partStatus({ part: openPr('changes_requested'), task: { status: 'in_progress' }, lane, target: 'main' }),
+    { label: 'Working', tone: 'active', laneName: 'Frame 3', run: null });
+  // A finished record's lane does not win: the PR does.
+  assert.equal(copy.partStatus({ part: openPr('approved'), task: { status: 'completed' }, lane, target: 'main' }).label, 'PR #7 · Approved');
+  // A lane without a live agent does not win either.
+  assert.equal(copy.partStatus({ part: openPr(), task: { status: 'pending' }, lane: { ...lane, agentName: null }, target: 'main' }).label,
+    'PR #7 · Open');
+});
+
+test('partStatus keeps the folder record\'s Run on a PR row, and none when the folder does not hold it', () => {
+  assert.equal(copy.partStatus({ part: openPr('changes_requested'), task: { status: 'pending' }, target: 'main' }).run, 'task');
+  const spec = copy.partStatus({ part: { ...openPr(), shape: 'spec', recordRef: 'login-flow' }, spec: { phase: 'implementing' }, target: 'main' });
+  assert.deepEqual([spec.label, spec.run], ['PR #7 · Open', 'spec.implement']);
+  assert.equal(copy.partStatus({ part: openPr(), task: { status: 'completed' }, target: 'main' }).run, null);
+  assert.equal(copy.partStatus({ part: openPr(), target: 'main' }).run, null);
+  const offTarget = openPr(null, { prState: 'merged', prBase: 'release' });
+  assert.equal(copy.partStatus({ part: offTarget, task: { status: 'in_progress' }, target: 'main' }).run, 'task');
+});
+
+test('partStatus on a Done brief keeps a PR row\'s label and link but offers no Run', () => {
+  const facts = { part: openPr('changes_requested'), task: { status: 'pending' }, target: 'main' };
+  const open = copy.partStatus(facts);
+  assert.deepEqual(copy.partStatus({ ...facts, done: true }), { ...open, run: null });
+  assert.equal(copy.partStatus({ ...facts, done: true }).pr.url, PR_URL);
+});
+
+test('partStatus shows no PR row unless tracking is ready', () => {
+  for (const tracking of ['off', 'needs_github']) {
+    assert.deepEqual(copy.partStatus({ part: openPr('approved'), target: 'main', tracking }),
+      { label: 'On fix/typo', tone: 'elsewhere', laneName: null, run: null }, tracking);
+    const offTarget = openPr(null, { prState: 'merged', prBase: 'release' });
+    assert.equal(copy.partStatus({ part: offTarget, task: { status: 'in_progress' }, target: 'main', tracking }).label, 'In progress', tracking);
+  }
+  assert.equal(copy.partStatus({ part: openPr('approved'), target: 'main', tracking: 'ready' }).label, 'PR #7 · Approved');
+  assert.equal(copy.partStatus({ part: openPr('approved'), target: 'main' }).label, 'PR #7 · Approved');
+});
+
+test('partStatus reads a PR with no URL with a null url, and no PR row for a bad number', () => {
+  assert.equal(copy.partStatus({ part: openPr(null, { prUrl: null }), target: 'main' }).pr.url, null);
+  assert.equal(copy.partStatus({ part: openPr(null, { prNumber: null }), target: 'main' }).label, 'On fix/typo');
+  assert.equal(copy.partStatus({ part: openPr(null, { prNumber: 0 }), target: 'main' }).label, 'On fix/typo');
+});
+
+test('partStatus reads the cloud\'s completion as Implemented for a part the folder does not hold', () => {
+  const completed = { ...taskPart, branch: 'fix/typo', completionSha: 'a'.repeat(40) };
+  for (const tracking of ['ready', 'off', 'needs_github']) {
+    assert.deepEqual(copy.partStatus({ part: completed, target: 'main', tracking }),
+      { label: 'Implemented', tone: 'implemented', laneName: null, run: null }, tracking);
+  }
+  // The folder's own record wins: work restarted after the completion.
+  assert.deepEqual(copy.partStatus({ part: completed, task: { status: 'in_progress' }, target: 'main' }),
+    { label: 'In progress', tone: 'active', laneName: null, run: 'task' });
+  // An open PR wins over the completion while tracking is ready.
+  assert.equal(copy.partStatus({ part: { ...openPr(), completionSha: 'a'.repeat(40) }, target: 'main' }).label, 'PR #7 · Open');
+});
+
+test('partStatus gives no pr to a row without PR fields', () => {
+  const rows = [
+    copy.partStatus({ part: taskPart }),
+    copy.partStatus({ part: taskPart, task: { status: 'in_progress' } }),
+    copy.partStatus({ part: { ...taskPart, branch: 'fix/typo' }, target: 'main' }),
+    copy.partStatus({ part: { ...taskPart, ...MERGED }, target: 'main' }),
+  ];
+  for (const row of rows) assert.equal('pr' in row, false, row.label);
+});
+
+// ─── GitHub tracking: the summary and the attention line ──────
+
+/** A status with a tone, and a PR of `kind` when given. */
+const st = (tone, kind) => (kind ? { tone, pr: { number: 7, url: null, kind, base: kind === 'offTarget' ? 'release' : 'main' } } : { tone });
+
+test('partsSummary under ready reads every piece in the web\'s order, then Frame\'s own', () => {
+  const all = [
+    st('done'), st('review', 'review'), st('review', 'review'), st('attention', 'changes'), st('implemented'),
+    st('active'), st('elsewhere'), st('dropped'), st('attention', 'offTarget'),
+  ];
+  assert.equal(copy.partsSummary(all, 'ready'),
+    '1 of 8 merged · 2 in review · 1 changes requested · 1 implemented · 1 in progress · 1 on another branch · 1 dropped');
+  assert.equal(copy.partsSummary(all), copy.partsSummary(all, 'ready'));
+});
+
+test('partsSummary leaves out every zero piece', () => {
+  assert.equal(copy.partsSummary([st('review', 'review'), st('idle')]), '0 of 2 merged · 1 in review');
+  assert.equal(copy.partsSummary([st('attention', 'changes'), st('attention', 'changes'), st('done')]), '1 of 3 merged · 2 changes requested');
+  assert.equal(copy.partsSummary([st('idle'), st('idle')]), '0 of 2 merged');
+});
+
+test('partsSummary counts a lane\'s attention as in progress, but not a PR\'s', () => {
+  assert.equal(copy.partsSummary([st('attention'), st('attention', 'changes'), st('attention', 'offTarget')]),
+    '0 of 3 merged · 1 changes requested · 1 in progress');
+});
+
+test('partsSummary when tracking is not ready counts merged parts as implemented', () => {
+  for (const tracking of ['off', 'needs_github']) {
+    assert.equal(copy.partsSummary([st('done'), st('implemented'), st('idle')], tracking), '2 of 3 implemented', tracking);
+    assert.equal(copy.partsSummary([st('implemented'), st('active'), st('attention'), st('elsewhere'), st('dropped')], tracking),
+      '1 of 4 implemented · 2 in progress · 1 on another branch · 1 dropped', tracking);
+    assert.equal(copy.partsSummary([st('idle'), st('idle')], tracking), '0 of 2 implemented', tracking);
+  }
+});
+
+test('partsSummary is still empty for one part or none, in both modes', () => {
+  for (const tracking of ['ready', 'off']) {
+    assert.equal(copy.partsSummary([st('review', 'review')], tracking), '');
+    assert.equal(copy.partsSummary([], tracking), '');
+    assert.equal(copy.partsSummary(undefined, tracking), '');
+  }
+});
+
+test('partsSummary over real rows: an off project reads implemented', () => {
+  const parts = [
+    { ...taskPart, id: 'a', ...MERGED },
+    { ...taskPart, id: 'b', recordRef: 'task-b', completionSha: 'a'.repeat(40) },
+    { ...taskPart, id: 'c', recordRef: 'task-c', prNumber: 3, prState: 'open', prBase: 'main', prReview: null },
+  ];
+  const rows = (tracking) => parts.map((part) => copy.partStatus({ part, target: 'main', tracking }));
+  assert.equal(copy.partsSummary(rows('off'), 'off'), '2 of 3 implemented');
+  assert.equal(copy.partsSummary(rows('ready'), 'ready'), '1 of 3 merged · 1 in review · 1 implemented');
+});
+
+test('partAttention names the first flagged part, in order, and how many more', () => {
+  const entries = [
+    { title: 'Read it', status: st('review', 'review') },
+    { title: 'Store it', status: st('attention', 'changes') },
+    { title: 'Ship it', status: st('attention', 'offTarget') },
+  ];
+  assert.equal(copy.partAttention(entries, 'main'), 'Changes requested on Store it · 1 more');
+  assert.equal(copy.partAttention(entries.slice(2), 'main'), 'Ship it merged into release, not main');
+  assert.equal(copy.partAttention([entries[1]], 'main'), 'Changes requested on Store it');
+  assert.equal(copy.partAttention([...entries, ...entries], 'main'), 'Changes requested on Store it · 3 more');
+});
+
+test('partAttention is empty when nothing asks, and ignores a lane\'s attention', () => {
+  assert.equal(copy.partAttention([{ title: 'A', status: st('review', 'review') }, { title: 'B', status: st('attention') }], 'main'), '');
+  assert.equal(copy.partAttention([], 'main'), '');
+  assert.equal(copy.partAttention(undefined, 'main'), '');
+});
+
+test('partAttention over real rows: a live lane on the part, or tracking off, flags nothing', () => {
+  const part = openPr('changes_requested');
+  const lane = { name: 'Frame 3', status: 'agent-working', agentName: 'claude' };
+  const at = (facts) => copy.partAttention([{ title: 'Store it', status: copy.partStatus({ part, target: 'main', ...facts }) }], 'main');
+  assert.equal(at({}), 'Changes requested on Store it');
+  assert.equal(at({ task: { status: 'in_progress' }, lane }), '');
+  assert.equal(at({ tracking: 'off' }), '');
+});
+
+test('prLabel and the review words match the web', () => {
+  assert.equal(copy.prLabel(12), 'PR #12');
+  assert.deepEqual(copy.REVIEW_LABELS, { requested: 'In review', approved: 'Approved', changes_requested: 'Changes requested' });
+});
+
+// Overturns frame-cloud-brief-done D2's "Merges are tracked once GitHub is connected." (plan D4).
+test('the tracking box is the web\'s, word for word, for no GitHub and for tracking off', () => {
+  assert.deepEqual(copy.trackingWarning('needs_github'), {
+    title: 'Not connected to GitHub',
+    description: 'Pull requests and merges are not tracked. Connect GitHub in Settings.',
+  });
+  assert.deepEqual(copy.trackingWarning('off'), {
+    title: 'GitHub tracking is off',
+    description: 'Pull requests and merges are not tracked. Turn it on in Settings.',
+  });
+  assert.equal(copy.trackingWarning('ready'), null);
+  assert.equal(copy.trackingWarning(undefined), null);
+  assert.equal(copy.trackingWarning('maybe'), null);
   assert.equal(copy.OPEN_ON_WEB_LABEL, 'Open on web');
 });
 
@@ -714,14 +917,36 @@ test('an old automatic done reads as an observation, with no actor in front', ()
     'This brief is done: every part is merged into main.');
 });
 
-test('isObserved covers only the old automatic done', () => {
+test('isObserved covers the old automatic done and a part merged', () => {
   assert.equal(copy.isObserved(ev('done', { target: 'main' })), true);
   assert.equal(copy.isObserved(ev('done', { target: 'main', missing: [] })), false);
   assert.equal(copy.isObserved(ev('done-reverted', { reason: 'x' })), false);
-  // part-merged still reads with its actor until Frame draws it (plan D8).
-  assert.equal(copy.isObserved(ev('part-merged', { title: 'A' })), false);
-  assert.equal(sentence('part-merged', { title: 'A' }, OTHER), 'A workspace member changed this brief.');
+  // Overturns frame-cloud-brief-manual-done D8: part-merged reads as the cloud's observation (D19).
+  assert.equal(copy.isObserved(ev('part-merged', { title: 'A' })), true);
+  assert.equal(copy.isObserved(ev('part-merged')), true);
   assert.equal(copy.isObserved(undefined), false);
+});
+
+const MERGE_SHA = '0123456789abcdef0123456789abcdef01234567';
+
+test('part-merged reads as the web says it, with no actor', () => {
+  assert.equal(sentence('part-merged', { title: 'Store it', target: 'main', sha: MERGE_SHA }, OTHER),
+    '“Store it” merged into main at 0123456.');
+  assert.equal(sentence('part-merged', { title: 'Store it', target: 'main', sha: MERGE_SHA, pr: 12 }, ME),
+    '“Store it” merged into main at 0123456 through PR #12.');
+  // Written by the cloud, so it may have no actor at all.
+  assert.equal(copy.eventSentence({ id: 'e', at: AT, actorId: '', event: 'part-merged', data: { title: 'A', target: 'main' } }, ME).sentence,
+    '“A” merged into main.');
+});
+
+test('part-merged leaves out what the event does not carry', () => {
+  assert.equal(sentence('part-merged', { target: 'main', sha: MERGE_SHA }, OTHER), 'A part merged into main at 0123456.');
+  assert.equal(sentence('part-merged', { title: 'Store it', sha: MERGE_SHA }, OTHER), '“Store it” merged at 0123456.');
+  assert.equal(sentence('part-merged', { title: 'Store it', target: 'main' }, OTHER), '“Store it” merged into main.');
+  assert.equal(sentence('part-merged', { title: 'Store it', target: 'main', pr: 12 }, OTHER), '“Store it” merged into main through PR #12.');
+  assert.equal(sentence('part-merged', {}, OTHER), 'A part merged.');
+  // " through PR #N" only for a number.
+  assert.equal(sentence('part-merged', { title: 'Store it', pr: '12' }, OTHER), '“Store it” merged.');
 });
 
 test('moveErrorMessage has the web\'s sentence for every refusal, the shared ones and a fallback', () => {

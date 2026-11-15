@@ -22,6 +22,12 @@
  * nothing to explain shows the card in Done at once with a "Moved #N to
  * Done" toast offering Undo; main holds it for those 5 seconds and sends it
  * then, when another move starts, or when Frame quits.
+ * GitHub tracking (frame-cloud-github-tracking spec) shows what the cloud
+ * learns from GitHub, in the web's words: a part's pull request on its row,
+ * with "PR #N" opening the server's URL in the browser; the card's attention
+ * line; and, when the project has no GitHub or tracking is off, the web's box
+ * above the columns leading to the project's Settings. Frame never asks
+ * GitHub itself and never changes the setting.
  *
  * Names are `cloudBriefs*` / `cloud-briefs`, not `briefs`: the local briefs
  * of brief-capture-and-shaping own those, and the two must meet in one tree.
@@ -335,10 +341,11 @@ function setRefreshing(on) {
   refreshButton.disabled = on;
 }
 
-function openOnWeb(number) {
+/** The project on the web, one brief by number, or the project's Settings for `'settings'`; main builds the URL. */
+function openOnWeb(target) {
   const path = state.getProjectPath();
   if (!path) return;
-  const args = number === undefined ? [path] : [path, number];
+  const args = target === undefined ? [path] : [path, target];
   ipcRenderer.invoke(IPC.CLOUD_BRIEFS_OPEN_ON_WEB, ...args).catch((err) => {
     console.error('cloudBriefsPanel: could not open Frame Cloud on the web', err);
   });
@@ -350,6 +357,7 @@ function onContentClick(event) {
   const action = actionEl.dataset.action;
   if (action === 'retry') load();
   else if (action === 'open-web') openOnWeb();
+  else if (action === 'open-settings-web') openOnWeb('settings');
   else if (action === 'new-brief') openNewBrief();
   else if (action === 'dismiss-notice') {
     notice = null;
@@ -434,16 +442,22 @@ function renderBoard() {
 }
 
 /**
- * The project's merges cannot be seen until GitHub is connected, so an
- * Active brief's parts never reach merged: say so above the columns, with the
- * project on the web, where Connect GitHub is. Not dismissible: it states the
- * project's state, and leaves once that changes.
+ * The project's pull requests and merges are not tracked — no GitHub, or
+ * tracking turned off — so an Active brief's parts never reach merged: say
+ * so above the columns in the web's box, with "Open on web" leading to the
+ * project's Settings at its GitHub section, where either changes. The
+ * board's `mergeTracking` picks the box (`needs_github` wins, S4). Not
+ * dismissible: it states the project's state, and leaves once that changes.
  */
 function renderTrackingNotice(mergeTracking, canOpenWeb) {
-  if (mergeTracking !== 'needs_github') return '';
+  const warning = copy.trackingWarning(mergeTracking);
+  if (!warning) return '';
   return `<div class="cloud-briefs-tracking" role="status">
-      <p>${escapeHtml(copy.MERGE_TRACKING_NOTICE)}</p>
-      ${canOpenWeb ? `<button type="button" class="cloud-briefs-web-btn" data-action="open-web" tabindex="-1">${escapeHtml(copy.OPEN_ON_WEB_LABEL)}</button>` : ''}
+      <div class="cloud-briefs-tracking-text">
+        <p class="cloud-briefs-tracking-title">${escapeHtml(warning.title)}</p>
+        <p>${escapeHtml(warning.description)}</p>
+      </div>
+      ${canOpenWeb ? `<button type="button" class="cloud-briefs-web-btn" data-action="open-settings-web" tabindex="-1">${escapeHtml(copy.OPEN_ON_WEB_LABEL)}</button>` : ''}
     </div>`;
 }
 
@@ -479,8 +493,9 @@ function renderCard(brief, milestoneName) {
   // A started brief lists its parts where they run instead of counting them.
   const started = Boolean(brief.startedAt) && Array.isArray(brief.parts) && brief.parts.length > 0;
   // Every live part counts on a tracked project: the brief waits for a person
-  // to move it to Done (manual Done). Never on an untracked project.
-  const ready = brief.status === 'active' && brief.readyForDone === true && brief.mergeTracking !== 'needs_github';
+  // to move it to Done (manual Done). Only while tracking is ready (D15): not
+  // without GitHub, and not with tracking turned off.
+  const ready = brief.status === 'active' && brief.readyForDone === true && brief.mergeTracking === 'ready';
   // The card is a container, not a button: its controls (Discuss, Shape, the
   // live lane) sit beside the open-brief button rather than inside it.
   return `<div class="cloud-briefs-card">
@@ -829,9 +844,36 @@ function partFacts(part, brief) {
     task: isSpec ? undefined : record || undefined,
     lane,
     target: brief ? brief.targetBranch : undefined,
+    tracking: brief ? brief.mergeTracking : undefined,
     done: Boolean(brief) && brief.status === 'done',
   });
   return { record, lane, status };
+}
+
+/**
+ * "PR #N" on a part row: a button that opens the server's pull request URL,
+ * or plain text without one. Frame never builds the URL (C3). A Done brief
+ * keeps the link: it is a pointer, not an action.
+ */
+function renderPrLink(pr, attrs) {
+  const label = escapeHtml(copy.prLabel(pr.number));
+  if (!isWebUrl(pr.url)) return `<span class="cloud-briefs-prow-pr">${label}</span>`;
+  return `<button type="button" class="cloud-briefs-prow-pr" data-action="open-pr" ${attrs} data-url="${escapeHtml(pr.url)}" title="${escapeHtml(pr.url)}" tabindex="-1">${label}</button>`;
+}
+
+/**
+ * A part row's status words. A PR row puts its number first and then
+ * "· state" for an open pull request, or the label and then the number for
+ * one merged into another base, as the web draws it.
+ */
+function renderPartStatusText(status, attrs) {
+  const pr = status.pr;
+  if (!pr) return escapeHtml(status.label);
+  const prefix = `${copy.prLabel(pr.number)} · `;
+  if (status.label.startsWith(prefix)) {
+    return `${renderPrLink(pr, attrs)}<span>· ${escapeHtml(status.label.slice(prefix.length))}</span>`;
+  }
+  return `<span>${escapeHtml(status.label)}</span>${renderPrLink(pr, attrs)}`;
 }
 
 /**
@@ -857,17 +899,26 @@ function renderPartRow(part, brief) {
   return `<div class="cloud-briefs-prow tone-${escapeHtml(status.tone)}">
       <span class="cloud-briefs-chip">${escapeHtml(part.shape)}</span>
       ${title}
-      <span class="cloud-briefs-prow-status"><span class="cloud-briefs-prow-dot" aria-hidden="true"></span>${escapeHtml(status.label)}</span>
+      <span class="cloud-briefs-prow-status"><span class="cloud-briefs-prow-dot" aria-hidden="true"></span>${renderPartStatusText(status, attrs)}</span>
       <span class="cloud-briefs-prow-action">${action}</span>
     </div>`;
 }
 
-/** A started brief's card body: a row per part, and a summary line when there is more than one. */
+/**
+ * A started brief's card body: a row per part, a summary line when there is
+ * more than one, and on an Active card the first part a person should look
+ * at (the web's K2 attention row, D14).
+ */
 function renderCardParts(brief) {
   const parts = brief.parts.filter((p) => p.recordRef);
-  const summary = copy.partsSummary(parts.map((p) => partFacts(p, brief).status));
+  const statuses = parts.map((p) => partFacts(p, brief).status);
+  const summary = copy.partsSummary(statuses, brief.mergeTracking);
+  const attention = brief.status === 'active'
+    ? copy.partAttention(parts.map((p, i) => ({ title: p.title, status: statuses[i] })), brief.targetBranch)
+    : '';
   return `<ul class="cloud-briefs-prows">${parts.map((p) => `<li>${renderPartRow(p, brief)}</li>`).join('')}</ul>
-    ${summary ? `<p class="cloud-briefs-prows-summary">${escapeHtml(summary)}</p>` : ''}`;
+    ${summary ? `<p class="cloud-briefs-prows-summary">${escapeHtml(summary)}</p>` : ''}
+    ${attention ? `<p class="cloud-briefs-prows-attention">${escapeHtml(attention)}</p>` : ''}`;
 }
 
 /** Redraw every part row on screen: the cards' and the open detail's. */
@@ -947,6 +998,10 @@ function onPartAction(actionEl) {
     runPart({ shape, ref, run, number, partId });
   }
   else if (action === 'enter-part-lane') enterPartLane(shape, ref);
+  else if (action === 'open-pr') {
+    const url = actionEl.dataset.url || '';
+    if (isWebUrl(url)) shell.openExternal(url);
+  }
   else return false;
   return true;
 }
@@ -956,7 +1011,7 @@ function renderTab(tab, brief, events, meId) {
     if (brief.parts.length === 0) return '<p class="cloud-briefs-muted">Parts appear once the brief is shaped.</p>';
     // A definition is network content: escaped plain text, pre-wrapped, never markdown.
     const summary = brief.startedAt
-      ? copy.partsSummary(brief.parts.filter((p) => p.recordRef).map((p) => partFacts(p, brief).status))
+      ? copy.partsSummary(brief.parts.filter((p) => p.recordRef).map((p) => partFacts(p, brief).status), brief.mergeTracking)
       : '';
     const since = [copy.shapedLine(brief.shapedAt), copy.startedLine(brief.startedAt), summary].filter(Boolean).join(' · ');
     return `${since ? `<p class="cloud-briefs-muted cloud-briefs-shaped">${escapeHtml(since)}</p>` : ''}
