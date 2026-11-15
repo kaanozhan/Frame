@@ -145,38 +145,51 @@ async function copyIgnoredFiles(projectPath, worktreePath, patterns = null) {
 /** Records reconciled against `git worktree list`; `isRepo` false when git cannot read the project. */
 // ─── Server workspaces (server-workspaces spec) ──────────────
 //
-// Workspaces can also live on the connected Frame Server. The server keeps
-// their records (its own workspaceManager, same rules); this side lists
-// them next to the local ones with `location: 'server'` and routes create,
-// status, rename and archive by location. A desktop project finds its server
-// clone by remote URL. While disconnected, the last known server rows stay
-// listed as `offline`.
+// Workspaces can also live on Frame Servers — any number of them
+// (multi-server-connections). Each server keeps its records (its own
+// workspaceManager, same rules); this side lists every saved server's rows
+// next to the local ones with `location: 'server'`, `host` and `serverKey`,
+// and routes create, status, rename and archive to that server's link. A
+// desktop project finds its clone on each server by remote URL. While a
+// server is down, its last known rows stay listed as `offline`; the other
+// servers are unaffected.
 
-const serverRows = new Map(); // local projectPath → { serverProjectPath, host, rows }
+// local projectPath → Map<serverKey, { serverProjectPath, host, serverKey, rows }>:
+// every saved server's rows, each server on its own (multi-server-connections).
+const serverRows = new Map();
 
 function server() {
   return require('./serverConnection');
 }
 
-/** The host the desktop is (or was last) connected to. */
-function currentHost() {
-  try { return server().getStatus().host || null; } catch (_) { return null; }
+/** Every saved server's link, in list order. */
+function links() {
+  try { return server().all(); } catch (_) { return []; }
+}
+
+/** The cached entry of one server for `projectPath`, or null. */
+function rowsFor(projectPath, serverKey) {
+  const byServer = serverRows.get(projectPath);
+  return (byServer && byServer.get(serverKey)) || null;
+}
+
+function setRows(projectPath, entry) {
+  if (!serverRows.has(projectPath)) serverRows.set(projectPath, new Map());
+  serverRows.get(projectPath).set(entry.serverKey, entry);
 }
 
 /**
- * Cached server rows of `projectPath`, only when they belong to the current
- * host: another host's clone and workspaces never list or route here
- * (server-hardening T2).
+ * `[projectPath, entry]` of every saved server, in the saved list's order (the
+ * servers are listed in parallel, so the cache's insertion order is whichever
+ * answered first): a removed server's rows never list or route.
  */
-function rowsFor(projectPath) {
-  const entry = serverRows.get(projectPath);
-  return entry && entry.host === currentHost() ? entry : null;
-}
-
-/** The current host's entries only. */
 function currentEntries() {
-  const host = currentHost();
-  return [...serverRows].filter(([, entry]) => entry.host === host);
+  const order = links().map((l) => l.key);
+  const out = [];
+  for (const [projectPath, byServer] of serverRows) {
+    for (const key of order) if (byServer.has(key)) out.push([projectPath, byServer.get(key)]);
+  }
+  return out;
 }
 
 async function originOf(projectPath) {
@@ -196,25 +209,25 @@ async function localIdentity(projectPath) {
   return { origin, root, key: projectKey({ originUrl: origin, root }) };
 }
 
-/** The server's clone of `projectPath`, matched by remote or (no remote) by root commit; null when none. */
-async function findOnServer(projectPath, id) {
+/** `link`'s clone of `projectPath`, matched by remote or (no remote) by root commit; null when none. */
+async function findOnServer(link, id) {
   const { sameRemote } = require('../shared/serverRouting');
-  const clones = (await server().call('projects.list', {})) || [];
+  const clones = (await link.call('projects.list', {})) || [];
   const hit = clones.find((c) => (c.remote && id.origin && (c.remote === id.key || sameRemote(c.remote, id.origin)))
     || (!id.origin && c.root && id.root && c.root === id.root));
   return hit ? hit.projectPath : null;
 }
 
 /**
- * Make sure the server has `projectPath` (server-onboarding): the existing
- * clone, else the project's committed history sent as a git bundle over SSH
- * and cloned there (`projects.receive`). Nothing uncommitted is sent; the
- * count left behind is returned as `sent.uncommitted`.
+ * Make sure `link`'s server has `projectPath` (server-onboarding): the
+ * existing clone, else the project's committed history sent as a git bundle
+ * over SSH to that server and cloned there (`projects.receive`). Nothing
+ * uncommitted is sent; the count left behind is returned as `sent.uncommitted`.
  */
-async function ensureOnServer(projectPath) {
+async function ensureOnServer(projectPath, link) {
   const id = await localIdentity(projectPath);
   if (!id.key) throw new Error('This project has no commits yet — commit something first, then create a server workspace.');
-  const existing = await findOnServer(projectPath, id);
+  const existing = await findOnServer(link, id);
   if (existing) return { serverProjectPath: existing, sent: null };
 
   const crypto = require('crypto');
@@ -223,11 +236,11 @@ async function ensureOnServer(projectPath) {
   try {
     const made = await git.createBundle(projectPath, local);
     if (made.error) throw new Error(`Could not package the project: ${made.error}`);
-    const host = server().getStatus().host;
+    const host = link.host;
     await require('./serverInstaller').upload(host, local, `.frame-server/tmp/${name}`);
     let res;
     try {
-      res = await server().call('projects.receive', { bundlePath: name, originUrl: id.origin, root: id.root, name: path.basename(projectPath) }, 11 * 60 * 1000);
+      res = await link.call('projects.receive', { bundlePath: name, originUrl: id.origin, root: id.root, name: path.basename(projectPath) }, 11 * 60 * 1000);
     } catch (err) {
       if (/Unknown method/i.test(err.message)) throw new Error(`Update Frame Server on ${host} to send projects from this Mac (Connect to Server ▸ Update).`);
       throw err;
@@ -239,87 +252,112 @@ async function ensureOnServer(projectPath) {
   }
 }
 
-/** The server's clone of `projectPath`, or null (cached per host; matched by remote or root commit). */
-async function serverProjectFor(projectPath) {
-  const cached = rowsFor(projectPath);
+/** `link`'s clone of `projectPath`, or null (cached per server; matched by remote or root commit). */
+async function serverProjectFor(projectPath, link) {
+  const cached = rowsFor(projectPath, link.key);
   if (cached && cached.serverProjectPath) return cached.serverProjectPath;
   const id = await localIdentity(projectPath);
   if (!id.key) return null;
-  return findOnServer(projectPath, id);
+  return findOnServer(link, id);
 }
 
-function toServerRow(row, serverProjectPath, host) {
-  return { ...row, location: 'server', host, serverProjectPath };
+function toServerRow(row, serverProjectPath, link) {
+  return { ...row, location: 'server', host: link.host, serverKey: link.key, serverProjectPath };
 }
 
-async function listServer(projectPath) {
-  const prev = rowsFor(projectPath);
+/** One server's workspaces of `projectPath`; its last known rows, offline, while it is down. */
+async function listOn(projectPath, link) {
+  const prev = rowsFor(projectPath, link.key);
   const offline = () => (prev ? prev.rows.map((r) => ({ ...r, offline: true })) : []);
-  if (!server().isConnected()) return offline();
+  if (!link.isConnected()) return offline();
   try {
-    const sp = await serverProjectFor(projectPath);
-    if (!sp) { serverRows.delete(projectPath); return []; }
-    const res = await server().call('workspaces.list', { projectPath: sp });
-    const host = server().getStatus().host;
-    const rows = ((res && res.workspaces) || []).map((w) => toServerRow(w, sp, host));
-    serverRows.set(projectPath, { serverProjectPath: sp, host, rows });
+    const sp = await serverProjectFor(projectPath, link);
+    if (!sp) {
+      if (serverRows.has(projectPath)) serverRows.get(projectPath).delete(link.key);
+      return [];
+    }
+    const res = await link.call('workspaces.list', { projectPath: sp });
+    const rows = ((res && res.workspaces) || []).map((w) => toServerRow(w, sp, link));
+    setRows(projectPath, { serverProjectPath: sp, host: link.host, serverKey: link.key, rows });
     return rows;
   } catch (err) {
-    logger.warn('workspaces', `server workspaces for ${projectPath}: ${err.message}`);
+    logger.warn('workspaces', `server workspaces of ${projectPath} on ${link.host}: ${err.message}`);
     return offline();
   }
 }
 
+/** Every saved server's workspaces of `projectPath`, server by server in list order. */
+async function listServer(projectPath) {
+  const perServer = await Promise.all(links().map((link) => listOn(projectPath, link)));
+  return perServer.flat();
+}
+
 /**
  * Every known server workspace folder (server-workspace-panels): what panel
- * calls are routed by. Last known rows count while disconnected, so their
- * calls answer "offline" instead of reading this machine's disk.
+ * calls are routed by, each with the server it lives on. Last known rows
+ * count while that server is down, so their calls answer "offline" instead
+ * of reading this machine's disk.
  */
 function serverRoots() {
   const out = [];
   for (const [projectPath, entry] of currentEntries()) {
     for (const r of entry.rows) {
-      if (r && r.path && !r.archivedAt) out.push({ root: r.path, id: r.id, host: entry.host, projectPath, serverProjectPath: entry.serverProjectPath });
+      if (r && r.path && !r.archivedAt) out.push({ root: r.path, id: r.id, host: entry.host, serverKey: entry.serverKey, projectPath, serverProjectPath: entry.serverProjectPath });
     }
   }
   return out;
 }
 
-/** Where a workspace id lives on the server, or null when it is not a server workspace. */
-function serverLocation(workspaceId) {
+/**
+ * Where a workspace id lives on a server, or null when it is not a server
+ * workspace. `serverKey` narrows the search to one server.
+ */
+function serverLocation(workspaceId, serverKey = null) {
   for (const [projectPath, entry] of currentEntries()) {
+    if (serverKey && entry.serverKey !== serverKey) continue;
     const row = entry.rows.find((r) => r.id === workspaceId);
-    if (row) return { projectPath, serverProjectPath: entry.serverProjectPath, path: row.path, host: entry.host, name: row.name };
+    if (row) return { projectPath, serverProjectPath: entry.serverProjectPath, path: row.path, host: entry.host, serverKey: entry.serverKey, name: row.name };
   }
   return null;
+}
+
+/** The connected link of `loc`'s server, or null. */
+function linkOfLocation(loc) {
+  const link = loc && loc.serverKey ? server().of(loc.serverKey) : null;
+  return link && link.isConnected() ? link : null;
 }
 
 function serverCall(method, projectPath, id, extra = {}) {
   const loc = serverLocation(id);
   if (!loc) return null;
-  if (!server().isConnected()) return Promise.resolve({ error: `Not connected to ${loc.host || 'the server'}.` });
-  return server().call(method, { projectPath: loc.serverProjectPath, id, ...extra }, 11 * 60 * 1000)
+  const link = linkOfLocation(loc);
+  if (!link) return Promise.resolve({ error: `Not connected to ${loc.host || 'the server'}.` });
+  return link.call(method, { projectPath: loc.serverProjectPath, id, ...extra }, 11 * 60 * 1000)
     .then((res) => { notifyRenderer(projectPath); return res; })
     .catch((err) => ({ error: err.message }));
 }
 
-async function createOnServer(projectPath, { from, base, branch }) {
-  if (!server().isConnected()) return { error: 'Connect to a server first (File ▸ Connect to Server…).' };
+/**
+ * Create a workspace on one server (`serverKey`). Without a key — a caller
+ * that predates several servers — the first connected server is used.
+ */
+async function createOnServer(projectPath, { from, base, branch, serverKey = null }) {
+  const link = serverKey ? server().of(serverKey) : links().find((l) => l.isConnected());
+  if (!link) return { error: serverKey ? 'That server is no longer in the list.' : 'Connect to a server first (File ▸ Add Server…).' };
+  if (!link.isConnected()) return { error: `Not connected to ${link.host} — connect it first.` };
   try {
-    const { serverProjectPath: sp, sent } = await ensureOnServer(projectPath);
-    // This desktop's copyFiles patterns: the server copies the matching files
-    // it holds in its main copy (sent with "Send files to server") into the
-    // new worktree.
+    const { serverProjectPath: sp, sent } = await ensureOnServer(projectPath, link);
+    // This desktop's copyFiles patterns (server-copy-files): the server copies
+    // the matching files it holds in its main copy into the new worktree.
     const copyFiles = settingsFor(projectPath).copyFiles || [];
-    const res = await server().call('workspaces.create', { projectPath: sp, from, base, branch, copyFiles }, 11 * 60 * 1000);
-    if (!res || res.error) return { error: (res && res.error) || 'Could not create the workspace on the server.' };
-    const host = server().getStatus().host;
-    const workspace = toServerRow(res.workspace, sp, host);
-    const entry = rowsFor(projectPath) || { serverProjectPath: sp, host, rows: [] };
+    const res = await link.call('workspaces.create', { projectPath: sp, from, base, branch, copyFiles }, 11 * 60 * 1000);
+    if (!res || res.error) return { error: (res && res.error) || `Could not create the workspace on ${link.host}.` };
+    const workspace = toServerRow(res.workspace, sp, link);
+    const entry = rowsFor(projectPath, link.key) || { serverProjectPath: sp, host: link.host, serverKey: link.key, rows: [] };
     entry.rows = [...entry.rows.filter((r) => r.id !== workspace.id), workspace];
-    serverRows.set(projectPath, entry);
+    setRows(projectPath, entry);
     notifyRenderer(projectPath);
-    return { error: null, workspace, copied: [], fetch: res.fetch, setupScript: res.setupScript, location: 'server', ...(sent ? { sent } : {}) };
+    return { error: null, workspace, copied: [], fetch: res.fetch, setupScript: res.setupScript, location: 'server', serverKey: link.key, ...(sent ? { sent } : {}) };
   } catch (err) {
     return { error: err.message };
   }
@@ -335,13 +373,15 @@ function wireServerEvents() {
   if (serverWired) return;
   serverWired = true;
   const sc = server();
-  sc.on('workspaces.updated', ({ projectPath: sp } = {}) => {
-    for (const [projectPath, entry] of currentEntries()) if (entry.serverProjectPath === sp) notifyRenderer(projectPath);
+  sc.on('workspaces.updated', ({ projectPath: sp } = {}, key) => {
+    for (const [projectPath, entry] of currentEntries()) {
+      if (entry.serverProjectPath === sp && (!key || entry.serverKey === key)) notifyRenderer(projectPath);
+    }
   });
-  // Another host: the previous host's rows are dropped outright (T2).
-  sc.on('connected', (s) => {
-    const host = (s && s.host) || currentHost();
-    for (const [projectPath, entry] of [...serverRows]) if (entry.host !== host) serverRows.delete(projectPath);
+  // A removed server's rows go outright: they never list or route again.
+  sc.on('removed', (payload, key) => {
+    for (const byServer of serverRows.values()) byServer.delete(key);
+    all();
   });
   const all = () => {
     for (const p of projectRegistry.getProjects()) notifyRenderer(p.path);
@@ -416,14 +456,14 @@ async function status(projectPath, id) {
  *                    first; a failed fetch falls back to what is local)
  *   from: 'branch' → an existing branch (local, or remote-only via git's DWIM)
  */
-async function create(projectPath, { from = 'new', base, branch, location = 'local', copyFiles = null } = {}) {
+async function create(projectPath, { from = 'new', base, branch, location = 'local', serverKey = null, copyFiles = null } = {}) {
   if (!projectPath) return { error: 'No project selected' };
   // Branch text from the dialog (or the server protocol) reaches git argv:
   // refuse anything that is not a plain branch name before any git runs
   // (workspace-hardening X1 — `--upload-pack=<cmd>` as a base ran a command).
   if (base !== undefined && base !== null && base !== '' && !isValidBranchName(base)) return { error: `"${base}" is not a valid base branch name.` };
   if (from === 'branch' && !isValidBranchName(branch)) return { error: `"${branch}" is not a valid branch name.` };
-  if (location === 'server') return createOnServer(projectPath, { from, base, branch });
+  if (location === 'server') return createOnServer(projectPath, { from, base, branch, serverKey });
   const { error: gitError } = await git.loadWorktrees(projectPath);
   if (gitError) return { error: 'This project is not a git repository.' };
 

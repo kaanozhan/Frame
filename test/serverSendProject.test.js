@@ -24,9 +24,10 @@ Object.assign(server, {
   clones: [],
   calls: [],
   receive: null, // override per test
+  key: 'k1',
+  host: 'box',
   isConnected: () => true,
   getStatus: () => ({ state: 'connected', host: 'box' }),
-  on(name, fn) { EventEmitter.prototype.on.call(this, name, fn); return () => this.removeListener(name, fn); },
   async call(method, params) {
     this.calls.push({ method, params });
     if (method === 'projects.list') return this.clones;
@@ -35,6 +36,27 @@ Object.assign(server, {
     if (method === 'workspaces.list') return { workspaces: [] };
     throw new Error(`Unknown method ${method}`);
   }
+});
+// A second saved server (multi-server-connections): its own clones and calls.
+const gpu = {
+  key: 'k2', host: 'gpu', calls: [],
+  isConnected: () => true,
+  getStatus: () => ({ state: 'connected', host: 'gpu' }),
+  async call(method, params) {
+    this.calls.push({ method, params });
+    if (method === 'projects.list') return [];
+    if (method === 'projects.receive') return { projectPath: '/gpu/projects/app', cloned: true };
+    if (method === 'workspaces.create') return { workspace: { id: 'g1', name: 'teal', branch: 'ws/teal', path: '/gpu/ws/teal' }, fetch: { skipped: true } };
+    if (method === 'workspaces.list') return { workspaces: [] };
+    throw new Error(`Unknown method ${method}`);
+  }
+};
+// The registry (serverConnection) the workspace manager sees.
+const registry = new EventEmitter();
+Object.assign(registry, {
+  all: () => [server, gpu],
+  of: (key) => [server, gpu].find((l) => l.key === key) || null,
+  on(name, fn) { EventEmitter.prototype.on.call(this, name, fn); return () => this.removeListener(name, fn); }
 });
 const uploads = [];
 const installerStub = {
@@ -54,7 +76,7 @@ Module._load = function (request, parent, ...rest) {
   if (request.startsWith('.') && parent && parent.filename) {
     let resolved = null;
     try { resolved = Module._resolveFilename(request, parent); } catch (_) { resolved = null; }
-    if (resolved === path.join(MAIN, 'serverConnection.js')) return server;
+    if (resolved === path.join(MAIN, 'serverConnection.js')) return registry;
     if (resolved === path.join(MAIN, 'serverInstaller.js')) return installerStub;
   }
   return loadOriginal.call(this, request, parent, ...rest);
@@ -76,7 +98,7 @@ function project({ remote = null } = {}) {
   projectRegistry.addProject(dir, path.basename(dir), false);
   return { dir, root: git(['rev-list', '--max-parents=0', 'HEAD'], dir) };
 }
-function reset() { server.calls = []; uploads.length = 0; server.clones = []; }
+function reset() { server.calls = []; gpu.calls = []; uploads.length = 0; server.clones = []; }
 
 test('a project the server does not have is sent as a bundle with its remote and root', async () => {
   reset();
@@ -127,4 +149,17 @@ test('an older Frame Server is asked to update', async () => {
   server.receive = () => { throw new Error('Unknown method projects.receive'); };
   const res = await wm.create(dir, { from: 'new', base: 'main', location: 'server' });
   assert.match(String(res.error), /Update Frame Server/);
+});
+
+test('a workspace for a chosen server is created there, and the bundle goes to that host', async () => {
+  reset();
+  const { dir } = project({ remote: 'https://github.com/me/two' });
+  server.receive = () => { throw new Error('box must not be asked'); };
+  const res = await wm.create(dir, { from: 'new', base: 'main', location: 'server', serverKey: 'k2' });
+  assert.equal(res.error, null, res.error);
+  assert.equal(res.serverKey, 'k2');
+  assert.equal(res.workspace.host, 'gpu');
+  assert.deepEqual(uploads.map((u) => u.host), ['gpu'], 'sent to gpu only');
+  assert.ok(gpu.calls.some((c) => c.method === 'workspaces.create'));
+  assert.ok(!server.calls.some((c) => c.method === 'workspaces.create' || c.method === 'projects.receive'), 'box was not asked to create');
 });

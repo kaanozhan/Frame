@@ -50,3 +50,19 @@ test('S8: --port still opts into TCP', async () => {
     await new Promise((r) => server.close(r));
   }
 });
+
+test('server.info: the server id is made once (0600) and stays the same across restarts', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'fsid-'));
+  const first = srv.serverId(home);
+  assert.match(first, /^[0-9a-f]{16}$/);
+  const file = path.join(home, 'server-id');
+  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+  // A restart reads the file again: the same id.
+  assert.equal(srv.serverId(home), first);
+  // A malformed file is replaced, not trusted.
+  fs.writeFileSync(file, 'not an id\n');
+  const replaced = srv.serverId(home);
+  assert.match(replaced, /^[0-9a-f]{16}$/);
+  assert.notEqual(replaced, 'not an id');
+  assert.equal(srv.serverId(home), replaced);
+});

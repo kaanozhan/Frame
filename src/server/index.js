@@ -140,8 +140,33 @@ function broadcast(channel, payload) {
   }
 }
 
+const SERVER_ID_FILE = 'server-id';
+
+/**
+ * This machine's Frame Server id (multi-server-connections): made once (16
+ * random hex, 0600) in `<home>/server-id` and read from disk on every call,
+ * so it survives restarts and updates. The desktop uses it to tell that two
+ * SSH aliases reach the same server; an unreadable or malformed file is
+ * replaced.
+ */
+function serverId(home = HOME) {
+  const file = path.join(home, SERVER_ID_FILE);
+  try {
+    const v = fs.readFileSync(file, 'utf8').trim();
+    if (/^[0-9a-f]{16,64}$/.test(v)) return v;
+  } catch (_) { /* not made yet */ }
+  fs.mkdirSync(home, { recursive: true, mode: 0o700 });
+  const id = require('crypto').randomBytes(8).toString('hex');
+  fs.writeFileSync(file, `${id}\n`, { mode: 0o600 });
+  fs.chmodSync(file, 0o600);
+  return id;
+}
+
 registerMethods({
-  'server.ping': async () => ({ pong: true, frameVersion: FRAME_VERSION, platform: process.platform, arch: process.arch })
+  'server.ping': async () => ({ pong: true, frameVersion: FRAME_VERSION, platform: process.platform, arch: process.arch }),
+  // New method rather than a new hello field (server-onboarding rule): an
+  // older server answers "Unknown method" and the desktop treats it as no id.
+  'server.info': async () => ({ serverId: serverId(), frameVersion: FRAME_VERSION })
 });
 
 async function handleRequest(client, msg) {
@@ -257,6 +282,6 @@ function start(argv = process.argv.slice(2)) {
   return { server, wss };
 }
 
-module.exports = { start, registerMethods, broadcast, parseArgs, prepareSocket, listen, onConnection, onLastClientGone, HOME };
+module.exports = { start, registerMethods, broadcast, parseArgs, prepareSocket, listen, onConnection, onLastClientGone, serverId, HOME };
 
 if (require.main === module) start();

@@ -55,3 +55,34 @@ test('a fix terminal makes the next open of the dialog check again, once', () =>
   const second = M.takeRecheck(first.model);
   assert.equal(second.recheck, false);
 });
+
+// ─── multi-server-connections ────────────────────────────────
+
+const srv = (key, state) => ({ key, host: key, status: { state } });
+
+test('one model per server: progress on one never shows on another', () => {
+  let models = {};
+  models = M.withModel(models, 'a', { ...M.initial(), progressLines: ['downloading'] });
+  assert.deepEqual(M.modelFor(models, 'a').progressLines, ['downloading']);
+  assert.deepEqual(M.modelFor(models, 'b'), M.initial(), 'another server starts clean');
+  assert.deepEqual(Object.keys(M.pruneModels({ ...models, b: M.initial() }, ['b'])), ['b'], 'removed servers are dropped');
+  assert.deepEqual(M.modelFor(null, null), M.initial());
+});
+
+test('summary: connected / total and the worst state of servers not off', () => {
+  assert.equal(M.summary([]), null);
+  assert.deepEqual(M.summary([srv('a', 'connected'), srv('b', 'connected')]), { total: 2, connected: 2, state: 'connected' });
+  assert.deepEqual(M.summary([srv('a', 'connected'), srv('b', 'reconnecting')]), { total: 2, connected: 1, state: 'reconnecting' });
+  assert.deepEqual(M.summary([srv('a', 'connected'), srv('b', 'off')]), { total: 2, connected: 1, state: 'connected' }, 'a disconnected server does not grey the dot');
+  assert.deepEqual(M.summary([srv('a', 'off'), srv('b', 'off')]), { total: 2, connected: 0, state: 'off' });
+  assert.equal(M.summary([srv('a', 'connected'), srv('b', 'error'), srv('c', 'needs-update')]).state, 'error');
+  assert.deepEqual(M.summary([{ key: 'x' }]), { total: 1, connected: 0, state: 'off' }, 'no status reads as off');
+});
+
+test('pickSelected keeps the chosen server, else the first connected, else the first', () => {
+  const list = [srv('a', 'off'), srv('b', 'connected')];
+  assert.equal(M.pickSelected(list, 'a'), 'a');
+  assert.equal(M.pickSelected(list, 'gone'), 'b');
+  assert.equal(M.pickSelected([srv('a', 'off')], null), 'a');
+  assert.equal(M.pickSelected([], 'a'), null);
+});

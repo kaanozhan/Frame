@@ -259,6 +259,22 @@ function specCatalog(root) {
   return lines.length ? lines.join('\n') : '';
 }
 
+/**
+ * The project's main checkout for `root`. In a workspace (a linked git
+ * worktree, spec-in-workspace) that is the folder holding the common git
+ * dir; anywhere else — or without git — `root` itself. Task state lives
+ * there, never in the worktree, so `{tasks_path}` must point at it.
+ */
+function mainCheckout(root) {
+  try {
+    const out = require('child_process').execFileSync('git',
+      ['rev-parse', '--path-format=absolute', '--git-common-dir'],
+      { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000 }).trim();
+    if (out && path.basename(out) === '.git') return path.dirname(out);
+  } catch (_) { /* not a git checkout — the root is the project */ }
+  return root;
+}
+
 function buildPrompt(root, slug, command, tool) {
   const template = readText(templatePath(root, tool, command));
   if (!template) return null;
@@ -278,6 +294,8 @@ function buildPrompt(root, slug, command, tool) {
   return interpolate(template, {
     ...phrases,
     project_path: root,
+    // Same value specManager fills: the main checkout's tasks.json.
+    tasks_path: path.join(mainCheckout(root), '.frame', 'tasks.json'),
     slug,
     title: status.title,
     description: '',

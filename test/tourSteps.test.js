@@ -34,7 +34,7 @@ test('the shipped steps validate clean', () => {
 
 test('seven steps, in the tour order', () => {
   assert.deepEqual(STEPS.map((s) => s.id), [
-    'project', 'switcher', 'agent', 'terminals', 'specs', 'tasks', 'settings'
+    'project', 'switcher', 'workspaces', 'servers', 'agent', 'terminals', 'specs', 'tasks', 'settings'
   ]);
   assert.equal(SETTING_KEY, 'guidedTourDone');
 });

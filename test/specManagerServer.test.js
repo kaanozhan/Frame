@@ -25,7 +25,13 @@ process.env.HOME = SANDBOX;
 const serverCalls = [];
 const remote = {}; // root → specs list the fake server answers
 const fakeServer = new EventEmitter();
+// One saved server (multi-server-connections): the fake is both the registry
+// (of / all) and that server's link (key kbox).
 Object.assign(fakeServer, {
+  key: 'kbox',
+  host: 'box',
+  of(key) { return key === 'kbox' ? this : null; },
+  all() { return [this]; },
   connected: true,
   isConnected() { return this.connected; },
   getStatus() { return { state: this.connected ? 'connected' : 'reconnecting', host: 'box' }; },
@@ -42,10 +48,10 @@ Object.assign(fakeServer, {
   }
 });
 const PROJECT = path.join(SANDBOX, 'project');
-const serverRows = [{ id: 'srv-ws-1', root: '/home/u/frame/workspaces/project/teal', host: 'box', projectPath: PROJECT, serverProjectPath: '/home/u/frame/projects/project' }];
+const serverRows = [{ id: 'srv-ws-1', root: '/home/u/frame/workspaces/project/teal', host: 'box', serverKey: 'kbox', projectPath: PROJECT, serverProjectPath: '/home/u/frame/projects/project' }];
 const fakeWorkspaces = {
   serverRoots: () => serverRows,
-  serverLocation: (id) => { const r = serverRows.find((x) => x.id === id); return r ? { path: r.root, host: r.host, name: 'teal', projectPath: r.projectPath, serverProjectPath: r.serverProjectPath } : null; }
+  serverLocation: (id) => { const r = serverRows.find((x) => x.id === id); return r ? { path: r.root, host: r.host, serverKey: r.serverKey, name: 'teal', projectPath: r.projectPath, serverProjectPath: r.serverProjectPath } : null; }
 };
 
 const MAIN = path.join(__dirname, '..', 'src', 'main');

@@ -31,7 +31,7 @@ const SKETCH_KINDS = Object.freeze([
   'agents', 'shell', 'fileTree', 'gitSharing', 'settings', 'terminalGrid',
   'laneStates', 'home', 'specFlow', 'implementModes', 'boards', 'orchestrator',
   'sessions', 'dockTabs', 'multiProject', 'plugins', 'themes', 'zoom', 'keys',
-  'feedback'
+  'feedback', 'workspaces'
 ]);
 
 /** Theme and zoom commands change what the guide itself looks like, so their
@@ -56,6 +56,8 @@ const ACTION_IDS = Object.freeze([
   'dock.toggle', 'dock.decisions', 'dock.prompts', 'dock.activity',
   // Terminals and agents
   'terminal.new', 'terminal.close', 'terminal.next', 'ai.startSession',
+  // Workspaces and servers
+  'workspace.new', 'server.add', 'server.connect',
   // Palette
   'palette.toggle', 'palette.open',
   // Look
@@ -264,6 +266,81 @@ const CHAPTERS = [
         ],
         actions: [
           { id: 'lane.home', label: 'Go to Home' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'workspaces',
+    title: 'Workspaces & servers',
+    pages: [
+      {
+        id: 'workspaces.what',
+        title: 'Workspaces',
+        sketch: { kind: 'workspaces', focus: 'local' },
+        blocks: [
+          { p: 'A workspace is a branch with its own folder — a git worktree outside the repo — and its own terminals. Several agents can work on the same project at once, each on its branch, without touching each other\'s files.' },
+          { list: [
+            'The workspace switcher sits under the project. `main` is the project\'s own checkout; every other row is a workspace.',
+            'Picking one points the terminals, the file tree, Changes and sessions at that workspace\'s folder.',
+            'Local workspaces live on this Mac; Remote ones run on your own servers. The dot beside a row tells you when an agent there needs you.'
+          ] },
+          { note: 'Archiving a workspace removes its folder and keeps its branch, so it can be restored later.' }
+        ],
+        actions: [
+          { id: 'workspace.new', label: 'New workspace' }
+        ]
+      },
+      {
+        id: 'workspaces.new',
+        title: 'New workspace',
+        sketch: { kind: 'workspaces', focus: 'new' },
+        blocks: [
+          { p: 'Open the workspace switcher and choose New workspace at the top, or press {kbd:workspace.new}.' },
+          { list: [
+            'Location: this Mac, or one of your connected servers. Frame remembers the last one you used for the project.',
+            'New branch: Frame names it for you and creates it from the branch in Branch from, after a fetch.',
+            'Existing branch: the workspace opens that branch. Merges into is the branch its pull request targets and Update from base pulls from.',
+            'Pick the agent and, if you like, a first prompt. Frame runs the project\'s setup script in the new folder first, then starts the agent.'
+          ] },
+          { note: 'Branch fields search as you type, anywhere in the name — local branches first, then remote ones.' }
+        ],
+        actions: [
+          { id: 'workspace.new', label: 'New workspace' }
+        ]
+      },
+      {
+        id: 'workspaces.servers',
+        title: 'Add a server',
+        sketch: { kind: 'workspaces', focus: 'add-server,servers' },
+        blocks: [
+          { p: 'A server is a machine of yours — a Linux box, a second dev machine — that runs Frame Server. Workspaces there keep their terminals and agents running while this Mac sleeps or is away.' },
+          { list: [
+            'Add server: the server button at the foot of the left rail, Add server… at the bottom of the workspace switcher, or {kbd:server.add}. Type the SSH host as you would for `ssh`.',
+            'Frame connects with your own `ssh`, so your keys, agent and `~/.ssh/config` apply. A host that asks for a typed password cannot be used.',
+            'If Frame Server is missing or out of date there, the Servers dialog offers to install or update it, then runs a check-up of the agent CLIs, git and gh on that machine.',
+            'Add as many servers as you like. Each one connects on its own; one going down never affects the others.'
+          ] }
+        ],
+        actions: [
+          { id: 'server.add', label: 'Add a server' },
+          { id: 'server.connect', label: 'Open Servers' }
+        ]
+      },
+      {
+        id: 'workspaces.remote',
+        title: 'Remote workspaces',
+        sketch: { kind: 'workspaces', focus: 'remote,server' },
+        blocks: [
+          { p: 'Under Remote, every server has its own section with its workspaces. A section opens and closes with a click; Frame remembers your choice per server.' },
+          { list: [
+            'Create one with New workspace and pick the server as its Location. If the server does not have the project yet, Frame sends its committed history there; uncommitted changes stay on this Mac.',
+            'Terminals, the file tree, Changes and pull requests of a remote workspace work through its own server.',
+            'While a server is unreachable its workspaces show as offline and its terminals say they are reconnecting. Nothing falls back to this Mac, and the agents keep running there.'
+          ] }
+        ],
+        actions: [
+          { id: 'server.connect', label: 'Open Servers' }
         ]
       }
     ]
