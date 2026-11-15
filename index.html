@@ -1395,36 +1395,46 @@
         <p>A branch in its own worktree, outside the repo. Your main checkout is untouched.</p>
       </div>
       <div class="task-run-modal-body">
-        <div class="task-run-section">
-          <label class="task-run-section-label">Start from</label>
-          <div class="task-run-radio-list" role="radiogroup" aria-label="Start from">
-            <label class="task-run-radio">
-              <input type="radio" name="nw-from" value="new" checked>
-              <span>A new branch</span>
-            </label>
-            <label class="task-run-radio">
-              <input type="radio" name="nw-from" value="branch">
-              <span>An existing branch</span>
-            </label>
-          </div>
-          <div id="nw-branch-row" class="nw-field" hidden>
-            <label for="nw-branch" class="nw-field-label">Branch</label>
-            <input type="text" id="nw-branch" class="task-run-input" list="nw-branches" placeholder="feat/login" spellcheck="false">
-          </div>
-          <div id="nw-base-row" class="nw-field">
-            <label for="nw-base" class="nw-field-label">Base</label>
-            <input type="text" id="nw-base" class="task-run-input" list="nw-branches" placeholder="main" spellcheck="false">
-          </div>
-          <datalist id="nw-branches"></datalist>
-        </div>
+        <!-- Where it runs first: the dialog opens from Local or Remote, and
+             the rest of the form reads in that context. -->
         <div class="task-run-section" id="nw-location-row" hidden>
           <label for="nw-location" class="task-run-section-label">Location</label>
-          <select id="nw-location" class="nw-select"></select>
-          <p class="nw-location-hint" id="nw-location-hint"></p>
+          <div class="nw-select-wrap"><select id="nw-location" class="nw-select"></select></div>
+          <p class="nw-hint" id="nw-location-hint"></p>
+        </div>
+        <div class="task-run-section">
+          <span class="task-run-section-label" id="nw-from-label">Start from</span>
+          <div class="task-run-segmented" role="radiogroup" aria-labelledby="nw-from-label">
+            <label class="task-run-segment">
+              <input type="radio" name="nw-from" value="new" checked>
+              <span>New branch</span>
+            </label>
+            <label class="task-run-segment">
+              <input type="radio" name="nw-from" value="branch">
+              <span>Existing branch</span>
+            </label>
+          </div>
+          <!-- Branch fields: Frame's own filterable list (branchOptions), not
+               the browser's datalist. -->
+          <div id="nw-branch-row" class="nw-field" hidden>
+            <label for="nw-branch" class="nw-field-label">Branch</label>
+            <div class="nw-combo" data-combo="branch">
+              <input type="text" id="nw-branch" class="task-run-input" placeholder="Search branches…" spellcheck="false" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="nw-branch-list">
+              <div id="nw-branch-list" class="sidebar-project-menu nw-combo-list" role="listbox" hidden></div>
+            </div>
+          </div>
+          <div id="nw-base-row" class="nw-field">
+            <label for="nw-base" class="nw-field-label" id="nw-base-label">Branch from</label>
+            <div class="nw-combo" data-combo="base">
+              <input type="text" id="nw-base" class="task-run-input" placeholder="main" spellcheck="false" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="nw-base-list">
+              <div id="nw-base-list" class="sidebar-project-menu nw-combo-list" role="listbox" hidden></div>
+            </div>
+          </div>
+          <p class="nw-hint" id="nw-from-hint"></p>
         </div>
         <div class="task-run-section">
           <label for="nw-tool" class="task-run-section-label">Agent</label>
-          <select id="nw-tool" class="nw-select"></select>
+          <div class="nw-select-wrap"><select id="nw-tool" class="nw-select"></select></div>
           <textarea id="nw-prompt" class="task-run-input nw-prompt" rows="3" placeholder="Optional first prompt — ⌘↩ to create"></textarea>
         </div>
         <p id="nw-error" class="nw-error" role="alert"></p>

@@ -376,7 +376,7 @@
 
 .nw-field-label {
   flex: none;
-  width: 52px;
+  width: 84px;
   font-size: 12px;
   color: var(--text-secondary);
 }
@@ -884,6 +884,9 @@
 
 .ws-server-count {
   flex: none;
+  min-width: 14px;
+  padding-right: 4px;
+  text-align: right;
   font-size: 10px;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
@@ -931,3 +934,102 @@
 
 .ws-add-server:hover,
 .ws-add-server:focus-visible { background: var(--bg-hover); color: var(--text-primary); }
+
+/* ─── New Workspace: Frame's own controls (multi-server-connections) ─── */
+/* Selects are drawn as the switchers' box (bg-tertiary, border, radius-md,
+   a chevron), branch fields list in the project menu's surface. */
+.new-workspace-modal .task-run-section { display: flex; flex-direction: column; gap: 6px; }
+.new-workspace-modal .task-run-segmented { margin-bottom: 2px; }
+
+.nw-select-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.nw-select-wrap::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -5px;
+  border-right: 1.5px solid var(--text-tertiary);
+  border-bottom: 1.5px solid var(--text-tertiary);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.nw-select-wrap .nw-select {
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  padding: 0 32px 0 10px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.nw-select-wrap .nw-select:hover { background: var(--bg-elevated); border-color: var(--border-strong); }
+.nw-select-wrap .nw-select:focus { outline: none; border-color: var(--accent-primary); }
+
+.nw-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+.nw-hint:empty { display: none; }
+
+.nw-combo {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.nw-combo .task-run-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  font-family: var(--font-mono);
+}
+
+.nw-combo-list {
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  width: auto;
+  max-width: none;
+  max-height: 240px;
+  z-index: 20;
+  gap: 1px;
+}
+
+.nw-combo-section {
+  padding: 6px 8px 2px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
+.nw-combo-item {
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.nw-combo-item.highlight {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}

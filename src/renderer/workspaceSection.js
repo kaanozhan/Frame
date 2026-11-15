@@ -290,8 +290,8 @@ function serverHeadHtml(link, { collapsed, count, locked }) {
       <span class="ws-server-caret" aria-hidden="true"></span>
       <span class="ws-server-icon" aria-hidden="true">${icon}</span>
       <span class="ws-server-name">${escapeHtml(link.host)}</span>
-      ${collapsed && count ? `<span class="ws-server-count">${count}</span>` : ''}
       <span class="ws-server-rule" aria-hidden="true"></span>
+      ${collapsed && count ? `<span class="ws-server-count" title="${count} workspace${count === 1 ? '' : 's'}">${count}</span>` : ''}
       ${action}
     </div>`;
 }
@@ -521,7 +521,8 @@ function onClick(e) {
     const act = actEl.dataset.act;
     const ws = row ? findWs(row.dataset.id) : null;
     if (act === 'toggle') return menuOpen ? closeDropdown() : openDropdown();
-    if (act === 'new') { closeDropdown(); return openNew(); }
+    // Local's "+" opens New Workspace on This Mac; Remote's on a server.
+    if (act === 'new') { closeDropdown(); return openNew({ location: 'local' }); }
     if (act === 'new-remote') { closeDropdown(); return openNew({ location: 'server', serverKey: actEl.dataset.key || null }); }
     if (act === 'connect') { closeDropdown(); return require('./serverConnect').open({ key: actEl.dataset.key || null }); }
     if (act === 'add-server') { closeDropdown(); return require('./serverConnect').open({ add: true }); }
