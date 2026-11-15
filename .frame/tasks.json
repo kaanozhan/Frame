@@ -8274,13 +8274,13 @@
       "title": "Turn the Connect to Server dialog into a server list with an add form and a detail pane in `index.html` and `src/renderer/serverConnect.js`, with actions per key, removal, and a message naming the existing entry when a duplicate server is refused; keep one model per key with a pure `summary(list)` in `src/renderer/serverConnectModel.js`, and extend `test/serverConnectModel.test.js`",
       "description": "",
       "source": "spec:multi-server-connections:T09",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: multi-server-connections",
       "createdAt": "2026-11-15T12:36:21.721Z",
-      "updatedAt": "2026-11-15T12:36:21.721Z",
-      "completedAt": null
+      "updatedAt": "2026-11-15T13:40:35.235Z",
+      "completedAt": "2026-11-15T13:40:35.235Z"
     },
     {
       "id": "task-spec-multi-server-connections-T10",
@@ -8335,7 +8335,7 @@
       "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T13:36:34.363Z",
+  "lastUpdated": "2026-11-15T13:40:35.235Z",
   "metadata": {
     "totalCreated": 641
   }

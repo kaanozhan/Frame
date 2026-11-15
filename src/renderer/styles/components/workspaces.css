@@ -683,3 +683,136 @@
 .sc-panel[hidden], .sc-progress[hidden], .sc-agents[hidden] { display: none; }
 .server-connect-modal .task-run-modal-footer { flex-wrap: wrap; }
 .server-connect-modal .task-run-modal-footer .task-run-btn { white-space: nowrap; }
+
+/* ─── Servers dialog: list + detail (multi-server-connections) ─── */
+/* The saved servers on the left (the project menu's row rhythm, a state dot
+   per server), the selected one's status, install and check-up on the right. */
+.server-connect-modal { --modal-width: 760px; }
+
+.sc-body {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .sc-body { grid-template-columns: 1fr; }
+}
+
+.sc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding-right: 16px;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.sc-servers {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.sc-servers[hidden] { display: none; }
+
+.sc-server {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  outline: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.sc-server:hover { background: var(--bg-hover); color: var(--text-primary); }
+.sc-server:focus-visible { box-shadow: inset 0 0 0 1px var(--accent-primary); }
+.sc-server.on { background: var(--bg-tertiary); color: var(--text-primary); }
+
+.sc-server-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.sc-server[data-state="connected"] .sc-server-dot { background: var(--success); }
+.sc-server[data-state="connecting"] .sc-server-dot,
+.sc-server[data-state="reconnecting"] .sc-server-dot,
+.sc-server[data-state="installing"] .sc-server-dot,
+.sc-server[data-state="needs-install"] .sc-server-dot,
+.sc-server[data-state="needs-update"] .sc-server-dot { background: var(--warning); }
+.sc-server[data-state="error"] .sc-server-dot { background: var(--error); }
+
+.sc-server-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sc-server-host {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.sc-server-state {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+}
+
+.sc-add { display: grid; gap: 6px; margin: 0; }
+
+.sc-add-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.sc-add-row { display: flex; gap: 6px; }
+.sc-add-row .task-run-input { flex: 1; min-width: 0; margin: 0; }
+.sc-add-btn { flex: none; }
+
+.sc-detail { min-width: 0; }
+
+.sc-empty p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.sc-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sc-detail-host {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sc-remove { color: var(--text-tertiary); }
+.sc-remove:hover { color: var(--error); }

@@ -62,3 +62,11 @@ _Captured: 2026-11-15 · 7 file change(s)_
 
 ---
 
+## T09 — Servers dialog: list + detail
+
+Rebuilt the Servers dialog in `index.html` and `src/renderer/serverConnect.js` as a list with an add form plus a detail pane for the selected server, with actions by key, per-server models, progress routed by key, Remove with confirmation, and a duplicate notice. Styled it in `src/renderer/styles/components/workspaces.css`, and added per-key model helpers plus `summary` / `pickSelected` to `src/renderer/serverConnectModel.js` (tests in `test/serverConnectModel.test.js`). The home-terminal request now passes `serverKey`, which terminalManager forwards in T13. Divergence: the dialog is titled "Servers" rather than "Connect to Server".
+
+_Captured: 2026-11-15 · 5 file change(s)_
+
+---
+
