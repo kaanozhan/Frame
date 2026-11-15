@@ -8248,13 +8248,13 @@
       "title": "Route panels, git state and agent checks by `serverKey` in `src/main/serverPanels.js`, `src/main/gitStatusManager.js`, `src/main/workspaceGitState.js` and `src/main/aiToolManager.js`, merge git state over several servers in `src/shared/serverRouting.js` (`serverAccess` by key), remove the single-server fallback, and update `test/serverPanelsRefuse.test.js` and the merge cases in `test/serverRouting.test.js`",
       "description": "",
       "source": "spec:multi-server-connections:T07",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: multi-server-connections",
       "createdAt": "2026-11-15T12:36:21.721Z",
-      "updatedAt": "2026-11-15T12:36:21.721Z",
-      "completedAt": null
+      "updatedAt": "2026-11-15T13:30:46.515Z",
+      "completedAt": "2026-11-15T13:30:46.515Z"
     },
     {
       "id": "task-spec-multi-server-connections-T08",
@@ -8322,7 +8322,7 @@
       "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T13:28:05.496Z",
+  "lastUpdated": "2026-11-15T13:30:46.515Z",
   "metadata": {
     "totalCreated": 640
   }

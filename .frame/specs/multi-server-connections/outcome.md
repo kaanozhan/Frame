@@ -46,3 +46,11 @@ _Captured: 2026-11-15 · 3 file change(s)_
 
 ---
 
+## T07 — Panels, git state and agent checks per server
+
+Routed `src/main/serverPanels.js`, `src/main/gitStatusManager.js`, `src/main/workspaceGitState.js` and `src/main/aiToolManager.js` by `serverKey`. `mergeGitStatePayloads` in `src/shared/serverRouting.js` now merges several servers, with `serverAccess` by key. Updated `test/serverPanelsRefuse.test.js` (two servers, offline names its host) and `test/serverRouting.test.js`. Divergences: the registry's keyless fallback stays until T08, because `ptyManager` is its last user, and the `workspacePr.access` change moved here from T12, because the payload shape changes in this task.
+
+_Captured: 2026-11-15 · 8 file change(s)_
+
+---
+

@@ -74,13 +74,28 @@ test('serverRootFor matches a root or a path under it, separator-safe, longest f
 test('mergeGitStatePayloads joins rows and keeps the server gh apart', () => {
   const local = { projectPath: '/Users/me/app', access: { gh: true, authed: true, repoName: 'me/app' }, workspaces: { a1: { dirty: 1 } } };
   const server = { projectPath: '/home/u/frame/projects/app', access: { gh: true, authed: false, repoName: 'me/app' }, workspaces: { s1: { dirty: 0, unpushed: 2 } } };
-  const m = R.mergeGitStatePayloads(local, server, '/Users/me/app');
+  const m = R.mergeGitStatePayloads(local, { k1: server }, '/Users/me/app');
   assert.equal(m.projectPath, '/Users/me/app');
   assert.deepEqual(m.access, local.access);
-  assert.deepEqual(m.serverAccess, server.access);
+  assert.deepEqual(m.serverAccess, { k1: server.access });
   assert.deepEqual(Object.keys(m.workspaces).sort(), ['a1', 's1']);
   assert.equal(R.mergeGitStatePayloads(local, null, '/Users/me/app').serverAccess, null, 'no server, no serverAccess');
-  assert.deepEqual(R.mergeGitStatePayloads(null, server, '/p').access, { gh: false, authed: false, repoName: null });
+  assert.equal(R.mergeGitStatePayloads(local, {}, '/Users/me/app').serverAccess, null);
+  assert.deepEqual(R.mergeGitStatePayloads(null, { k1: server }, '/p').access, { gh: false, authed: false, repoName: null });
+});
+
+test('mergeGitStatePayloads over two servers keeps each server\'s gh apart (multi-server-connections)', () => {
+  const local = { access: { gh: true, authed: true, repoName: 'me/app' }, workspaces: { a1: {} } };
+  const box = { access: { gh: true, authed: true, repoName: 'me/app' }, workspaces: { s1: { dirty: 1 } } };
+  const gpu = { access: { gh: false, authed: false, repoName: null }, workspaces: { g1: { unpushed: 3 } } };
+  const m = R.mergeGitStatePayloads(local, { kbox: box, kgpu: gpu }, '/Users/me/app');
+  assert.deepEqual(m.serverAccess, { kbox: box.access, kgpu: gpu.access });
+  assert.deepEqual(Object.keys(m.workspaces).sort(), ['a1', 'g1', 's1']);
+});
+
+test('routeOf keeps the server key of a workspace located by id', () => {
+  const r = R.routeOf('/srv/b/ws/x/src', { workspaceId: 'wb' }, [], { wb: { path: '/srv/b/ws/x', host: 'B', serverKey: 'kb' } });
+  assert.deepEqual(r.remote, { root: '/srv/b/ws/x', id: 'wb', host: 'B', serverKey: 'kb' });
 });
 
 // ─── server-hardening T3: per-boot ids and adopt pruning ─────

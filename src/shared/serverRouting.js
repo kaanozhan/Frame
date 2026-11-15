@@ -175,17 +175,26 @@ function serverRootFor(p, roots) {
 
 /**
  * One WORKSPACE_GIT_STATE payload for a desktop project: its local
- * workspaces' rows plus the server workspaces' rows from Frame Server's own
- * `workspaceGitState`. The server's GitHub access is kept apart
- * (`serverAccess`) — its `gh` is not the desktop's.
+ * workspaces' rows plus each server's workspace rows from that Frame Server's
+ * own `workspaceGitState`. `servers` is `{ [serverKey]: payload }`
+ * (multi-server-connections). Each server's GitHub access is kept apart in
+ * `serverAccess[serverKey]` — a server's `gh` is neither the desktop's nor
+ * another server's. `serverAccess` is null when no server reported.
  */
-function mergeGitStatePayloads(local, server, projectPath) {
+function mergeGitStatePayloads(local, servers, projectPath) {
   const none = { gh: false, authed: false, repoName: null };
+  const entries = Object.entries(servers || {}).filter(([, p]) => p);
+  const workspaces = { ...((local && local.workspaces) || {}) };
+  const serverAccess = {};
+  for (const [key, p] of entries) {
+    serverAccess[key] = p.access || none;
+    Object.assign(workspaces, p.workspaces || {});
+  }
   return {
     projectPath: projectPath || (local && local.projectPath) || null,
     access: (local && local.access) || none,
-    serverAccess: server ? (server.access || none) : null,
-    workspaces: { ...((local && local.workspaces) || {}), ...((server && server.workspaces) || {}) }
+    serverAccess: entries.length ? serverAccess : null,
+    workspaces
   };
 }
 
@@ -196,8 +205,8 @@ function mergeGitStatePayloads(local, server, projectPath) {
  * (two machines sharing a home path); a server workspace id routes to it when
  * the path lies in its folder. Only a call without a workspace id falls back
  * to matching the path against the known server folders.
- *   roots:     [{ root, id, host, … }] (workspaceManager.serverRoots())
- *   locations: { [workspaceId]: { path, host } } for server workspaces
+ *   roots:     [{ root, id, host, serverKey, … }] (workspaceManager.serverRoots())
+ *   locations: { [workspaceId]: { path, host, serverKey } } for server workspaces
  */
 function routeOf(p, ctx, roots, locations) {
   const id = ctx && typeof ctx.workspaceId === 'string' ? ctx.workspaceId : null;
@@ -206,7 +215,7 @@ function routeOf(p, ctx, roots, locations) {
     if (!loc) return { local: true };
     const hit = serverRootFor(p, [loc.path]);
     if (!hit) return { local: true };
-    const entry = (roots || []).find((r) => r.id === id) || { root: loc.path, id, host: loc.host };
+    const entry = (roots || []).find((r) => r.id === id) || { root: loc.path, id, host: loc.host, serverKey: loc.serverKey || null };
     return { remote: entry };
   }
   const all = roots || [];
