@@ -1,7 +1,7 @@
 {
   "slug": "multi-server-connections",
   "title": "Multiple Frame Servers",
-  "phase": "implementing",
+  "phase": "done",
   "generated_task_ids": [
     "task-spec-multi-server-connections-T01",
     "task-spec-multi-server-connections-T02",
@@ -19,7 +19,7 @@
   ],
   "ai_tool": "claude-code",
   "created_at": "2026-11-15T12:25:28Z",
-  "updated_at": "2026-11-15T13:36:34.362Z",
-  "last_phase_at": "2026-11-15T13:11:51.728Z",
+  "updated_at": "2026-11-15T13:46:55.289Z",
+  "last_phase_at": "2026-11-15T13:46:55.289Z",
   "implement_mode": "guided"
 }

@@ -94,3 +94,11 @@ _Captured: 2026-11-15 · 2 file change(s)_
 
 ---
 
+## T13 — Renderer server terminals per server
+
+Replaced the single `serverState` in `src/renderer/terminalManager.js` with per-server states by key: banners per terminal from its own server, adopt when any server connects, home terminals created with and labelled by their own server. Added to plan.md during implementation (T08 found the single status) with the user's approval. Wrote `digest.md`, and the spec is done.
+
+_Captured: 2026-11-15 · 2 file change(s)_
+
+---
+

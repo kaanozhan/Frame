@@ -8326,16 +8326,16 @@
       "title": "Make server terminals in `src/renderer/terminalManager.js` follow their own server: the reconnect banner per terminal from its server key and the `servers` list, adopt when any server turns connected, and home terminals labelled with their own host",
       "description": "",
       "source": "spec:multi-server-connections:T13",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: multi-server-connections",
       "createdAt": "2026-11-15T13:36:34.362Z",
-      "updatedAt": "2026-11-15T13:36:34.362Z",
-      "completedAt": null
+      "updatedAt": "2026-11-15T13:46:54.842Z",
+      "completedAt": "2026-11-15T13:46:54.842Z"
     }
   ],
-  "lastUpdated": "2026-11-15T13:44:57.681Z",
+  "lastUpdated": "2026-11-15T13:46:54.842Z",
   "metadata": {
     "totalCreated": 641
   }
