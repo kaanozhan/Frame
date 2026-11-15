@@ -90,9 +90,10 @@ test('the allowlist has no duplicates and contains every stay id', () => {
   for (const id of STAY_IDS) assert.ok(ACTION_IDS.includes(id), id);
 });
 
-test('SKETCH_KINDS declares the twenty kinds the plan names, once each', () => {
-  assert.equal(SKETCH_KINDS.length, 20);
-  assert.equal(new Set(SKETCH_KINDS).size, 20);
+test('SKETCH_KINDS declares the twenty-one kinds (the plan\'s twenty plus workspaces), once each', () => {
+  assert.equal(SKETCH_KINDS.length, 21);
+  assert.equal(new Set(SKETCH_KINDS).size, 21);
+  assert.ok(SKETCH_KINDS.includes('workspaces'), 'workspaces & servers (multi-server-connections)');
 });
 
 test('the guide opens on "What Frame is"', () => {

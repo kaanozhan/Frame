@@ -1904,3 +1904,34 @@
   .gs-swatches { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gs-keys-grid { grid-template-columns: 1fr; }
 }
+
+/* ── workspaces & servers (multi-server-connections) ── */
+
+.gs-workspaces { min-height: 0; }
+
+.gs-ws-group { display: flex; flex-direction: column; gap: 2px; }
+.gs-ws-new,
+.gs-ws-add { padding: 3px 4px; border-radius: 4px; }
+.gs-ws-sep { height: 1px; margin: 3px 0; background: var(--gs-line); }
+
+.gs-ws-server {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px 1px;
+  color: var(--text-tertiary);
+}
+
+.gs-ws-rule { flex: 1; height: 1px; background: var(--gs-line); }
+.gs-ws-state { margin-left: auto; }
+
+.gs-ws-add-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 4px 6px;
+  border: 1px solid var(--gs-line);
+  border-radius: 4px;
+}
