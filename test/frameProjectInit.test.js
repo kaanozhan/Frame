@@ -174,7 +174,8 @@ test('hook entries are guarded and land in settings.json under repo sharing', as
   for (const command of commands) {
     // The backreference is the point: the file the guard tests must be the
     // file the guard execs, so a new hook cannot be registered half-wired.
-    assert.match(command, /^sh -c '\[ ! -f \.frame\/bin\/(spec|module|docs|spec-command)-hint\.js \] \|\| exec node \.frame\/bin\/\1-hint\.js (pre-edit|prompt|search|session-start)'$/);
+    // server-linux-readiness: the Node is `node`, else $FRAME_NODE, else none.
+    assert.match(command, /^sh -c '\[ ! -f \.frame\/bin\/(spec|module|docs|spec-command)-hint\.js \] \|\| \{ n=\$\(command -v node \|\| printf %s "\$FRAME_NODE"\); \[ -z "\$n" \] \|\| ELECTRON_RUN_AS_NODE=1 exec "\$n" \.frame\/bin\/\1-hint\.js (pre-edit|prompt|search|session-start); \}'$/);
   }
   assert.ok(!fs.existsSync(path.join(projectDir, '.claude', 'settings.local.json')));
 });

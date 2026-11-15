@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-14",
+  "lastUpdated": "2026-11-15",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -25851,6 +25851,7 @@
       "file": "src/shared/frameTemplates.js",
       "description": "Frame Templates",
       "exports": [
+        "hintCommand",
         "getAgentsTemplate",
         "getReferenceTemplate",
         "getStructureTemplate",
@@ -25981,8 +25982,16 @@
         "getFrameGitignoreBlock": {
           "line": 977
         },
+        "hintCommand": {
+          "line": 996,
+          "params": [
+            "script",
+            "mode"
+          ],
+          "purpose": "The command of one Claude Code hint hook (server-linux-readiness)."
+        },
         "hintHooksFor": {
-          "line": 1114,
+          "line": 1130,
           "params": [
             "template",
             "{ structureMap = false } = {}"
@@ -25990,7 +25999,7 @@
           "purpose": "The hint hooks a project should get. The full sets above stay as they are —"
         },
         "sessionReportCommand": {
-          "line": 1150,
+          "line": 1174,
           "params": [
             "tool",
             "guard = ''"
@@ -25998,7 +26007,7 @@
           "purpose": "Session report hook (restore-ai-sessions-on-relaunch). On SessionStart the"
         },
         "getGenericWrapperTemplate": {
-          "line": 1185,
+          "line": 1209,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -26006,38 +26015,38 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 1231
+          "line": 1255
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1268,
+          "line": 1292,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "classifyStructureHook": {
-          "line": 1297,
+          "line": 1321,
           "params": [
             "text"
           ],
           "purpose": "'current' when `text` is today's template, 'previous' when it is an"
         },
         "getOrchBusHeader": {
-          "line": 1316,
+          "line": 1340,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1328,
+          "line": 1352,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1348
+          "line": 1372
         },
         "getOrchBinScripts": {
-          "line": 1366,
+          "line": 1390,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       },
-      "sizeBytes": 59835,
+      "sizeBytes": 61068,
       "extraction": {
         "status": "parsed"
       },
@@ -26059,6 +26068,7 @@
           "getStructurePreCommitHookTemplate": "66fc6794d6915e67",
           "getStructureTemplate": "ae0768942621daa6",
           "getTasksTemplate": "51a7303c8276cb87",
+          "hintCommand": "76c8c44d117b7c34",
           "hintHooksFor": "65fad3545aef86c6",
           "renderSpecSection": "7fd001cb3ae45a96",
           "sessionReportCommand": "2fb12d8e2b0bae69"
@@ -29261,20 +29271,20 @@
           "purpose": "Every file in the tree → sha256, excluding paths Frame is allowed to own."
         },
         "fakeWorkers": {
-          "line": 677,
+          "line": 678,
           "purpose": "A fake `--supervised` child that records what the supervisor sends."
         },
         "resetWorkers": {
-          "line": 702
+          "line": 703
         },
         "withoutStructureOverride": {
-          "line": 745,
+          "line": 746,
           "params": [
             "fn"
           ]
         }
       },
-      "sizeBytes": 40384,
+      "sizeBytes": 40570,
       "extraction": {
         "status": "parsed"
       },
@@ -29714,6 +29724,54 @@
         "description": "77b5530472143361",
         "purposes": {
           "fixture": "f1344d0b25feeb70"
+        }
+      }
+    },
+    "test/hintHooks.test": {
+      "file": "test/hintHooks.test.js",
+      "description": "Claude Code hint hooks find Node on a machine without it (server-linux-readiness T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "node:module",
+        "src/shared/frameTemplates",
+        "src/main/frameProject"
+      ],
+      "functions": {
+        "project": {
+          "line": 48,
+          "params": [
+            "{ scripts = true } = {}"
+          ],
+          "purpose": "A project folder whose .frame/bin scripts report which Node ran them and with what."
+        },
+        "runHook": {
+          "line": 67,
+          "params": [
+            "command",
+            "cwd",
+            "env"
+          ],
+          "purpose": "Run a hook command the way Claude Code does: `sh -c` in the project folder."
+        },
+        "commands": {
+          "line": 39
+        }
+      },
+      "sizeBytes": 6481,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0b75a37eb9015654",
+        "purposes": {
+          "project": "53beb2ae9273f09c",
+          "runHook": "7118ac63e70d4999"
         }
       }
     },
@@ -34812,7 +34870,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 381,
+        "parsed": 382,
         "unsupported": 91,
         "partial": 0
       }
@@ -34859,9 +34917,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 566,
+      "visitedEntries": 567,
       "traversedDirectories": 86,
-      "eligibleFiles": 472,
+      "eligibleFiles": 473,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -34878,7 +34936,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 472,
+      "indexedFiles": 473,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34886,6 +34944,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "1f9b8118b76a58425c67ebc276eb4ff218b88ffdd666aec28c788e70673fa4e4"
+    "revision": "df49371c1b3e3918f0f759137b4156711c075e3e9c9af3bdc4475364cb70a479"
   }
 }
