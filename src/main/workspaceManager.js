@@ -265,31 +265,38 @@ function toServerRow(row, serverProjectPath, link) {
   return { ...row, location: 'server', host: link.host, serverKey: link.key, serverProjectPath };
 }
 
-/** One server's workspaces of `projectPath`; its last known rows, offline, while it is down. */
+/**
+ * One server's workspaces of `projectPath`: `{ rows, archived }`. While the
+ * server is down, its last known lists, offline. Archived rows come from the
+ * server's own list (archived there, restorable from here).
+ */
 async function listOn(projectPath, link) {
   const prev = rowsFor(projectPath, link.key);
-  const offline = () => (prev ? prev.rows.map((r) => ({ ...r, offline: true })) : []);
+  const offline = () => (prev
+    ? { rows: prev.rows.map((r) => ({ ...r, offline: true })), archived: (prev.archived || []).map((r) => ({ ...r, offline: true })) }
+    : { rows: [], archived: [] });
   if (!link.isConnected()) return offline();
   try {
     const sp = await serverProjectFor(projectPath, link);
     if (!sp) {
       if (serverRows.has(projectPath)) serverRows.get(projectPath).delete(link.key);
-      return [];
+      return { rows: [], archived: [] };
     }
     const res = await link.call('workspaces.list', { projectPath: sp });
     const rows = ((res && res.workspaces) || []).map((w) => toServerRow(w, sp, link));
-    setRows(projectPath, { serverProjectPath: sp, host: link.host, serverKey: link.key, rows });
-    return rows;
+    const archived = ((res && res.archived) || []).map((w) => toServerRow(w, sp, link));
+    setRows(projectPath, { serverProjectPath: sp, host: link.host, serverKey: link.key, rows, archived });
+    return { rows, archived };
   } catch (err) {
     logger.warn('workspaces', `server workspaces of ${projectPath} on ${link.host}: ${err.message}`);
     return offline();
   }
 }
 
-/** Every saved server's workspaces of `projectPath`, server by server in list order. */
+/** Every saved server's workspaces of `projectPath`, server by server in list order: `{ workspaces, archived }`. */
 async function listServer(projectPath) {
   const perServer = await Promise.all(links().map((link) => listOn(projectPath, link)));
-  return perServer.flat();
+  return { workspaces: perServer.flatMap((p) => p.rows), archived: perServer.flatMap((p) => p.archived) };
 }
 
 /**
@@ -315,7 +322,8 @@ function serverRoots() {
 function serverLocation(workspaceId, serverKey = null) {
   for (const [projectPath, entry] of currentEntries()) {
     if (serverKey && entry.serverKey !== serverKey) continue;
-    const row = entry.rows.find((r) => r.id === workspaceId);
+    // Archived rows too: restoring one is routed to its server.
+    const row = entry.rows.find((r) => r.id === workspaceId) || (entry.archived || []).find((r) => r.id === workspaceId);
     if (row) return { projectPath, serverProjectPath: entry.serverProjectPath, path: row.path, host: entry.host, serverKey: entry.serverKey, name: row.name };
   }
   return null;
@@ -395,7 +403,12 @@ async function list(projectPath) {
   const local = await listLocal(projectPath);
   if (local.error || !local.isRepo) return local;
   const remote = await listServer(projectPath);
-  return { ...local, workspaces: [...local.workspaces.map((w) => ({ ...w, location: 'local' })), ...remote] };
+  return {
+    ...local,
+    workspaces: [...local.workspaces.map((w) => ({ ...w, location: 'local' })), ...remote.workspaces],
+    // Archived on a server too, shown with its host and restorable from here.
+    archived: [...(local.archived || []), ...remote.archived]
+  };
 }
 
 function realPath(p) {
@@ -633,6 +646,9 @@ async function archive(projectPath, id, { action, message, rescue = false } = {}
 
 /** Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere. */
 async function restore(projectPath, id) {
+  // A workspace archived on a server is restored there.
+  const routed = serverCall('workspaces.restore', projectPath, id);
+  if (routed) return routed;
   const current = records(projectPath);
   const check = registry.restore(current, id);
   if (!check.ok) return { error: check.error.message };

@@ -8751,26 +8751,26 @@
           ]
         },
         "listOn": {
-          "line": 269,
+          "line": 273,
           "params": [
             "projectPath",
             "link"
           ],
-          "purpose": "One server's workspaces of `projectPath`; its last known rows, offline, while it is down."
+          "purpose": "One server's workspaces of `projectPath`: `{ rows, archived }`. While the"
         },
         "listServer": {
-          "line": 290,
+          "line": 297,
           "params": [
             "projectPath"
           ],
-          "purpose": "Every saved server's workspaces of `projectPath`, server by server in list order."
+          "purpose": "Every saved server's workspaces of `projectPath`, server by server in list order: `{ workspaces, archived }`."
         },
         "serverRoots": {
-          "line": 301,
+          "line": 308,
           "purpose": "Every known server workspace folder (server-workspace-panels): what panel"
         },
         "serverLocation": {
-          "line": 315,
+          "line": 322,
           "params": [
             "workspaceId",
             "serverKey = null"
@@ -8778,14 +8778,14 @@
           "purpose": "Where a workspace id lives on a server, or null when it is not a server"
         },
         "linkOfLocation": {
-          "line": 325,
+          "line": 333,
           "params": [
             "loc"
           ],
           "purpose": "The connected link of `loc`'s server, or null."
         },
         "serverCall": {
-          "line": 330,
+          "line": 338,
           "params": [
             "method",
             "projectPath",
@@ -8794,7 +8794,7 @@
           ]
         },
         "createOnServer": {
-          "line": 344,
+          "line": 352,
           "params": [
             "projectPath",
             "{ from",
@@ -8805,35 +8805,35 @@
           "purpose": "Create a workspace on one server (`serverKey`). Without a key — a caller"
         },
         "notifyRenderer": {
-          "line": 367,
+          "line": 375,
           "params": [
             "projectPath"
           ],
           "purpose": "Tell the renderer only (no spec/git refresh — those are local concerns)."
         },
         "wireServerEvents": {
-          "line": 372
+          "line": 380
         },
         "list": {
-          "line": 393,
+          "line": 401,
           "params": [
             "projectPath"
           ]
         },
         "realPath": {
-          "line": 401,
+          "line": 414,
           "params": [
             "p"
           ]
         },
         "listLocal": {
-          "line": 405,
+          "line": 418,
           "params": [
             "projectPath"
           ]
         },
         "withBase": {
-          "line": 424,
+          "line": 437,
           "params": [
             "projectPath",
             "rows"
@@ -8841,7 +8841,7 @@
           "purpose": "Records stored before workspaces knew their base (`base: null`) read as the"
         },
         "baseForBranch": {
-          "line": 431,
+          "line": 444,
           "params": [
             "projectPath",
             "branch"
@@ -8849,14 +8849,14 @@
           "purpose": "The base to prefill for a workspace opened from `branch` (decision B2)."
         },
         "status": {
-          "line": 440,
+          "line": 453,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "create": {
-          "line": 459,
+          "line": 472,
           "params": [
             "projectPath",
             "{ from = 'new'",
@@ -8869,14 +8869,14 @@
           "purpose": "Create a workspace."
         },
         "refExists": {
-          "line": 564,
+          "line": 577,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "archive": {
-          "line": 580,
+          "line": 593,
           "params": [
             "projectPath",
             "id",
@@ -8887,7 +8887,7 @@
           "purpose": "Archive. With uncommitted changes and no `action`, nothing happens and"
         },
         "restore": {
-          "line": 635,
+          "line": 648,
           "params": [
             "projectPath",
             "id"
@@ -8895,7 +8895,7 @@
           "purpose": "Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere."
         },
         "rename": {
-          "line": 660,
+          "line": 676,
           "params": [
             "projectPath",
             "id",
@@ -8905,7 +8905,7 @@
           "purpose": "Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`)."
         },
         "removeRecord": {
-          "line": 694,
+          "line": 710,
           "params": [
             "projectPath",
             "id"
@@ -8913,13 +8913,13 @@
           "purpose": "Forget a record whose worktree is gone (missing) or that is archived."
         },
         "setupIPC": {
-          "line": 710,
+          "line": 726,
           "params": [
             "ipcMain"
           ]
         },
         "archiveQueued": {
-          "line": 737,
+          "line": 753,
           "params": [
             "projectPath",
             "id",
@@ -8946,7 +8946,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 33368,
+      "sizeBytes": 34295,
       "extraction": {
         "status": "parsed"
       },
@@ -8964,8 +8964,8 @@
           "findOnServer": "4f465b9a955eaefe",
           "linkOfLocation": "83cd6bec5d2d6b72",
           "links": "49d31c8f2c7e4214",
-          "listOn": "68f2099fe1be492f",
-          "listServer": "5207577dfb4207b0",
+          "listOn": "6d8b2d3aaa039050",
+          "listServer": "04ca1bea10b3974d",
           "localIdentity": "45f45e051f23b3c6",
           "notifyRenderer": "f9f667afbfb4fe2c",
           "removeRecord": "cfa0e770acc4b861",
@@ -25881,7 +25881,7 @@
           ]
         }
       },
-      "sizeBytes": 8682,
+      "sizeBytes": 8897,
       "extraction": {
         "status": "parsed"
       },
@@ -31961,6 +31961,39 @@
         "description": "8854f9cddc4e8d98"
       }
     },
+    "test/serverArchived.test": {
+      "file": "test/serverArchived.test.js",
+      "description": "Workspaces archived on a server: listed in the desktop's Archived list with",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "node:module",
+        "events",
+        "src/main/projectRegistry",
+        "src/main/workspaceManager"
+      ],
+      "functions": {
+        "fakeLink": {
+          "line": 27,
+          "params": [
+            "key",
+            "host"
+          ]
+        }
+      },
+      "sizeBytes": 5842,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "e610ffc5ef8aae69"
+      }
+    },
     "test/serverConnectModel.test": {
       "file": "test/serverConnectModel.test.js",
       "description": "serverConnectModel — the Connect dialog's state rules (server-hardening S12).",
@@ -32229,6 +32262,29 @@
       },
       "provenance": {
         "description": "53feb2bccb916eff"
+      }
+    },
+    "test/serverRestoreWorkspace.test": {
+      "file": "test/serverRestoreWorkspace.test.js",
+      "description": "Frame Server restores an archived workspace (workspaces.restore), the",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "src/server/electronShim",
+        "src/server/projects"
+      ],
+      "functions": {},
+      "sizeBytes": 3337,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "210921afceda0336"
       }
     },
     "test/serverRouting.test": {
@@ -36415,7 +36471,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 398,
+        "parsed": 400,
         "unsupported": 92,
         "partial": 0
       }
@@ -36462,9 +36518,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 584,
+      "visitedEntries": 586,
       "traversedDirectories": 86,
-      "eligibleFiles": 490,
+      "eligibleFiles": 492,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -36481,7 +36537,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 490,
+      "indexedFiles": 492,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -36489,6 +36545,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "9c19904e016e6f4748e81c890d25d592be68ddbe42c064798a38f259af2e791b"
+    "revision": "6643a4e056c9417b42d9a592e7fcaf746574b727f8acafd8febdec4f5ee121a2"
   }
 }
