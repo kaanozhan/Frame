@@ -38,3 +38,11 @@ _Captured: 2026-11-15 · 4 file change(s)_
 
 ---
 
+## T06 — Server workspaces per server
+
+Rewrote the server half of `src/main/workspaceManager.js` around per-server links: rows cached per project and server key, listed across every saved server, `serverKey`/`host` on rows, roots and locations, calls and creates through the row's own link, bundles uploaded to the chosen host, removed servers dropped. `test/serverHost.test.js` (two servers, same name, one down, one removed) and `test/serverSendProject.test.js` (create on a chosen server) were moved to the registry API. Divergence: `create` without `serverKey` uses the first connected server until T12 sends the key.
+
+_Captured: 2026-11-15 · 3 file change(s)_
+
+---
+

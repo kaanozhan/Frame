@@ -8235,13 +8235,13 @@
       "title": "Cache and list server workspaces per server in `src/main/workspaceManager.js` (rows keyed by project and server key, `serverKey` on rows / `serverRoots()` / `serverLocation()`, `createOnServer` by key, the project bundle sent to that server's host, events by key), updating `test/serverHost.test.js` and `test/serverSendProject.test.js`",
       "description": "",
       "source": "spec:multi-server-connections:T06",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: multi-server-connections",
       "createdAt": "2026-11-15T12:36:21.721Z",
-      "updatedAt": "2026-11-15T12:36:21.721Z",
-      "completedAt": null
+      "updatedAt": "2026-11-15T13:28:05.496Z",
+      "completedAt": "2026-11-15T13:28:05.496Z"
     },
     {
       "id": "task-spec-multi-server-connections-T07",
@@ -8322,7 +8322,7 @@
       "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T13:25:17.960Z",
+  "lastUpdated": "2026-11-15T13:28:05.496Z",
   "metadata": {
     "totalCreated": 640
   }
