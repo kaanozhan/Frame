@@ -56,17 +56,31 @@ function mergeSpecLists(mainSpecs, workspaceLists) {
   const claimed = new Set();
   for (const entry of workspaceLists || []) {
     if (!entry || !entry.workspace) continue;
-    const { id, name, branch, root } = entry.workspace;
+    const { id, name, branch, root, host, offline } = entry.workspace;
+    // A server workspace (server-specs) also names its host, and whether it
+    // is reachable right now; a local one carries neither key.
+    const ws = { id, name, branch: branch || null, root };
+    if (host) Object.assign(ws, { host, offline: offline === true });
     for (const spec of entry.specs || []) {
       if (!spec || !spec.slug || claimed.has(spec.slug)) continue;
       claimed.add(spec.slug);
-      bySlug.set(spec.slug, { ...spec, workspace: { id, name, branch: branch || null, root } });
+      bySlug.set(spec.slug, { ...spec, workspace: { ...ws } });
     }
   }
   return sortSpecs(Array.from(bySlug.values()));
 }
 
 /** The root a slug lives in: its workspace's folder, else the main checkout. */
+/**
+ * The text of a spec's workspace chip: `name` for a local workspace,
+ * `name · host` for a server one, and `· offline` while it cannot be reached.
+ */
+function chipLabel(ws) {
+  if (!ws || !ws.name) return '';
+  if (!ws.host) return ws.name;
+  return ws.offline ? `${ws.name} · ${ws.host} · offline` : `${ws.name} · ${ws.host}`;
+}
+
 function rootForSlug(mergedSpecs, slug, projectPath) {
   const spec = (mergedSpecs || []).find((s) => s && s.slug === slug);
   return spec && spec.workspace && spec.workspace.root ? spec.workspace.root : projectPath;
@@ -109,4 +123,4 @@ function handBackSlugs(worktreeSpecs, mainSpecs, mode) {
     .map((s) => s.slug);
 }
 
-module.exports = { provisionEntries, mergeSpecLists, rootForSlug, commandPaths, handBackSlugs };
+module.exports = { provisionEntries, mergeSpecLists, chipLabel, rootForSlug, commandPaths, handBackSlugs };

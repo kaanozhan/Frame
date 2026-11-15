@@ -21,6 +21,7 @@ const { ipcRenderer } = require('electron');
 const { enterSubmits } = require('./modalKeys');
 const { selectionChange } = require('./scopeGuard');
 const { IPC } = require('../shared/ipcChannels');
+const { chipLabel } = require('../shared/workspaceSpecs');
 const state = require('./state');
 const laneStatus = require('./laneStatus');
 const notify = require('./notify');
@@ -605,7 +606,10 @@ async function removeRecord(ws) {
 /** A small chip naming the workspace a spec lives in; '' for main. */
 function workspaceChipHtml(ws) {
   if (!ws) return '';
-  return `<span class="ws-chip" title="In workspace ${escapeHtml(ws.name)} · ${escapeHtml(ws.branch || '')}">${escapeHtml(ws.name)}</span>`;
+  // A server workspace names its host, and says so while it is unreachable (server-specs).
+  const label = chipLabel(ws);
+  const where = ws.host ? `on ${ws.host}${ws.offline ? ' (offline)' : ''}` : (ws.branch || '');
+  return `<span class="ws-chip" title="In workspace ${escapeHtml(ws.name)} · ${escapeHtml(where)}">${escapeHtml(label)}</span>`;
 }
 
 /**
