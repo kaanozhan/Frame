@@ -422,9 +422,12 @@ async function listLocal(projectPath) {
   // row only counts when its folder is still on disk.
   const present = worktrees.filter((w) => w && w.path && fs.existsSync(w.path));
   const reconciled = registry.reconcile(records(projectPath), present, { canon: realPath });
+  // The main checkout is git's first worktree; its branch labels the main row.
+  const main = worktrees.find((w) => w && w.isMain);
   return {
     error: null,
     isRepo: true,
+    mainBranch: main ? (main.branch || (main.detached ? 'detached HEAD' : null)) : null,
     workspaces: await withBase(projectPath, registry.activeOf(reconciled)),
     archived: registry.archivedOf(reconciled)
   };

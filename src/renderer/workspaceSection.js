@@ -5,7 +5,8 @@
  * selected workspace, and a dropdown grouped in two, split by a hairline:
  *   - "New workspace…" first, the way the project menu leads with "Add a
  *     project…"; the dialog picks where it runs.
- *   - Local: the main row (the project's own checkout), then this Mac's
+ *   - Local: the main row (the project's own checkout, labelled with the
+ *     branch it is on), then this Mac's
  *     workspaces.
  *   - Remote: one sub-header per saved Frame Server (host, Connect while it
  *     is down) with that server's workspaces, then "Add server…"
@@ -43,6 +44,7 @@ let loadedFor = null;          // project path the list below belongs to
 let isRepo = false;
 let workspaces = [];           // active records (some may be `missing`)
 let archived = [];
+let mainBranch = null;         // the branch the project's own checkout is on (null: unknown / not git)
 let pendingReselect = null; // projectPath whose remembered workspace a load still has to select (R10)
 let showArchived = false;
 let renaming = null;           // { id, field: 'name'|'branch' } while an inline editor is open
@@ -104,6 +106,7 @@ function init() {
     lastServerCounts = null; // counts are per project
     workspaces = [];
     archived = [];
+    mainBranch = null;
     showArchived = false;
     loadedFor = null;
     render();
@@ -117,6 +120,15 @@ function init() {
     if (projectPath && projectPath === state.getProjectPath()) load();
   });
   window.addEventListener('focus', () => { if (state.getProjectPath()) load(); });
+  // A branch switched in the main checkout: git's status push for that
+  // folder (sent while main is the one watched) carries the new name.
+  ipcRenderer.on(IPC.GIT_STATUS_DATA, (event, payload) => {
+    if (!payload || !payload.isRepo || !payload.branch) return;
+    if (payload.projectPath !== state.getProjectPath() || loadedFor !== payload.projectPath) return;
+    if (payload.branch === mainBranch) return;
+    mainBranch = payload.branch;
+    scheduleRender();
+  });
 
   if (state.getProjectPath()) load({ reselect: true });
   else render();
@@ -142,6 +154,7 @@ async function load({ reselect = false } = {}) {
   workspaces = (result && result.workspaces) || [];
   if (!(result && result.error)) openServersThatGrew(workspaces);
   archived = (result && result.archived) || [];
+  mainBranch = (result && result.mainBranch) || null;
   // Saved terminal sessions of workspaces that are gone free their slots (R14).
   if (result && !result.error && result.isRepo) {
     try {
@@ -385,10 +398,18 @@ function remoteGroupHtml(remote, { canCreate, selectedId, sums }) {
     <button class="ws-add-server" data-act="add-server" type="button" title="Add server (⌘⌥N)">${PLUS}<span>Add server…</span><span class="ws-new-key" aria-hidden="true">⌘⌥N</span></button>`;
 }
 
+/**
+ * The main row's label: the branch the project's own checkout is on, like
+ * every other row; "main" (the row's name) until git has said, or outside git.
+ */
+function mainLabel() {
+  return mainBranch || 'main';
+}
+
 /** The trigger's face: the selected workspace and its status dot. */
 function triggerHtml({ selectedId, sums }) {
   const rec = selectedId === state.MAIN_WORKSPACE_ID ? null : workspaces.find((w) => w.id === selectedId);
-  const name = rec ? rec.branch : 'main';
+  const name = rec ? rec.branch : mainLabel();
   const remote = rec && rec.location === 'server'
     ? `<span class="ws-switch-tag${rec.offline ? ' offline' : ''}" title="Runs on ${escapeHtml(rec.host || 'the server')}${rec.offline ? ' — offline' : ''}">${rec.offline ? 'offline' : 'remote'}</span>`
     : '';
@@ -448,7 +469,7 @@ function render() {
         <div class="ws-group-head"><span class="ws-group-label">Local</span></div>
         <div class="ws-row main${mainOn}" data-id="main" tabindex="0" role="menuitemradio" aria-checked="${!!mainOn}">
           ${dotHtml(rollup.summaryFor(sums, state.MAIN_WORKSPACE_ID))}
-          <span class="ws-labels"><span class="ws-primary" title="The project's own checkout">main</span></span>
+          <span class="ws-labels"><span class="ws-primary" title="${escapeHtml(mainLabel())}">${escapeHtml(mainLabel())}</span><span class="ws-secondary">project checkout</span></span>
           ${mainOn ? CHECK : ''}
         </div>
         ${local.map((ws) => rowHtml(ws, { selectedId, sums })).join('')}
