@@ -219,6 +219,7 @@ function setupAllIPC() {
   sessionRestore.setupIPC(ipcMain);
   dialogs.setupIPC(ipcMain);
   fileTree.setupIPC(ipcMain);
+  require('./sendFiles').setupIPC(ipcMain);
   promptLogger.setupIPC(ipcMain);
   projectRegistry.setupIPC(ipcMain);
   frameProject.setupIPC(ipcMain);

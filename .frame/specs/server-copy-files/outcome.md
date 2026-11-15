@@ -30,3 +30,11 @@ _Captured: 2026-11-15 · 3 file change(s)_
 _Captured: 2026-11-15 · 3 file change(s)_
 
 ---
+
+## T05 — Desktop lists and sends files
+
+Added `src/main/sendFiles.js`, with the `SEND_FILES_LIST` / `SEND_FILES_SEND` channels in `src/shared/ipcChannels.js`, registered in `src/main/index.js`. `list` runs git's ignored list (`--directory`, so ignored folders come collapsed) and untracked list. It sizes collapsed folders with a walk capped at 20 000 entries and 300 ms, hashes files up to 5 MB outside heavy folders, asks `files.compare`, and returns the raw lists, sizes, server states and `copyFiles` for the renderer to build the tree. `send` re-reads the candidates and refuses any path git does not leave out. It packs files, symlinks and whole collapsed folders with their modes, refuses above 1 GB, writes the archive 0600 to a temp file, uploads it, and calls `files.receive` with the untracked paths. Remember merges `patternsFor` into `copyFiles` via `frameProject.setWorkspaceSettings`; an older server gets 'Update Frame Server…'. Deviations: `.frame/` is never offered, because the server provisions its own tooling and in local mode that folder holds tasks.json and specs; and `list` returns raw lists rather than tree nodes, since the tree is built by the shared model in the renderer. The 1 GB refusal is tested in `sendFilesModel`, not with a real 1 GB file. Tests in `test/sendFilesDesktop.test.js`, including T04's desktop half (`createOnServer` sends the patterns).
+
+_Captured: 2026-11-15 · 4 file change(s)_
+
+---

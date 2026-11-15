@@ -3930,7 +3930,8 @@
         "specManager",
         "orchestrationManager",
         "structureLifecycle",
-        "child_process"
+        "child_process",
+        "sendFiles"
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
@@ -3949,11 +3950,11 @@
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 310,
+          "line": 311,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 358,
+          "line": 359,
           "params": [
             "window"
           ],
@@ -3976,7 +3977,7 @@
           "MAIN_PROCESS_ERROR"
         ]
       },
-      "sizeBytes": 16453,
+      "sizeBytes": 16497,
       "extraction": {
         "status": "parsed"
       },
@@ -5709,6 +5710,125 @@
           "resizeTerminal": "810c8f104494f695",
           "serverTerminalInfo": "907874f886605317",
           "writeToTerminal": "6e7ca448a2aac555"
+        }
+      }
+    },
+    "main/sendFiles": {
+      "file": "src/main/sendFiles.js",
+      "description": "Send git-ignored files to a server workspace (server-copy-files).",
+      "exports": [
+        "setupIPC",
+        "list",
+        "send",
+        "boundedSize",
+        "offered"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "shared/ipcChannels",
+        "shared/fileArchive",
+        "shared/sendFilesModel",
+        "serverConnection",
+        "gitBranchesManager",
+        "workspaceManager",
+        "frameProject",
+        "serverInstaller"
+      ],
+      "functions": {
+        "server": {
+          "line": 37
+        },
+        "git": {
+          "line": 38
+        },
+        "offered": {
+          "line": 41,
+          "params": [
+            "rel"
+          ],
+          "purpose": "Never offered: Frame's own folder."
+        },
+        "locate": {
+          "line": 47,
+          "params": [
+            "workspaceId"
+          ],
+          "purpose": "The server workspace `workspaceId` names, or an error object."
+        },
+        "candidates": {
+          "line": 56,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "`{ ignored, untracked }` as git lists them, minus `.frame/`."
+        },
+        "boundedSize": {
+          "line": 70,
+          "params": [
+            "dir"
+          ],
+          "purpose": "Bytes under `dir`, stopping after WALK_MAX_ENTRIES entries or WALK_MAX_MS; `{ size, cut }`."
+        },
+        "sha256": {
+          "line": 92,
+          "params": [
+            "file"
+          ]
+        },
+        "list": {
+          "line": 96,
+          "params": [
+            "{ projectPath",
+            "workspaceId } = {}"
+          ]
+        },
+        "entriesFor": {
+          "line": 134,
+          "params": [
+            "projectPath",
+            "rel",
+            "out"
+          ],
+          "purpose": "Archive entries for one chosen path (a file, a symlink, or a whole collapsed folder)."
+        },
+        "send": {
+          "line": 145,
+          "params": [
+            "{ projectPath",
+            "workspaceId",
+            "paths",
+            "remember = false } = {}"
+          ]
+        },
+        "setupIPC": {
+          "line": 196,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SEND_FILES_LIST",
+          "SEND_FILES_SEND"
+        ],
+        "emits": []
+      },
+      "sizeBytes": 9045,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "a4e7eec84011a277",
+        "purposes": {
+          "boundedSize": "423a187c431ce0e5",
+          "candidates": "0a2827990991bcde",
+          "entriesFor": "3952c7ee8b770373",
+          "locate": "4499a53d0d166979",
+          "offered": "806466f4ce320908"
         }
       }
     },
@@ -26321,7 +26441,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 18251,
+      "sizeBytes": 18659,
       "extraction": {
         "status": "parsed"
       },
@@ -31031,6 +31151,49 @@
         }
       }
     },
+    "test/sendFilesDesktop.test": {
+      "file": "test/sendFilesDesktop.test.js",
+      "description": "The desktop half of \"Send files to server\" (server-copy-files T05).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "node:module",
+        "child_process",
+        "events",
+        "src/main/sendFiles",
+        "src/shared/fileArchive",
+        "src/main/frameProject",
+        "src/main/workspaceManager"
+      ],
+      "functions": {
+        "project": {
+          "line": 74,
+          "purpose": "A Frame project with tracked a.txt; ignored .env, certs/, node_modules/ and .frame/bin; untracked src/new.js."
+        },
+        "write": {
+          "line": 71,
+          "params": [
+            "file",
+            "body = 'x\\n'",
+            "mode"
+          ]
+        }
+      },
+      "sizeBytes": 9678,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "a9c4dd0d5942be6a",
+        "purposes": {
+          "project": "8decf2c0d5889bc1"
+        }
+      }
+    },
     "test/sendFilesModel.test": {
       "file": "test/sendFilesModel.test.js",
       "description": "The rules behind the \"Send files to server\" modal (server-copy-files T02).",
@@ -34119,6 +34282,18 @@
         "direction": "",
         "description": ""
       }
+    },
+    "send": {
+      "SEND_FILES_LIST": {
+        "name": "send-files-list",
+        "direction": "",
+        "description": ""
+      },
+      "SEND_FILES_SEND": {
+        "name": "send-files-send",
+        "direction": "",
+        "description": ""
+      }
     }
   },
   "dataFlow": [],
@@ -34350,6 +34525,11 @@
       }
     ],
     "files": [
+      {
+        "module": "main/sendFiles",
+        "file": "src/main/sendFiles.js",
+        "description": "Send git-ignored files to a server workspace (server-copy-files)."
+      },
       {
         "module": "server/sendFiles",
         "file": "src/server/sendFiles.js",
@@ -34956,6 +35136,11 @@
     ],
     "send": [
       {
+        "module": "main/sendFiles",
+        "file": "src/main/sendFiles.js",
+        "description": "Send git-ignored files to a server workspace (server-copy-files)."
+      },
+      {
         "module": "server/sendFiles",
         "file": "src/server/sendFiles.js",
         "description": "Receiving git-ignored files from the desktop (server-copy-files)."
@@ -35387,7 +35572,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 390,
+        "parsed": 392,
         "unsupported": 91,
         "partial": 0
       }
@@ -35434,9 +35619,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 575,
+      "visitedEntries": 577,
       "traversedDirectories": 86,
-      "eligibleFiles": 481,
+      "eligibleFiles": 483,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -35453,7 +35638,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 481,
+      "indexedFiles": 483,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -35461,6 +35646,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "af0802b5650b892b1d090d627c343e7d2b1d3eafade8d733b9c9f6a24dac9599"
+    "revision": "9eb1b76382670ab167893de6b85d1f5e74773a4cab6ba1cf76924cb448cbadbc"
   }
 }
