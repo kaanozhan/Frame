@@ -1,0 +1,153 @@
+/* Send files to server (server-copy-files) — inside the shared spec-modal shell. */
+.send-files-modal {
+  width: min(var(--modal-width-wide, 720px), 92vw);
+  max-height: 82vh;
+}
+
+.send-files-modal .sf-sub {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.send-files-modal .sf-body {
+  flex: 1 1 auto;
+  min-height: 120px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  padding: var(--space-xs) 0;
+}
+
+.send-files-modal .sf-note {
+  color: var(--text-muted);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 12px;
+}
+
+.send-files-modal .sf-error {
+  color: var(--error);
+}
+
+.send-files-modal .sf-group + .sf-group {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+}
+
+.send-files-modal .sf-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: var(--space-xs) var(--space-md);
+}
+
+.send-files-modal .sf-group-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 0 var(--space-md) var(--space-xs);
+}
+
+.send-files-modal .sf-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-right: var(--space-md);
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.send-files-modal .sf-row:hover {
+  background: var(--bg-hover);
+}
+
+.send-files-modal .sf-icon {
+  width: 10px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+}
+
+.send-files-modal .sf-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.send-files-modal .sf-row-size {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.send-files-modal .sf-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.send-files-modal .sf-same {
+  background: var(--success-subtle);
+  color: var(--success);
+}
+
+.send-files-modal .sf-changed {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+.send-files-modal .sf-heavy {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.send-files-modal .sf-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.send-files-modal .sf-bulk {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.send-files-modal .sf-size {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.send-files-modal .sf-verdict {
+  font-size: 12px;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+.send-files-modal .sf-verdict-warn {
+  background: var(--accent-subtle);
+  color: var(--warning-ink, var(--warning));
+}
+
+.send-files-modal .sf-verdict-refuse {
+  background: var(--error-subtle);
+  color: var(--error);
+}
+
+.send-files-modal .sf-remember {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+}

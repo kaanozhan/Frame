@@ -13818,6 +13818,7 @@
         "aiToolSelector",
         "serverConnect",
         "workspaceSection",
+        "sendFilesModal",
         "agentDispatch"
       ],
       "functions": {
@@ -13856,14 +13857,14 @@
           "line": 172
         },
         "waitForSetupToFinish": {
-          "line": 230,
+          "line": 238,
           "params": [
             "terminalId"
           ],
           "purpose": "Resolve when `terminalId` has run something and come back to its shell prompt."
         },
         "runSetupThenAgent": {
-          "line": 257,
+          "line": 265,
           "params": [
             "{ setupScript",
             "toolId = null",
@@ -13873,7 +13874,7 @@
           "purpose": "In the selected workspace: run the setup script (if any) in a \"setup\""
         },
         "openAgent": {
-          "line": 292,
+          "line": 300,
           "params": [
             "{ toolId",
             "prompt",
@@ -13882,7 +13883,7 @@
           ]
         }
       },
-      "sizeBytes": 13257,
+      "sizeBytes": 13745,
       "extraction": {
         "status": "parsed"
       },
@@ -15603,6 +15604,47 @@
         "purposes": {
           "anchorFor": "9aa51a7605fd597b",
           "place": "a417eef24a82a12b"
+        }
+      }
+    },
+    "renderer/sendFilesModal": {
+      "file": "src/renderer/sendFilesModal.js",
+      "description": "Send files to server — pick the files git does not carry and send them to",
+      "exports": [
+        "open",
+        "summary"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "shared/sendFilesModel",
+        "htmlUtils"
+      ],
+      "functions": {
+        "open": {
+          "line": 22,
+          "params": [
+            "{ projectPath",
+            "workspace",
+            "context = 'resend' } = {}"
+          ]
+        },
+        "summary": {
+          "line": 199,
+          "params": [
+            "result"
+          ],
+          "purpose": "One line for a notice: what was sent, overwritten and skipped."
+        }
+      },
+      "sizeBytes": 9775,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "106c77f7a7670933",
+        "purposes": {
+          "summary": "6fb45034ef57d1fd"
         }
       }
     },
@@ -18208,6 +18250,18 @@
         "reason": "no-extractor"
       }
     },
+    "renderer/styles/components/send-files-modal.css": {
+      "file": "src/renderer/styles/components/send-files-modal.css",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 3125,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     "renderer/styles/components/settings-modal.css": {
       "file": "src/renderer/styles/components/settings-modal.css",
       "description": "",
@@ -18370,7 +18424,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 3588,
+      "sizeBytes": 3631,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -20068,6 +20122,7 @@
         "workspaces/rollup",
         "workspacePr",
         "terminal",
+        "sendFilesModal",
         "specsDashboard"
       ],
       "functions": {
@@ -20150,39 +20205,45 @@
           ]
         },
         "hideMenu": {
-          "line": 365
+          "line": 367
         },
         "onMenuClick": {
-          "line": 369,
+          "line": 371,
           "params": [
             "e"
           ]
         },
+        "sendFilesTo": {
+          "line": 383,
+          "params": [
+            "ws"
+          ]
+        },
         "openNew": {
-          "line": 382
+          "line": 393
         },
         "startRename": {
-          "line": 390,
+          "line": 401,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 395,
+          "line": 406,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 415,
+          "line": 426,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "rescueBranchName": {
-          "line": 456,
+          "line": 467,
           "params": [
             "ws",
             "head"
@@ -20190,7 +20251,7 @@
           "purpose": "The branch name archive's rescue creates; the sha may be unknown before a commit is made."
         },
         "askRescue": {
-          "line": 462,
+          "line": 473,
           "params": [
             "ws",
             "head"
@@ -20198,7 +20259,7 @@
           "purpose": "The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false."
         },
         "openHeldSpec": {
-          "line": 499,
+          "line": 510,
           "params": [
             "ws",
             "slug"
@@ -20206,14 +20267,14 @@
           "purpose": "Select a workspace and open the spec it holds in the specs drawer."
         },
         "closeWorkspaceTerminals": {
-          "line": 508,
+          "line": 519,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 521,
+          "line": 532,
           "params": [
             "ws",
             "count"
@@ -20221,37 +20282,37 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 579,
+          "line": 590,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 585,
+          "line": 596,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 598,
+          "line": 609,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 607,
+          "line": 618,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 620,
+          "line": 631,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 634,
+          "line": 645,
           "purpose": "Active workspaces of the current project, as last loaded."
         }
       },
@@ -20262,7 +20323,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 27778,
+      "sizeBytes": 28394,
       "extraction": {
         "status": "parsed"
       },
@@ -25400,32 +25461,44 @@
         "path",
         "crypto",
         "shared/fileArchive",
+        "child_process",
         "main/projectRegistry",
         "shared/workspaceRegistry"
       ],
       "functions": {
+        "excludeInMainCopy": {
+          "line": 44,
+          "params": [
+            "mainCopy",
+            "relPaths"
+          ],
+          "purpose": "Keep the files sent into the main copy out of git there, through its"
+        },
         "uploadsDir": {
-          "line": 31
+          "line": 68
         },
         "sha256": {
-          "line": 36,
+          "line": 73,
           "params": [
             "file"
           ]
         },
         "setup": {
-          "line": 40,
+          "line": 77,
           "params": [
             "{ registerMethods }"
           ]
         }
       },
-      "sizeBytes": 6702,
+      "sizeBytes": 8701,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "12a57329a352d182"
+        "description": "12a57329a352d182",
+        "purposes": {
+          "excludeInMainCopy": "7d74298c5dace78a"
+        }
       }
     },
     "server/specs": {
@@ -26775,6 +26848,7 @@
         "HEAVY_DIRS",
         "WARN_BYTES",
         "REFUSE_BYTES",
+        "formatBytes",
         "isHeavy",
         "buildTree",
         "leaves",
@@ -26814,7 +26888,7 @@
           "purpose": "Build one group's tree. `paths`: git's list (collapsed folders end with"
         },
         "buildTree": {
-          "line": 84,
+          "line": 89,
           "params": [
             "{ ignored = []",
             "untracked = []",
@@ -26824,14 +26898,14 @@
           "purpose": "`{ ignored, untracked }` trees."
         },
         "leaves": {
-          "line": 89,
+          "line": 94,
           "params": [
             "node"
           ],
           "purpose": "Every tickable leaf under `node` (or under both groups of a tree)."
         },
         "defaultSelection": {
-          "line": 101,
+          "line": 106,
           "params": [
             "tree",
             "copyFiles"
@@ -26839,7 +26913,7 @@
           "purpose": "What the modal opens with: leaves matching the project's `copyFiles`,"
         },
         "toggle": {
-          "line": 112,
+          "line": 117,
           "params": [
             "selected",
             "node",
@@ -26848,13 +26922,13 @@
           "purpose": "Tick or untick everything under `node`; returns a new Set."
         },
         "selectAll": {
-          "line": 120,
+          "line": 125,
           "params": [
             "tree"
           ]
         },
         "selectionSize": {
-          "line": 125,
+          "line": 130,
           "params": [
             "tree",
             "selected"
@@ -26862,14 +26936,14 @@
           "purpose": "`{ bytes, files, cut }` for the ticked leaves; `cut` when a folder's size is a lower bound."
         },
         "sizeVerdict": {
-          "line": 139,
+          "line": 144,
           "params": [
             "bytes"
           ],
           "purpose": "'ok' | 'warn' (above 50 MB) | 'refuse' (above 1 GB)."
         },
         "patternsFor": {
-          "line": 151,
+          "line": 156,
           "params": [
             "tree",
             "selected"
@@ -26877,15 +26951,23 @@
           "purpose": "`.env` at any depth); a collapsed folder becomes `folder/**`."
         },
         "mergePatterns": {
-          "line": 162,
+          "line": 167,
           "params": [
             "existing",
             "added"
           ],
           "purpose": "Existing patterns plus new ones, in order, without duplicates."
+        },
+        "formatBytes": {
+          "line": 177,
+          "params": [
+            "bytes",
+            "cut = false"
+          ],
+          "purpose": "`1.2 KB`, `48 MB`; `≥ ` in front when the size is a lower bound."
         }
       },
-      "sizeBytes": 6158,
+      "sizeBytes": 6975,
       "extraction": {
         "status": "parsed"
       },
@@ -26895,6 +26977,7 @@
           "buildGroup": "90071a145840fa09",
           "buildTree": "03b0c5082f0dfb11",
           "defaultSelection": "e3e738d8f8137156",
+          "formatBytes": "32a9492735aa66d0",
           "isHeavy": "6b24e6d864f7eeea",
           "leaves": "b31449c9cbd1cbc0",
           "mergePatterns": "6ea98bb02d250f4c",
@@ -31205,7 +31288,7 @@
         "src/shared/copyFilesMatch"
       ],
       "functions": {},
-      "sizeBytes": 4075,
+      "sizeBytes": 4822,
       "extraction": {
         "status": "parsed"
       },
@@ -31514,7 +31597,7 @@
           ]
         }
       },
-      "sizeBytes": 9572,
+      "sizeBytes": 11810,
       "extraction": {
         "status": "parsed"
       },
@@ -34531,6 +34614,11 @@
         "description": "Send git-ignored files to a server workspace (server-copy-files)."
       },
       {
+        "module": "renderer/sendFilesModal",
+        "file": "src/renderer/sendFilesModal.js",
+        "description": "Send files to server — pick the files git does not carry and send them to"
+      },
+      {
         "module": "server/sendFiles",
         "file": "src/server/sendFiles.js",
         "description": "Receiving git-ignored files from the desktop (server-copy-files)."
@@ -34835,6 +34923,11 @@
         "module": "renderer/projectSettingsModal",
         "file": "src/renderer/projectSettingsModal.js",
         "description": "Project Settings"
+      },
+      {
+        "module": "renderer/sendFilesModal",
+        "file": "src/renderer/sendFilesModal.js",
+        "description": "Send files to server — pick the files git does not carry and send them to"
       }
     ],
     "model": [
@@ -35139,6 +35232,11 @@
         "module": "main/sendFiles",
         "file": "src/main/sendFiles.js",
         "description": "Send git-ignored files to a server workspace (server-copy-files)."
+      },
+      {
+        "module": "renderer/sendFilesModal",
+        "file": "src/renderer/sendFilesModal.js",
+        "description": "Send files to server — pick the files git does not carry and send them to"
       },
       {
         "module": "server/sendFiles",
@@ -35572,8 +35670,8 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 392,
-        "unsupported": 91,
+        "parsed": 393,
+        "unsupported": 92,
         "partial": 0
       }
     },
@@ -35619,9 +35717,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 577,
+      "visitedEntries": 579,
       "traversedDirectories": 86,
-      "eligibleFiles": 483,
+      "eligibleFiles": 485,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -35638,7 +35736,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 483,
+      "indexedFiles": 485,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -35646,6 +35744,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "9eb1b76382670ab167893de6b85d1f5e74773a4cab6ba1cf76924cb448cbadbc"
+    "revision": "e7041a912ba706567695f2c886a94af780de0549d46b6135de93dac6160bd6c2"
   }
 }

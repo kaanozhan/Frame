@@ -77,3 +77,17 @@ test('T02: Remember saves anchored patterns for ignored leaves only, and they se
   assert.equal(match('.env.local'), false);
   assert.deepEqual(M.mergePatterns(['.env*', '/.env'], ['/.env', 'certs/**', ' ', 'certs/**']), ['.env*', '/.env', 'certs/**'], 'merged in order, no duplicates or blanks');
 });
+
+test('T06: sizes read as people read them', () => {
+  assert.equal(M.formatBytes(512), '512 B');
+  assert.equal(M.formatBytes(1536), '1.5 KB');
+  assert.equal(M.formatBytes(48 * MB), '48 MB');
+  assert.equal(M.formatBytes(900 * MB, true), '≥ 900 MB');
+  assert.equal(M.formatBytes(1.25 * 1024 * MB), '1.3 GB');
+});
+
+test('T06 (live-check finding): a path git also lists inside a collapsed folder does not draw that folder twice', () => {
+  const t = M.buildTree({ ignored: ['.claude/', '.claude/settings.local.json', '.env'] });
+  assert.deepEqual(t.ignored.children.map((n) => [n.path, n.type, !!n.leaf]), [['.claude', 'dir', true], ['.env', 'file', true]]);
+  assert.deepEqual(M.leaves(t).map((l) => l.path).sort(), ['.claude', '.env']);
+});

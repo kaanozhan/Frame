@@ -52,7 +52,12 @@ function buildGroup(group, paths, sizes = {}, server = {}) {
     dirs.set(rel, node);
     return node;
   };
+  // A folder git lists collapsed is sent whole; a path git also lists inside
+  // it would draw that folder twice (seen on `.claude/`), so it is dropped.
+  const whole = (paths || []).filter((p) => String(p).endsWith('/')).map((p) => clean(p));
+  const insideWhole = (rel) => whole.some((d) => rel !== d && rel.startsWith(`${d}/`));
   for (const raw of paths || []) {
+    if (insideWhole(clean(raw))) continue;
     const collapsed = String(raw).endsWith('/');
     const rel = clean(raw);
     if (!rel) continue;
@@ -168,7 +173,18 @@ function mergePatterns(existing, added) {
   return out;
 }
 
+/** `1.2 KB`, `48 MB`; `≥ ` in front when the size is a lower bound. */
+function formatBytes(bytes, cut = false) {
+  const n = Number(bytes) || 0;
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let v = n;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i += 1; }
+  const text = i === 0 ? `${n} B` : `${v >= 10 ? Math.round(v) : Math.round(v * 10) / 10} ${units[i]}`;
+  return cut ? `≥ ${text}` : text;
+}
+
 module.exports = {
-  HEAVY_DIRS, WARN_BYTES, REFUSE_BYTES,
+  HEAVY_DIRS, WARN_BYTES, REFUSE_BYTES, formatBytes,
   isHeavy, buildTree, leaves, defaultSelection, toggle, selectAll, selectionSize, sizeVerdict, patternsFor, mergePatterns
 };

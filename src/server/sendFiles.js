@@ -15,8 +15,9 @@
  * writes each file through a temp file and a rename, with its mode. Ignored
  * files go to the workspace and to the main copy (new workspaces copy them
  * from there); `untracked` ones go to the workspace only. A file whose way
- * passes through a symlinked folder is skipped, never followed. The archive
- * is removed in every case. Nothing logs file contents.
+ * passes through a symlinked folder is skipped, never followed. Files sent
+ * into the main copy are kept out of git there (`excludeInMainCopy`). The
+ * archive is removed in every case. Nothing logs file contents.
  */
 
 const fs = require('fs');
@@ -25,7 +26,43 @@ const path = require('path');
 const crypto = require('crypto');
 const { readEntries, checkEntries, pathProblem } = require('../shared/fileArchive');
 
+const { execFileSync } = require('child_process');
+
 const HASH_MAX_BYTES = 5 * 1024 * 1024;
+const EXCLUDE_START = '# >>> frame sent files (managed) >>>';
+const EXCLUDE_END = '# <<< frame sent files (managed) <<<';
+
+/**
+ * Keep the files sent into the main copy out of git there, through its
+ * `.git/info/exclude` (never committed, shared by every worktree of the
+ * repository). The main copy's checkout can be older than the project's
+ * `.gitignore`: without this, a sent `.env` would show as untracked there,
+ * and the server's copy step — which takes ignored files only — would not
+ * hand it to new workspaces. Entries are anchored (`/.env`); only the block
+ * between Frame's markers is rewritten.
+ */
+function excludeInMainCopy(mainCopy, relPaths) {
+  if (!relPaths.length) return;
+  let file;
+  try {
+    file = execFileSync('git', ['rev-parse', '--git-path', 'info/exclude'], { cwd: mainCopy, encoding: 'utf8' }).trim();
+  } catch (_) {
+    return; // not a git checkout — nothing to keep out of
+  }
+  file = path.resolve(mainCopy, file);
+  let text = '';
+  try { text = fs.readFileSync(file, 'utf8'); } catch (_) { text = ''; }
+  const start = text.indexOf(EXCLUDE_START);
+  const end = start === -1 ? -1 : text.indexOf(EXCLUDE_END, start);
+  const before = start === -1 ? text : text.slice(0, start);
+  const after = end === -1 ? '' : text.slice(end + EXCLUDE_END.length).replace(/^\n/, '');
+  const current = start === -1 || end === -1 ? [] : text.slice(start + EXCLUDE_START.length, end).split('\n').map((l) => l.trim()).filter(Boolean);
+  const entries = [...new Set([...current, ...relPaths.map((p) => `/${p}`)])];
+  const block = `${EXCLUDE_START}\n${entries.join('\n')}\n${EXCLUDE_END}\n`;
+  const lead = before && !before.endsWith('\n') ? `${before}\n` : before;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${lead}${block}${after}`);
+}
 const ARCHIVE_RE = /^files-[A-Za-z0-9._-]+\.fpk$/;
 
 function uploadsDir() {
@@ -132,6 +169,7 @@ function setup({ registerMethods }) {
             if (!m.skipped) result.toMainCopy.push(e.path);
           }
         }
+        excludeInMainCopy(mainCopy, result.toMainCopy);
         return result;
       } finally {
         fs.rmSync(file, { force: true });

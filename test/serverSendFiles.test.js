@@ -156,3 +156,29 @@ test('T04: without patterns from the desktop the server keeps using its own conf
   const next = await methods['workspaces.create']({ projectPath, from: 'new' });
   assert.deepEqual(next.copied, ['.env'], 'the default .env* still applies');
 });
+
+test('T06 (live-check finding): with the main copy\'s checkout older than .gitignore, sent files stay out of git and still reach new workspaces', async () => {
+  // A project sent before it ignored .env: the main copy's .gitignore does not list it.
+  const local = path.join(SANDBOX, `local-lag-${++seq}`);
+  git(['init', '-q', '-b', 'main', local]);
+  write(path.join(local, 'a.txt'), 'one\n');
+  git(['add', '.'], local); git(['commit', '-qm', 'first'], local);
+  const root = git(['rev-list', '--max-parents=0', 'HEAD'], local);
+  const bundle = path.join(TMP, `receive-lag-${seq}.bundle`);
+  git(['bundle', 'create', '-q', bundle, 'HEAD', '--branches', '--tags'], local);
+  const { projectPath } = await methods['projects.receive']({ bundlePath: bundle, originUrl: null, root, name: `lag-${seq}` });
+  const created = await methods['workspaces.create']({ projectPath, from: 'new' });
+  const exclude = path.join(projectPath, '.git', 'info', 'exclude');
+  fs.appendFileSync(exclude, '# the user\'s own line\n*.swp\n');
+  await methods['files.receive']({ archive: upload([file('.env', 'S\n', 0o600), file('certs/dev.pem', 'P')]), projectPath, root: created.workspace.path });
+  assert.equal(git(['status', '--porcelain'], projectPath), '', 'the main copy does not look dirty');
+  const text = fs.readFileSync(exclude, 'utf8');
+  assert.match(text, /# the user's own line\n\*\.swp\n# >>> frame sent files \(managed\) >>>\n\/\.env\n\/certs\/dev\.pem\n# <<< frame sent files \(managed\) <<</);
+  // A second send adds to the block, never duplicates.
+  await methods['files.receive']({ archive: upload([file('.env', 'S2\n', 0o600), file('.env.local', 'L')]), projectPath, root: created.workspace.path });
+  const block = fs.readFileSync(exclude, 'utf8').split('# >>> frame sent files (managed) >>>')[1];
+  assert.deepEqual(block.split('\n').filter((l) => l.startsWith('/')), ['/.env', '/certs/dev.pem', '/.env.local']);
+  const next = await methods['workspaces.create']({ projectPath, from: 'new', copyFiles: ['.env*', 'certs/**'] });
+  assert.deepEqual([...next.copied].sort(), ['.env', '.env.local', 'certs'], 'a fully ignored folder is copied whole');
+  assert.ok(fs.existsSync(path.join(next.workspace.path, 'certs', 'dev.pem')));
+});

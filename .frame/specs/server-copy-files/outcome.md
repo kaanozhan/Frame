@@ -38,3 +38,11 @@ Added `src/main/sendFiles.js`, with the `SEND_FILES_LIST` / `SEND_FILES_SEND` ch
 _Captured: 2026-11-15 · 4 file change(s)_
 
 ---
+
+## T06 — The send-files modal and its entry points
+
+Added `src/renderer/sendFilesModal.js`, built on the shared `spec-modal` shell, with styles in `send-files-modal.css` imported from `main.css`. It shows two groups (Ignored by git / Not committed yet) with checkboxes, tri-state folders, Select all / none, labels for server state and heavy folders, a size line with warnings, Remember, and Send or Skip / Continue without files. `newWorkspaceModal` opens it for a server workspace before `runSetupThenAgent`, and the row menu of a connected server workspace offers 'Send files to server…'; both show a summary notice. Added `formatBytes` to `sendFilesModel`. The live check (an isolated app driven through the real New workspace modal, against a server package built from this branch) found two defects, both fixed with regression tests. (1) The server's main copy can be checked out at a commit older than `.gitignore`: a sent `.env` then showed as untracked there and would never reach new workspaces. `files.receive` now writes sent paths into the main copy's `.git/info/exclude` under a Frame-managed block. (2) Git can list a collapsed folder and a path inside it: `buildTree` now drops paths under a collapsed folder, so `.claude/` appeared only once. A folder that exists on the server is labelled 'folder on the server', since its contents are not compared. Confirmed live: defaults; `.frame/` not offered; files with mode 0600 in the workspace and the main copy; a clean main copy; resend labels; Remember; a second server workspace receiving `.env` by itself.
+
+_Captured: 2026-11-15 · 11 file change(s)_
+
+---
