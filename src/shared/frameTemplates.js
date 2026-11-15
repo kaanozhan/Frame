@@ -983,6 +983,22 @@ function getFrameGitignoreBlock() {
 }
 
 /**
+ * The command of one Claude Code hint hook (server-linux-readiness).
+ *
+ * Runs `.frame/bin/<script> <mode>` with the first Node it finds: `node` on
+ * PATH (what a desktop with Node has always run), else `$FRAME_NODE` — the
+ * binary Frame gives every terminal it starts, Frame Server's bundled Node on
+ * a server, which survives login shells where PATH may be reset. Electron's
+ * binary needs `ELECTRON_RUN_AS_NODE=1` to act as Node; real Node ignores it.
+ * With neither, and with no `.frame/bin/<script>`, the hook exits 0: a
+ * missing helper is never a failing hook.
+ */
+function hintCommand(script, mode) {
+  return `sh -c '[ ! -f .frame/bin/${script} ] || { n=$(command -v node || printf %s "$FRAME_NODE"); `
+    + `[ -z "$n" ] || ELECTRON_RUN_AS_NODE=1 exec "$n" .frame/bin/${script} ${mode}; }'`;
+}
+
+/**
  * Spec-knowledge hook entries for a user project. The command is guarded so a
  * clone without `.frame/bin/` (sharing mode `local`, or a teammate who hasn't
  * run Frame) produces no hook error. The guard is written as `[ ! -f … ] || …`
@@ -997,7 +1013,7 @@ const SPEC_HINT_HOOKS = {
       matcher: 'Edit|Write',
       hooks: [{
         type: 'command',
-        command: "sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js pre-edit'"
+        command: hintCommand('spec-hint.js', 'pre-edit')
       }]
     },
     // The module map, delivered at the moment of search. `Bash` is in the
@@ -1011,7 +1027,7 @@ const SPEC_HINT_HOOKS = {
       matcher: 'Grep|Glob|Bash',
       hooks: [{
         type: 'command',
-        command: "sh -c '[ ! -f .frame/bin/module-hint.js ] || exec node .frame/bin/module-hint.js search'"
+        command: hintCommand('module-hint.js', 'search')
       }]
     },
     // A meta file's own rules, at the moment it is written. `Bash` is here
@@ -1023,7 +1039,7 @@ const SPEC_HINT_HOOKS = {
       matcher: 'Edit|Write|NotebookEdit|Bash',
       hooks: [{
         type: 'command',
-        command: "sh -c '[ ! -f .frame/bin/docs-hint.js ] || exec node .frame/bin/docs-hint.js pre-edit'"
+        command: hintCommand('docs-hint.js', 'pre-edit')
       }]
     }
   ],
@@ -1031,7 +1047,7 @@ const SPEC_HINT_HOOKS = {
     {
       hooks: [{
         type: 'command',
-        command: "sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js prompt'"
+        command: hintCommand('spec-hint.js', 'prompt')
       }]
     },
     // A spec command typed in a terminal, staged the way the button stages
@@ -1041,7 +1057,7 @@ const SPEC_HINT_HOOKS = {
     {
       hooks: [{
         type: 'command',
-        command: "sh -c '[ ! -f .frame/bin/spec-command-hint.js ] || exec node .frame/bin/spec-command-hint.js prompt'"
+        command: hintCommand('spec-command-hint.js', 'prompt')
       }]
     }
   ],
@@ -1053,7 +1069,7 @@ const SPEC_HINT_HOOKS = {
     {
       hooks: [{
         type: 'command',
-        command: "sh -c '[ ! -f .frame/bin/docs-hint.js ] || exec node .frame/bin/docs-hint.js session-start'"
+        command: hintCommand('docs-hint.js', 'session-start')
       }]
     }
   ]
@@ -1129,7 +1145,15 @@ const LEGACY_SPEC_HINT_COMMANDS = [
   'node .frame/bin/spec-hint.js pre-edit',
   'node .frame/bin/spec-hint.js prompt',
   "sh -c '[ -f .frame/bin/spec-hint.js ] && exec node .frame/bin/spec-hint.js pre-edit'",
-  "sh -c '[ -f .frame/bin/spec-hint.js ] && exec node .frame/bin/spec-hint.js prompt'"
+  "sh -c '[ -f .frame/bin/spec-hint.js ] && exec node .frame/bin/spec-hint.js prompt'",
+  // Before server-linux-readiness: bare `node`, which fails a hook on a
+  // machine (a Frame Server box) whose PATH has no Node.
+  "sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js pre-edit'",
+  "sh -c '[ ! -f .frame/bin/module-hint.js ] || exec node .frame/bin/module-hint.js search'",
+  "sh -c '[ ! -f .frame/bin/docs-hint.js ] || exec node .frame/bin/docs-hint.js pre-edit'",
+  "sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js prompt'",
+  "sh -c '[ ! -f .frame/bin/spec-command-hint.js ] || exec node .frame/bin/spec-command-hint.js prompt'",
+  "sh -c '[ ! -f .frame/bin/docs-hint.js ] || exec node .frame/bin/docs-hint.js session-start'",
 ];
 
 /**
@@ -1373,6 +1397,7 @@ function getOrchBinScripts() {
 }
 
 module.exports = {
+  hintCommand,
   getAgentsTemplate,
   getReferenceTemplate,
   getStructureTemplate,

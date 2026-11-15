@@ -81,6 +81,9 @@ function setup({ shim, registerMethods, broadcast }) {
   };
 
   registerMethods({
+    // The shells that exist on this machine (server-linux-readiness): a
+    // server workspace's "+" menu lists these, not the desktop's.
+    'terminals.shells': async () => ptyManager.getAvailableShells(),
     'terminals.create': async ({ projectPath = null, workspaceId = 'main', cwd = null, cols = 80, rows = 24, shell = null, extraEnv = null, home = false, homeFor = null, homeWorkspace = null } = {}) => {
       // A home terminal (server-onboarding): the user's home folder, no
       // project or workspace here; `homeFor` names the desktop project it was

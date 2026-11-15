@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-14",
+  "lastUpdated": "2026-11-15",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -3535,7 +3535,10 @@
         "pushStatus",
         "isIgnoredWorktreePath",
         "gitDirFromDotGitFile",
-        "resolveGitDir"
+        "resolveGitDir",
+        "watchedDirsFor",
+        "linuxWatchStats",
+        "LINUX_WATCH"
       ],
       "depends": [
         "child_process",
@@ -3593,60 +3596,89 @@
           ],
           "purpose": "The real git dir for `projectPath`: `.git` itself, or where a `.git` file points."
         },
-        "startWatching": {
-          "line": 145,
+        "gitList": {
+          "line": 182,
           "params": [
-            "projectPath"
+            "root",
+            "args"
+          ],
+          "purpose": "Promise of git's stdout split on NUL; rejects on failure."
+        },
+        "watchedDirsFor": {
+          "line": 197,
+          "params": [
+            "root"
+          ],
+          "purpose": "The folders (relative, '' = the root) git cares about in `root`: parents"
+        },
+        "createDirWatcher": {
+          "line": 230,
+          "params": [
+            "root",
+            "onChange",
+            "{ onFallback = ("
+          ],
+          "purpose": "Per-folder watching of `root`. `onChange` is called for every relevant"
+        },
+        "linuxWatchStats": {
+          "line": 359,
+          "purpose": "Exposed for tests: the per-folder watcher's counters, or null when not in use."
+        },
+        "startWatching": {
+          "line": 363,
+          "params": [
+            "projectPath",
+            "{ platform = process.platform } = {}"
           ]
         },
         "stopWatching": {
-          "line": 203
+          "line": 429
         },
         "isGitInternalPath": {
-          "line": 223,
+          "line": 454,
           "params": [
             "filename"
           ],
           "purpose": "True for paths that live inside the repo's `.git` directory, so the worktree"
         },
         "isIgnoredWorktreePath": {
-          "line": 242,
+          "line": 473,
           "params": [
             "filename"
           ],
           "purpose": "Paths the working-tree watcher does not care about."
         },
         "isGitBookkeeping": {
-          "line": 269,
+          "line": 500,
           "params": [
             "filename"
           ],
           "purpose": "Is this .git event just bookkeeping rather than a real repository change?"
         },
         "scheduleRefresh": {
-          "line": 275,
+          "line": 506,
           "params": [
             "watcher"
           ]
         },
         "pushStatus": {
-          "line": 293
+          "line": 524
         },
         "readGitStatus": {
-          "line": 344,
+          "line": 577,
           "params": [
             "projectPath"
           ]
         },
         "parsePorcelainV1": {
-          "line": 377,
+          "line": 610,
           "params": [
             "stdout"
           ],
           "purpose": "Parse `git status --porcelain=v1 -z --branch` output."
         },
         "classify": {
-          "line": 434,
+          "line": 667,
           "params": [
             "index",
             "worktree"
@@ -3665,7 +3697,7 @@
           "GIT_STATUS_DATA"
         ]
       },
-      "sizeBytes": 16571,
+      "sizeBytes": 25705,
       "extraction": {
         "status": "parsed"
       },
@@ -3673,12 +3705,16 @@
         "description": "b94430732ba65bb0",
         "purposes": {
           "classify": "124ff1c7e9926e51",
+          "createDirWatcher": "4bb50ad49ba4a482",
           "gitDirFromDotGitFile": "7cf958d4ce19e6ff",
+          "gitList": "dc45d999b0413db3",
           "isGitBookkeeping": "07ff15b1d7bfb24d",
           "isGitInternalPath": "9b41de2bd762f400",
           "isIgnoredWorktreePath": "6b8e394b475ca715",
+          "linuxWatchStats": "3ca4e34f6fac61ee",
           "parsePorcelainV1": "0f95a69cb744569a",
-          "resolveGitDir": "393bc0cf0b8ae000"
+          "resolveGitDir": "393bc0cf0b8ae000",
+          "watchedDirsFor": "88f9c9166fb60156"
         }
       }
     },
@@ -5412,11 +5448,15 @@
         "wasDestroyedOnRequest",
         "getLastOutputAt",
         "getAvailableShells",
+        "defaultUnixShell",
+        "requestedShell",
         "serverTerminalInfo",
         "noteServerTerminal",
         "setupIPC"
       ],
       "depends": [
+        "fs",
+        "path",
         "node-pty",
         "shared/ipcChannels",
         "logger",
@@ -5425,43 +5465,64 @@
         "pollGate",
         "sessionRestore",
         "child_process",
-        "fs",
         "shared/serverRouting",
         "workspaceManager",
         "serverConnection"
       ],
       "functions": {
         "flushOutput": {
-          "line": 27,
+          "line": 29,
           "params": [
             "terminalId"
           ],
           "purpose": "Flush a terminal's buffered output as one coalesced send."
         },
         "init": {
-          "line": 47,
+          "line": 49,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
         "getForegroundCommand": {
-          "line": 62,
+          "line": 64,
           "params": [
             "shellPid",
             "callback"
           ],
           "purpose": "Resolve the full command line of the terminal's foreground process."
         },
+        "availableShellsOnServer": {
+          "line": 91,
+          "purpose": "A server workspace's shells, from Frame Server; never rejects, never empty."
+        },
+        "defaultUnixShell": {
+          "line": 108,
+          "params": [
+            "platform = process.platform",
+            "env = process.env",
+            "exists = fs.existsSync"
+          ],
+          "purpose": "The Unix shell to start when none was chosen (server-linux-readiness)."
+        },
+        "requestedShell": {
+          "line": 120,
+          "params": [
+            "shellPath",
+            "platform = process.platform",
+            "exists = fs.existsSync"
+          ],
+          "purpose": "The shell a create asked for, or null to use the default. Off macOS and"
+        },
         "getDefaultShell": {
-          "line": 81
+          "line": 130
         },
         "getAvailableShells": {
-          "line": 98,
+          "line": 147,
           "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 184,
+          "line": 233,
           "params": [
             "workingDir = null",
             "projectPath = null",
@@ -5472,28 +5533,28 @@
           "purpose": "Create a new terminal instance"
         },
         "getTerminalsByProject": {
-          "line": 333,
+          "line": 382,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 348,
+          "line": 397,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 360,
+          "line": 409,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
         "writeToTerminal": {
-          "line": 368,
+          "line": 417,
           "params": [
             "terminalId",
             "data"
@@ -5501,7 +5562,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 378,
+          "line": 427,
           "params": [
             "terminalId",
             "cols",
@@ -5510,13 +5571,13 @@
           "purpose": "Resize specific terminal"
         },
         "wasDestroyedOnRequest": {
-          "line": 393,
+          "line": 442,
           "params": [
             "terminalId"
           ]
         },
         "destroyTerminal": {
-          "line": 401,
+          "line": 450,
           "params": [
             "terminalId",
             "{ teardown = false } = {}"
@@ -5524,42 +5585,42 @@
           "purpose": "Destroy specific terminal. `teardown` marks one that dies with its"
         },
         "destroyAll": {
-          "line": 422,
+          "line": 471,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 442,
+          "line": 491,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 449,
+          "line": 498,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 459,
+          "line": 508,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 469,
+          "line": 518,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "serverLocationOf": {
-          "line": 490,
+          "line": 539,
           "params": [
             "workspaceId"
           ]
         },
         "server": {
-          "line": 499
+          "line": 548
         },
         "createServerTerminal": {
-          "line": 503,
+          "line": 552,
           "params": [
             "loc",
             "{ cwd",
@@ -5571,14 +5632,14 @@
           ]
         },
         "serverTerminalInfo": {
-          "line": 517,
+          "line": 566,
           "params": [
             "terminalId"
           ],
           "purpose": "Local project/workspace of a server terminal this window knows, or null."
         },
         "noteServerTerminal": {
-          "line": 522,
+          "line": 571,
           "params": [
             "terminalId",
             "info"
@@ -5586,17 +5647,17 @@
           "purpose": "Remember a server terminal found on reconnect (adopted by the renderer)."
         },
         "wireServerEvents": {
-          "line": 527
+          "line": 576
         },
         "adoptServerTerminals": {
-          "line": 562,
+          "line": 611,
           "params": [
             "projectPath"
           ],
           "purpose": "The connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 606,
+          "line": 655,
           "params": [
             "ipcMain"
           ]
@@ -5619,7 +5680,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 26634,
+      "sizeBytes": 29284,
       "extraction": {
         "status": "parsed"
       },
@@ -5627,7 +5688,9 @@
         "description": "e5d8e57c0450283d",
         "purposes": {
           "adoptServerTerminals": "d5f8a7894f921258",
+          "availableShellsOnServer": "088597f5f30a7d24",
           "createTerminal": "b33d916178fe23ba",
+          "defaultUnixShell": "e480633b2b7c7207",
           "destroyAll": "ae9b9368ced1121a",
           "destroyExcept": "2db42ba4367a26b0",
           "destroyTerminal": "1c5d8c995da929c7",
@@ -5642,6 +5705,7 @@
           "hasTerminal": "b3801ea1d7b0ad94",
           "init": "a7cc4fe0948dfdd7",
           "noteServerTerminal": "34da8c9dde687e61",
+          "requestedShell": "65b3ebb6642173f5",
           "resizeTerminal": "810c8f104494f695",
           "serverTerminalInfo": "907874f886605317",
           "writeToTerminal": "6e7ca448a2aac555"
@@ -11259,57 +11323,64 @@
       ],
       "functions": {
         "init": {
-          "line": 25,
+          "line": 26,
           "params": [
             "opts = {}"
           ]
         },
+        "showLiveNote": {
+          "line": 62,
+          "params": [
+            "payload"
+          ],
+          "purpose": "One line above the list when the working tree is not watched live (on"
+        },
         "handleStatus": {
-          "line": 56,
+          "line": 77,
           "params": [
             "payload"
           ]
         },
         "showMessage": {
-          "line": 88,
+          "line": 110,
           "params": [
             "text"
           ]
         },
         "partition": {
-          "line": 99,
+          "line": 121,
           "params": [
             "files"
           ],
           "purpose": "Partition `{ [relPath]: { index, worktree, classification } }` into three"
         },
         "renderGroup": {
-          "line": 136,
+          "line": 158,
           "params": [
             "group",
             "entries"
           ]
         },
         "buildRow": {
-          "line": 154,
+          "line": 176,
           "params": [
             "entry"
           ]
         },
         "badgeChar": {
-          "line": 195,
+          "line": 217,
           "params": [
             "entry"
           ]
         },
         "normalize": {
-          "line": 207,
+          "line": 229,
           "params": [
             "ch"
           ]
         },
         "getOrderedFiles": {
-          "line": 213,
+          "line": 235,
           "purpose": "Current changed files in display order (for the diff section's prev/next)."
         }
       },
@@ -11319,7 +11390,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 6590,
+      "sizeBytes": 7396,
       "extraction": {
         "status": "parsed"
       },
@@ -11327,7 +11398,8 @@
         "description": "a7ed0818456ab425",
         "purposes": {
           "getOrderedFiles": "39d84a3dd87cdf7d",
-          "partition": "14514db21072da67"
+          "partition": "14514db21072da67",
+          "showLiveNote": "09775dee26b3ea41"
         }
       }
     },
@@ -13005,7 +13077,7 @@
           ]
         }
       },
-      "sizeBytes": 12103,
+      "sizeBytes": 12705,
       "extraction": {
         "status": "parsed"
       },
@@ -19314,7 +19386,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 38946,
+      "sizeBytes": 39078,
       "extraction": {
         "status": "parsed"
       },
@@ -19370,7 +19442,7 @@
           "THEME_CHANGED"
         ]
       },
-      "sizeBytes": 22056,
+      "sizeBytes": 22605,
       "extraction": {
         "status": "parsed"
       },
@@ -25264,7 +25336,7 @@
           "purpose": "An id of another boot names no terminal here."
         }
       },
-      "sizeBytes": 6320,
+      "sizeBytes": 6529,
       "extraction": {
         "status": "parsed"
       },
@@ -25851,6 +25923,7 @@
       "file": "src/shared/frameTemplates.js",
       "description": "Frame Templates",
       "exports": [
+        "hintCommand",
         "getAgentsTemplate",
         "getReferenceTemplate",
         "getStructureTemplate",
@@ -25981,8 +26054,16 @@
         "getFrameGitignoreBlock": {
           "line": 977
         },
+        "hintCommand": {
+          "line": 996,
+          "params": [
+            "script",
+            "mode"
+          ],
+          "purpose": "The command of one Claude Code hint hook (server-linux-readiness)."
+        },
         "hintHooksFor": {
-          "line": 1114,
+          "line": 1130,
           "params": [
             "template",
             "{ structureMap = false } = {}"
@@ -25990,7 +26071,7 @@
           "purpose": "The hint hooks a project should get. The full sets above stay as they are —"
         },
         "sessionReportCommand": {
-          "line": 1150,
+          "line": 1174,
           "params": [
             "tool",
             "guard = ''"
@@ -25998,7 +26079,7 @@
           "purpose": "Session report hook (restore-ai-sessions-on-relaunch). On SessionStart the"
         },
         "getGenericWrapperTemplate": {
-          "line": 1185,
+          "line": 1209,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -26006,38 +26087,38 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 1231
+          "line": 1255
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1268,
+          "line": 1292,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "classifyStructureHook": {
-          "line": 1297,
+          "line": 1321,
           "params": [
             "text"
           ],
           "purpose": "'current' when `text` is today's template, 'previous' when it is an"
         },
         "getOrchBusHeader": {
-          "line": 1316,
+          "line": 1340,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1328,
+          "line": 1352,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1348
+          "line": 1372
         },
         "getOrchBinScripts": {
-          "line": 1366,
+          "line": 1390,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       },
-      "sizeBytes": 59835,
+      "sizeBytes": 61068,
       "extraction": {
         "status": "parsed"
       },
@@ -26059,6 +26140,7 @@
           "getStructurePreCommitHookTemplate": "66fc6794d6915e67",
           "getStructureTemplate": "ae0768942621daa6",
           "getTasksTemplate": "51a7303c8276cb87",
+          "hintCommand": "76c8c44d117b7c34",
           "hintHooksFor": "65fad3545aef86c6",
           "renderSpecSection": "7fd001cb3ae45a96",
           "sessionReportCommand": "2fb12d8e2b0bae69"
@@ -29261,20 +29343,20 @@
           "purpose": "Every file in the tree → sha256, excluding paths Frame is allowed to own."
         },
         "fakeWorkers": {
-          "line": 677,
+          "line": 678,
           "purpose": "A fake `--supervised` child that records what the supervisor sends."
         },
         "resetWorkers": {
-          "line": 702
+          "line": 703
         },
         "withoutStructureOverride": {
-          "line": 745,
+          "line": 746,
           "params": [
             "fn"
           ]
         }
       },
-      "sizeBytes": 40384,
+      "sizeBytes": 40570,
       "extraction": {
         "status": "parsed"
       },
@@ -29629,6 +29711,53 @@
         "description": "86fd3b0fca750c4a"
       }
     },
+    "test/gitWatchLinux.test": {
+      "file": "test/gitWatchLinux.test.js",
+      "description": "Git status on Linux watches one folder at a time (server-linux-readiness T04).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "node:module",
+        "src/main/gitStatusManager",
+        "src/shared/ipcChannels"
+      ],
+      "functions": {
+        "waitFor": {
+          "line": 49,
+          "params": [
+            "pred",
+            "ms",
+            "what"
+          ]
+        },
+        "repo": {
+          "line": 57,
+          "purpose": "A repo with tracked src/ and docs/, an ignored node_modules tree, and an untracked new/ file."
+        },
+        "write": {
+          "line": 47,
+          "params": [
+            "file",
+            "body = 'x\\n'"
+          ]
+        }
+      },
+      "sizeBytes": 10905,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "c3aa5da75cd24dfd",
+        "purposes": {
+          "repo": "d959d21bb782c54f"
+        }
+      }
+    },
     "test/githubAccessState.test": {
       "file": "test/githubAccessState.test.js",
       "description": "The GitHub panel's access resolver (github-view-tree-layout spec, G3 / D6).",
@@ -29714,6 +29843,54 @@
         "description": "77b5530472143361",
         "purposes": {
           "fixture": "f1344d0b25feeb70"
+        }
+      }
+    },
+    "test/hintHooks.test": {
+      "file": "test/hintHooks.test.js",
+      "description": "Claude Code hint hooks find Node on a machine without it (server-linux-readiness T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "node:module",
+        "src/shared/frameTemplates",
+        "src/main/frameProject"
+      ],
+      "functions": {
+        "project": {
+          "line": 48,
+          "params": [
+            "{ scripts = true } = {}"
+          ],
+          "purpose": "A project folder whose .frame/bin scripts report which Node ran them and with what."
+        },
+        "runHook": {
+          "line": 67,
+          "params": [
+            "command",
+            "cwd",
+            "env"
+          ],
+          "purpose": "Run a hook command the way Claude Code does: `sh -c` in the project folder."
+        },
+        "commands": {
+          "line": 39
+        }
+      },
+      "sizeBytes": 6481,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0b75a37eb9015654",
+        "purposes": {
+          "project": "53beb2ae9273f09c",
+          "runHook": "7118ac63e70d4999"
         }
       }
     },
@@ -30892,6 +31069,43 @@
       },
       "provenance": {
         "description": "fcf3f8ab11a04e0e"
+      }
+    },
+    "test/serverShells.test": {
+      "file": "test/serverShells.test.js",
+      "description": "Shells on a Linux Frame Server (server-linux-readiness T02, T03).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "path",
+        "os",
+        "fs",
+        "node:module",
+        "events",
+        "src/main/ptyManager",
+        "src/shared/ipcChannels",
+        "src/server/electronShim",
+        "src/server/terminals"
+      ],
+      "functions": {
+        "shellsFor": {
+          "line": 70,
+          "params": [
+            "workspaceId"
+          ],
+          "purpose": "Ask for the shell list like the renderer does; resolve the reply."
+        }
+      },
+      "sizeBytes": 7046,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "b8abd72623569050",
+        "purposes": {
+          "shellsFor": "82f869891a1db8ef"
+        }
       }
     },
     "test/serverSocket.test": {
@@ -34812,7 +35026,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 381,
+        "parsed": 384,
         "unsupported": 91,
         "partial": 0
       }
@@ -34859,9 +35073,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 566,
+      "visitedEntries": 569,
       "traversedDirectories": 86,
-      "eligibleFiles": 472,
+      "eligibleFiles": 475,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -34878,7 +35092,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 472,
+      "indexedFiles": 475,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34886,6 +35100,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "1f9b8118b76a58425c67ebc276eb4ff218b88ffdd666aec28c788e70673fa4e4"
+    "revision": "11292f482a2b928fd3edf3d923dde9abe4772aa210d8efe526b9caa02d427520"
   }
 }
