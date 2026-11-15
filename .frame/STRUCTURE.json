@@ -25041,6 +25041,7 @@
         "projects",
         "panels",
         "specs",
+        "sendFiles",
         "doctor"
       ],
       "functions": {
@@ -25131,7 +25132,7 @@
           "purpose": "An installed package carries its exact version (a dev build's is"
         }
       },
-      "sizeBytes": 10448,
+      "sizeBytes": 10520,
       "extraction": {
         "status": "parsed"
       },
@@ -25262,6 +25263,47 @@
         "purposes": {
           "loadXterm": "4b95af42b3ca39f2"
         }
+      }
+    },
+    "server/sendFiles": {
+      "file": "src/server/sendFiles.js",
+      "description": "Receiving git-ignored files from the desktop (server-copy-files).",
+      "exports": [
+        "setup",
+        "HASH_MAX_BYTES"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "shared/fileArchive",
+        "main/projectRegistry",
+        "shared/workspaceRegistry"
+      ],
+      "functions": {
+        "uploadsDir": {
+          "line": 31
+        },
+        "sha256": {
+          "line": 36,
+          "params": [
+            "file"
+          ]
+        },
+        "setup": {
+          "line": 40,
+          "params": [
+            "{ registerMethods }"
+          ]
+        }
+      },
+      "sizeBytes": 6702,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "12a57329a352d182"
       }
     },
     "server/specs": {
@@ -31269,6 +31311,56 @@
         "description": "5fab4ba84d6c4f58"
       }
     },
+    "test/serverSendFiles.test": {
+      "file": "test/serverSendFiles.test.js",
+      "description": "Frame Server receives git-ignored files (server-copy-files T03, T04).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "child_process",
+        "src/server/electronShim",
+        "src/server/projects",
+        "src/server/sendFiles",
+        "src/shared/fileArchive"
+      ],
+      "functions": {
+        "serverWorkspace": {
+          "line": 42,
+          "purpose": "A server project received by bundle (.gitignore ignores .env, certs/, config/local.json) and one server workspace."
+        },
+        "upload": {
+          "line": 58,
+          "params": [
+            "entries",
+            "name = `files-${crypto.randomBytes(4"
+          ],
+          "purpose": "Upload an archive the way the desktop does: a `files-*.fpk` in the server's tmp folder."
+        },
+        "write": {
+          "line": 38,
+          "params": [
+            "file",
+            "body = 'x\\n'"
+          ]
+        }
+      },
+      "sizeBytes": 8060,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0298f98097e37b7d",
+        "purposes": {
+          "serverWorkspace": "6ec7d5b834df4e69",
+          "upload": "40b0e396d3d296ea"
+        }
+      }
+    },
     "test/serverSendProject.test": {
       "file": "test/serverSendProject.test.js",
       "description": "The desktop sends a project to Frame Server as a git bundle",
@@ -34257,6 +34349,11 @@
     ],
     "files": [
       {
+        "module": "server/sendFiles",
+        "file": "src/server/sendFiles.js",
+        "description": "Receiving git-ignored files from the desktop (server-copy-files)."
+      },
+      {
         "module": "shared/copyFilesMatch",
         "file": "src/shared/copyFilesMatch.js",
         "description": "copyFilesMatch — which gitignored files a new workspace copies from the"
@@ -34855,6 +34952,18 @@
         "description": "Workspace Section — the sidebar's Workspaces list (workspaces spec, T07)."
       }
     ],
+    "send": [
+      {
+        "module": "server/sendFiles",
+        "file": "src/server/sendFiles.js",
+        "description": "Receiving git-ignored files from the desktop (server-copy-files)."
+      },
+      {
+        "module": "shared/sendFilesModel",
+        "file": "src/shared/sendFilesModel.js",
+        "description": "sendFilesModel — the rules behind the \"Send files to server\" modal"
+      }
+    ],
     "server": [
       {
         "module": "main/serverConnection",
@@ -35276,7 +35385,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 388,
+        "parsed": 390,
         "unsupported": 91,
         "partial": 0
       }
@@ -35323,9 +35432,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 573,
+      "visitedEntries": 575,
       "traversedDirectories": 86,
-      "eligibleFiles": 479,
+      "eligibleFiles": 481,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -35342,7 +35451,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 479,
+      "indexedFiles": 481,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -35350,6 +35459,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "8fe826280c711ed52a3d96951417d85921d338dba4f5a570116b70a3971fde25"
+    "revision": "7f1d96e9896c625c162d138adc917b8db3b387f0d40ee79fa6ee6fbe5a1decb6"
   }
 }

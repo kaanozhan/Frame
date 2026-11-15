@@ -210,6 +210,7 @@ function start(argv = process.argv.slice(2)) {
     require('./projects').setup({ shim, registerMethods, broadcast }),
     require('./panels').setup({ shim, registerMethods, broadcast }),
     require('./specs').setup({ shim, registerMethods, broadcast }),
+    require('./sendFiles').setup({ shim, registerMethods, broadcast }),
     require('./doctor').setup({ shim, registerMethods, broadcast })
   ];
   onLastClientGone(() => {

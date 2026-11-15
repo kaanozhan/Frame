@@ -14,3 +14,11 @@ Added `src/shared/sendFilesModel.js` (pure). `buildTree` builds the ignored and 
 _Captured: 2026-11-15 · 2 file change(s)_
 
 ---
+
+## T03 — Frame Server receives and compares files
+
+Added `src/server/sendFiles.js`, registered in `src/server/index.js`. `files.compare` answers same, changed or missing: SHA-256 for files up to 5 MB, size otherwise, and a folder only as present or missing. `files.receive` reads only a `files-*.fpk` upload in the server's tmp folder and refuses the whole send on the first bad entry (`fileArchive.checkEntries`), before writing anything. It writes each file through a temp file and a rename with its mode: ignored files to the workspace and the main copy, `untracked` paths to the workspace only. It reports written, overwritten, skipped and toMainCopy, and removes the archive in `finally`. Both methods use the same project/workspace guard as `specs.js`. Beyond the plan: a file whose path passes through a folder that is a symlink (or a file) on the server is skipped with the reason, never followed, so an archive that is clean on its own cannot write outside through the target's own symlinks. `files.receive` takes the untracked list as a parameter, because the archive records carry no group. Tests in `test/serverSendFiles.test.js` run against a project received by bundle and a real server workspace.
+
+_Captured: 2026-11-15 · 3 file change(s)_
+
+---
