@@ -102,8 +102,8 @@ test('routeOf keeps the server key of a workspace located by id', () => {
 
 test('serverTerminalId carries a per-boot nonce and parses back', () => {
   assert.equal(R.serverTerminalId(3, 'a1b2c3'), 'srv-a1b2c3-3');
-  assert.deepEqual(R.parseServerTerminalId('srv-a1b2c3-3'), { boot: 'a1b2c3', n: 3 });
-  assert.deepEqual(R.parseServerTerminalId('srv-3'), { boot: null, n: 3 }, 'old ids still parse');
+  assert.deepEqual(R.parseServerTerminalId('srv-a1b2c3-3'), { key: null, boot: 'a1b2c3', n: 3 });
+  assert.deepEqual(R.parseServerTerminalId('srv-3'), { key: null, boot: null, n: 3 }, 'old ids still parse');
   assert.equal(R.parseServerTerminalId('term-3'), null);
   assert.equal(R.isServerTerminalId('srv-a1b2c3-3'), true, 'the prefix rule is unchanged');
 });
@@ -156,4 +156,16 @@ test('projectDirNameFor: remote names as before; a remote-less project uses its 
   assert.equal(R.projectDirNameFor({ root: sha, name: 'notes' }, { notes: `root:${sha}` }), 'notes', 'the same project reuses its folder');
   assert.equal(R.projectDirNameFor({ root: sha, name: 'notes' }, { notes: 'github.com/x/notes' }), 'notes-2');
   assert.equal(R.projectDirNameFor({ root: sha, name: '...' }, {}), 'project');
+});
+
+test('desktop terminal ids name their server, so two servers never share an id (multi-server-connections)', () => {
+  assert.equal(R.desktopTerminalId('kbox', 'srv-a1b2c3-3'), 'srv-kbox.a1b2c3-3');
+  assert.notEqual(R.desktopTerminalId('kbox', 'srv-a1b2c3-3'), R.desktopTerminalId('kgpu', 'srv-a1b2c3-3'));
+  assert.deepEqual(R.splitDesktopTerminalId('srv-kbox.a1b2c3-3'), { serverKey: 'kbox', serverTerminalId: 'srv-a1b2c3-3' });
+  assert.deepEqual(R.parseServerTerminalId('srv-kbox.a1b2c3-3'), { key: 'kbox', boot: 'a1b2c3', n: 3 });
+  assert.equal(R.isServerTerminalId('srv-kbox.a1b2c3-3'), true, 'still a server terminal');
+  assert.equal(R.splitDesktopTerminalId('srv-a1b2c3-3'), null, 'a server-side id has no key');
+  assert.equal(R.splitDesktopTerminalId('term-3'), null);
+  assert.equal(R.desktopTerminalId(null, 'srv-1'), null);
+  assert.equal(R.desktopTerminalId('kbox', 'term-1'), null);
 });

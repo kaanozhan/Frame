@@ -178,7 +178,7 @@ test('S8: the desktop forwards to the server\'s socket and connects', async () =
   await waitFor(() => sc.isConnected() && remotePid() !== before, 25000, 'a reconnect over the socket');
   const info = JSON.parse(fs.readFileSync(path.join(SERVER_HOME, 'connection.json'), 'utf8'));
   assert.ok(info.socket && !info.port, 'connection.json names a socket, no port');
-  const ping = await sc.call('server.ping', {});
+  const ping = await sc.of(sc.list()[0].key).call('server.ping', {});
   assert.equal(ping.platform, 'linux');
 });
 

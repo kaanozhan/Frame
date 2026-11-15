@@ -26,11 +26,32 @@ function serverTerminalId(n, boot = null) {
   return boot ? `${SERVER_TERMINAL_PREFIX}${boot}-${n}` : `${SERVER_TERMINAL_PREFIX}${n}`;
 }
 
-/** `{ boot, n }` of a server terminal id (`boot` null for an old `srv-<n>`), or null. */
+/**
+ * `{ key, boot, n }` of a server terminal id: `key` is the desktop's server
+ * key of a desktop-side id (`srv-<key>.<boot>-<n>`), null for an id as Frame
+ * Server names it; `boot` is null for an old `srv-<n>`. null for anything else.
+ */
 function parseServerTerminalId(id) {
   if (!isServerTerminalId(id)) return null;
-  const m = /^srv-(?:([a-z0-9]+)-)?(\d+)$/.exec(id);
-  return m ? { boot: m[1] || null, n: Number(m[2]) } : null;
+  const m = /^srv-(?:([0-9a-z]+)\.)?(?:([a-z0-9]+)-)?(\d+)$/.exec(id);
+  return m ? { key: m[1] || null, boot: m[2] || null, n: Number(m[3]) } : null;
+}
+
+/**
+ * The desktop's id for a server's terminal (multi-server-connections):
+ * Frame Server's `srv-<boot>-<n>` with the server's key added,
+ * `srv-<key>.<boot>-<n>`. Two servers can never hand the desktop the same id,
+ * and the `srv-` prefix rule is unchanged.
+ */
+function desktopTerminalId(serverKey, serverTerminalId) {
+  if (!serverKey || !isServerTerminalId(serverTerminalId)) return null;
+  return `${SERVER_TERMINAL_PREFIX}${serverKey}.${serverTerminalId.slice(SERVER_TERMINAL_PREFIX.length)}`;
+}
+
+/** `{ serverKey, serverTerminalId }` of a desktop-side id, or null (a local id, or one without a key). */
+function splitDesktopTerminalId(id) {
+  const m = typeof id === 'string' ? /^srv-([0-9a-z]+)\.(.+)$/.exec(id) : null;
+  return m ? { serverKey: m[1], serverTerminalId: `${SERVER_TERMINAL_PREFIX}${m[2]}` } : null;
 }
 
 /**
@@ -231,6 +252,8 @@ module.exports = {
   SERVER_TERMINAL_PREFIX,
   isServerTerminalId,
   parseServerTerminalId,
+  desktopTerminalId,
+  splitDesktopTerminalId,
   adoptPlan,
   serverTerminalId,
   normalizeRemoteUrl,

@@ -293,15 +293,14 @@ async function rollback(host, { onProgress = () => {} } = {}) {
  * "none running" (server-hardening S9).
  */
 /**
- * The agents running on one server (`key`; the default server without one),
+ * The agents running on one server (`key`; the first connected one without),
  * for the update / rollback consent: only that server's terminals, so an
  * update of A never names B's agents (multi-server-connections). null when
  * the list cannot be read.
  */
 async function runningAgents(key = null) {
   const sc = require('./serverConnection');
-  const link = key ? sc.of(key) : null;
-  const target = link || (key ? null : sc);
+  const target = key ? sc.of(key) : sc.all().find((l) => l.isConnected());
   if (!target || !target.isConnected()) return null;
   let list;
   try { list = await target.call('terminals.list', {}); } catch (_) { return null; }

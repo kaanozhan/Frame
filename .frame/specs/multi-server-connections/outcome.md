@@ -54,3 +54,11 @@ _Captured: 2026-11-15 · 8 file change(s)_
 
 ---
 
+## T08 — Terminals per server
+
+Routed server terminals per server in `src/main/ptyManager.js`: desktop ids `srv-<key>.<boot>-<n>`, calls through the terminal's own link, events re-keyed, pending closes per server, adopt across links, removal clears lanes, home terminals with `serverKey`. Added `desktopTerminalId` / `splitDesktopTerminalId` and a keyed `parseServerTerminalId` in `src/shared/serverRouting.js`, and covered them in `test/ptyTerminals.test.js` and `test/serverRouting.test.js`. Divergences: the keyless `call` / `send` left `serverConnection.js` here (planned for T07), and `serverInstaller.runningAgents` now uses a link without a key. Followup: `src/renderer/terminalManager.js` still keeps one server status (reconnect banner, adopt trigger) — not in plan.md's Files.
+
+_Captured: 2026-11-15 · 7 file change(s)_
+
+---
+

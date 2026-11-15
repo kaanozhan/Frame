@@ -14,9 +14,10 @@
  *   - `all()`    → every link
  *   - `on(name, fn(payload, key))` → a server event (`terminal.output`, …) or
  *     `connected` / `disconnected` / `status` / `removed`, from any server
- * Until routing carries a server key everywhere, `call` / `send` /
- * `isConnected` / `getStatus` without one use the default server: the first
- * connected one, else the first saved.
+ * Every server call goes through a link (`of(key)`): there is no keyless
+ * call. `getStatus` / `isConnected` without a key report the default server
+ * (the first connected one, else the first saved) for the parts of the UI that
+ * still show one status.
  *
  * A server that reports a `serverId` another entry already holds is the same
  * machine reached through a second alias: the new entry is removed and the
@@ -212,7 +213,7 @@ function disconnect(keyOrOpts, maybeOpts) {
   return { error: null, status: getStatus() };
 }
 
-// ─── Keyless calls (the default server) ───────────────────────
+// ─── The default server's status (single-status UI) ───────────
 
 function getStatus() {
   const link = defaultLink();
@@ -222,19 +223,6 @@ function getStatus() {
 function isConnected() {
   const link = defaultLink();
   return !!(link && link.isConnected());
-}
-
-/** A request to the default server. Rejects when not connected or on timeout. */
-function call(method, params = {}, timeoutMs) {
-  const link = defaultLink();
-  if (!link) return Promise.reject(new Error('Not connected to a server.'));
-  return link.call(method, params, timeoutMs);
-}
-
-/** Fire-and-forget request to the default server (terminal input): errors are only logged. */
-function send(method, params = {}) {
-  const link = defaultLink();
-  if (link) link.send(method, params);
 }
 
 /**
@@ -313,5 +301,5 @@ function setupIPC(ipcMain) {
 
 module.exports = {
   init, setupIPC, add, remove, connect, disconnect, of, all, list,
-  call, send, on, getStatus, isConnected, sshHosts, runAction
+  on, getStatus, isConnected, sshHosts, runAction
 };
