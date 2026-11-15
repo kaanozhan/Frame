@@ -27393,7 +27393,7 @@
           "purpose": "What the modal opens with: leaves matching the project's `copyFiles`,"
         },
         "toggle": {
-          "line": 117,
+          "line": 120,
           "params": [
             "selected",
             "node",
@@ -27402,13 +27402,13 @@
           "purpose": "Tick or untick everything under `node`; returns a new Set."
         },
         "selectAll": {
-          "line": 125,
+          "line": 128,
           "params": [
             "tree"
           ]
         },
         "selectionSize": {
-          "line": 130,
+          "line": 133,
           "params": [
             "tree",
             "selected"
@@ -27416,14 +27416,14 @@
           "purpose": "`{ bytes, files, cut }` for the ticked leaves; `cut` when a folder's size is a lower bound."
         },
         "sizeVerdict": {
-          "line": 144,
+          "line": 147,
           "params": [
             "bytes"
           ],
           "purpose": "'ok' | 'warn' (above 50 MB) | 'refuse' (above 1 GB)."
         },
         "patternsFor": {
-          "line": 156,
+          "line": 159,
           "params": [
             "tree",
             "selected"
@@ -27431,7 +27431,7 @@
           "purpose": "`.env` at any depth); a collapsed folder becomes `folder/**`."
         },
         "mergePatterns": {
-          "line": 167,
+          "line": 170,
           "params": [
             "existing",
             "added"
@@ -27439,7 +27439,7 @@
           "purpose": "Existing patterns plus new ones, in order, without duplicates."
         },
         "formatBytes": {
-          "line": 177,
+          "line": 180,
           "params": [
             "bytes",
             "cut = false"
@@ -27447,7 +27447,7 @@
           "purpose": "`1.2 KB`, `48 MB`; `≥ ` in front when the size is a lower bound."
         }
       },
-      "sizeBytes": 6975,
+      "sizeBytes": 7161,
       "extraction": {
         "status": "parsed"
       },
@@ -31953,7 +31953,7 @@
         "src/shared/copyFilesMatch"
       ],
       "functions": {},
-      "sizeBytes": 4822,
+      "sizeBytes": 5324,
       "extraction": {
         "status": "parsed"
       },
@@ -36489,6 +36489,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "588d32af0317ed2405ac511e6897b3c497f4c83bffa1b46131fae28375802baa"
+    "revision": "9c19904e016e6f4748e81c890d25d592be68ddbe42c064798a38f259af2e791b"
   }
 }

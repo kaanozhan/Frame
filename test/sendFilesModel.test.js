@@ -91,3 +91,10 @@ test('T06 (live-check finding): a path git also lists inside a collapsed folder 
   assert.deepEqual(t.ignored.children.map((n) => [n.path, n.type, !!n.leaf]), [['.claude', 'dir', true], ['.env', 'file', true]]);
   assert.deepEqual(M.leaves(t).map((l) => l.path).sort(), ['.claude', '.env']);
 });
+
+test('a folder already on the server is not ticked by default (its contents are not compared)', () => {
+  const t = M.buildTree({ ignored: ['certs/', '.env'], server: { certs: 'changed', '.env': 'changed' } });
+  assert.deepEqual([...M.defaultSelection(t, ['certs/**', '.env*'])], ['.env']);
+  const fresh = M.buildTree({ ignored: ['certs/'], server: { certs: 'missing' } });
+  assert.deepEqual([...M.defaultSelection(fresh, ['certs/**'])], ['certs'], 'a folder missing on the server is ticked');
+});

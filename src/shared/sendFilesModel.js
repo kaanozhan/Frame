@@ -108,6 +108,9 @@ function defaultSelection(tree, copyFiles) {
   const out = new Set();
   for (const l of leaves(tree)) {
     if (l.heavy || l.server === 'same') continue;
+    // A folder already on the server (its contents are not compared) is not
+    // resent by default — only when ticked.
+    if (l.type === 'dir' && l.server === 'changed') continue;
     if (match(l.path)) out.add(l.path);
   }
   return out;
