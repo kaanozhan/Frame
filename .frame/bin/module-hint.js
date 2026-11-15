@@ -588,6 +588,8 @@ async function v2Mode(root, input, descriptor) {
 
 function searchMode(input) {
   const root = resolveRoot(input.cwd);
+  // A project that has not opted into the map (structure-switch.js) gets no hints.
+  if (!require('./structure-switch').structureEnabled(root)) return;
 
   // A find-module call is remembered (v2), never answered: it is the answer.
   const lookedUp = findModuleQuery(input.tool_name, input.tool_input || {});
