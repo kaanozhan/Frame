@@ -70,3 +70,11 @@ _Captured: 2026-11-15 · 5 file change(s)_
 
 ---
 
+## T10 — Status bar: connected / total servers
+
+Rewrote the server item in `src/renderer/statusBar.js` to draw from the saved-server list: host for one server, `connected/total servers` for several, the worst live state as the dot (`serverConnectModel.summary`), and one tooltip line per server. No divergence from plan.md.
+
+_Captured: 2026-11-15 · 1 file change(s)_
+
+---
+

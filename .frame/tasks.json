@@ -8287,13 +8287,13 @@
       "title": "Show connected / total servers with the worst state's dot in the status bar server item in `src/renderer/statusBar.js`, opening the server list on click",
       "description": "",
       "source": "spec:multi-server-connections:T10",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: multi-server-connections",
       "createdAt": "2026-11-15T12:36:21.721Z",
-      "updatedAt": "2026-11-15T12:36:21.721Z",
-      "completedAt": null
+      "updatedAt": "2026-11-15T13:41:45.758Z",
+      "completedAt": "2026-11-15T13:41:45.758Z"
     },
     {
       "id": "task-spec-multi-server-connections-T11",
@@ -8335,7 +8335,7 @@
       "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T13:40:35.235Z",
+  "lastUpdated": "2026-11-15T13:41:45.758Z",
   "metadata": {
     "totalCreated": 641
   }

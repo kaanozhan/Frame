@@ -167,31 +167,41 @@ function _buildNoticeTray() {
 
 // ─── The left slot, first: the current git branch ───────────
 
-// ─── The left slot, first of all: the Frame Server link ─────
-// server-workspaces spec. Shown once a server has been used: host and a
-// state dot (connected / connecting / reconnecting / error); a click opens
-// the Connect dialog.
+// ─── The left slot, first of all: the Frame Server links ────
+// server-workspaces; multi-server-connections. Shown once a server is saved.
+// One server: its host and state dot. Several: "connected / total servers"
+// with the worst state's dot (serverConnectModel.summary — a server the user
+// disconnected does not grey it while another is connected), and the tooltip
+// lists each server. A click opens the Servers dialog.
 
 function _buildServer() {
   const slot = barEl.querySelector('.status-bar-left');
   if (!slot) return;
   const serverConnect = require('./serverConnect');
+  const { summary } = require('./serverConnectModel');
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'sb-branch sb-server';
   btn.hidden = true;
   btn.addEventListener('click', () => serverConnect.open());
   slot.appendChild(btn);
-  const paint = (s) => {
-    const host = s.host || (s.saved && s.saved.host);
-    if (!host || (s.state === 'off' && !(s.saved && s.saved.host))) { btn.hidden = true; return; }
+  const paint = () => {
+    const list = serverConnect.getServers();
+    const sum = summary(list);
+    if (!sum) { btn.hidden = true; return; }
     btn.hidden = false;
-    btn.dataset.state = s.state;
-    btn.innerHTML = `${dock.lucideIcon(Server, 16)}<span class="sb-branch-name">${escapeHtml(host)}</span><span class="sb-server-dot" aria-hidden="true"></span>`;
-    btn.title = `${serverConnect.LABELS[s.state] || s.state} · ${host}${s.error && s.state !== 'connected' ? ` — ${s.error}` : ''}`;
+    btn.dataset.state = sum.state;
+    const one = list.length === 1 ? list[0] : null;
+    const label = one ? one.host : `${sum.connected}/${sum.total} servers`;
+    btn.innerHTML = `${dock.lucideIcon(Server, 16)}<span class="sb-branch-name">${escapeHtml(label)}</span><span class="sb-server-dot" aria-hidden="true"></span>`;
+    const line = (srv) => {
+      const st = srv.status || {};
+      return `${srv.host} · ${serverConnect.LABELS[st.state] || st.state || 'Not connected'}${st.error && st.state !== 'connected' ? ` — ${st.error}` : ''}`;
+    };
+    btn.title = list.map(line).join('\n');
   };
-  serverConnect.onChange(paint);
-  paint(serverConnect.getStatus());
+  serverConnect.onServersChange(paint);
+  paint();
 }
 
 function _buildBranch() {
