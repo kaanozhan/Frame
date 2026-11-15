@@ -46,6 +46,11 @@ it. Milestones stay read-only in Frame.
   a card is a badge; any other milestone's name stays plain text.
 - **The detail's Milestone row** reads the name with its status and end date,
   "Overdue" included, and opens the milestone on the web.
+- **Home's tracker** (added at plan time, 2026-11-15). While the open folder's
+  Briefs are available and its project has a started milestone, Home shows
+  that milestone on the "Welcome to Frame!" row: the strip's facts on one
+  line (name, Overdue, end date, progress bar, "N of M done"). Clicking it
+  opens Briefs narrowed to that milestone. No started milestone, no tracker.
 
 ## Constraints
 
@@ -68,7 +73,8 @@ it. Milestones stay read-only in Frame.
 - An older server sends no counts, date or target branch. The strip then
   shows the name only, and the rest reads as today.
 - No new request: `milestone.list` and `brief.list` already carry everything.
-  No timers (frame-cloud-briefs-read-only T11).
+  Home's tracker reads `milestone.list` alone. No timers
+  (frame-cloud-briefs-read-only T11).
 - Network text is escaped plain text; the web link is built in main from the
   stored origin (frame-cloud-projects).
 - A viewer sees the same strip and narrowing; nothing here is a write.
@@ -96,6 +102,12 @@ it. Milestones stay read-only in Frame.
   cleared.
 - When the server sends a milestone with only `id`, `name` and `status`, then
   nothing breaks and the strip shows the name.
+- When the open folder is connected and its project has a started milestone,
+  then Home shows its tracker beside "Welcome to Frame!".
+- When Home's tracker is clicked, then Briefs opens narrowed to that
+  milestone.
+- When the open folder is not connected, or its project has no started
+  milestone, then Home looks as it does today.
 
 ## Out of Scope
 

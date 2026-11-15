@@ -1432,6 +1432,109 @@
   white-space: nowrap;
 }
 
+/* The title row: the greeting left, the started milestone's tracker right
+   (frame-cloud-milestones), wrapping under the greeting when there is no
+   room beside it. */
+.home-composer-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* The tracker: the strip's facts on one pill, one button into Briefs. */
+.home-milestone {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px 0 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.home-milestone[hidden] {
+  display: none;
+}
+
+.home-milestone:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.home-milestone:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.home-milestone-name {
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.home-milestone-overdue {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--error-subtle);
+  color: var(--error);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.home-milestone-ends,
+.home-milestone-progress {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.home-milestone-progress {
+  font-variant-numeric: tabular-nums;
+}
+
+.home-milestone-bar {
+  display: block;
+  flex-shrink: 0;
+  width: 56px;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  /* A tint, not a surface, so the track stays visible on the hover fill. */
+  background: color-mix(in srgb, var(--text-tertiary) 25%, transparent);
+}
+
+.home-milestone-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-primary);
+}
+
+.home-milestone-chevron {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--text-tertiary);
+}
+
 .home-composer-box {
   display: flex;
   flex-direction: column;
@@ -1583,6 +1686,14 @@
   box-shadow:
     0 0 0 3px var(--accent-subtle),
     0 8px 32px rgba(0, 0, 0, 0.02);
+}
+
+[data-scheme="light"] .home-milestone {
+  background: var(--surface-card);
+}
+
+[data-scheme="light"] .home-milestone:hover {
+  background: var(--bg-hover);
 }
 
 [data-scheme="light"] .home-card.active {

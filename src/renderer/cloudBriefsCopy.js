@@ -27,6 +27,16 @@
  * <base>, not <target>" — unless a live agent lane is working on it. A PR is
  * a pointer, never a merge: only the cloud's `mergedAt` counts. The history
  * reads `part-merged` as the web does, an observation with no actor.
+ *
+ * Milestones (FrameCloud board-active-milestone, from `lib/milestone.ts` and
+ * `board-milestone.tsx`): the project's started milestone, the briefs under
+ * it, its progress (done over backlog + active + done; ended briefs are
+ * outside it), Overdue (a started milestone past its end date with briefs
+ * left, on the viewer's local day), its end date and target branch as the
+ * web words them. Frame's counts come from the board's own briefs, held moves
+ * included, so they follow a Move to Done. A milestone from an older server
+ * carries no counts (`briefs === null`) and reads as its name alone. Read-only:
+ * Frame starts, closes and edits no milestone.
  */
 
 const { ROLE_FORBIDDEN } = require('./cloudRoles');
@@ -1025,6 +1035,170 @@ function createErrorMessage(reason) {
   return CREATE_MESSAGES[reason] || CREATE_FALLBACK;
 }
 
+// ─── Milestones ──────────────────────────────────────────────
+
+/** The three statuses as the user sees them. */
+const MILESTONE_STATUS_LABEL = { started: 'Started', planned: 'Planned', closed: 'Closed' };
+
+const OVERDUE_LABEL = 'Overdue';
+const MILESTONE_LABEL = 'Milestone';
+const STARTED_MILESTONE_LABEL = 'Started milestone';
+const SHOW_ONLY_MILESTONE_LABEL = 'Show only this milestone';
+const ALL_BRIEFS_LABEL = 'All briefs';
+const NARROWED_EMPTY_LABEL = 'No open briefs in this milestone.';
+const NO_END_DATE_LABEL = 'No end date';
+
+function milestoneStatusLabel(status) {
+  return MILESTONE_STATUS_LABEL[status] || MILESTONE_STATUS_LABEL.planned;
+}
+
+/** A timestamp as milliseconds, or null when missing or unreadable. */
+function timeOf(iso) {
+  if (typeof iso !== 'string' || !iso) return null;
+  const ms = Date.parse(iso);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/**
+ * The project's started milestone, or null. A project has at most one, but an
+ * older server may return several: the earliest started wins, one without a
+ * `startedAt` goes last, and equal times keep the list's order.
+ */
+function startedMilestone(milestones) {
+  const started = (Array.isArray(milestones) ? milestones : []).filter((m) => m && m.status === 'started');
+  started.sort((a, b) => {
+    const x = timeOf(a.startedAt);
+    const y = timeOf(b.startedAt);
+    if (x === y) return 0;
+    if (x === null) return 1;
+    if (y === null) return -1;
+    return x - y;
+  });
+  return started[0] || null;
+}
+
+/** The briefs under `milestoneId`, in the list's order. */
+function briefsInMilestone(briefs, milestoneId) {
+  if (typeof milestoneId !== 'string' || !milestoneId) return [];
+  return (Array.isArray(briefs) ? briefs : []).filter((b) => b && b.milestoneId === milestoneId);
+}
+
+/**
+ * The milestone's counts with backlog, active and done taken from `briefs`
+ * (the board's list, held moves already applied), so the strip never
+ * disagrees with the columns. Ended briefs are listed only on demand, so
+ * `closed` stays the server's. Without `briefs` the server's counts stand in;
+ * null when the server sent none (an older server).
+ */
+function countsWithBriefs(milestone, briefs) {
+  if (!milestone || !milestone.briefs) return null;
+  if (!Array.isArray(briefs)) return milestone.briefs;
+  const own = briefsInMilestone(briefs, milestone.id);
+  const of = (status) => own.filter((b) => b.status === status).length;
+  return { backlog: of('backlog'), active: of('active'), done: of('done'), closed: milestone.briefs.closed };
+}
+
+/**
+ * Done over unfinished plus done: `{ done, total, percent, label }`, the
+ * percentage whole and 0 while there is nothing to finish. Null without counts.
+ */
+function milestoneProgress(counts) {
+  if (!counts) return null;
+  const total = counts.backlog + counts.active + counts.done;
+  return {
+    done: counts.done,
+    total,
+    percent: total === 0 ? 0 : Math.round((counts.done / total) * 100),
+    label: total === 0 ? 'No briefs yet' : `${counts.done} of ${total} done`,
+  };
+}
+
+/** The viewer's calendar date as `YYYY-MM-DD`, the shape `targetDate` has. */
+function localToday(now = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/**
+ * A started milestone whose end date has passed with briefs still to finish.
+ * The end date itself is not overdue; the day after is. Never without counts.
+ */
+function isOverdue(milestone, today = localToday()) {
+  if (!milestone || !milestone.briefs) return false;
+  return (
+    milestone.status === 'started'
+    && typeof milestone.targetDate === 'string'
+    && milestone.targetDate < today
+    && milestone.briefs.backlog + milestone.briefs.active > 0
+  );
+}
+
+const TARGET_DATE_FORMAT = new Intl.DateTimeFormat('en', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+/** A calendar date as "Nov 20, 2026". It names a day, not an instant, so no time zone moves it. */
+function formatTargetDate(date) {
+  const [year = 0, month = 1, day = 1] = String(date).split('-').map(Number);
+  return TARGET_DATE_FORMAT.format(new Date(Date.UTC(year, month - 1, day)));
+}
+
+/** "Ends Nov 20, 2026", or "No end date". */
+function endsLine(targetDate) {
+  return typeof targetDate === 'string' && targetDate ? `Ends ${formatTargetDate(targetDate)}` : NO_END_DATE_LABEL;
+}
+
+/**
+ * "Targets release/1.0" for a milestone with a target branch of its own, or
+ * null: without one each brief keeps its target, and the milestone says nothing.
+ */
+function targetBranchLine(milestone) {
+  return milestone && typeof milestone.targetBranch === 'string' && milestone.targetBranch
+    ? `Targets ${milestone.targetBranch}`
+    : null;
+}
+
+/**
+ * What the strip and Home's tracker draw for `milestone` (its `briefs` already
+ * counted by the caller): `{ id, name, overdue, ends, target, progress }`. A
+ * milestone from an older server (`briefs === null`) is its name alone: no
+ * end date, branch, progress or Overdue. Null without a milestone.
+ */
+function milestoneSummary(milestone, today = localToday()) {
+  if (!milestone || typeof milestone !== 'object') return null;
+  const summary = { id: milestone.id, name: milestone.name, overdue: false, ends: null, target: null, progress: null };
+  if (!milestone.briefs) return summary;
+  return {
+    ...summary,
+    overdue: isOverdue(milestone, today),
+    ends: endsLine(milestone.targetDate),
+    target: targetBranchLine(milestone),
+    progress: milestoneProgress(milestone.briefs),
+  };
+}
+
+/**
+ * The detail's Milestone row after the name: its status, and its end date
+ * while it is open ("Started · Ends Nov 20, 2026", "Planned", "Closed"). An
+ * older server's milestone reads its status alone.
+ */
+function milestoneRowFacts(milestone) {
+  if (!milestone) return '';
+  const facts = [milestoneStatusLabel(milestone.status)];
+  if (milestone.briefs && milestone.status !== 'closed' && typeof milestone.targetDate === 'string' && milestone.targetDate) {
+    facts.push(endsLine(milestone.targetDate));
+  }
+  return facts.join(' · ');
+}
+
+/** The progress bar's accessible name. */
+function milestoneProgressLabel(name) {
+  return `${name} progress`;
+}
+
 /** The board's notice when a brief was created but a link was not attached. */
 function attachmentNotice(number, reason) {
   // A link that fails is refused on the brief, not the project.
@@ -1150,4 +1324,25 @@ module.exports = {
   submitLabel,
   createErrorMessage,
   attachmentNotice,
+  MILESTONE_STATUS_LABEL,
+  OVERDUE_LABEL,
+  MILESTONE_LABEL,
+  STARTED_MILESTONE_LABEL,
+  SHOW_ONLY_MILESTONE_LABEL,
+  ALL_BRIEFS_LABEL,
+  NARROWED_EMPTY_LABEL,
+  NO_END_DATE_LABEL,
+  milestoneStatusLabel,
+  startedMilestone,
+  briefsInMilestone,
+  countsWithBriefs,
+  milestoneProgress,
+  localToday,
+  isOverdue,
+  formatTargetDate,
+  endsLine,
+  targetBranchLine,
+  milestoneSummary,
+  milestoneRowFacts,
+  milestoneProgressLabel,
 };

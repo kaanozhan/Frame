@@ -1005,3 +1005,162 @@ test('roleForbidden reads the one role sentence in every message table', () => {
   assert.equal(copy.moveErrorMessage('roleForbidden'), ROLE_FORBIDDEN);
   assert.equal(copy.createErrorMessage('roleForbidden'), ROLE_FORBIDDEN);
 });
+
+// ─── Milestones ───────────────────────────────────────────────
+
+const COUNTS = { backlog: 2, active: 1, done: 3, closed: 1 };
+
+function milestone(overrides = {}) {
+  return {
+    id: 'm1', name: 'Beta', status: 'started', goal: null, targetDate: '2026-11-20',
+    targetBranch: null, startedAt: '2026-11-01T09:00:00.000Z', closedAt: null, briefs: COUNTS,
+    ...overrides,
+  };
+}
+
+test('MILESTONE_STATUS_LABEL names the three statuses, planned for an unknown one', () => {
+  assert.deepEqual(copy.MILESTONE_STATUS_LABEL, { started: 'Started', planned: 'Planned', closed: 'Closed' });
+  assert.equal(copy.milestoneStatusLabel('started'), 'Started');
+  assert.equal(copy.milestoneStatusLabel('archived'), 'Planned');
+});
+
+test('the strip\'s words are the web\'s', () => {
+  assert.equal(copy.MILESTONE_LABEL, 'Milestone');
+  assert.equal(copy.OVERDUE_LABEL, 'Overdue');
+  assert.equal(copy.SHOW_ONLY_MILESTONE_LABEL, 'Show only this milestone');
+  assert.equal(copy.ALL_BRIEFS_LABEL, 'All briefs');
+  assert.equal(copy.NARROWED_EMPTY_LABEL, 'No open briefs in this milestone.');
+  assert.equal(copy.milestoneProgressLabel('Beta'), 'Beta progress');
+});
+
+test('startedMilestone: none, one, and the earliest started of several', () => {
+  assert.equal(copy.startedMilestone([]), null);
+  assert.equal(copy.startedMilestone(undefined), null);
+  assert.equal(copy.startedMilestone([milestone({ status: 'planned' }), milestone({ id: 'm2', status: 'closed' })]), null);
+  const one = milestone({ id: 'm2' });
+  assert.equal(copy.startedMilestone([milestone({ status: 'planned' }), one]), one);
+  const later = milestone({ id: 'late', startedAt: '2026-11-05T09:00:00.000Z' });
+  const earlier = milestone({ id: 'early', startedAt: '2026-11-02T09:00:00.000Z' });
+  assert.equal(copy.startedMilestone([later, earlier]).id, 'early');
+});
+
+test('startedMilestone puts a missing startedAt last and keeps the list order on a tie', () => {
+  const undated = milestone({ id: 'undated', startedAt: null });
+  const dated = milestone({ id: 'dated', startedAt: '2026-11-09T09:00:00.000Z' });
+  assert.equal(copy.startedMilestone([undated, dated]).id, 'dated');
+  assert.equal(copy.startedMilestone([undated, milestone({ id: 'also-undated', startedAt: 'garbage' })]).id, 'undated');
+  const a = milestone({ id: 'a' });
+  const b = milestone({ id: 'b' });
+  assert.equal(copy.startedMilestone([a, b]).id, 'a');
+  assert.equal(copy.startedMilestone([b, a]).id, 'b');
+});
+
+test('briefsInMilestone keeps the milestone\'s briefs in order', () => {
+  const briefs = [
+    { number: 1, milestoneId: 'm1' },
+    { number: 2, milestoneId: null },
+    { number: 3, milestoneId: 'm2' },
+    { number: 4, milestoneId: 'm1' },
+  ];
+  assert.deepEqual(copy.briefsInMilestone(briefs, 'm1').map((b) => b.number), [1, 4]);
+  assert.deepEqual(copy.briefsInMilestone(briefs, ''), []);
+  assert.deepEqual(copy.briefsInMilestone(undefined, 'm1'), []);
+});
+
+test('countsWithBriefs counts backlog, active and done from the board and keeps the server\'s closed', () => {
+  const briefs = [
+    { milestoneId: 'm1', status: 'backlog' },
+    { milestoneId: 'm1', status: 'active' },
+    { milestoneId: 'm1', status: 'active' },
+    { milestoneId: 'm1', status: 'done' },
+    { milestoneId: 'm1', status: 'closed' },
+    { milestoneId: 'm2', status: 'done' },
+    { milestoneId: null, status: 'backlog' },
+  ];
+  assert.deepEqual(copy.countsWithBriefs(milestone(), briefs), { backlog: 1, active: 2, done: 1, closed: 1 });
+});
+
+test('countsWithBriefs follows a brief the caller already shows as Done', () => {
+  const board = [{ milestoneId: 'm1', status: 'active' }, { milestoneId: 'm1', status: 'done' }];
+  const held = board.map((b) => (b.status === 'active' ? { ...b, status: 'done' } : b));
+  assert.equal(copy.countsWithBriefs(milestone(), board).done, 1);
+  assert.equal(copy.countsWithBriefs(milestone(), held).done, 2);
+  assert.equal(copy.countsWithBriefs(milestone(), held).active, 0);
+});
+
+test('countsWithBriefs: the server\'s counts without a list, null from an older server', () => {
+  assert.deepEqual(copy.countsWithBriefs(milestone(), undefined), COUNTS);
+  assert.equal(copy.countsWithBriefs(milestone({ briefs: null }), [{ milestoneId: 'm1', status: 'done' }]), null);
+  assert.equal(copy.countsWithBriefs(null, []), null);
+});
+
+test('milestoneProgress: done over backlog, active and done, rounded, and No briefs yet at zero', () => {
+  assert.deepEqual(copy.milestoneProgress(COUNTS), { done: 3, total: 6, percent: 50, label: '3 of 6 done' });
+  assert.equal(copy.milestoneProgress({ backlog: 1, active: 1, done: 1, closed: 9 }).percent, 33);
+  assert.equal(copy.milestoneProgress({ backlog: 0, active: 1, done: 2, closed: 0 }).percent, 67);
+  assert.deepEqual(copy.milestoneProgress({ backlog: 0, active: 0, done: 0, closed: 4 }), {
+    done: 0, total: 0, percent: 0, label: 'No briefs yet',
+  });
+  assert.equal(copy.milestoneProgress(null), null);
+});
+
+test('localToday is the viewer\'s calendar date as YYYY-MM-DD', () => {
+  assert.equal(copy.localToday(new Date(2026, 0, 5, 23, 59)), '2026-01-05');
+  assert.equal(copy.localToday(new Date(2026, 10, 20, 0, 1)), '2026-11-20');
+  assert.match(copy.localToday(), /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test('isOverdue: a started milestone past its end date with briefs left', () => {
+  assert.equal(copy.isOverdue(milestone(), '2026-11-20'), false, 'the end date itself');
+  assert.equal(copy.isOverdue(milestone(), '2026-11-21'), true, 'the day after');
+  assert.equal(copy.isOverdue(milestone({ briefs: { backlog: 0, active: 0, done: 5, closed: 2 } }), '2026-11-21'), false, 'nothing left');
+  assert.equal(copy.isOverdue(milestone({ status: 'planned' }), '2026-11-21'), false, 'planned');
+  assert.equal(copy.isOverdue(milestone({ status: 'closed' }), '2026-11-21'), false, 'closed');
+  assert.equal(copy.isOverdue(milestone({ targetDate: null }), '2026-11-21'), false, 'no end date');
+  assert.equal(copy.isOverdue(milestone({ briefs: null }), '2026-11-21'), false, 'older server');
+});
+
+test('formatTargetDate names the day in any time zone', () => {
+  assert.equal(copy.formatTargetDate('2026-11-20'), 'Nov 20, 2026');
+  assert.equal(copy.formatTargetDate('2027-01-01'), 'Jan 1, 2027');
+  assert.equal(copy.endsLine('2026-11-20'), 'Ends Nov 20, 2026');
+  assert.equal(copy.endsLine(null), 'No end date');
+});
+
+test('targetBranchLine speaks only for a milestone with a branch of its own', () => {
+  assert.equal(copy.targetBranchLine(milestone({ targetBranch: 'release/1.0' })), 'Targets release/1.0');
+  assert.equal(copy.targetBranchLine(milestone({ targetBranch: null })), null);
+  assert.equal(copy.targetBranchLine(null), null);
+});
+
+test('milestoneSummary carries what the strip and the tracker draw', () => {
+  assert.deepEqual(copy.milestoneSummary(milestone({ targetBranch: 'release/1.0' }), '2026-11-21'), {
+    id: 'm1',
+    name: 'Beta',
+    overdue: true,
+    ends: 'Ends Nov 20, 2026',
+    target: 'Targets release/1.0',
+    progress: { done: 3, total: 6, percent: 50, label: '3 of 6 done' },
+  });
+  const undated = copy.milestoneSummary(milestone({ targetDate: null }), '2026-11-21');
+  assert.equal(undated.ends, 'No end date');
+  assert.equal(undated.overdue, false);
+  assert.equal(undated.target, null);
+});
+
+test('milestoneSummary of an older server\'s milestone is its name alone', () => {
+  const older = { id: 'm1', name: 'Beta', status: 'started', goal: null, targetDate: null, targetBranch: null, startedAt: null, closedAt: null, briefs: null };
+  assert.deepEqual(copy.milestoneSummary(older, '2026-11-21'), {
+    id: 'm1', name: 'Beta', overdue: false, ends: null, target: null, progress: null,
+  });
+  assert.equal(copy.milestoneSummary(null), null);
+});
+
+test('milestoneRowFacts reads the status and, while open, the end date', () => {
+  assert.equal(copy.milestoneRowFacts(milestone()), 'Started · Ends Nov 20, 2026');
+  assert.equal(copy.milestoneRowFacts(milestone({ status: 'planned', targetDate: '2026-12-01' })), 'Planned · Ends Dec 1, 2026');
+  assert.equal(copy.milestoneRowFacts(milestone({ status: 'planned', targetDate: null })), 'Planned');
+  assert.equal(copy.milestoneRowFacts(milestone({ status: 'closed' })), 'Closed');
+  assert.equal(copy.milestoneRowFacts(milestone({ briefs: null })), 'Started');
+  assert.equal(copy.milestoneRowFacts(null), '');
+});

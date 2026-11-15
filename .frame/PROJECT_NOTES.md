@@ -4402,3 +4402,71 @@ Why outside, from the code audit: no hard coupling — only orchestration (`gitB
 - Archive: never auto-commit (Conductor does); with uncommitted changes Frame asks commit / discard / cancel. Archive removes the worktree and keeps the branch; "archive after merge" is a setting.
 - Scripts: v1 ships the per-repo setup script and `copyFiles`; the Run button and a per-workspace port are v1.1.
 - Location on disk: a visible `~/frame/workspaces/<repo>/<name>` (like Conductor's `~/conductor/workspaces`), configurable in settings — not under `~/.frame/`, which also avoids confusion with `~/.frame/workspaces.json`.
+
+### [2026-11-15] Frame Cloud milestones: the started milestone on Briefs and on Home
+
+Spec `frame-cloud-milestones`, branch `feat/frame-cloud-milestones` (off the
+`feat/frame-cloud-adaptor` umbrella). Frame's half of FrameCloud's
+`milestone-board` (PR #31) and `board-active-milestone` (PR #32), both of
+which listed "Milestones in Frame desktop" as out of scope. Until now Frame
+kept only a milestone's id, name and status, and a card showed the name and
+nothing else. T01–T11 ran autonomously on 2026-11-15; there was no developer
+walk yet.
+
+**Home's tracker was added at plan time (D4).** The spec asked only for the
+Briefs board. While planning, the user added a tracker on Home: the started
+milestone on the "Welcome to Frame!" row, as one pill (name, Overdue, end
+date, a bar, "N of M done") that opens Briefs narrowed to it. The spec's
+Goal, Constraints and Success Criteria were amended (G6, S11–S13). Rejected:
+name and bar only, with the date and count in a tooltip.
+
+**Decisions asked at plan time:**
+- D1 · Frame never sets a brief's milestone. The detail's Milestone row and
+  New brief stay read-only, and `brief.setMilestone` is never called; "Open on
+  web" is where it changes (the spec's "Milestones stay read-only in Frame",
+  frame-cloud-brief-manual-done's "every other mutation stays on the web").
+- D2 · Only the started milestone narrows the board, as on the web
+  (board-active-milestone D3). Rejected: a select over every open milestone
+  plus "No milestone".
+- D3 · A target branch that moved under a begun part gets nothing extra: the
+  row reads "On `<branch>`" and the merge check uses the brief's current
+  target. Rejected: recording the base branch at Begin, which would reach into
+  the Start flow (the begun record holds only `baseSha`).
+- D12 · Home's data: a new `CLOUD_MILESTONES_LIST` reads `milestone.list`
+  alone (one request) on a project, cloud or availability change and on a
+  Home visit or focus once older than 30 s; every Briefs board draw hands Home
+  its own counts (`homeData.setBoardMilestone`). Rejected: reusing
+  `CLOUD_BRIEFS_LIST` (the board's N+1 reads on every Home visit) and a new
+  FrameCloud `milestone.started` endpoint (a cross-repo dependency that would
+  still need the fallback). So the spec's "No new request" holds for the board
+  only (D13). Still no timers.
+- D14 · Tests cover the pure core and copy only; the panel, `homeData` and the
+  widget stay untested (no DOM harness, checked again).
+
+**Decided silently (plan):** the narrowing is panel state, cleared by
+`hide()` and a folder change (D5); viewers see none of it because Briefs
+already needs `work` (D6, so the spec's "a viewer sees the same strip" is
+moot); a narrowing counts only while it names the started milestone (D8); the
+tracking box keeps reading the whole board (D22); an older server's milestone
+(no counts) reads as its name alone, and `briefs === null` is how that is told
+apart from "No end date" (D11).
+
+**Built differently from the plan** (outcome T01–T11):
+- `targetDate` must be a real calendar day, not only `YYYY-MM-DD`-shaped.
+- `countsWithBriefs` filters to the milestone's own briefs itself (the panel
+  passes every shown brief) and returns null without server counts, unlike
+  the web's, which takes the milestone's briefs already filtered.
+- `homeData`'s reads and the board's handoffs share one sequence, so an older
+  read never overwrites the board's counts (which carry a held Move to Done);
+  a failed read keeps the last value unless the folder lost its connection.
+- Card badges follow the board's `startedMilestone` pick, not the status
+  alone, so an older server's extra started milestones get none.
+- The implement loop's "amend the hash in" step was skipped: `report-data.json`
+  is gitignored, so amending only changed the hash.
+
+**State.** 11 tasks done, spec `done`, digest written; `npm test` passes 2093
+(1 skipped). The panel and Home code were checked only with a throwaway
+fake-DOM harness, not in the running app. Open: a walk of the Success
+Criteria against a FrameCloud server carrying `board-active-milestone`; the
+existing `formatDate` test fails under `TZ=Pacific/Kiritimati` (UTC+14),
+unrelated to this spec.

@@ -15,6 +15,14 @@
  * "a brief Done stays on the server". Every other brief or milestone mutation
  * — a part merged, dropped or linked — stays on the server or the web.
  *
+ * A milestone is read whole (FrameCloud milestone-board, board-active-milestone):
+ * its goal, end date, own target branch, when it started and closed, and its
+ * briefs counted by status. An older server sends only id, name and status;
+ * the rest then reads as null, and `briefs === null` is how the renderer tells
+ * that apart from a milestone that simply has no end date. Milestones stay
+ * read-only in Frame, so the core builds the milestone's web page
+ * (buildMilestoneWebUrl) and writes nothing.
+ *
  * Reads also carry what GitHub tracking adds (FrameCloud brief-github-tracking):
  * every brief names its project's `mergeTracking` (`ready`, `needs_github` or
  * `off`), and each part its pull request (`prNumber`, `prState`, `prBase`,
@@ -168,9 +176,41 @@ function normalizeEvent(raw) {
   return { id: str(e.id), at: str(e.at), actorId: str(e.actorId), event: str(e.event), data: obj(e.data) };
 }
 
+/** A calendar date as `YYYY-MM-DD` that names a real day, or null. */
+function calendarDateOrNull(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day ? value : null;
+}
+
+const MILESTONE_COUNT_KEYS = ['backlog', 'active', 'done', 'closed'];
+
+/**
+ * A milestone's briefs by status, or null unless all four counts are
+ * non-negative integers: an older server sends none, and a half-read count
+ * would draw a wrong bar.
+ */
+function milestoneCounts(value) {
+  const c = obj(value);
+  if (!MILESTONE_COUNT_KEYS.every((k) => Number.isInteger(c[k]) && c[k] >= 0)) return null;
+  return { backlog: c.backlog, active: c.active, done: c.done, closed: c.closed };
+}
+
+/** One `milestone.list` entry, reduced to the fields Frame draws. */
 function normalizeMilestone(raw) {
   const m = obj(raw);
-  return { id: str(m.id), name: str(m.name), status: oneOf(MILESTONE_STATUSES, m.status, 'planned') };
+  return {
+    id: str(m.id),
+    name: str(m.name),
+    status: oneOf(MILESTONE_STATUSES, m.status, 'planned'),
+    goal: strOrNull(m.goal),
+    targetDate: calendarDateOrNull(m.targetDate),
+    targetBranch: strOrNull(m.targetBranch),
+    startedAt: strOrNull(m.startedAt),
+    closedAt: strOrNull(m.closedAt),
+    briefs: milestoneCounts(m.briefs),
+  };
 }
 
 // ─── Reading calls ────────────────────────────────────────────
@@ -183,7 +223,11 @@ async function listBriefs({ api, token, fetchJson, signal, projectSlug, includeC
   return arr(data).map(normalizeBrief).filter((b) => b.id && b.number);
 }
 
-/** `milestone.list` → `[{ id, name, status }]`. */
+/**
+ * `milestone.list` → the project's milestones, server (`createdAt`) order,
+ * each normalized (see normalizeMilestone): `{ id, name, status, goal,
+ * targetDate, targetBranch, startedAt, closedAt, briefs }`.
+ */
 async function listMilestones({ api, token, fetchJson, signal, projectSlug }) {
   const data = await callTrpc({ api, token, fetchJson, signal, name: 'milestone.list', method: 'GET', input: { projectSlug } });
   return arr(data).map(normalizeMilestone).filter((m) => m.id);
@@ -650,6 +694,17 @@ function buildSettingsWebUrl({ apiUrl, webOrigin, workspaceSlug, projectSlug } =
   return base ? `${base}/settings#github` : null;
 }
 
+/**
+ * `{project url}/milestones/{id}` (the web's milestone page, route
+ * `/$slug/$project/milestones/$milestoneId`), the id URL-encoded; null under
+ * buildWebUrl's guards or for an empty id.
+ */
+function buildMilestoneWebUrl({ apiUrl, webOrigin, workspaceSlug, projectSlug, milestoneId } = {}) {
+  if (typeof milestoneId !== 'string' || !milestoneId) return null;
+  const base = buildWebUrl({ apiUrl, webOrigin, workspaceSlug, projectSlug });
+  return base ? `${base}/milestones/${encodeURIComponent(milestoneId)}` : null;
+}
+
 module.exports = {
   LIMITS,
   normalizeBrief,
@@ -686,4 +741,5 @@ module.exports = {
   mergeTrackingOf,
   buildBriefWebUrl,
   buildSettingsWebUrl,
+  buildMilestoneWebUrl,
 };

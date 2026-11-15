@@ -505,6 +505,21 @@
   max-width: 100%;
 }
 
+/* The started milestone's name on a card (frame-cloud-milestones D9): a badge,
+   so its briefs stand out on the full board. */
+.cloud-briefs-milestone-badge {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  font-size: 10px;
+  font-weight: 500;
+}
+
 .cloud-briefs-ending {
   font-size: 11px;
   color: var(--text-tertiary);
@@ -610,6 +625,128 @@
   flex-shrink: 0;
 }
 
+/* The started milestone above the columns (frame-cloud-milestones): its name,
+   Overdue, the end date, its target branch and a bar, as the web's strip. */
+.cloud-briefs-milestone-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-xl);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  font-size: 13px;
+}
+
+.cloud-briefs-milestone-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.cloud-briefs-milestone-label {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-milestone-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+button.cloud-briefs-milestone-name {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  text-underline-offset: 3px;
+}
+
+button.cloud-briefs-milestone-name:hover {
+  text-decoration: underline;
+}
+
+button.cloud-briefs-milestone-name:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* "Overdue": the web's destructive badge. */
+.cloud-briefs-overdue {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--error-subtle);
+  color: var(--error);
+  white-space: nowrap;
+}
+
+.cloud-briefs-milestone-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--space-xl);
+  min-width: 0;
+  color: var(--text-secondary);
+}
+
+.cloud-briefs-milestone-target {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-briefs-milestone-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.cloud-briefs-progress {
+  display: block;
+  width: 80px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+}
+
+.cloud-briefs-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-primary);
+}
+
+.cloud-briefs-progress-label {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The board's one filter: pressed while the board shows only this milestone. */
+.cloud-briefs-milestone-toggle {
+  flex-shrink: 0;
+}
+
+.cloud-briefs-milestone-toggle[aria-pressed="true"] {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
 /* ─── Detail (inside the Specs drawer shell) ─── */
 
 .cloud-briefs-detail-body {
@@ -710,6 +847,20 @@
 .cloud-briefs-meta code {
   font-family: var(--font-mono);
   font-size: 12px;
+}
+
+/* The detail's Milestone row: the name, its status and end date, and Overdue. */
+.cloud-briefs-milestone-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-sm);
+  min-width: 0;
+}
+
+.cloud-briefs-milestone-row-facts {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .cloud-briefs-tabs {

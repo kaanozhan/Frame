@@ -25,6 +25,12 @@
  * project's Settings at its GitHub section, the only place tracking is turned
  * on or off. Frame never asks GitHub for anything itself (`brief.refresh` is
  * not called, plan D2).
+ *
+ * Milestones (frame-cloud-milestones): `list` returns each milestone whole,
+ * and `milestones` reads `milestone.list` alone, one request, for Home's
+ * tracker (D12) — never the board's N+1 reads. Open on web also opens a
+ * milestone's page. Frame creates, starts, closes and reopens no milestone and
+ * never sets a brief's (D1); those stay on the web.
  */
 
 const { IPC } = require('../../shared/ipcChannels');
@@ -82,6 +88,11 @@ function settingsWebUrl(project) {
   return inputs ? core.buildSettingsWebUrl(inputs) : null;
 }
 
+function milestoneWebUrl(project, milestoneId) {
+  const inputs = webInputs(project);
+  return inputs ? core.buildMilestoneWebUrl({ ...inputs, milestoneId }) : null;
+}
+
 /**
  * The folder's briefs and milestones.
  * → `{ ok, project, briefs, milestones, mergeTracking, meId, canOpenWeb }` or `{ ok: false, reason }`.
@@ -112,6 +123,19 @@ async function list(folderPath, { includeClosed } = {}) {
     meId: meId(),
     canOpenWeb: Boolean(webUrl(project)),
   };
+}
+
+/**
+ * The folder's milestones and nothing else: one `milestone.list`, for Home's
+ * tracker (frame-cloud-milestones D12).
+ * → `{ ok: true, milestones }` or `{ ok: false, reason }`.
+ */
+async function milestones(folderPath) {
+  const project = cloudProjectsService.connectedProject(folderPath);
+  if (!project) return NOT_CONNECTED;
+  const result = await cloudProjectsService.call((ctx) => core.listMilestones({ ...ctx, projectSlug: project.slug }));
+  if (!result.ok) return { ok: false, reason: result.reason };
+  return { ok: true, milestones: result.value };
 }
 
 /** One brief by number, with its history. → `{ ok, brief, events, meId, canOpenWeb }` or `{ ok: false, reason }`. */
@@ -223,8 +247,9 @@ function flushMoves() {
 
 /**
  * The project on the web: its Settings at the GitHub section for
- * `'settings'`, one brief for a number, the project page for nothing. Any
- * other target opens nothing. The URL is built and opened here.
+ * `'settings'`, one brief for a number, a milestone's page for
+ * `{ milestoneId }`, the project page for nothing. Any other target opens
+ * nothing. The URL is built and opened here.
  */
 function openOnWeb(folderPath, target) {
   const project = cloudProjectsService.connectedProject(folderPath);
@@ -233,6 +258,9 @@ function openOnWeb(folderPath, target) {
   if (target === 'settings') url = settingsWebUrl(project);
   else if (target === undefined || target === null) url = webUrl(project);
   else if (typeof target === 'number') url = webUrl(project, target);
+  else if (typeof target === 'object' && typeof target.milestoneId === 'string') {
+    url = milestoneWebUrl(project, target.milestoneId);
+  }
   if (!url) return false;
   cloudSession.openUrl(url);
   return true;
@@ -242,6 +270,7 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.CLOUD_BRIEFS_LIST, (event, folderPath, options) => list(folderPath, options || {}));
   ipcMain.handle(IPC.CLOUD_BRIEF_GET, (event, folderPath, number) => get(folderPath, number));
   ipcMain.handle(IPC.CLOUD_BRIEFS_OPEN_ON_WEB, (event, folderPath, target) => openOnWeb(folderPath, target));
+  ipcMain.handle(IPC.CLOUD_MILESTONES_LIST, (event, folderPath) => milestones(folderPath));
   ipcMain.handle(IPC.CLOUD_BRIEF_CREATE, (event, folderPath, request) => create(folderPath, request));
   ipcMain.handle(IPC.CLOUD_BRIEF_DECIDE, (event, folderPath, number, priority) => decide(folderPath, number, priority));
   ipcMain.handle(IPC.CLOUD_BRIEF_MOVE, (event, folderPath, number, options) => move(folderPath, number, options || {}));
@@ -251,6 +280,7 @@ function setupIPC(ipcMain) {
 module.exports = {
   setupIPC,
   list,
+  milestones,
   get,
   create,
   decide,

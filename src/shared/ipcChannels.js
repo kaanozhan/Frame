@@ -316,7 +316,8 @@ const IPC = {
   // and refuses a folder that is not connected before any request.
   CLOUD_BRIEFS_LIST: 'cloud-briefs-list',               // renderer → main (invoke): (path, { includeClosed }) → { ok, project, briefs, milestones, mergeTracking, meId, canOpenWeb } | { ok: false, reason }
   CLOUD_BRIEF_GET: 'cloud-brief-get',                   // renderer → main (invoke): (path, number) → { ok, brief, events, meId, canOpenWeb } | { ok: false, reason }
-  CLOUD_BRIEFS_OPEN_ON_WEB: 'cloud-briefs-open-on-web', // renderer → main (invoke): (path, number? | 'settings') → opened?
+  CLOUD_BRIEFS_OPEN_ON_WEB: 'cloud-briefs-open-on-web', // renderer → main (invoke): (path, number? | 'settings' | { milestoneId }) → opened?
+  CLOUD_MILESTONES_LIST: 'cloud-milestones-list',       // renderer → main (invoke): (path) → { ok, milestones } | { ok: false, reason } — milestone.list alone, for Home's tracker (frame-cloud-milestones)
   CLOUD_BRIEF_CREATE: 'cloud-brief-create',             // renderer → main (invoke): (path, { kind, title, body, priority, links }) → { ok, number, attachmentError } | { ok: false, reason, field? }
 
   // Frame Cloud brief discussions (frame-cloud-brief-discussions spec). Discuss

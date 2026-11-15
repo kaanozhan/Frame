@@ -67,13 +67,66 @@ test('listBriefs drops rows without an id or a number and survives a non-array',
   assert.deepEqual(await core.listBriefs({ ...ctx(empty.fetchJson), projectSlug: 'a-b' }), []);
 });
 
-test('listMilestones sends the project slug and keeps id, name and status', async () => {
+const MILESTONE = {
+  id: 'm1', projectId: 'p1', name: 'Beta', goal: 'Ship the beta', targetDate: '2026-11-20',
+  targetBranch: 'release/1.0', status: 'started', startedAt: '2026-11-01T09:00:00.000Z', closedAt: null,
+  createdAt: '2026-10-30T09:00:00.000Z', updatedAt: '2026-11-01T09:00:00.000Z', version: 3,
+  briefs: { backlog: 2, active: 1, done: 3, closed: 1 },
+};
+
+test('listMilestones sends the project slug and keeps the whole milestone Frame draws', async () => {
   const { fetchJson, calls } = fakeFetch({
-    '/trpc/milestone.list': ok([{ id: 'm1', name: 'Beta', status: 'started', goal: 'x' }, { name: 'no id' }]),
+    '/trpc/milestone.list': ok([MILESTONE, { name: 'no id' }]),
   });
   const milestones = await core.listMilestones({ ...ctx(fetchJson), projectSlug: 'my-app' });
   assert.deepEqual(calls[0].input, { projectSlug: 'my-app' });
-  assert.deepEqual(milestones, [{ id: 'm1', name: 'Beta', status: 'started' }]);
+  assert.deepEqual(milestones, [{
+    id: 'm1', name: 'Beta', status: 'started', goal: 'Ship the beta', targetDate: '2026-11-20',
+    targetBranch: 'release/1.0', startedAt: '2026-11-01T09:00:00.000Z', closedAt: null,
+    briefs: { backlog: 2, active: 1, done: 3, closed: 1 },
+  }]);
+});
+
+test('normalizeMilestone reads an older server\'s id, name and status with every new field null', () => {
+  assert.deepEqual(core.normalizeMilestone({ id: 'm1', name: 'Beta', status: 'planned' }), {
+    id: 'm1', name: 'Beta', status: 'planned', goal: null, targetDate: null,
+    targetBranch: null, startedAt: null, closedAt: null, briefs: null,
+  });
+});
+
+test('normalizeMilestone folds an unknown status to planned and empty strings to null', () => {
+  const m = core.normalizeMilestone({ ...MILESTONE, status: 'archived', goal: '', targetBranch: '', closedAt: 7 });
+  assert.equal(m.status, 'planned');
+  assert.equal(m.goal, null);
+  assert.equal(m.targetBranch, null);
+  assert.equal(m.closedAt, null);
+});
+
+test('normalizeMilestone keeps briefs only when all four counts are non-negative integers', () => {
+  const counts = MILESTONE.briefs;
+  for (const bad of [
+    { ...counts, done: -1 },
+    { ...counts, active: 1.5 },
+    { ...counts, backlog: '2' },
+    { backlog: 2, active: 1, done: 3 },
+    [2, 1, 3, 1],
+    null,
+    'many',
+  ]) {
+    assert.equal(core.normalizeMilestone({ ...MILESTONE, briefs: bad }).briefs, null, JSON.stringify(bad));
+  }
+  assert.deepEqual(core.normalizeMilestone({ ...MILESTONE, briefs: { ...counts, extra: 9 } }).briefs, counts);
+  assert.deepEqual(
+    core.normalizeMilestone({ ...MILESTONE, briefs: { backlog: 0, active: 0, done: 0, closed: 0 } }).briefs,
+    { backlog: 0, active: 0, done: 0, closed: 0 },
+  );
+});
+
+test('normalizeMilestone keeps targetDate only as a real YYYY-MM-DD day', () => {
+  for (const bad of ['2026-11-20T00:00:00Z', '20.11.2026', '2026-13-01', '2026-02-30', '2026-1-5', 20261120, '']) {
+    assert.equal(core.normalizeMilestone({ ...MILESTONE, targetDate: bad }).targetDate, null, String(bad));
+  }
+  assert.equal(core.normalizeMilestone({ ...MILESTONE, targetDate: '2028-02-29' }).targetDate, '2028-02-29');
 });
 
 test('getBrief asks by project slug and number, and orders parts by position', async () => {
@@ -423,6 +476,30 @@ test('buildSettingsWebUrl keeps the project URL guards', () => {
   assert.equal(core.buildSettingsWebUrl({ ...WEB, projectSlug: '../x' }), null);
   assert.equal(core.buildSettingsWebUrl({ ...WEB, workspaceSlug: '' }), null);
   assert.equal(core.buildSettingsWebUrl(), null);
+});
+
+test('buildMilestoneWebUrl points at the milestone\'s page', () => {
+  assert.equal(
+    core.buildMilestoneWebUrl({ ...WEB, milestoneId: 'm1' }),
+    'https://app.frame.test/lab/my-app/milestones/m1',
+  );
+});
+
+test('buildMilestoneWebUrl encodes the id', () => {
+  assert.equal(
+    core.buildMilestoneWebUrl({ ...WEB, milestoneId: 'a/b?c#d' }),
+    'https://app.frame.test/lab/my-app/milestones/a%2Fb%3Fc%23d',
+  );
+});
+
+test('buildMilestoneWebUrl is null for an empty id and under the project URL guards', () => {
+  for (const bad of ['', undefined, null, 7]) {
+    assert.equal(core.buildMilestoneWebUrl({ ...WEB, milestoneId: bad }), null, String(bad));
+  }
+  assert.equal(core.buildMilestoneWebUrl({ ...WEB, milestoneId: 'm1', webOrigin: 'javascript:alert(1)' }), null);
+  assert.equal(core.buildMilestoneWebUrl({ ...WEB, milestoneId: 'm1', projectSlug: '../x' }), null);
+  assert.equal(core.buildMilestoneWebUrl({ ...WEB, milestoneId: 'm1', workspaceSlug: '' }), null);
+  assert.equal(core.buildMilestoneWebUrl(), null);
 });
 
 // ─── Creating ─────────────────────────────────────────────────
