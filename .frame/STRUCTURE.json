@@ -3891,6 +3891,7 @@
         "electron",
         "path",
         "shared/ipcChannels",
+        "shared/externalLink",
         "logger",
         "envPath",
         "perfMonitor",
@@ -3935,26 +3936,26 @@
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 64,
+          "line": 65,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 82,
+          "line": 83,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 183
+          "line": 200
         },
         "setupAllIPC": {
-          "line": 213,
+          "line": 230,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 311,
+          "line": 328,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 359,
+          "line": 376,
           "params": [
             "window"
           ],
@@ -3977,7 +3978,7 @@
           "MAIN_PROCESS_ERROR"
         ]
       },
-      "sizeBytes": 16497,
+      "sizeBytes": 17328,
       "extraction": {
         "status": "parsed"
       },
@@ -19823,6 +19824,7 @@
       ],
       "depends": [
         "electron",
+        "shared/externalLink",
         "shared/reviewModel",
         "xterm",
         "xterm-addon-fit",
@@ -19833,20 +19835,20 @@
       ],
       "functions": {
         "getTerminalTheme": {
-          "line": 16,
+          "line": 17,
           "purpose": "Terminal theme for the current app theme (themes.js owns the palettes)."
         },
         "escapePathForShell": {
-          "line": 34,
+          "line": 35,
           "params": [
             "p"
           ]
         },
         "installGlobalDropGuard": {
-          "line": 50
+          "line": 51
         },
         "terminalName": {
-          "line": 65,
+          "line": 66,
           "params": [
             "n"
           ],
@@ -19872,7 +19874,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 41062,
+      "sizeBytes": 41561,
       "extraction": {
         "status": "parsed"
       },
@@ -26489,6 +26491,33 @@
         }
       }
     },
+    "shared/externalLink": {
+      "file": "src/shared/externalLink.js",
+      "description": "externalLink — which URLs Frame may hand to the system browser.",
+      "exports": [
+        "isSafeExternalUrl"
+      ],
+      "depends": [],
+      "functions": {
+        "isSafeExternalUrl": {
+          "line": 14,
+          "params": [
+            "url"
+          ],
+          "purpose": "True when `url` is a well-formed http(s) URL safe to open externally."
+        }
+      },
+      "sizeBytes": 809,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "ba76e0457ebc3818",
+        "purposes": {
+          "isSafeExternalUrl": "44cc7d9548f3f7ea"
+        }
+      }
+    },
     "shared/feedbackReport": {
       "file": "src/shared/feedbackReport.js",
       "description": "Feedback report — the one composer.",
@@ -29715,6 +29744,21 @@
       },
       "provenance": {
         "description": "4fe4edea06c37bff"
+      }
+    },
+    "test/externalLink.test": {
+      "file": "test/externalLink.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert",
+        "src/shared/externalLink"
+      ],
+      "functions": {},
+      "sizeBytes": 635,
+      "extraction": {
+        "status": "parsed"
       }
     },
     "test/feedbackReport.test": {
@@ -35140,6 +35184,13 @@
         "description": ""
       }
     },
+    "servers": {
+      "SERVERS_LIST": {
+        "name": "servers-list",
+        "direction": "",
+        "description": ""
+      }
+    },
     "send": {
       "SEND_FILES_LIST": {
         "name": "send-files-list",
@@ -35148,13 +35199,6 @@
       },
       "SEND_FILES_SEND": {
         "name": "send-files-send",
-        "direction": "",
-        "description": ""
-      }
-    },
-    "servers": {
-      "SERVERS_LIST": {
-        "name": "servers-list",
         "direction": "",
         "description": ""
       }
@@ -35614,6 +35658,18 @@
         "module": "shared/ipcChannels",
         "file": "src/shared/ipcChannels.js",
         "description": "IPC Channel Constants"
+      }
+    ],
+    "link": [
+      {
+        "module": "main/serverLink",
+        "file": "src/main/serverLink.js",
+        "description": "Server link — the desktop's connection to ONE Frame Server"
+      },
+      {
+        "module": "shared/externalLink",
+        "file": "src/shared/externalLink.js",
+        "description": "externalLink — which URLs Frame may hand to the system browser."
       }
     ],
     "list": [
@@ -36471,7 +36527,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 400,
+        "parsed": 402,
         "unsupported": 92,
         "partial": 0
       }
@@ -36518,9 +36574,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 586,
+      "visitedEntries": 588,
       "traversedDirectories": 86,
-      "eligibleFiles": 492,
+      "eligibleFiles": 494,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -36537,7 +36593,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 492,
+      "indexedFiles": 494,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -36545,6 +36601,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "6643a4e056c9417b42d9a592e7fcaf746574b727f8acafd8febdec4f5ee121a2"
+    "revision": "7d4411ed8cd0fce44b7300932e193a4370615d472f85a3f6ff824987e96d8611"
   }
 }
