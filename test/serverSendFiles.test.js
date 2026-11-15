@@ -134,3 +134,25 @@ test('T03: files.compare says same, changed or missing', async () => {
   });
   assert.deepEqual(r, { '.env': 'same', '.env.local': 'changed', 'config/local.json': 'missing' });
 });
+
+// ─── T04: the desktop's patterns on create ───────────────────
+
+test('T04: a new server workspace gets the main copy\'s files matching the patterns the desktop passed', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  // Sent once, into the first workspace and the main copy.
+  await methods['files.receive']({ archive: upload([file('.env', 'SECRET\n', 0o600), file('certs/dev.pem', 'PEM')]), projectPath, root: ws });
+  const next = await methods['workspaces.create']({ projectPath, from: 'new', copyFiles: ['/.env', 'certs/**'] });
+  assert.ok(next.workspace, JSON.stringify(next));
+  assert.deepEqual([...next.copied].sort(), ['.env', 'certs']);
+  assert.equal(fs.readFileSync(path.join(next.workspace.path, '.env'), 'utf8'), 'SECRET\n');
+  assert.ok(fs.existsSync(path.join(next.workspace.path, 'certs', 'dev.pem')));
+  const none = await methods['workspaces.create']({ projectPath, from: 'new', copyFiles: [] });
+  assert.deepEqual(none.copied, [], 'an empty list copies nothing, whatever the server config says');
+});
+
+test('T04: without patterns from the desktop the server keeps using its own config', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  await methods['files.receive']({ archive: upload([file('.env', 'S\n')]), projectPath, root: ws });
+  const next = await methods['workspaces.create']({ projectPath, from: 'new' });
+  assert.deepEqual(next.copied, ['.env'], 'the default .env* still applies');
+});

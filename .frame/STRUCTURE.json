@@ -8457,43 +8457,44 @@
           "line": 112,
           "params": [
             "projectPath",
-            "worktreePath"
+            "worktreePath",
+            "patterns = null"
           ],
           "purpose": "Copy the `copyFiles` selection from the main checkout into a worktree."
         },
         "server": {
-          "line": 155
+          "line": 157
         },
         "currentHost": {
-          "line": 160,
+          "line": 162,
           "purpose": "The host the desktop is (or was last) connected to."
         },
         "rowsFor": {
-          "line": 169,
+          "line": 171,
           "params": [
             "projectPath"
           ],
           "purpose": "Cached server rows of `projectPath`, only when they belong to the current"
         },
         "currentEntries": {
-          "line": 175,
+          "line": 177,
           "purpose": "The current host's entries only."
         },
         "originOf": {
-          "line": 180,
+          "line": 182,
           "params": [
             "projectPath"
           ]
         },
         "localIdentity": {
-          "line": 190,
+          "line": 192,
           "params": [
             "projectPath"
           ],
           "purpose": "How the server knows `projectPath`: its remote, its root commit, and the key (serverRouting.projectKey)."
         },
         "findOnServer": {
-          "line": 198,
+          "line": 200,
           "params": [
             "projectPath",
             "id"
@@ -8501,21 +8502,21 @@
           "purpose": "The server's clone of `projectPath`, matched by remote or (no remote) by root commit; null when none."
         },
         "ensureOnServer": {
-          "line": 212,
+          "line": 214,
           "params": [
             "projectPath"
           ],
           "purpose": "Make sure the server has `projectPath` (server-onboarding): the existing"
         },
         "serverProjectFor": {
-          "line": 241,
+          "line": 243,
           "params": [
             "projectPath"
           ],
           "purpose": "The server's clone of `projectPath`, or null (cached per host; matched by remote or root commit)."
         },
         "toServerRow": {
-          "line": 249,
+          "line": 251,
           "params": [
             "row",
             "serverProjectPath",
@@ -8523,24 +8524,24 @@
           ]
         },
         "listServer": {
-          "line": 253,
+          "line": 255,
           "params": [
             "projectPath"
           ]
         },
         "serverRoots": {
-          "line": 276,
+          "line": 278,
           "purpose": "Every known server workspace folder (server-workspace-panels): what panel"
         },
         "serverLocation": {
-          "line": 287,
+          "line": 289,
           "params": [
             "workspaceId"
           ],
           "purpose": "Where a workspace id lives on the server, or null when it is not a server workspace."
         },
         "serverCall": {
-          "line": 295,
+          "line": 297,
           "params": [
             "method",
             "projectPath",
@@ -8549,7 +8550,7 @@
           ]
         },
         "createOnServer": {
-          "line": 304,
+          "line": 306,
           "params": [
             "projectPath",
             "{ from",
@@ -8558,35 +8559,35 @@
           ]
         },
         "notifyRenderer": {
-          "line": 323,
+          "line": 329,
           "params": [
             "projectPath"
           ],
           "purpose": "Tell the renderer only (no spec/git refresh — those are local concerns)."
         },
         "wireServerEvents": {
-          "line": 328
+          "line": 334
         },
         "list": {
-          "line": 347,
+          "line": 353,
           "params": [
             "projectPath"
           ]
         },
         "realPath": {
-          "line": 355,
+          "line": 361,
           "params": [
             "p"
           ]
         },
         "listLocal": {
-          "line": 359,
+          "line": 365,
           "params": [
             "projectPath"
           ]
         },
         "withBase": {
-          "line": 378,
+          "line": 384,
           "params": [
             "projectPath",
             "rows"
@@ -8594,7 +8595,7 @@
           "purpose": "Records stored before workspaces knew their base (`base: null`) read as the"
         },
         "baseForBranch": {
-          "line": 385,
+          "line": 391,
           "params": [
             "projectPath",
             "branch"
@@ -8602,32 +8603,33 @@
           "purpose": "The base to prefill for a workspace opened from `branch` (decision B2)."
         },
         "status": {
-          "line": 394,
+          "line": 400,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "create": {
-          "line": 413,
+          "line": 419,
           "params": [
             "projectPath",
             "{ from = 'new'",
             "base",
             "branch",
-            "location = 'local' } = {}"
+            "location = 'local'",
+            "copyFiles = null } = {}"
           ],
           "purpose": "Create a workspace."
         },
         "refExists": {
-          "line": 518,
+          "line": 524,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "archive": {
-          "line": 534,
+          "line": 540,
           "params": [
             "projectPath",
             "id",
@@ -8638,7 +8640,7 @@
           "purpose": "Archive. With uncommitted changes and no `action`, nothing happens and"
         },
         "restore": {
-          "line": 589,
+          "line": 595,
           "params": [
             "projectPath",
             "id"
@@ -8646,7 +8648,7 @@
           "purpose": "Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere."
         },
         "rename": {
-          "line": 614,
+          "line": 620,
           "params": [
             "projectPath",
             "id",
@@ -8656,7 +8658,7 @@
           "purpose": "Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`)."
         },
         "removeRecord": {
-          "line": 648,
+          "line": 654,
           "params": [
             "projectPath",
             "id"
@@ -8664,13 +8666,13 @@
           "purpose": "Forget a record whose worktree is gone (missing) or that is archived."
         },
         "setupIPC": {
-          "line": 664,
+          "line": 670,
           "params": [
             "ipcMain"
           ]
         },
         "archiveQueued": {
-          "line": 691,
+          "line": 697,
           "params": [
             "projectPath",
             "id",
@@ -8697,7 +8699,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 30965,
+      "sizeBytes": 31467,
       "extraction": {
         "status": "parsed"
       },
@@ -25218,7 +25220,7 @@
           ]
         }
       },
-      "sizeBytes": 8469,
+      "sizeBytes": 8682,
       "extraction": {
         "status": "parsed"
       },
@@ -31349,7 +31351,7 @@
           ]
         }
       },
-      "sizeBytes": 8060,
+      "sizeBytes": 9572,
       "extraction": {
         "status": "parsed"
       },
@@ -35459,6 +35461,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "7f1d96e9896c625c162d138adc917b8db3b387f0d40ee79fa6ee6fbe5a1decb6"
+    "revision": "af0802b5650b892b1d090d627c343e7d2b1d3eafade8d733b9c9f6a24dac9599"
   }
 }

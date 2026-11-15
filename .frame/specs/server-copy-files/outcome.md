@@ -22,3 +22,11 @@ Added `src/server/sendFiles.js`, registered in `src/server/index.js`. `files.com
 _Captured: 2026-11-15 · 3 file change(s)_
 
 ---
+
+## T04 — The desktop's copyFiles patterns reach server workspace creation
+
+`workspaceManager.copyIgnoredFiles` takes optional `patterns`, and `create` takes `copyFiles` and passes it through. `createOnServer` sends this desktop's `copyFiles` with `workspaces.create`. Frame Server's `projects.js` forwards only a list of strings, so a new server workspace gets the files from the main copy that match the desktop's patterns. An empty list copies nothing. With no patterns passed (an older desktop), the server falls back to its own config, as before. Tests in `test/serverSendFiles.test.js`; the desktop half (`createOnServer` actually sending them) is pinned in T05's `test/sendFilesDesktop.test.js`.
+
+_Captured: 2026-11-15 · 3 file change(s)_
+
+---

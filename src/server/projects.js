@@ -169,7 +169,11 @@ function setup({ shim, registerMethods, broadcast }) {
       return out;
     },
     'workspaces.list': async ({ projectPath } = {}) => workspaceManager.list(needProject(projectPath)),
-    'workspaces.create': async ({ projectPath, from, base, branch } = {}) => workspaceManager.create(needProject(projectPath), { from, base, branch }),
+    'workspaces.create': async ({ projectPath, from, base, branch, copyFiles = null } = {}) => workspaceManager.create(needProject(projectPath), {
+      from, base, branch,
+      // The desktop's patterns (server-copy-files); only a list of strings is taken.
+      copyFiles: Array.isArray(copyFiles) ? copyFiles.filter((p) => typeof p === 'string') : null
+    }),
     'workspaces.status': async ({ projectPath, id } = {}) => workspaceManager.status(needProject(projectPath), id),
     'workspaces.archive': async ({ projectPath, id, action, message, rescue } = {}) => workspaceManager.archive(needProject(projectPath), id, { action, message, rescue: rescue === true }),
     'workspaces.rename': async ({ projectPath, id, name, branch } = {}) => workspaceManager.rename(needProject(projectPath), id, { name, branch }),

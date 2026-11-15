@@ -109,8 +109,10 @@ function newId() {
  * Only gitignored, untracked paths are candidates (tracked files are already
  * there). Never overwrites a file that exists in the worktree.
  */
-async function copyIgnoredFiles(projectPath, worktreePath) {
-  const { copyFiles } = settingsFor(projectPath);
+async function copyIgnoredFiles(projectPath, worktreePath, patterns = null) {
+  // A server workspace is created with the desktop's patterns (server-copy-files):
+  // the server's own config may lag behind them, or not exist (local mode).
+  const copyFiles = Array.isArray(patterns) ? patterns : settingsFor(projectPath).copyFiles;
   if (!copyFiles.length) return [];
   const { paths } = await git.listIgnoredCandidates(projectPath);
   const chosen = selectFiles(paths, copyFiles);
@@ -305,7 +307,11 @@ async function createOnServer(projectPath, { from, base, branch }) {
   if (!server().isConnected()) return { error: 'Connect to a server first (File ▸ Connect to Server…).' };
   try {
     const { serverProjectPath: sp, sent } = await ensureOnServer(projectPath);
-    const res = await server().call('workspaces.create', { projectPath: sp, from, base, branch }, 11 * 60 * 1000);
+    // This desktop's copyFiles patterns: the server copies the matching files
+    // it holds in its main copy (sent with "Send files to server") into the
+    // new worktree.
+    const copyFiles = settingsFor(projectPath).copyFiles || [];
+    const res = await server().call('workspaces.create', { projectPath: sp, from, base, branch, copyFiles }, 11 * 60 * 1000);
     if (!res || res.error) return { error: (res && res.error) || 'Could not create the workspace on the server.' };
     const host = server().getStatus().host;
     const workspace = toServerRow(res.workspace, sp, host);
@@ -410,7 +416,7 @@ async function status(projectPath, id) {
  *                    first; a failed fetch falls back to what is local)
  *   from: 'branch' → an existing branch (local, or remote-only via git's DWIM)
  */
-async function create(projectPath, { from = 'new', base, branch, location = 'local' } = {}) {
+async function create(projectPath, { from = 'new', base, branch, location = 'local', copyFiles = null } = {}) {
   if (!projectPath) return { error: 'No project selected' };
   // Branch text from the dialog (or the server protocol) reaches git argv:
   // refuse anything that is not a plain branch name before any git runs
@@ -509,7 +515,7 @@ async function create(projectPath, { from = 'new', base, branch, location = 'loc
     return { error: result.ok ? 'This project is not in the project registry.' : result.error.message };
   }
 
-  const copied = await copyIgnoredFiles(projectPath, worktreePath);
+  const copied = await copyIgnoredFiles(projectPath, worktreePath, copyFiles);
   tooling.provision(projectPath, worktreePath);
   notify(projectPath);
   return { error: null, workspace: result.record, copied, fetch, setupScript: settings.setupScript };
