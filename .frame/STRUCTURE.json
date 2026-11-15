@@ -5781,41 +5781,43 @@
           "purpose": "Never offered: Frame's own folder."
         },
         "locate": {
-          "line": 47,
+          "line": 51,
           "params": [
-            "workspaceId"
+            "workspaceId",
+            "serverKey = null"
           ],
-          "purpose": "The server workspace `workspaceId` names, or an error object."
+          "purpose": "The server workspace `workspaceId` names and the link of its own server"
         },
         "candidates": {
-          "line": 56,
+          "line": 62,
           "params": [
             "projectPath"
           ],
           "purpose": "`{ ignored, untracked }` as git lists them, minus `.frame/`."
         },
         "boundedSize": {
-          "line": 70,
+          "line": 76,
           "params": [
             "dir"
           ],
           "purpose": "Bytes under `dir`, stopping after WALK_MAX_ENTRIES entries or WALK_MAX_MS; `{ size, cut }`."
         },
         "sha256": {
-          "line": 92,
+          "line": 98,
           "params": [
             "file"
           ]
         },
         "list": {
-          "line": 96,
+          "line": 102,
           "params": [
             "{ projectPath",
-            "workspaceId } = {}"
+            "workspaceId",
+            "serverKey = null } = {}"
           ]
         },
         "entriesFor": {
-          "line": 134,
+          "line": 140,
           "params": [
             "projectPath",
             "rel",
@@ -5824,16 +5826,17 @@
           "purpose": "Archive entries for one chosen path (a file, a symlink, or a whole collapsed folder)."
         },
         "send": {
-          "line": 145,
+          "line": 151,
           "params": [
             "{ projectPath",
             "workspaceId",
+            "serverKey = null",
             "paths",
             "remember = false } = {}"
           ]
         },
         "setupIPC": {
-          "line": 196,
+          "line": 202,
           "params": [
             "ipcMain"
           ]
@@ -5846,7 +5849,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 9045,
+      "sizeBytes": 9418,
       "extraction": {
         "status": "parsed"
       },
@@ -5856,7 +5859,7 @@
           "boundedSize": "423a187c431ce0e5",
           "candidates": "0a2827990991bcde",
           "entriesFor": "3952c7ee8b770373",
-          "locate": "4499a53d0d166979",
+          "locate": "cd075ba3bf8111f5",
           "offered": "806466f4ce320908"
         }
       }
@@ -15792,14 +15795,14 @@
           ]
         },
         "summary": {
-          "line": 199,
+          "line": 200,
           "params": [
             "result"
           ],
           "purpose": "One line for a notice: what was sent, overwritten and skipped."
         }
       },
-      "sizeBytes": 9775,
+      "sizeBytes": 9865,
       "extraction": {
         "status": "parsed"
       },
@@ -26991,7 +26994,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 19126,
+      "sizeBytes": 19148,
       "extraction": {
         "status": "parsed"
       },
@@ -31908,12 +31911,19 @@
         "src/main/workspaceManager"
       ],
       "functions": {
+        "makeLink": {
+          "line": 29,
+          "params": [
+            "key",
+            "host"
+          ]
+        },
         "project": {
-          "line": 74,
+          "line": 90,
           "purpose": "A Frame project with tracked a.txt; ignored .env, certs/, node_modules/ and .frame/bin; untracked src/new.js."
         },
         "write": {
-          "line": 71,
+          "line": 87,
           "params": [
             "file",
             "body = 'x\\n'",
@@ -31921,7 +31931,7 @@
           ]
         }
       },
-      "sizeBytes": 9678,
+      "sizeBytes": 11266,
       "extraction": {
         "status": "parsed"
       },
@@ -36479,6 +36489,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "2173be74dee7b8353902d29e1de0a5e347eddfec6e6593d6e43b6b8a215efd37"
+    "revision": "588d32af0317ed2405ac511e6897b3c497f4c83bffa1b46131fae28375802baa"
   }
 }

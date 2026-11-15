@@ -23,25 +23,41 @@ const git = (args, cwd) => execFileSync('git', args, { cwd, encoding: 'utf8', st
 
 const calls = [];
 const uploads = [];
+// multi-server-connections: one link per server. `box` answers like a
+// server; `other` is a second server whose calls are recorded separately.
 const fakeServer = new EventEmitter();
+function makeLink(key, host) {
+  return {
+    key,
+    host,
+    isConnected() { return fakeServer.connected; },
+    getStatus() { return { state: fakeServer.connected ? 'connected' : 'reconnecting', host }; },
+    async call(method, params) {
+      calls.push({ method, params, server: key });
+      const a = fakeServer.answers[method];
+      if (a instanceof Error) throw a;
+      if (typeof a === 'function') return a(params);
+      if (method === 'files.receive') return { written: ['x'], overwritten: [], skipped: [], toMainCopy: [] };
+      return a === undefined ? null : a;
+    }
+  };
+}
+const LINKS = { 'k-box': makeLink('k-box', 'box'), 'k-other': makeLink('k-other', 'other') };
 Object.assign(fakeServer, {
   connected: true,
   answers: {},
+  of: (key) => LINKS[key] || null,
+  all: () => [LINKS['k-box']],
   isConnected() { return this.connected; },
   getStatus() { return { state: this.connected ? 'connected' : 'reconnecting', host: 'box' }; },
-  on(name, fn) { EventEmitter.prototype.on.call(this, name, fn); return () => this.removeListener(name, fn); },
-  async call(method, params) {
-    calls.push({ method, params });
-    const a = this.answers[method];
-    if (a instanceof Error) throw a;
-    if (typeof a === 'function') return a(params);
-    if (method === 'files.receive') return { written: ['x'], overwritten: [], skipped: [], toMainCopy: [] };
-    return a === undefined ? null : a;
-  }
+  on(name, fn) { EventEmitter.prototype.on.call(this, name, fn); return () => this.removeListener(name, fn); }
 });
 const fakeInstaller = { async upload(host, local, remote) { uploads.push({ host, remote, bytes: fs.readFileSync(local) }); } };
 const fakeWorkspaces = {
-  serverLocation: (id) => (id === 'srv' ? { serverProjectPath: '/srv/projects/app', path: '/srv/ws/app/teal', host: 'box', name: 'teal' } : null)
+  serverLocation: (id) => (
+    id === 'srv' ? { serverProjectPath: '/srv/projects/app', path: '/srv/ws/app/teal', host: 'box', serverKey: 'k-box', name: 'teal' }
+      : id === 'srv2' ? { serverProjectPath: '/home/o/frame/projects/app', path: '/home/o/frame/workspaces/app/jade', host: 'other', serverKey: 'k-other', name: 'jade' }
+        : null)
 };
 
 const MAIN = path.join(__dirname, '..', 'src', 'main');
@@ -170,4 +186,17 @@ test('T04 (desktop half): createOnServer passes this desktop\'s copyFiles with w
     delete fakeServer.answers['projects.list'];
     delete fakeServer.answers['workspaces.create'];
   }
+});
+
+test('multi-server: a workspace on the second server is listed and sent through that server only', async () => {
+  const dir = project();
+  calls.length = 0; uploads.length = 0;
+  const listed = await sendFiles.list({ projectPath: dir, workspaceId: 'srv2', serverKey: 'k-other' });
+  assert.equal(listed.error, undefined, listed.error);
+  assert.equal(listed.host, 'other');
+  const r = await sendFiles.send({ projectPath: dir, workspaceId: 'srv2', serverKey: 'k-other', paths: ['.env'] });
+  assert.equal(r.error, undefined, r.error);
+  assert.deepEqual([...new Set(calls.map((c) => c.server))], ['k-other'], 'never the default server');
+  assert.equal(uploads[0].host, 'other', 'uploaded to that server');
+  assert.equal(calls.find((c) => c.method === 'files.receive').params.root, '/home/o/frame/workspaces/app/jade');
 });

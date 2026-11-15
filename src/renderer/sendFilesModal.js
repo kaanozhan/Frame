@@ -151,6 +151,7 @@ function open({ projectPath, workspace, context = 'resend' } = {}) {
         res = await ipcRenderer.invoke(IPC.SEND_FILES_SEND, {
           projectPath,
           workspaceId: workspace.id,
+          serverKey: workspace.serverKey || null,
           paths: [...selected],
           remember: overlay.querySelector('.sf-remember-box').checked
         });
@@ -172,7 +173,7 @@ function open({ projectPath, workspace, context = 'resend' } = {}) {
     (async () => {
       let data;
       try {
-        data = await ipcRenderer.invoke(IPC.SEND_FILES_LIST, { projectPath, workspaceId: workspace.id });
+        data = await ipcRenderer.invoke(IPC.SEND_FILES_LIST, { projectPath, workspaceId: workspace.id, serverKey: workspace.serverKey || null });
       } catch (err) {
         data = { error: err.message };
       }

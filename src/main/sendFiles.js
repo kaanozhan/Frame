@@ -3,9 +3,9 @@
  *
  * The desktop half of the "Send files to server" modal:
  *
- *   SEND_FILES_LIST { projectPath, workspaceId }
+ *   SEND_FILES_LIST { projectPath, workspaceId, serverKey }
  *     → { ignored, untracked, sizes, server, copyFiles, host }   (sendFilesModel.buildTree's input)
- *   SEND_FILES_SEND { projectPath, workspaceId, paths, remember }
+ *   SEND_FILES_SEND { projectPath, workspaceId, serverKey, paths, remember }
  *     → { written, overwritten, skipped, toMainCopy, remembered } | { error }
  *
  * What can be sent is decided here, from git, never taken from the renderer:
@@ -43,13 +43,19 @@ function offered(rel) {
   return p && p !== '.frame' && !p.startsWith('.frame/');
 }
 
-/** The server workspace `workspaceId` names, or an error object. */
-function locate(workspaceId) {
+/**
+ * The server workspace `workspaceId` names and the link of its own server
+ * (multi-server-connections: every call goes to that server, never to the
+ * default one), or an error object.
+ */
+function locate(workspaceId, serverKey = null) {
   let loc = null;
-  try { loc = require('./workspaceManager').serverLocation(workspaceId); } catch (_) { loc = null; }
+  try { loc = require('./workspaceManager').serverLocation(workspaceId, serverKey || null); } catch (_) { loc = null; }
   if (!loc) return { error: 'That is not a server workspace.' };
-  if (!server().isConnected()) return { error: `${loc.host || 'The server'} is offline — reconnect to send files.` };
-  return { loc };
+  let link = null;
+  try { link = loc.serverKey ? server().of(loc.serverKey) : null; } catch (_) { link = null; }
+  if (!link || !link.isConnected()) return { error: `${loc.host || 'The server'} is offline — reconnect to send files.` };
+  return { loc, link };
 }
 
 /** `{ ignored, untracked }` as git lists them, minus `.frame/`. */
@@ -93,11 +99,11 @@ function sha256(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 
-async function list({ projectPath, workspaceId } = {}) {
+async function list({ projectPath, workspaceId, serverKey = null } = {}) {
   if (!projectPath) return { error: 'No project selected.' };
-  const where = locate(workspaceId);
+  const where = locate(workspaceId, serverKey);
   if (where.error) return { error: where.error };
-  const { loc } = where;
+  const { loc, link } = where;
   let groups;
   try { groups = await candidates(projectPath); } catch (err) { return { error: `Could not list the files git does not carry: ${err.message}` }; }
 
@@ -121,7 +127,7 @@ async function list({ projectPath, workspaceId } = {}) {
 
   let serverState = {};
   try {
-    serverState = await server().call('files.compare', { projectPath: loc.serverProjectPath, root: loc.path, entries: compareEntries }) || {};
+    serverState = await link.call('files.compare', { projectPath: loc.serverProjectPath, root: loc.path, entries: compareEntries }) || {};
   } catch (err) {
     if (/Unknown method/.test(String(err && err.message))) return { error: UPDATE_SERVER };
     return { error: err.message };
@@ -142,11 +148,11 @@ function entriesFor(projectPath, rel, out) {
   }
 }
 
-async function send({ projectPath, workspaceId, paths, remember = false } = {}) {
+async function send({ projectPath, workspaceId, serverKey = null, paths, remember = false } = {}) {
   if (!projectPath) return { error: 'No project selected.' };
-  const where = locate(workspaceId);
+  const where = locate(workspaceId, serverKey);
   if (where.error) return { error: where.error };
-  const { loc } = where;
+  const { loc, link } = where;
   const wanted = new Set((Array.isArray(paths) ? paths : []).map((p) => String(p).replace(/\/+$/, '')));
   if (!wanted.size) return { error: 'Nothing is ticked.' };
 
@@ -173,8 +179,8 @@ async function send({ projectPath, workspaceId, paths, remember = false } = {}) 
   let result;
   try {
     fs.writeFileSync(local, pack(entries), { mode: 0o600 });
-    await require('./serverInstaller').upload(loc.host, local, `.frame-server/tmp/${name}`);
-    result = await server().call('files.receive', { archive: name, projectPath: loc.serverProjectPath, root: loc.path, untracked }, 10 * 60 * 1000);
+    await require('./serverInstaller').upload(link.host, local, `.frame-server/tmp/${name}`);
+    result = await link.call('files.receive', { archive: name, projectPath: loc.serverProjectPath, root: loc.path, untracked }, 10 * 60 * 1000);
   } catch (err) {
     if (/Unknown method/.test(String(err && err.message))) return { error: UPDATE_SERVER };
     return { error: err.message };
