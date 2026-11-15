@@ -12,9 +12,10 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
+const workspaceSpecs = require('../src/shared/workspaceSpecs');
 const {
   provisionEntries, mergeSpecLists, rootForSlug, commandPaths, handBackSlugs
-} = require('../src/shared/workspaceSpecs');
+} = workspaceSpecs;
 
 const P = '/work/app';
 const TEAL = { id: 'w1', name: 'teal', branch: 'ws/teal', root: '/ws/app/teal' };
@@ -85,4 +86,31 @@ test('handBackSlugs: local mode only, new slugs and newer copies only', () => {
   ];
   assert.deepEqual(handBackSlugs(wt, main, 'local'), ['new-one', 'newer']);
   assert.deepEqual(handBackSlugs(wt, main, 'repo'), [], 'repo mode: the branch carries specs');
+});
+
+// ─── server-specs T05: server workspaces ─────────────────────
+
+const SERVER_WS = { id: 's1', name: 'jade', branch: null, root: '/home/u/frame/workspaces/app/jade', host: 'box', offline: false };
+
+test('mergeSpecLists: a server workspace entry carries its host and offline flag; a local one carries neither', () => {
+  const merged = mergeSpecLists(
+    [{ slug: 'shared', updated_at: '1' }],
+    [
+      { workspace: TEAL, specs: [{ slug: 'local-ws', updated_at: '2' }] },
+      { workspace: { ...SERVER_WS, offline: true }, specs: [{ slug: 'shared', updated_at: '3' }, { slug: 'remote', updated_at: '4' }] }
+    ]
+  );
+  const by = Object.fromEntries(merged.map((s) => [s.slug, s.workspace]));
+  assert.deepEqual(by.remote, { id: 's1', name: 'jade', branch: null, root: SERVER_WS.root, host: 'box', offline: true });
+  assert.deepEqual(by.shared, by.remote, 'the server workspace copy beats main, the existing rule');
+  assert.equal('host' in by['local-ws'], false);
+  assert.equal('offline' in by['local-ws'], false);
+});
+
+test('chipLabel: name locally, name · host on a server, plus offline when unreachable', () => {
+  const { chipLabel } = workspaceSpecs;
+  assert.equal(chipLabel(TEAL), 'teal');
+  assert.equal(chipLabel(SERVER_WS), 'jade · box');
+  assert.equal(chipLabel({ ...SERVER_WS, offline: true }), 'jade · box · offline');
+  assert.equal(chipLabel(null), '');
 });

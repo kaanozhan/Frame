@@ -24,7 +24,7 @@ const {
   Play, Sun, GitBranch, Bot, KeyRound, ChevronDown, SquareTerminal, Folder, File,
   Users, Lock, Plus, Maximize2, History, ListChecks, FileText, Check, GitMerge,
   Workflow, Search, RotateCcw, PanelRight, X, Bug, Lightbulb, Mail, Command, Keyboard,
-  ZoomIn, ZoomOut
+  ZoomIn, ZoomOut, Server
 } = require('lucide');
 const { lucideIcon } = require('../dock');
 const { escapeHtml } = require('../htmlUtils');
@@ -508,6 +508,43 @@ const KINDS = {
             </div>
             <div class="gs-status gs-multi-status">${icon(GitBranch, 10)}${label('main')}<span class="gs-status-sep"></span>${icon(Bot, 10)}${chip('1 waiting', { dot: 'err', cls: 'gs-chip-tiny' })}</div>`)}
         </div>
+      </div>`);
+  },
+  /**
+   * The workspace switcher open under the project, and the Servers dialog
+   * beside it (multi-server-connections). Regions: new, local, remote,
+   * server, add-server, servers.
+   */
+  workspaces(focused) {
+    const row = (name, { current, dot } = {}) => `<div class="gs-proj-row${current ? ' gs-proj-current' : ''}"><span class="gs-dot gs-dot-${dot || 'idle'}"></span>${label(name)}${current ? icon(Check, 10) : ''}</div>`;
+    const serverHead = (host) => `<div class="gs-ws-server">${icon(Server, 9)}${label(host, 'gs-dim')}<span class="gs-ws-rule"></span></div>`;
+    const serverRow = (host, state, dot) => `<div class="gs-proj-row"><span class="gs-dot gs-dot-${dot}"></span>${label(host)}${label(state, 'gs-dim gs-ws-state')}</div>`;
+    return frame('workspaces', focused, `
+      <div class="gs-multi">
+        <div class="gs-multi-switcher">
+          <div class="gs-switcher gs-switcher-open">${label('Workspace', 'gs-dim')}${label('main')}${icon(ChevronDown, 10)}</div>
+          <div class="gs-proj-menu">
+            ${region('new', focused, 'gs-ws-new', label('+ New workspace'))}
+            <div class="gs-ws-sep"></div>
+            ${region('local', focused, 'gs-ws-group', `
+              ${label('LOCAL', 'gs-eyebrow')}
+              ${row('main', { current: true })}
+              ${row('ws/violet', { dot: 'accent' })}`)}
+            <div class="gs-ws-sep"></div>
+            ${region('remote', focused, 'gs-ws-group', `
+              ${label('REMOTE', 'gs-eyebrow')}
+              ${region('server', focused, 'gs-ws-group', `${serverHead('devbox')}${row('ws/teal', { dot: 'err' })}`)}
+              ${serverHead('gpu-box')}`)}
+            ${region('add-server', focused, 'gs-ws-add', label('+ Add server…', 'gs-dim'))}
+          </div>
+        </div>
+        ${region('servers', focused, 'gs-multi-others', `
+          <div class="gs-proj-pop">
+            ${label('SERVERS', 'gs-eyebrow')}
+            ${serverRow('devbox', 'Connected', 'ok')}
+            ${serverRow('gpu-box', 'Reconnecting…', 'warn')}
+            <div class="gs-ws-add-field">${label('myserver or me@host', 'gs-dim')}${chip('Add', { cls: 'gs-chip-tiny' })}</div>
+          </div>`)}
       </div>`);
   },
   /** The Plugins modal. Regions: filters, install, toggle. */

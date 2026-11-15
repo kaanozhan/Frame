@@ -272,29 +272,37 @@ function init() {
   const showServerOffline = (rec) => {
     ipcRenderer.send(IPC.UNWATCH_GIT_STATUS);
     // A note the tree's late replies cannot wipe (server-hardening T7).
-    fileTreeUI.showNote(`${rec.host || 'The server'} is offline — reconnect (File ▸ Connect to Server…) to see “${rec.name}”. Its terminals and agents keep running there.`, 'ws-server-placeholder offline');
+    fileTreeUI.showNote(`${rec.host || 'The server'} is offline — reconnect it from the server in the status bar to see “${rec.name}”. Its terminals and agents keep running there.`, 'ws-server-placeholder offline');
   };
   const serverRecordOf = (ws) => {
     const rec = ws && require('./workspaceSection').getWorkspaces().find((w) => w.id === ws.id);
     return rec && rec.location === 'server' ? rec : null;
   };
+  // A server workspace's own server, not the default one (multi-server-connections).
+  const serverUp = (rec) => {
+    const srv = rec && require('./serverConnect').getServer(rec.serverKey);
+    return !!(srv && srv.status && srv.status.state === 'connected');
+  };
   const loadCheckout = (ws) => {
     const rec = serverRecordOf(ws);
-    const up = require('./serverConnect').getStatus().state === 'connected';
-    if (rec && (rec.offline || !up)) showServerOffline(rec);
+    if (rec && (rec.offline || !serverUp(rec))) showServerOffline(rec);
     else if (ws && ws.root) fileTreeUI.loadFileTree(ws.root, ws.id);
   };
   state.onWorkspaceChange((ws) => {
     loadCheckout(ws);
     dock.remountActive();
   });
-  // The link to a selected server workspace's server came back or dropped.
-  require('./serverConnect').onChange((s, prev) => {
-    if (s.state === prev.state) return;
-    const ws = state.getWorkspace();
-    if (!serverRecordOf(ws)) return;
-    if (s.state === 'connected') setTimeout(() => loadCheckout(state.getWorkspace()), 800); // after the list reloads
-    else if (prev.state === 'connected') showServerOffline(serverRecordOf(ws));
+  // The selected server workspace's own server came back or dropped; other
+  // servers changing leave it alone.
+  require('./serverConnect').onServersChange((list, prevList) => {
+    const rec = serverRecordOf(state.getWorkspace());
+    if (!rec) return;
+    const stateIn = (l) => { const srv = (l || []).find((x) => x.key === rec.serverKey); return (srv && srv.status && srv.status.state) || 'off'; };
+    const now = stateIn(list);
+    const before = stateIn(prevList);
+    if (now === before) return;
+    if (now === 'connected') setTimeout(() => loadCheckout(state.getWorkspace()), 800); // after the list reloads
+    else if (before === 'connected') showServerOffline(rec);
   });
 
   // Setup Frame status change listener
@@ -332,7 +340,7 @@ function init() {
   require('./serverConnect').init();
   newWorkspaceModal.init();
   workspaceSection.setActions({
-    onNew: () => newWorkspaceModal.open(),
+    onNew: (opts) => newWorkspaceModal.open(opts),
     // A restored folder came back without dependencies: rerun setup only.
     onRestored: (ws, result) => newWorkspaceModal.runSetupThenAgent({ setupScript: result && result.setupScript, openAgent: false })
   });
@@ -440,6 +448,11 @@ function setupButtonHandlers() {
   // Frame Settings: each a modal (pluginsPanel, feedbackPanel, cloudHub,
   // frameSettingsModal), not a view — hence no .sidebar-tab-btn on the
   // buttons. All four toggle.
+  const addServerBtn = document.getElementById('add-server-btn');
+  if (addServerBtn) {
+    addServerBtn.addEventListener('click', () => commandRegistry.runById('server.add'));
+    tooltip.attach(addServerBtn, 'Add Server (Cmd+Alt+N)', { placement: 'right' });
+  }
   const pluginsBtn = document.getElementById('plugins-btn');
   if (pluginsBtn) {
     pluginsBtn.addEventListener('click', () => pluginsPanel.toggle());
@@ -1189,10 +1202,18 @@ function registerCommands() {
     run: () => require('./serverConnect').open()
   });
   r({
+    id: 'server.add',
+    title: 'Add Server…',
+    category: 'Server',
+    shortcut: 'CmdOrCtrl+Alt+N',
+    run: () => require('./serverConnect').open({ add: true })
+  });
+  r({
     id: 'server.disconnect',
     title: 'Disconnect from Server',
     category: 'Server',
-    when: () => require('./serverConnect').getStatus().state !== 'off',
+    // Every server (multi-server-connections); one server is disconnected from the Servers dialog.
+    when: () => require('./serverConnect').getServers().some((s) => s.status && s.status.state !== 'off'),
     run: () => require('./serverConnect').disconnect()
   });
   r({

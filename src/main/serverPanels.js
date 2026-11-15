@@ -6,9 +6,10 @@
  * folder or lies under one (serverRootFor; the known folders come from
  * workspaceManager.serverRoots(), not from the local disk — a server on this
  * same machine has the same paths). Each routed handler asks `rootOf(path)`
- * and, on a hit, lets this module answer through the server connection.
- * While the server is not connected, every routed call fails with
- * "<host> is offline" instead of falling back to local or stale data.
+ * and, on a hit, lets this module answer through that workspace's own server
+ * (`serverKey`, multi-server-connections). While that server is not
+ * connected, every routed call fails with "<host> is offline" instead of
+ * falling back to local data, stale data or another server.
  *
  * Files are read-only in this spec: saving and file-tree actions under a
  * server root are refused.
@@ -33,7 +34,7 @@ function roots() {
 }
 
 /**
- * The server workspace a panel call belongs to: `{ root, host, id,
+ * The server workspace a panel call belongs to: `{ root, host, serverKey, id,
  * projectPath, serverProjectPath }`, or null for a local call. `ctx` is the
  * caller's `{ workspaceId }`: with it, routing is by id (a local workspace
  * that shares a server workspace's absolute path stays local); without it,
@@ -42,7 +43,7 @@ function roots() {
 function resolve(p, ctx = null) {
   const all = roots();
   const locations = {};
-  for (const r of all) locations[r.id] = { path: r.root, host: r.host };
+  for (const r of all) locations[r.id] = { path: r.root, host: r.host, serverKey: r.serverKey || null };
   const route = routeOf(p, ctx, all, locations);
   return route.remote || null;
 }
@@ -61,10 +62,17 @@ function offlineError(entry) {
   return new Error(`${(entry && entry.host) || 'The server'} is offline — reconnect to see this workspace.`);
 }
 
-/** A server call for a routed panel; rejects with the offline error while disconnected. */
-function call(entry, method, params, timeoutMs) {
-  if (!server().isConnected()) return Promise.reject(offlineError(entry));
-  return server().call(method, params, timeoutMs);
+/** The connected link of `entry`'s server, or null. */
+function linkOf(entry) {
+  const link = entry && entry.serverKey ? server().of(entry.serverKey) : null;
+  return link && link.isConnected() ? link : null;
 }
 
-module.exports = { resolve, rootOf, ctxOf, call, offlineError, READ_ONLY_FILES, READ_ONLY_ACTIONS, READ_ONLY_GIT };
+/** A server call for a routed panel, on its own server; rejects with the offline error while that server is down. */
+function call(entry, method, params, timeoutMs) {
+  const link = linkOf(entry);
+  if (!link) return Promise.reject(offlineError(entry));
+  return link.call(method, params, timeoutMs);
+}
+
+module.exports = { resolve, rootOf, ctxOf, call, linkOf, offlineError, READ_ONLY_FILES, READ_ONLY_ACTIONS, READ_ONLY_GIT };

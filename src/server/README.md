@@ -7,7 +7,7 @@ Nothing runs as root, and nothing runs in Docker. Frame Server runs as your user
 ## Install from Frame (recommended)
 
 1. Make sure `ssh <host> true` works **without a password prompt**. Frame runs SSH in batch mode, so keys, ssh-agent, `~/.ssh/config` and Tailscale SSH all work, but typed passwords and host-key questions do not.
-2. In Frame, choose **File ▸ Connect to Server…**, pick the host and press **Connect**.
+2. In Frame, choose **File ▸ Add Server…**, pick the host and press **Connect**.
 3. If Frame Server is not there, Frame says so. Press **Install Frame Server**. Frame then:
    - detects the server's platform (Linux x86_64 or aarch64);
    - has the server download the matching package from the GitHub release and verify its SHA-256. If the server cannot reach GitHub, Frame downloads the package and sends it over SSH;
@@ -57,6 +57,18 @@ Installer options for special cases are `--package-file FILE --checksum HEX`, `-
 - The agent CLIs you use, installed and **signed in on the server as your user**. Frame never handles model credentials.
 - Git access to your repositories, through an SSH key or `gh auth setup-git`, because the server clones from your remote.
 - For "keeps running after logout": `loginctl enable-linger $USER`. This may need root once.
+
+## Specs in server workspaces
+
+A spec written in a server workspace lives in that worktree and rides its branch, as it does locally. Frame lists it on the Specs board with the workspace's chip (`name · host`), opens it, and runs New Spec, Plan, Tasks and Implement for it on the server:
+
+- **Staging on the server.** Frame Server builds the command's prompt from its own templates and writes it under the worktree's `.frame/runtime/prompts/`. Before that it puts Frame's hook scripts, command templates and spec index (`.frame/bin`, `.frame/runtime/commands`, `.frame/index`, all gitignored) into the clone and the worktree, so the agent there gets the same hooks as locally. The templates follow the server's version; Connect offers an update when it differs from the desktop.
+- **Task state** of a server spec lives in the server clone's `.frame/tasks.json`, never on the branch. The spec card shows its progress; once the branch is merged and pulled on the Mac, the tasks are imported as completed.
+- **Live updates.** The server watches each listed worktree's `.frame/specs/` and tells the desktop when a status, plan or report changes.
+- **Offline.** The board keeps the spec's last known name, marked offline, and opening it says the host is offline.
+- **Not yet.** Renaming or deleting a server spec from the desktop. Projects in `local` git-sharing mode (Frame files kept out of git) cannot run specs on a server, because an uncommitted spec would be lost with the workspace.
+
+Methods: `specs.list`, `specs.get`, `specs.report`, `specs.status` (phase and implement mode only), `specs.stage`, `specs.watch` / `specs.unwatch`; event `specs.changed { root }`. Every call names a server project and one of its workspaces (or the clone itself); anything else is refused.
 
 ## Security
 

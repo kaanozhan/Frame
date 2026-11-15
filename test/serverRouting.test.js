@@ -74,21 +74,36 @@ test('serverRootFor matches a root or a path under it, separator-safe, longest f
 test('mergeGitStatePayloads joins rows and keeps the server gh apart', () => {
   const local = { projectPath: '/Users/me/app', access: { gh: true, authed: true, repoName: 'me/app' }, workspaces: { a1: { dirty: 1 } } };
   const server = { projectPath: '/home/u/frame/projects/app', access: { gh: true, authed: false, repoName: 'me/app' }, workspaces: { s1: { dirty: 0, unpushed: 2 } } };
-  const m = R.mergeGitStatePayloads(local, server, '/Users/me/app');
+  const m = R.mergeGitStatePayloads(local, { k1: server }, '/Users/me/app');
   assert.equal(m.projectPath, '/Users/me/app');
   assert.deepEqual(m.access, local.access);
-  assert.deepEqual(m.serverAccess, server.access);
+  assert.deepEqual(m.serverAccess, { k1: server.access });
   assert.deepEqual(Object.keys(m.workspaces).sort(), ['a1', 's1']);
   assert.equal(R.mergeGitStatePayloads(local, null, '/Users/me/app').serverAccess, null, 'no server, no serverAccess');
-  assert.deepEqual(R.mergeGitStatePayloads(null, server, '/p').access, { gh: false, authed: false, repoName: null });
+  assert.equal(R.mergeGitStatePayloads(local, {}, '/Users/me/app').serverAccess, null);
+  assert.deepEqual(R.mergeGitStatePayloads(null, { k1: server }, '/p').access, { gh: false, authed: false, repoName: null });
+});
+
+test('mergeGitStatePayloads over two servers keeps each server\'s gh apart (multi-server-connections)', () => {
+  const local = { access: { gh: true, authed: true, repoName: 'me/app' }, workspaces: { a1: {} } };
+  const box = { access: { gh: true, authed: true, repoName: 'me/app' }, workspaces: { s1: { dirty: 1 } } };
+  const gpu = { access: { gh: false, authed: false, repoName: null }, workspaces: { g1: { unpushed: 3 } } };
+  const m = R.mergeGitStatePayloads(local, { kbox: box, kgpu: gpu }, '/Users/me/app');
+  assert.deepEqual(m.serverAccess, { kbox: box.access, kgpu: gpu.access });
+  assert.deepEqual(Object.keys(m.workspaces).sort(), ['a1', 'g1', 's1']);
+});
+
+test('routeOf keeps the server key of a workspace located by id', () => {
+  const r = R.routeOf('/srv/b/ws/x/src', { workspaceId: 'wb' }, [], { wb: { path: '/srv/b/ws/x', host: 'B', serverKey: 'kb' } });
+  assert.deepEqual(r.remote, { root: '/srv/b/ws/x', id: 'wb', host: 'B', serverKey: 'kb' });
 });
 
 // ─── server-hardening T3: per-boot ids and adopt pruning ─────
 
 test('serverTerminalId carries a per-boot nonce and parses back', () => {
   assert.equal(R.serverTerminalId(3, 'a1b2c3'), 'srv-a1b2c3-3');
-  assert.deepEqual(R.parseServerTerminalId('srv-a1b2c3-3'), { boot: 'a1b2c3', n: 3 });
-  assert.deepEqual(R.parseServerTerminalId('srv-3'), { boot: null, n: 3 }, 'old ids still parse');
+  assert.deepEqual(R.parseServerTerminalId('srv-a1b2c3-3'), { key: null, boot: 'a1b2c3', n: 3 });
+  assert.deepEqual(R.parseServerTerminalId('srv-3'), { key: null, boot: null, n: 3 }, 'old ids still parse');
   assert.equal(R.parseServerTerminalId('term-3'), null);
   assert.equal(R.isServerTerminalId('srv-a1b2c3-3'), true, 'the prefix rule is unchanged');
 });
@@ -141,4 +156,16 @@ test('projectDirNameFor: remote names as before; a remote-less project uses its 
   assert.equal(R.projectDirNameFor({ root: sha, name: 'notes' }, { notes: `root:${sha}` }), 'notes', 'the same project reuses its folder');
   assert.equal(R.projectDirNameFor({ root: sha, name: 'notes' }, { notes: 'github.com/x/notes' }), 'notes-2');
   assert.equal(R.projectDirNameFor({ root: sha, name: '...' }, {}), 'project');
+});
+
+test('desktop terminal ids name their server, so two servers never share an id (multi-server-connections)', () => {
+  assert.equal(R.desktopTerminalId('kbox', 'srv-a1b2c3-3'), 'srv-kbox.a1b2c3-3');
+  assert.notEqual(R.desktopTerminalId('kbox', 'srv-a1b2c3-3'), R.desktopTerminalId('kgpu', 'srv-a1b2c3-3'));
+  assert.deepEqual(R.splitDesktopTerminalId('srv-kbox.a1b2c3-3'), { serverKey: 'kbox', serverTerminalId: 'srv-a1b2c3-3' });
+  assert.deepEqual(R.parseServerTerminalId('srv-kbox.a1b2c3-3'), { key: 'kbox', boot: 'a1b2c3', n: 3 });
+  assert.equal(R.isServerTerminalId('srv-kbox.a1b2c3-3'), true, 'still a server terminal');
+  assert.equal(R.splitDesktopTerminalId('srv-a1b2c3-3'), null, 'a server-side id has no key');
+  assert.equal(R.splitDesktopTerminalId('term-3'), null);
+  assert.equal(R.desktopTerminalId(null, 'srv-1'), null);
+  assert.equal(R.desktopTerminalId('kbox', 'term-1'), null);
 });

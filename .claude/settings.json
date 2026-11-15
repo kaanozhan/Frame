@@ -55,6 +55,14 @@
             "command": "node scripts/docs-hint.js session-start"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -z \"$FRAME_SESSION_DIR\" ] || [ -z \"$FRAME_TERMINAL_ID\" ] || { f=\"$FRAME_SESSION_DIR/$FRAME_TERMINAL_ID.claude.$PPID\"; cat > \"$f.tmp\" && mv -f \"$f.tmp\" \"$f.json\"; }'"
+          }
+        ]
       }
     ]
   }

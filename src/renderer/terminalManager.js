@@ -8,7 +8,7 @@ const { pruneScopes } = require('../shared/reviewModel');
 const { Terminal } = require('xterm');
 const { FitAddon } = require('xterm-addon-fit');
 const { IPC } = require('../shared/ipcChannels');
-const { isServerTerminalId, adoptPlan } = require('../shared/serverRouting');
+const { isServerTerminalId, adoptPlan, splitDesktopTerminalId } = require('../shared/serverRouting');
 const terminalInput = require('./terminalInput');
 const themes = require('./themes');
 
@@ -75,7 +75,6 @@ class TerminalManager {
     this.activeTerminalId = null;
     this.viewMode = 'board'; // 'board' (default) | 'terminals' | 'specs' | 'tasks' | 'panel'
     this.maxTerminals = 9;
-    this.terminalCounter = 0;
     this.onStateChange = null;
     this.currentProjectPath = null; // Current active project (null = global)
     // The selected workspace within it (workspaces spec): terminals carry a
@@ -83,9 +82,10 @@ class TerminalManager {
     // 'main' is the project's own checkout.
     this.currentWorkspaceId = 'main';
     this.currentWorkspaceRoot = null;
-    // Frame Server link (server-workspaces): server terminals (srv- ids) are
-    // adopted on connect and show a banner while the link is down.
-    this.serverState = { state: 'off', host: null };
+    // Frame Server links (server-workspaces; multi-server-connections):
+    // server terminals (srv-<key>. ids) are adopted when their server
+    // connects and show a banner while that server is down. key → { state, host }.
+    this.serverStates = new Map();
     this._setupIPC();
     this._setupServer();
     this._setupThemeObserver();
@@ -110,7 +110,7 @@ class TerminalManager {
     // Restore session for new project (custom names)
     this.restoreProjectSession(projectPath);
     // Its terminals on the server (they outlive this window).
-    if (this.serverState.state === 'connected') this.adoptServerTerminals(projectPath);
+    if (this._anyServerConnected()) this.adoptServerTerminals(projectPath);
 
     // Land where the work is: a project with running terminals opens on its
     // Terminals section, one with none opens on Home. This also settles the
@@ -153,6 +153,20 @@ class TerminalManager {
   _inScope(state) {
     return state.projectPath === this.currentProjectPath
       && (state.workspaceId || 'main') === this.currentWorkspaceId;
+  }
+
+  /**
+   * The default name for a new terminal in one project + workspace: the
+   * lowest number no terminal there already carries. Numbering is per
+   * workspace (a workspace's first terminal is "1st Terminal" whatever runs
+   * in main or the other workspaces), and a closed terminal's number is
+   * reused so the names stay short.
+   */
+  _nextDefaultName(projectPath, workspaceId) {
+    const taken = new Set(this.getTerminalsInScope(projectPath, workspaceId).map(t => t.name));
+    let n = 1;
+    while (taken.has(terminalName(n))) n++;
+    return terminalName(n);
   }
 
   /** Terminals of one project + workspace, oldest first. */
@@ -384,7 +398,8 @@ class TerminalManager {
         workspaceId,
         shell: options.shell || null,
         extraEnv: options.extraEnv || null, // orchestration worker lanes pass FRAME_ORCH_* env
-        ...(options.location ? { location: options.location } : {}) // 'server-home' (server-onboarding)
+        ...(options.location ? { location: options.location } : {}), // 'server-home' (server-onboarding)
+        ...(options.serverKey ? { serverKey: options.serverKey } : {}) // which server (multi-server-connections)
       });
     });
   }
@@ -395,11 +410,10 @@ class TerminalManager {
    * is typed once the shell has printed something — without Enter: the user
    * runs it (sign-ins are interactive). Resolves the terminal id, or throws.
    */
-  async createServerHomeTerminal({ command = null } = {}) {
-    const id = await this.createTerminal({ location: 'server-home' });
+  async createServerHomeTerminal({ command = null, serverKey = null } = {}) {
+    const id = await this.createTerminal({ location: 'server-home', serverKey });
     if (!id) throw new Error('Could not open a terminal on the server.');
-    const host = this.serverState.host || 'server';
-    this.renameTerminal(id, `Server · ${host}`);
+    this.renameTerminal(id, `Server · ${this._serverOf(id).host || 'server'}`);
     if (command) {
       const type = () => ipcRenderer.send(IPC.TERMINAL_INPUT_ID, { terminalId: id, data: String(command) });
       let done = false;
@@ -431,7 +445,8 @@ class TerminalManager {
       };
 
       ipcRenderer.on(IPC.AVAILABLE_SHELLS_DATA, handler);
-      ipcRenderer.send(IPC.GET_AVAILABLE_SHELLS);
+      // A server workspace lists the server's shells (server-linux-readiness).
+      ipcRenderer.send(IPC.GET_AVAILABLE_SHELLS, { workspaceId: this.currentWorkspaceId || 'main' });
     });
   }
 
@@ -464,14 +479,16 @@ class TerminalManager {
       terminal.focus();
     });
 
+    const projectPath = options.projectPath !== undefined ? options.projectPath : this.currentProjectPath;
+    const workspaceId = options.workspaceId || 'main';
     const state = {
       id: terminalId,
-      name: options.name || terminalName(++this.terminalCounter),
+      name: options.name || this._nextDefaultName(projectPath, workspaceId),
       customName: null,
       isActive: false,
       createdAt: Date.now(),
-      projectPath: options.projectPath !== undefined ? options.projectPath : this.currentProjectPath,
-      workspaceId: options.workspaceId || 'main',
+      projectPath,
+      workspaceId,
       // What this lane is working on (set by agentDispatch):
       // { kind: 'task'|'spec', label, ref } — presentation metadata only,
       // session-scoped, dies with the lane (never persisted).
@@ -938,18 +955,35 @@ class TerminalManager {
   // ─── Server terminals (server-workspaces) ──────────────────
 
   _setupServer() {
-    const apply = (s) => {
-      const prev = this.serverState.state;
-      this.serverState = { state: (s && s.state) || 'off', host: (s && s.host) || this.serverState.host };
-      if (this.serverState.state === 'connected') {
-        // With no project selected too: home terminals opened there come back (server-onboarding).
-        if (prev !== 'connected') this.adoptServerTerminals(this.currentProjectPath || null);
-      } else {
-        this._setServerBanners();
+    const apply = (payload) => {
+      const list = (payload && Array.isArray(payload.servers)) ? payload.servers : [];
+      let cameUp = false;
+      const next = new Map();
+      for (const srv of list) {
+        const state = (srv.status && srv.status.state) || 'off';
+        const prev = this.serverStates.get(srv.key);
+        if (state === 'connected' && (!prev || prev.state !== 'connected')) cameUp = true;
+        next.set(srv.key, { state, host: srv.host });
       }
+      this.serverStates = next;
+      // Any server coming up brings its terminals back — with no project
+      // selected too: home terminals opened there come back (server-onboarding).
+      if (cameUp) this.adoptServerTerminals(this.currentProjectPath || null);
+      else this._setServerBanners();
     };
     ipcRenderer.on(IPC.SERVER_STATUS_CHANGED, (event, s) => apply(s));
     ipcRenderer.invoke(IPC.SERVER_STATUS).then(apply).catch(() => {});
+  }
+
+  /** `{ state, host }` of the server a server terminal lives on (from its id). */
+  _serverOf(terminalId) {
+    const split = splitDesktopTerminalId(terminalId);
+    return (split && this.serverStates.get(split.serverKey)) || { state: 'off', host: null };
+  }
+
+  _anyServerConnected() {
+    for (const s of this.serverStates.values()) if (s.state === 'connected') return true;
+    return false;
   }
 
   /**
@@ -981,7 +1015,7 @@ class TerminalManager {
         this._initializeTerminal(t.terminalId, { projectPath: t.projectPath, workspaceId: t.workspaceId });
         inst = this.terminals.get(t.terminalId);
         added = true;
-        if (inst && t.home && !inst.state.customName) inst.state.customName = `Server · ${this.serverState.host || 'server'}`;
+        if (inst && t.home && !inst.state.customName) inst.state.customName = `Server · ${t.host || this._serverOf(t.terminalId).host || 'server'}`;
       }
       if (!inst) continue;
       inst.terminal.reset();
@@ -1009,13 +1043,15 @@ class TerminalManager {
 
   /** "Reconnecting to <host>…" over every server terminal while the link is down. */
   _setServerBanners() {
-    const down = this.serverState.state !== 'connected';
-    const host = this.serverState.host || 'the server';
-    const text = this.serverState.state === 'off'
-      ? `Disconnected from ${host} — the terminal keeps running there. Connect to Server to continue.`
-      : `Reconnecting to ${host}… The terminal keeps running on the server; typing is paused.`;
     for (const [id, inst] of this.terminals) {
       if (!isServerTerminalId(id)) continue;
+      // Each terminal follows its own server (multi-server-connections).
+      const srv = this._serverOf(id);
+      const down = srv.state !== 'connected';
+      const host = srv.host || 'the server';
+      const text = srv.state === 'off'
+        ? `Disconnected from ${host} — the terminal keeps running there. Connect it in Servers to continue.`
+        : `Reconnecting to ${host}… The terminal keeps running on the server; typing is paused.`;
       let banner = inst.element.querySelector(':scope > .srv-banner');
       if (!down) {
         if (banner) banner.remove();
@@ -1033,12 +1069,19 @@ class TerminalManager {
 
   /**
    * Renumber terminals for a project to ensure sequential naming (1st Terminal, 2nd Terminal, ...)
-   * Only affects terminals without custom names.
+   * Only affects terminals without custom names. Numbering is per workspace
+   * (main counts as one), matching _nextDefaultName — counting the whole
+   * project made a workspace's second terminal "4th Terminal" when main
+   * already had terminals.
    */
   _renumberTerminals(projectPath) {
     const terminals = this.getTerminalsByProject(projectPath);
-    
-    terminals.forEach((tState, index) => {
+    const perWorkspace = new Map();
+
+    terminals.forEach((tState) => {
+      const ws = tState.workspaceId || 'main';
+      const index = perWorkspace.get(ws) || 0;
+      perWorkspace.set(ws, index + 1);
       const instance = this.terminals.get(tState.id);
       if (instance && !instance.state.customName) {
         const newName = terminalName(index + 1);

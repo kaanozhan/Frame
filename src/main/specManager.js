@@ -312,8 +312,11 @@ function buildSpecCatalog(projectPath) {
 function listSpecs(projectPath) {
   // Every checkout of the project: main plus active workspaces. Each slug is
   // read from the one checkout that holds it (see specLocations).
-  const locations = refreshSpecLocations(projectPath);
-  if (locations.size === 0) return [];
+  return listSpecsCore(projectPath, projectPath, refreshSpecLocations(projectPath), serverSpecLists(projectPath));
+}
+
+function listSpecsCore(projectPath, tasksProject, locations, extraLists = []) {
+  if (locations.size === 0 && !extraLists.length) return [];
   const entries = Array.from(locations.keys()).map((name) => ({ name, isDirectory: () => true }));
 
   // Load tasks once so reconcilePhase can look at task statuses (the
@@ -321,7 +324,7 @@ function listSpecs(projectPath) {
   // of dozens of specs; if this ever becomes a hot path we can cache.
   let tasksData = null;
   try {
-    tasksData = tasksManager.loadTasks(projectPath);
+    tasksData = tasksManager.loadTasks(tasksProject);
   } catch (err) {
     tasksData = null;
   }
@@ -395,7 +398,7 @@ function listSpecs(projectPath) {
     if (!byWorkspace.has(t.loc.workspace.id)) byWorkspace.set(t.loc.workspace.id, { workspace: t.loc.workspace, specs: [] });
     byWorkspace.get(t.loc.workspace.id).specs.push(t.spec);
   }
-  return mergeSpecLists(mainSpecs, Array.from(byWorkspace.values()));
+  return mergeSpecLists(mainSpecs, [...byWorkspace.values(), ...extraLists]);
 }
 
 /**
@@ -628,7 +631,7 @@ function interpolate(template, vars) {
 // that command only — every other command reads an existing status.json.
 const isSlugless = (slug, command) => !slug && command === 'spec.new';
 
-function getCommandPrompt(projectPath, slug, command, aiTool, description, rootOverride) {
+function getCommandPrompt(projectPath, slug, command, aiTool, description, rootOverride, tasksProject) {
   if (!SUPPORTED_COMMANDS.includes(command)) return { error: `unknown command: ${command}` };
   const tool = aiTool || 'claude-code';
   const slugless = isSlugless(slug, command);
@@ -646,7 +649,7 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description, rootO
   const paths = commandPaths({
     projectPath,
     root: rootOverride || (slug ? specRoot(projectPath, slug) : projectPath),
-    tasksPath: frameStore.resolvePath(projectPath, FRAME_FILES.TASKS)
+    tasksPath: frameStore.resolvePath(tasksProject || projectPath, FRAME_FILES.TASKS)
   });
   const vars = {
     // Phrases a template cannot state tool-neutrally — one CLI's structured
@@ -890,14 +893,14 @@ function uniquePromptFilename(promptsDir, filename) {
   }
 }
 
-function buildSpecCommandFile(projectPath, slug, command, aiTool, description, rootOverride) {
+function buildSpecCommandFile(projectPath, slug, command, aiTool, description, rootOverride, tasksProject) {
   // The prompt is staged where the agent runs (spec-in-workspace): the
   // instruction below names it by a relative path, and an agent in a
   // workspace has the worktree as its cwd. Staging it in the main checkout
   // while the lane ran in a worktree left the agent with a path it could
   // not open.
   const root = rootOverride || (slug ? specRoot(projectPath, slug) : projectPath);
-  const result = getCommandPrompt(projectPath, slug, command, aiTool, description, root);
+  const result = getCommandPrompt(projectPath, slug, command, aiTool, description, root, tasksProject);
   if (result.error) return result;
   const promptsDir = path.join(root, RUNTIME_PROMPTS_DIR);
   fs.mkdirSync(promptsDir, { recursive: true });
@@ -1017,7 +1020,10 @@ function initialTaskState(status, outcomeIds, taskId, now) {
   return { status: 'pending', completedAt: null };
 }
 
-function syncTasksFromMarkdown(projectPath, slug) {
+function syncTasksFromMarkdown(projectPath, slug, tasksProject) {
+  // Where task state lives: the project itself, or (server-specs) the server
+  // clone when `projectPath` is one of its worktrees.
+  const tasksHome = tasksProject || projectPath;
   const tasksMdPath = path.join(getSpecDir(projectPath, slug), TASKS_FILE);
   const md = readFileSafe(tasksMdPath);
   if (!md) return { synced: 0 };
@@ -1029,7 +1035,7 @@ function syncTasksFromMarkdown(projectPath, slug) {
   // legacy nested shape transparently migrated). Going through it also
   // wires us into the self-write guard so our writes don't trigger the
   // tasks.json file watcher into a loop.
-  const tasksData = tasksManager.loadTasks(projectPath);
+  const tasksData = tasksManager.loadTasks(tasksHome);
   if (!tasksData) return { synced: 0, error: 'no tasks.json in project' };
   if (!Array.isArray(tasksData.tasks)) tasksData.tasks = [];
 
@@ -1079,7 +1085,7 @@ function syncTasksFromMarkdown(projectPath, slug) {
   // Only save if something actually changed — saveTasks bumps lastUpdated and
   // the self-write guard, both of which we want to keep stable on no-op syncs.
   if (added > 0 || updated > 0) {
-    tasksManager.saveTasks(projectPath, tasksData);
+    tasksManager.saveTasks(tasksHome, tasksData);
   }
 
   // Reflect the latest mapping in status.json so the panel shows accurate
@@ -1096,7 +1102,7 @@ function syncTasksFromMarkdown(projectPath, slug) {
   // Push a fresh TASKS_DATA so any open Tasks panel / Kanban dashboard
   // picks up the new rows without needing a manual reload.
   if ((added > 0 || updated > 0) && mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(IPC.TASKS_DATA, { projectPath, tasks: tasksData });
+    mainWindow.webContents.send(IPC.TASKS_DATA, { projectPath: tasksHome, tasks: tasksData });
   }
 
   return { synced: parsed.length, added, updated, unchanged };
@@ -1228,6 +1234,8 @@ function updateSpecStatus(projectPath, slug, partial) {
 }
 
 function deleteSpec(projectPath, slug) {
+  // A server spec is not on this disk; never delete a same-named local copy in its place.
+  if (remoteSpecEntry(projectPath, slug)) return false;
   const dir = getSpecDir(projectPath, slug);
   if (!fs.existsSync(dir)) return false;
   fs.rmSync(dir, { recursive: true, force: true });
@@ -1245,6 +1253,7 @@ function deleteSpec(projectPath, slug) {
 //
 // Returns { success: true, slug, status } on success, { error } on failure.
 function renameSpec(projectPath, oldSlug, opts) {
+  if (remoteSpecEntry(projectPath, oldSlug)) return { error: SERVER_SPEC_READ_ONLY };
   const next = opts || {};
   const wantSlug = next.slug != null;
   const wantTitle = next.title != null && typeof next.title === 'string';
@@ -1434,6 +1443,7 @@ function refreshWorkspaceWatchers(projectPath) {
     }
   }
   pushSpecData(projectPath);
+  refreshServerSpecs(projectPath).catch((err) => console.warn('specManager: server specs refresh failed', err.message));
 }
 
 function startWatching(projectPath) {
@@ -1526,6 +1536,7 @@ function stopWatching() {
   }
   activeTasksWatcher = null;
   closeWorkspaceSpecWatchers();
+  unwatchServerSpecs();
   activeWatchedProject = null;
   busySpecSlugs.clear();
   // specLifecycle is kept: it is per project, and a spec created while the
@@ -1653,10 +1664,372 @@ function pushSpecData(projectPath) {
   mainWindow.webContents.send(IPC.SPEC_DATA, { projectPath, specs });
 }
 
+// ─── Server workspaces' specs (server-specs T05) ──────────
+//
+// A server workspace's worktree is not on this disk, so its specs come from
+// Frame Server: `specs.list` per server workspace of the watched project,
+// cached here and merged into listSpecs like any workspace's specs. The
+// server watches those folders and pushes `specs.changed { root }`; the
+// desktop never polls. While disconnected, the last known entries stay,
+// tagged offline (their names only — opening one says the host is offline).
+
+// workspaceId → { projectPath, serverProjectPath, serverKey, root, workspace, specs }:
+// each entry belongs to one server (multi-server-connections) and every call
+// for it goes through that server's link.
+const serverSpecs = new Map();
+const SERVER_ROWS_SETTLE_MS = 1500;
+let serverSpecsWired = false;
+let serverRowsTimer = null;
+
+function serverConn() {
+  return require('./serverConnection');
+}
+
+/** The connected link of a server key, or null (down, removed, or no key). */
+function linkOf(serverKey) {
+  try {
+    const link = serverKey ? serverConn().of(serverKey) : null;
+    return link && link.isConnected() ? link : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** The watched project's server workspaces: `[{ id, root, host, serverKey, projectPath, serverProjectPath, name }]`. */
+function serverWorkspacesOf(projectPath) {
+  let wm;
+  try { wm = require('./workspaceManager'); } catch (_) { return []; }
+  let roots = [];
+  try { roots = wm.serverRoots() || []; } catch (_) { roots = []; }
+  return roots.filter((r) => r && r.projectPath === projectPath).map((r) => {
+    let name = null;
+    try { name = (wm.serverLocation(r.id) || {}).name || null; } catch (_) { name = null; }
+    return { ...r, name: name || path.basename(r.root) };
+  });
+}
+
+/** `[{ workspace, specs }]` for mergeSpecLists — the cached server lists of `projectPath`. */
+function serverSpecLists(projectPath) {
+  const out = [];
+  for (const entry of serverSpecs.values()) {
+    if (entry.projectPath === projectPath) out.push({ workspace: entry.workspace, specs: entry.specs });
+  }
+  return out;
+}
+
+/** Tag the entries of one server (`serverKey`), or of every server, offline. */
+function markServerSpecsOffline(serverKey = null) {
+  let changed = false;
+  for (const entry of serverSpecs.values()) {
+    if (serverKey && entry.serverKey !== serverKey) continue;
+    if (!entry.workspace.offline) { entry.workspace = { ...entry.workspace, offline: true }; changed = true; }
+  }
+  return changed;
+}
+
+/**
+ * Re-list the server workspaces of `projectPath` (only `onlyRoot` when given),
+ * ask the server to watch them, and push. Unknown method (an older Frame
+ * Server) lists nothing rather than failing the panel.
+ */
+async function refreshServerSpecs(projectPath, onlyRoot = null) {
+  if (!projectPath) return;
+  const rows = serverWorkspacesOf(projectPath);
+  const ids = new Set(rows.map((r) => r.id));
+  let changed = false;
+  for (const [id, entry] of serverSpecs) {
+    if (entry.projectPath === projectPath && !ids.has(id)) { serverSpecs.delete(id); changed = true; }
+  }
+  for (const r of rows) {
+    if (onlyRoot && r.root !== onlyRoot) continue;
+    const workspace = { id: r.id, name: r.name, branch: null, root: r.root, host: r.host, serverKey: r.serverKey || null, offline: false };
+    const link = linkOf(r.serverKey);
+    if (!link) {
+      // This workspace's server is down: keep its last list, offline.
+      const known = serverSpecs.get(r.id);
+      if (known && !known.workspace.offline) { known.workspace = { ...known.workspace, offline: true }; changed = true; }
+      continue;
+    }
+    try {
+      const specs = await link.call('specs.list', { projectPath: r.serverProjectPath, root: r.root });
+      serverSpecs.set(r.id, { projectPath, serverProjectPath: r.serverProjectPath, serverKey: r.serverKey, root: r.root, workspace, specs: Array.isArray(specs) ? specs : [] });
+    } catch (err) {
+      if (/Unknown method/.test(String(err && err.message))) serverSpecs.delete(r.id);
+      else if (serverSpecs.has(r.id)) serverSpecs.get(r.id).workspace = { ...workspace, offline: !link.isConnected() };
+      console.warn('specManager: specs.list failed for', r.root, err && err.message);
+    }
+    changed = true;
+  }
+  // One watched set per server and server project (the watched project has one per server).
+  const bySp = new Map();
+  for (const r of rows) {
+    const k = `${r.serverKey}\u0000${r.serverProjectPath}`;
+    if (!bySp.has(k)) bySp.set(k, { serverKey: r.serverKey, sp: r.serverProjectPath, roots: [] });
+    bySp.get(k).roots.push(r.root);
+  }
+  for (const { serverKey, sp, roots } of bySp.values()) {
+    const link = linkOf(serverKey);
+    if (link) link.call('specs.watch', { projectPath: sp, roots }).catch(() => { /* older server, or gone — the next connect retries */ });
+  }
+  if (changed) pushSpecData(projectPath);
+}
+
+/**
+ * The server workspace entry that holds `slug` for `projectPath`, or null when
+ * the slug is local. Same precedence as listSpecs: a local workspace's copy
+ * wins, then a server workspace's, then main.
+ */
+function remoteSpecEntry(projectPath, slug) {
+  if (!projectPath || !slug) return null;
+  const local = specLocations.get(projectPath) || refreshSpecLocations(projectPath);
+  const loc = local.get(slug);
+  if (loc && loc.workspace) return null;
+  for (const entry of serverSpecs.values()) {
+    if (entry.projectPath === projectPath && entry.specs.some((s) => s && s.slug === slug)) return entry;
+  }
+  return null;
+}
+
+const SERVER_SPEC_READ_ONLY = 'Renaming or deleting a spec on a server workspace comes in a later update.';
+
+function serverOffline(entry) {
+  return entry.workspace.offline || !linkOf(entry.serverKey);
+}
+
+function offlineText(entry) {
+  return `${entry.workspace.host || 'The server'} is offline — reconnect to open this spec.`;
+}
+
+function serverSpecCall(entry, method, params) {
+  return require('./serverPanels').call({ host: entry.workspace.host, serverKey: entry.serverKey }, method, { projectPath: entry.serverProjectPath, root: entry.root, ...params });
+}
+
+/** GET_SPEC for a server spec: the server's getSpec, tagged with its workspace; `{ offline: host }` while unreachable. */
+async function getServerSpec(entry, slug) {
+  if (serverOffline(entry)) {
+    // Shaped like getSpec so every view renders it: the last known title and
+    // phase, and the reason in place of spec.md. No other content is served
+    // from the cache.
+    const host = entry.workspace.host || 'the server';
+    const known = entry.specs.find((s) => s && s.slug === slug) || {};
+    return {
+      offline: host,
+      status: { slug, title: known.title || slug, phase: known.phase || 'specified', ai_tool: known.ai_tool || null, generated_task_ids: [] },
+      spec: `**${host} is offline** — reconnect to open this spec.\n`,
+      plan: null,
+      tasks: null,
+      outcome: null,
+      planReportPath: null,
+      implementReportPath: null,
+      implementHint: null,
+      workspace: entry.workspace
+    };
+  }
+  const full = await serverSpecCall(entry, 'specs.get', { slug });
+  return full ? { ...full, workspace: entry.workspace } : null;
+}
+
+async function readServerSpecReport(entry, slug, kind) {
+  if (serverOffline(entry)) return { success: false, error: offlineText(entry) };
+  try {
+    return await serverSpecCall(entry, 'specs.report', { slug, kind });
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+async function updateServerSpecStatus(entry, slug, partial) {
+  if (serverOffline(entry)) return { error: offlineText(entry) };
+  try {
+    const res = await serverSpecCall(entry, 'specs.status', { slug, partial });
+    refreshServerSpecs(entry.projectPath, entry.root).catch(() => { /* reported inside */ });
+    return res;
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+function unwatchServerSpecs() {
+  if (!serverSpecs.size) return;
+  const keys = new Set([...serverSpecs.values()].map((e) => e.serverKey).filter(Boolean));
+  for (const key of keys) {
+    const link = linkOf(key);
+    if (link) link.call('specs.unwatch', {}).catch(() => { /* gone */ });
+  }
+}
+
+function wireServerSpecs() {
+  if (serverSpecsWired) return;
+  serverSpecsWired = true;
+  let sc;
+  try { sc = serverConn(); } catch (_) { return; }
+  sc.on('specs.changed', ({ root } = {}, key) => {
+    for (const entry of serverSpecs.values()) {
+      if (entry.root === root && (!key || entry.serverKey === key) && entry.projectPath === activeWatchedProject) {
+        refreshServerSpecs(entry.projectPath, root).catch(() => { /* reported inside */ });
+        return;
+      }
+    }
+  });
+  sc.on('connected', () => {
+    if (activeWatchedProject) refreshServerSpecs(activeWatchedProject).catch(() => { /* reported inside */ });
+  });
+  sc.on('disconnected', (status, key) => {
+    if (markServerSpecsOffline(key || null) && activeWatchedProject) pushSpecData(activeWatchedProject);
+  });
+  // A removed server's specs leave the list.
+  sc.on('removed', (payload, key) => {
+    let changed = false;
+    for (const [id, entry] of [...serverSpecs]) if (entry.serverKey === key) { serverSpecs.delete(id); changed = true; }
+    if (changed && activeWatchedProject) pushSpecData(activeWatchedProject);
+  });
+  // Server workspace rows reach workspaceManager when the renderer re-lists
+  // after this event; give that a moment, then follow the new set.
+  sc.on('workspaces.updated', () => {
+    if (serverRowsTimer) clearTimeout(serverRowsTimer);
+    serverRowsTimer = setTimeout(() => {
+      serverRowsTimer = null;
+      if (activeWatchedProject) refreshServerSpecs(activeWatchedProject).catch(() => { /* reported inside */ });
+    }, SERVER_ROWS_SETTLE_MS);
+    if (typeof serverRowsTimer.unref === 'function') serverRowsTimer.unref();
+  });
+}
+
+// ─── Per-checkout readers (server-specs T01) ──────────────
+//
+// Frame Server reads and stages specs in one worktree at a time and keeps no
+// project registry, so the slug → checkout lookup above has nothing to look
+// in there. These run the same readers scoped to one checkout `root`: while
+// one runs, `root` maps every slug to itself. `tasksProject` is where task
+// state lives (the server clone's main checkout), never the worktree.
+// Everything inside is synchronous, so the temporary map cannot leak into
+// another call.
+
+function checkoutLocations(root) {
+  const map = new Map();
+  for (const slug of specFolderNames(root)) map.set(slug, { root, workspace: null });
+  return map;
+}
+
+function inCheckout(root, fn) {
+  const had = specLocations.has(root);
+  const saved = specLocations.get(root);
+  specLocations.set(root, checkoutLocations(root));
+  try {
+    return fn();
+  } finally {
+    if (had) specLocations.set(root, saved);
+    else specLocations.delete(root);
+  }
+}
+
+/** listSpecs over one checkout; task counts come from `tasksProject`'s tasks.json. */
+function listSpecsIn(root, tasksProject) {
+  return inCheckout(root, () => listSpecsCore(root, tasksProject || root, specLocations.get(root)));
+}
+
+function getSpecIn(root, slug) {
+  return inCheckout(root, () => getSpec(root, slug));
+}
+
+function readSpecReportIn(root, slug, kind) {
+  return inCheckout(root, () => readSpecReport(root, slug, kind));
+}
+
+function updateSpecStatusIn(root, slug, partial) {
+  return inCheckout(root, () => updateSpecStatus(root, slug, partial));
+}
+
+/** Import every spec's tasks.md in `root` into `tasksProject`'s tasks.json. */
+function syncSpecTasksIn(root, tasksProject) {
+  return inCheckout(root, () => {
+    for (const slug of specFolderNames(root)) {
+      try {
+        syncTasksFromMarkdown(root, slug, tasksProject || root);
+      } catch (err) {
+        console.warn('specManager: task sync failed', slug, err.message);
+      }
+    }
+  });
+}
+
+/** Stage a spec command's prompt in `root`, with `{tasks_path}` naming `tasksProject`'s tasks.json. */
+function buildSpecCommandFileIn(root, tasksProject, slug, command, aiTool, description) {
+  return inCheckout(root, () => buildSpecCommandFile(root, slug, command, aiTool, description, root, tasksProject || root));
+}
+
 // ─── Init + IPC ────────────────────────────────────────────
 
 function init(window) {
   mainWindow = window;
+  wireServerSpecs();
+}
+
+// The spec IPC handlers route a server spec to Frame Server (server-specs
+// T06); getSpec / readSpecReport / updateSpecStatus stay synchronous and
+// local for their in-process callers (workspaceGitState).
+function handleGetSpec(projectPath, slug) {
+  const entry = remoteSpecEntry(projectPath, slug);
+  return entry ? getServerSpec(entry, slug) : getSpec(projectPath, slug);
+}
+
+function handleReadSpecReport(projectPath, slug, kind) {
+  const entry = remoteSpecEntry(projectPath, slug);
+  return entry ? readServerSpecReport(entry, slug, kind) : readSpecReport(projectPath, slug, kind);
+}
+
+function handleUpdateSpecStatus(projectPath, slug, partial) {
+  const entry = remoteSpecEntry(projectPath, slug);
+  return entry ? updateServerSpecStatus(entry, slug, partial) : updateSpecStatus(projectPath, slug, partial);
+}
+
+const UPDATE_SERVER = 'Update Frame Server to run specs on this server (File ▸ Connect to Server…).';
+const SERVER_LOCAL_MODE = 'This project keeps Frame files out of git (local mode), so a spec on the server would be lost when the workspace is archived — write it in a local workspace.';
+
+/**
+ * Where a spec command for `workspaceId` / `slug` runs when that is a server
+ * workspace: `{ serverProjectPath, root, host }`, or null for a local one. The
+ * selected workspace decides first (a new spec has no slug yet); a slug held
+ * only by a server workspace decides otherwise.
+ */
+function serverStagingTarget(projectPath, slug, workspaceId) {
+  if (workspaceId) {
+    let loc = null;
+    try { loc = require('./workspaceManager').serverLocation(workspaceId); } catch (_) { loc = null; }
+    if (loc) return { serverProjectPath: loc.serverProjectPath, root: loc.path, host: loc.host, serverKey: loc.serverKey };
+  }
+  const entry = slug ? remoteSpecEntry(projectPath, slug) : null;
+  return entry ? { serverProjectPath: entry.serverProjectPath, root: entry.root, host: entry.workspace.host, serverKey: entry.serverKey } : null;
+}
+
+/**
+ * BUILD_SPEC_COMMAND_FILE: stage locally, or — for a server workspace — have
+ * Frame Server stage it there (specs.stage) so the lane on the server finds
+ * the prompt at the relative path the instruction names.
+ */
+async function handleBuildSpecCommandFile({ projectPath, slug = null, command, aiTool, description, root = null, workspaceId = null } = {}) {
+  const target = serverStagingTarget(projectPath, slug, workspaceId);
+  if (!target) return buildSpecCommandFile(projectPath, slug, command, aiTool, description, root || null);
+  // Decided here, not only on the server: in local mode `.frame/` never
+  // reaches git, so the server's clone has no config saying so.
+  let mode = 'repo';
+  try { mode = require('./gitSharing').getMode(projectPath); } catch (_) { mode = 'repo'; }
+  if (mode === 'local') return { success: false, error: SERVER_LOCAL_MODE };
+  if (!linkOf(target.serverKey)) {
+    return { success: false, error: `${target.host || 'The server'} is offline — reconnect to run this spec command there.` };
+  }
+  let res;
+  try {
+    res = await require('./serverPanels').call({ host: target.host, serverKey: target.serverKey }, 'specs.stage', {
+      projectPath: target.serverProjectPath, root: target.root, slug, command, aiTool, description
+    }, 5 * 60 * 1000);
+  } catch (err) {
+    const message = String((err && err.message) || err);
+    return { success: false, error: /Unknown method/.test(message) ? UPDATE_SERVER : message };
+  }
+  // Follow the workspace from now on: a new spec there must reach the list.
+  refreshServerSpecs(projectPath, target.root).catch(() => { /* reported inside */ });
+  return res || { success: false, error: 'Frame Server did not stage the prompt.' };
 }
 
 function setupIPC(ipcMain) {
@@ -1667,13 +2040,13 @@ function setupIPC(ipcMain) {
     searchSpecs(projectPath, query)
   );
   ipcMain.handle(IPC.GET_SPEC, (event, { projectPath, slug }) =>
-    getSpec(projectPath, slug)
+    handleGetSpec(projectPath, slug)
   );
   ipcMain.handle(IPC.READ_SPEC_REPORT, (event, { projectPath, slug, kind }) =>
-    readSpecReport(projectPath, slug, kind)
+    handleReadSpecReport(projectPath, slug, kind)
   );
   ipcMain.handle(IPC.UPDATE_SPEC_STATUS, (event, { projectPath, slug, partial }) =>
-    updateSpecStatus(projectPath, slug, partial)
+    handleUpdateSpecStatus(projectPath, slug, partial)
   );
   ipcMain.handle(IPC.RENAME_SPEC, (event, { projectPath, oldSlug, opts }) =>
     renameSpec(projectPath, oldSlug, opts)
@@ -1681,9 +2054,7 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.GET_SPEC_PROMPT, (event, { projectPath, slug, command, aiTool, description }) =>
     getCommandPrompt(projectPath, slug, command, aiTool, description)
   );
-  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, { projectPath, slug, command, aiTool, description, root }) =>
-    buildSpecCommandFile(projectPath, slug, command, aiTool, description, root || null)
-  );
+  ipcMain.handle(IPC.BUILD_SPEC_COMMAND_FILE, (event, payload) => handleBuildSpecCommandFile(payload));
   ipcMain.on(IPC.WATCH_SPECS, (event, projectPath) => {
     startWatching(projectPath);
     // Project open, in three steps whose order is load-bearing:
@@ -1749,8 +2120,20 @@ module.exports = {
   derivePhase,
   reconcilePhase,
   startWatching,
+  stopWatching,
   getCommandPrompt,
   buildSpecCommandFile,
+  listSpecsIn,
+  getSpecIn,
+  readSpecReportIn,
+  updateSpecStatusIn,
+  buildSpecCommandFileIn,
+  syncSpecTasksIn,
+  refreshServerSpecs,
+  handleGetSpec,
+  handleReadSpecReport,
+  handleUpdateSpecStatus,
+  handleBuildSpecCommandFile,
   specNewPromptFilename,
   buildImplementPermissions,
   resolveVerificationCommand,

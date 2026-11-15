@@ -1,0 +1,20 @@
+{
+  "slug": "server-specs",
+  "title": "Specs in server workspaces",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-server-specs-T01",
+    "task-spec-server-specs-T02",
+    "task-spec-server-specs-T03",
+    "task-spec-server-specs-T04",
+    "task-spec-server-specs-T05",
+    "task-spec-server-specs-T06",
+    "task-spec-server-specs-T07",
+    "task-spec-server-specs-T08"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-11-14T17:03:39.000Z",
+  "updated_at": "2026-11-14T18:04:50.000Z",
+  "last_phase_at": "2026-11-14T18:04:50.000Z",
+  "implement_mode": "guided"
+}
