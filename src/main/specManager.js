@@ -1673,7 +1673,10 @@ function pushSpecData(projectPath) {
 // desktop never polls. While disconnected, the last known entries stay,
 // tagged offline (their names only — opening one says the host is offline).
 
-const serverSpecs = new Map(); // workspaceId → { projectPath, serverProjectPath, root, workspace, specs }
+// workspaceId → { projectPath, serverProjectPath, serverKey, root, workspace, specs }:
+// each entry belongs to one server (multi-server-connections) and every call
+// for it goes through that server's link.
+const serverSpecs = new Map();
 const SERVER_ROWS_SETTLE_MS = 1500;
 let serverSpecsWired = false;
 let serverRowsTimer = null;
@@ -1682,7 +1685,17 @@ function serverConn() {
   return require('./serverConnection');
 }
 
-/** The watched project's server workspaces: `[{ id, root, host, projectPath, serverProjectPath, name }]`. */
+/** The connected link of a server key, or null (down, removed, or no key). */
+function linkOf(serverKey) {
+  try {
+    const link = serverKey ? serverConn().of(serverKey) : null;
+    return link && link.isConnected() ? link : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** The watched project's server workspaces: `[{ id, root, host, serverKey, projectPath, serverProjectPath, name }]`. */
 function serverWorkspacesOf(projectPath) {
   let wm;
   try { wm = require('./workspaceManager'); } catch (_) { return []; }
@@ -1704,9 +1717,11 @@ function serverSpecLists(projectPath) {
   return out;
 }
 
-function markServerSpecsOffline() {
+/** Tag the entries of one server (`serverKey`), or of every server, offline. */
+function markServerSpecsOffline(serverKey = null) {
   let changed = false;
   for (const entry of serverSpecs.values()) {
+    if (serverKey && entry.serverKey !== serverKey) continue;
     if (!entry.workspace.offline) { entry.workspace = { ...entry.workspace, offline: true }; changed = true; }
   }
   return changed;
@@ -1725,32 +1740,36 @@ async function refreshServerSpecs(projectPath, onlyRoot = null) {
   for (const [id, entry] of serverSpecs) {
     if (entry.projectPath === projectPath && !ids.has(id)) { serverSpecs.delete(id); changed = true; }
   }
-  const sc = serverConn();
-  if (!sc.isConnected()) {
-    if (markServerSpecsOffline() || changed) pushSpecData(projectPath);
-    return;
-  }
   for (const r of rows) {
     if (onlyRoot && r.root !== onlyRoot) continue;
-    const workspace = { id: r.id, name: r.name, branch: null, root: r.root, host: r.host, offline: false };
+    const workspace = { id: r.id, name: r.name, branch: null, root: r.root, host: r.host, serverKey: r.serverKey || null, offline: false };
+    const link = linkOf(r.serverKey);
+    if (!link) {
+      // This workspace's server is down: keep its last list, offline.
+      const known = serverSpecs.get(r.id);
+      if (known && !known.workspace.offline) { known.workspace = { ...known.workspace, offline: true }; changed = true; }
+      continue;
+    }
     try {
-      const specs = await sc.call('specs.list', { projectPath: r.serverProjectPath, root: r.root });
-      serverSpecs.set(r.id, { projectPath, serverProjectPath: r.serverProjectPath, root: r.root, workspace, specs: Array.isArray(specs) ? specs : [] });
+      const specs = await link.call('specs.list', { projectPath: r.serverProjectPath, root: r.root });
+      serverSpecs.set(r.id, { projectPath, serverProjectPath: r.serverProjectPath, serverKey: r.serverKey, root: r.root, workspace, specs: Array.isArray(specs) ? specs : [] });
     } catch (err) {
       if (/Unknown method/.test(String(err && err.message))) serverSpecs.delete(r.id);
-      else if (serverSpecs.has(r.id)) serverSpecs.get(r.id).workspace = { ...workspace, offline: !sc.isConnected() };
+      else if (serverSpecs.has(r.id)) serverSpecs.get(r.id).workspace = { ...workspace, offline: !link.isConnected() };
       console.warn('specManager: specs.list failed for', r.root, err && err.message);
     }
     changed = true;
   }
-  // One watched set per server project (the watched project has one).
+  // One watched set per server and server project (the watched project has one per server).
   const bySp = new Map();
   for (const r of rows) {
-    if (!bySp.has(r.serverProjectPath)) bySp.set(r.serverProjectPath, []);
-    bySp.get(r.serverProjectPath).push(r.root);
+    const k = `${r.serverKey}\u0000${r.serverProjectPath}`;
+    if (!bySp.has(k)) bySp.set(k, { serverKey: r.serverKey, sp: r.serverProjectPath, roots: [] });
+    bySp.get(k).roots.push(r.root);
   }
-  for (const [sp, roots] of bySp) {
-    sc.call('specs.watch', { projectPath: sp, roots }).catch(() => { /* older server, or gone — the next connect retries */ });
+  for (const { serverKey, sp, roots } of bySp.values()) {
+    const link = linkOf(serverKey);
+    if (link) link.call('specs.watch', { projectPath: sp, roots }).catch(() => { /* older server, or gone — the next connect retries */ });
   }
   if (changed) pushSpecData(projectPath);
 }
@@ -1774,7 +1793,7 @@ function remoteSpecEntry(projectPath, slug) {
 const SERVER_SPEC_READ_ONLY = 'Renaming or deleting a spec on a server workspace comes in a later update.';
 
 function serverOffline(entry) {
-  return entry.workspace.offline || !serverConn().isConnected();
+  return entry.workspace.offline || !linkOf(entry.serverKey);
 }
 
 function offlineText(entry) {
@@ -1782,7 +1801,7 @@ function offlineText(entry) {
 }
 
 function serverSpecCall(entry, method, params) {
-  return require('./serverPanels').call({ host: entry.workspace.host }, method, { projectPath: entry.serverProjectPath, root: entry.root, ...params });
+  return require('./serverPanels').call({ host: entry.workspace.host, serverKey: entry.serverKey }, method, { projectPath: entry.serverProjectPath, root: entry.root, ...params });
 }
 
 /** GET_SPEC for a server spec: the server's getSpec, tagged with its workspace; `{ offline: host }` while unreachable. */
@@ -1832,10 +1851,11 @@ async function updateServerSpecStatus(entry, slug, partial) {
 
 function unwatchServerSpecs() {
   if (!serverSpecs.size) return;
-  try {
-    const sc = serverConn();
-    if (sc.isConnected()) sc.call('specs.unwatch', {}).catch(() => { /* gone */ });
-  } catch (_) { /* no connection module */ }
+  const keys = new Set([...serverSpecs.values()].map((e) => e.serverKey).filter(Boolean));
+  for (const key of keys) {
+    const link = linkOf(key);
+    if (link) link.call('specs.unwatch', {}).catch(() => { /* gone */ });
+  }
 }
 
 function wireServerSpecs() {
@@ -1843,9 +1863,9 @@ function wireServerSpecs() {
   serverSpecsWired = true;
   let sc;
   try { sc = serverConn(); } catch (_) { return; }
-  sc.on('specs.changed', ({ root } = {}) => {
+  sc.on('specs.changed', ({ root } = {}, key) => {
     for (const entry of serverSpecs.values()) {
-      if (entry.root === root && entry.projectPath === activeWatchedProject) {
+      if (entry.root === root && (!key || entry.serverKey === key) && entry.projectPath === activeWatchedProject) {
         refreshServerSpecs(entry.projectPath, root).catch(() => { /* reported inside */ });
         return;
       }
@@ -1854,8 +1874,14 @@ function wireServerSpecs() {
   sc.on('connected', () => {
     if (activeWatchedProject) refreshServerSpecs(activeWatchedProject).catch(() => { /* reported inside */ });
   });
-  sc.on('disconnected', () => {
-    if (markServerSpecsOffline() && activeWatchedProject) pushSpecData(activeWatchedProject);
+  sc.on('disconnected', (status, key) => {
+    if (markServerSpecsOffline(key || null) && activeWatchedProject) pushSpecData(activeWatchedProject);
+  });
+  // A removed server's specs leave the list.
+  sc.on('removed', (payload, key) => {
+    let changed = false;
+    for (const [id, entry] of [...serverSpecs]) if (entry.serverKey === key) { serverSpecs.delete(id); changed = true; }
+    if (changed && activeWatchedProject) pushSpecData(activeWatchedProject);
   });
   // Server workspace rows reach workspaceManager when the renderer re-lists
   // after this event; give that a moment, then follow the new set.
@@ -1970,10 +1996,10 @@ function serverStagingTarget(projectPath, slug, workspaceId) {
   if (workspaceId) {
     let loc = null;
     try { loc = require('./workspaceManager').serverLocation(workspaceId); } catch (_) { loc = null; }
-    if (loc) return { serverProjectPath: loc.serverProjectPath, root: loc.path, host: loc.host };
+    if (loc) return { serverProjectPath: loc.serverProjectPath, root: loc.path, host: loc.host, serverKey: loc.serverKey };
   }
   const entry = slug ? remoteSpecEntry(projectPath, slug) : null;
-  return entry ? { serverProjectPath: entry.serverProjectPath, root: entry.root, host: entry.workspace.host } : null;
+  return entry ? { serverProjectPath: entry.serverProjectPath, root: entry.root, host: entry.workspace.host, serverKey: entry.serverKey } : null;
 }
 
 /**
@@ -1989,12 +2015,12 @@ async function handleBuildSpecCommandFile({ projectPath, slug = null, command, a
   let mode = 'repo';
   try { mode = require('./gitSharing').getMode(projectPath); } catch (_) { mode = 'repo'; }
   if (mode === 'local') return { success: false, error: SERVER_LOCAL_MODE };
-  if (!serverConn().isConnected()) {
+  if (!linkOf(target.serverKey)) {
     return { success: false, error: `${target.host || 'The server'} is offline — reconnect to run this spec command there.` };
   }
   let res;
   try {
-    res = await require('./serverPanels').call({ host: target.host }, 'specs.stage', {
+    res = await require('./serverPanels').call({ host: target.host, serverKey: target.serverKey }, 'specs.stage', {
       projectPath: target.serverProjectPath, root: target.root, slug, command, aiTool, description
     }, 5 * 60 * 1000);
   } catch (err) {

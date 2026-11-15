@@ -1,19 +1,29 @@
 /**
- * Connect to Server — the renderer side of the Frame Server link
- * (server-workspaces, server-install-update specs).
+ * Servers — the renderer side of the Frame Server links
+ * (server-workspaces, server-install-update; multi-server-connections).
  *
- * Main owns the connection (serverConnection) and the installer
- * (serverInstaller); this module draws them in the Connect dialog:
- *   - an SSH host (Host entries of ~/.ssh/config as suggestions), Connect /
- *     Disconnect, live status and errors;
- *   - when Frame Server is missing or outdated: the reason, Install / Update,
- *     and the installer's progress lines as they arrive;
+ * Main owns the connections (serverConnection: one link per saved server)
+ * and the installer (serverInstaller); this module draws them in the
+ * Servers dialog:
+ *   - the saved servers on the left (state dot, host, state), an add form
+ *     with the Host entries of ~/.ssh/config as suggestions;
+ *   - the selected server on the right: live status and errors, Connect /
+ *     Disconnect / Remove;
+ *   - when its Frame Server is missing or outdated: the reason, Install /
+ *     Update, and the installer's progress lines as they arrive;
  *   - before an update or rollback that would end running agents: the list
- *     of them (or a general warning) with "Update now" / "Later";
+ *     of that server's agents (or a general warning) with "Update now" / "Later";
  *   - once connected: the server check-up (agent CLIs, gh, git, service)
  *     with the command to fix each missing item, and Roll back when a
  *     previous version is installed.
- * The current status is shared with the status bar (`getStatus`, `onChange`).
+ * Each server has its own dialog model (serverConnectModel), so one server's
+ * progress or check-up never shows on another.
+ *
+ * Shared state:
+ *   - `getServers()` / `getServer(key)` / `onServersChange(cb(list, prev))`
+ *     — every saved server with its status;
+ *   - `getStatus()` / `onChange(cb(status, prev))` — the default server (the
+ *     first connected one, else the first saved), for views that show one.
  */
 
 const { ipcRenderer } = require('electron');
@@ -21,14 +31,18 @@ const { IPC } = require('../shared/ipcChannels');
 const notify = require('./notify');
 const model = require('./serverConnectModel');
 
-let status = { state: 'off', host: null, error: null, frameVersion: null, platform: null, saved: null, install: null };
+const OFF = { state: 'off', host: null, error: null, frameVersion: null, platform: null, saved: null, install: null };
+
+let servers = [];          // [{ key, host, serverId, autoConnect, status }]
+let defaultStatus = OFF;
+let selectedKey = null;    // the server the dialog's detail shows
+let models = {};           // key → dialog model (progress, check-up, in-flight action)
 const listeners = new Set();
+const serversListeners = new Set();
 let modal = null;
-let wantClose = false;      // close once the connect this dialog started succeeds (and the check-up is clean)
-// Progress lines, the check-up and the in-flight action (serverConnectModel).
-let m = model.initial();
-let consent = null;         // { kind: 'update'|'rollback', agents: [...]|null }
-let notifiedUpdate = null;  // host+version an "update available" toast was shown for
+let wantClose = null;      // key whose connect, started here, closes the dialog once its check-up is clean
+let consent = null;        // { key, kind: 'update'|'rollback', agents: [...]|null }
+const notifiedUpdate = new Set(); // host+version an "update available" toast was shown for
 
 const LABELS = {
   off: 'Not connected',
@@ -41,8 +55,18 @@ const LABELS = {
   installing: 'Installing…'
 };
 
+// ─── Shared state ────────────────────────────────────────────
+
 function getStatus() {
-  return status;
+  return defaultStatus;
+}
+
+function getServers() {
+  return servers.slice();
+}
+
+function getServer(key) {
+  return servers.find((s) => s.key === key) || null;
 }
 
 function onChange(cb) {
@@ -50,33 +74,77 @@ function onChange(cb) {
   return () => listeners.delete(cb);
 }
 
+function onServersChange(cb) {
+  serversListeners.add(cb);
+  return () => serversListeners.delete(cb);
+}
+
+function statusOf(key) {
+  const s = getServer(key);
+  return s ? { ...OFF, ...s.status, host: s.host } : OFF;
+}
+
+function m(key = selectedKey) {
+  return model.modelFor(models, key);
+}
+
+function setModel(key, next) {
+  models = model.withModel(models, key, next);
+}
+
 function updateAvailable(s) {
   return s.state === 'connected' && s.install && (s.install.action === 'update' || s.install.action === 'reinstall-dev');
 }
 
-function apply(next) {
-  const prev = status;
-  status = { ...status, ...next };
-  // Progress and the check-up reset when main starts an install, not on a click (S12).
-  m = model.onStatus(m, prev, status);
-  for (const cb of listeners) {
-    try { cb(status, prev); } catch (err) { console.error('serverConnect listener failed', err); }
+/** One server's status changed: its model, toasts and check-up. */
+function onServerStatus(key, prev, next) {
+  setModel(key, model.onStatus(m(key), prev, next));
+  const host = next.host;
+  if (prev.state !== 'connected' && next.state === 'connected' && prev.state !== 'off') {
+    notify.success(`Connected to ${host}`);
+    loadDoctor(key);
+  } else if (prev.state === 'connected' && next.state === 'reconnecting') {
+    notify.info(`Lost the connection to ${host} — reconnecting…`);
   }
-  if (prev.state !== 'connected' && status.state === 'connected' && prev.state !== 'off') {
-    notify.success(`Connected to ${status.host}`);
-    loadDoctor();
-  } else if (prev.state === 'connected' && status.state === 'reconnecting') {
-    notify.info(`Lost the connection to ${status.host} — reconnecting…`);
+  if (next.state !== prev.state && (next.state === 'needs-install' || next.state === 'needs-update') && !isOpen()) {
+    notify.info(`${LABELS[next.state]} on ${host} — open Servers to continue.`);
   }
-  if (status.state !== prev.state && (status.state === 'needs-install' || status.state === 'needs-update') && !isOpen()) {
-    notify.info(`${LABELS[status.state]} on ${status.host} — open Connect to Server to continue.`);
-  }
-  if (updateAvailable(status)) {
-    const key = `${status.host}@${status.install.desktopVersion}`;
-    if (notifiedUpdate !== key) {
-      notifiedUpdate = key;
-      notify.info(`Frame Server ${status.install.current} on ${status.host} can be updated to ${status.install.desktopVersion} (Connect to Server).`);
+  if (updateAvailable(next)) {
+    const tag = `${host}@${next.install.desktopVersion}`;
+    if (!notifiedUpdate.has(tag)) {
+      notifiedUpdate.add(tag);
+      notify.info(`Frame Server ${next.install.current} on ${host} can be updated to ${next.install.desktopVersion} (Servers).`);
     }
+  }
+}
+
+/** A status payload from main: `{ ...default server status, servers, notice? }`. */
+function apply(payload) {
+  const p = payload || {};
+  const prevServers = servers;
+  const prevDefault = defaultStatus;
+  if (Array.isArray(p.servers)) {
+    servers = p.servers.map((s) => ({ ...s, status: { ...OFF, ...(s.status || {}), host: s.host } }));
+    models = model.pruneModels(models, servers.map((s) => s.key));
+    for (const s of servers) {
+      const before = prevServers.find((x) => x.key === s.key);
+      onServerStatus(s.key, before ? before.status : OFF, s.status);
+    }
+  }
+  const first = servers[0];
+  defaultStatus = { ...OFF, ...p, saved: first ? { host: first.host, autoConnect: first.autoConnect } : null };
+  delete defaultStatus.servers;
+  delete defaultStatus.notice;
+  selectedKey = model.pickSelected(servers, selectedKey);
+  if (p.notice && p.notice.kind === 'duplicate') {
+    notify.error(`${p.notice.host} is the same server as ${p.notice.existingHost} — it stays listed once, as ${p.notice.existingHost}.`);
+    if (p.notice.existingKey) selectedKey = p.notice.existingKey;
+  }
+  for (const cb of listeners) {
+    try { cb(defaultStatus, prevDefault); } catch (err) { console.error('serverConnect listener failed', err); }
+  }
+  for (const cb of serversListeners) {
+    try { cb(getServers(), prevServers); } catch (err) { console.error('serverConnect servers listener failed', err); }
   }
   if (isOpen()) renderModal();
 }
@@ -85,29 +153,38 @@ function isOpen() {
   return !!(modal && modal.classList.contains('visible'));
 }
 
+// ─── Dialog ──────────────────────────────────────────────────
+
 function init() {
   modal = document.getElementById('server-connect-modal');
   ipcRenderer.on(IPC.SERVER_STATUS_CHANGED, (event, s) => apply(s || {}));
-  ipcRenderer.on(IPC.SERVER_INSTALL_PROGRESS, (event, { line } = {}) => {
-    if (!line) return;
-    const lines = [...m.progressLines, line];
-    m = { ...m, progressLines: lines.length > 200 ? lines.slice(-200) : lines };
-    if (isOpen()) renderModal();
+  ipcRenderer.on(IPC.SERVER_INSTALL_PROGRESS, (event, { key, line } = {}) => {
+    if (!line || !key) return;
+    const cur = m(key);
+    const lines = [...cur.progressLines, line];
+    setModel(key, { ...cur, progressLines: lines.length > 200 ? lines.slice(-200) : lines });
+    if (isOpen() && key === selectedKey) renderModal();
   });
   ipcRenderer.invoke(IPC.SERVER_STATUS).then((s) => {
     apply(s || {});
-    if (status.state === 'connected') loadDoctor();
+    for (const srv of servers) if (srv.status.state === 'connected') loadDoctor(srv.key);
   }).catch(() => {});
   if (!modal) return;
   const $ = (id) => modal.querySelector(id);
-  $('#sc-connect').addEventListener('click', connect);
-  $('#sc-disconnect').addEventListener('click', disconnect);
+  $('#sc-connect').addEventListener('click', () => connect(selectedKey));
+  $('#sc-disconnect').addEventListener('click', () => disconnectOne(selectedKey));
+  $('#sc-remove').addEventListener('click', () => removeServer(selectedKey));
   $('#sc-cancel').addEventListener('click', close);
-  $('#sc-install-btn').addEventListener('click', () => runAction(status.state === 'needs-install' ? 'install' : 'update'));
+  $('#sc-install-btn').addEventListener('click', () => runAction(statusOf(selectedKey).state === 'needs-install' ? 'install' : 'update'));
   $('#sc-rollback').addEventListener('click', () => runAction('rollback'));
   $('#sc-later').addEventListener('click', () => { consent = null; renderModal(); });
-  $('#sc-confirm').addEventListener('click', () => { const kind = consent && consent.kind; consent = null; if (kind) runAction(kind, true); });
-  $('#sc-recheck').addEventListener('click', () => loadDoctor(true));
+  $('#sc-confirm').addEventListener('click', () => {
+    const c = consent;
+    consent = null;
+    if (c && c.key === selectedKey) runAction(c.kind, true);
+    else renderModal();
+  });
+  $('#sc-recheck').addEventListener('click', () => loadDoctor(selectedKey, true));
   $('#sc-open-terminal').addEventListener('click', () => openServerTerminal(null));
   $('#sc-doctor-list').addEventListener('click', async (e) => {
     const term = e.target.closest('button[data-terminal-fix]');
@@ -117,31 +194,58 @@ function init() {
     try { await navigator.clipboard.writeText(btn.dataset.fix); btn.textContent = 'Copied'; } catch (_) { btn.textContent = 'Copy failed'; }
     setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
   });
+  $('#sc-servers').addEventListener('click', (e) => {
+    const row = e.target.closest('[data-key]');
+    if (row) select(row.dataset.key);
+  });
+  $('#sc-servers').addEventListener('keydown', (e) => {
+    const rows = [...modal.querySelectorAll('#sc-servers [data-key]')];
+    const at = rows.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const next = rows[(at + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length];
+      if (next) { select(next.dataset.key); next.focus(); }
+    } else if ((e.key === 'Enter' || e.key === ' ') && at >= 0) {
+      e.preventDefault();
+      select(rows[at].dataset.key);
+    }
+  });
+  $('#sc-add-form').addEventListener('submit', (e) => { e.preventDefault(); addServer(); });
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
-  $('#sc-host').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); connect(); }
-    else if (e.key === 'Escape') { e.preventDefault(); close(); }
+  modal.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); close(); }
   });
 }
 
-async function loadDoctor(force = false) {
-  if (status.state !== 'connected') return;
-  if (!force && m.doctor && m.doctorFor === status.host) { finishIfClean(); return; }
-  const host = status.host;
-  let res;
-  try { res = await ipcRenderer.invoke(IPC.SERVER_DOCTOR); } catch (err) { res = { error: err.message, items: [] }; }
-  if (status.host !== host) return; // another host since
-  m = { ...m, doctor: res, doctorFor: host };
-  if (isOpen()) renderModal();
-  finishIfClean();
+function select(key) {
+  if (!key || key === selectedKey) return;
+  selectedKey = key;
+  consent = null;
+  renderModal();
+  if (statusOf(key).state === 'connected') loadDoctor(key);
 }
 
-/** A connect started here closes the dialog once the check-up has nothing to fix. */
-function finishIfClean() {
-  if (!wantClose || status.state !== 'connected' || !m.doctor) return;
-  const clean = !m.doctor.error && (m.doctor.items || []).every((i) => i.ok || i.optional);
-  wantClose = false;
-  if (clean && !updateAvailable(status)) close();
+async function loadDoctor(key, force = false) {
+  const s = statusOf(key);
+  if (!key || s.state !== 'connected') return;
+  const cur = m(key);
+  if (!force && cur.doctor && cur.doctorFor === s.host) { finishIfClean(key); return; }
+  let res;
+  try { res = await ipcRenderer.invoke(IPC.SERVER_DOCTOR, { key }); } catch (err) { res = { error: err.message, items: [] }; }
+  if (!getServer(key)) return; // removed since
+  setModel(key, { ...m(key), doctor: res, doctorFor: s.host });
+  if (isOpen() && key === selectedKey) renderModal();
+  finishIfClean(key);
+}
+
+/** A connect started here closes the dialog once that server's check-up has nothing to fix. */
+function finishIfClean(key) {
+  const s = statusOf(key);
+  const cur = m(key);
+  if (wantClose !== key || s.state !== 'connected' || !cur.doctor) return;
+  const clean = !cur.doctor.error && (cur.doctor.items || []).every((i) => i.ok || i.optional);
+  wantClose = null;
+  if (clean && !updateAvailable(s) && key === selectedKey) close();
 }
 
 function el(tag, cls, text) {
@@ -151,14 +255,41 @@ function el(tag, cls, text) {
   return n;
 }
 
+function renderList() {
+  const list = modal.querySelector('#sc-servers');
+  list.replaceChildren(...servers.map((srv) => {
+    const st = srv.status.state;
+    const li = el('li', `sc-server${srv.key === selectedKey ? ' on' : ''}`);
+    li.dataset.key = srv.key;
+    li.dataset.state = st;
+    li.tabIndex = srv.key === selectedKey ? 0 : -1;
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', srv.key === selectedKey ? 'true' : 'false');
+    li.appendChild(el('span', 'sc-server-dot'));
+    const text = el('span', 'sc-server-text');
+    text.appendChild(el('span', 'sc-server-host', srv.host));
+    text.appendChild(el('span', 'sc-server-state', LABELS[st] || st));
+    li.appendChild(text);
+    return li;
+  }));
+  list.hidden = servers.length === 0;
+}
+
 function renderModal() {
-  const s = status;
   const $ = (id) => modal.querySelector(id);
+  renderList();
+  const has = !!getServer(selectedKey);
+  $('#sc-empty').hidden = has;
+  $('#sc-detail-body').hidden = !has;
+  if (!has) {
+    for (const id of ['#sc-disconnect', '#sc-rollback', '#sc-install-btn', '#sc-connect']) $(id).hidden = true;
+    return;
+  }
+  const s = statusOf(selectedKey);
+  const cur = m(selectedKey);
+  $('#sc-detail-host').textContent = s.host;
   const line = $('#sc-status');
-  const shown = s.state === 'off'
-    ? (s.saved && s.saved.host ? `Last used: ${s.saved.host}` : 'Not connected')
-    : `${LABELS[s.state] || s.state}${s.host ? ` · ${s.host}` : ''}${s.state === 'connected' && s.frameVersion ? ` · Frame Server ${s.frameVersion}${s.platform ? ` (${s.platform})` : ''}` : ''}`;
-  line.textContent = shown;
+  line.textContent = `${LABELS[s.state] || s.state}${s.state === 'connected' && s.frameVersion ? ` · Frame Server ${s.frameVersion}${s.platform ? ` (${s.platform})` : ''}` : ''}`;
   line.dataset.state = s.state;
   $('#sc-error').textContent = s.error && s.state !== 'connected' ? s.error : '';
 
@@ -166,9 +297,9 @@ function renderModal() {
   const needs = s.state === 'needs-install' || s.state === 'needs-update';
   const installing = s.state === 'installing';
   const update = updateAvailable(s);
-  const progressLines = m.progressLines;
-  const doctor = m.doctor;
-  const busyNow = model.actionsDisabled(m, s);
+  const progressLines = cur.progressLines;
+  const doctor = cur.doctor;
+  const busyNow = model.actionsDisabled(cur, s);
   const failedInstall = s.state === 'error' && progressLines.length > 0;
   $('#sc-install').hidden = !(needs || installing || update || failedInstall);
   $('#sc-install-reason').textContent = installing
@@ -186,22 +317,23 @@ function renderModal() {
   installBtn.disabled = busyNow;
   installBtn.textContent = s.state === 'needs-install' || (failedInstall && !(s.install && s.install.current)) ? 'Install Frame Server' : 'Update Frame Server';
 
-  // Consent
+  // Consent (only for the server it was asked about)
+  const shownConsent = consent && consent.key === selectedKey ? consent : null;
   const consentEl = $('#sc-consent');
-  consentEl.hidden = !consent;
-  if (consent) {
-    const agents = consent.agents;
-    $('#sc-consent-text').textContent = model.consentText({ kind: consent.kind, agents, host: s.host });
+  consentEl.hidden = !shownConsent;
+  if (shownConsent) {
+    const agents = shownConsent.agents;
+    $('#sc-consent-text').textContent = model.consentText({ kind: shownConsent.kind, agents, host: s.host });
     const list = $('#sc-agents');
     list.replaceChildren(...(agents || []).map((a) => el('li', null, `${a.agent} in ${a.workspace || a.workspaceId}`)));
     list.hidden = !agents || !agents.length;
-    $('#sc-confirm').textContent = consent.kind === 'rollback' ? 'Roll back now' : 'Update now';
+    $('#sc-confirm').textContent = shownConsent.kind === 'rollback' ? 'Roll back now' : 'Update now';
     $('#sc-confirm').disabled = busyNow;
   }
 
   // Check-up
   const docEl = $('#sc-doctor');
-  docEl.hidden = !(s.state === 'connected' && doctor && m.doctorFor === s.host);
+  docEl.hidden = !(s.state === 'connected' && doctor && cur.doctorFor === s.host);
   if (!docEl.hidden) {
     const items = doctor.error ? [{ id: 'error', label: 'Check-up failed', ok: false, detail: doctor.error }] : (doctor.items || []);
     $('#sc-doctor-list').replaceChildren(...items.map((i) => {
@@ -238,105 +370,162 @@ function renderModal() {
   rollback.disabled = busyNow;
   rollback.textContent = prev ? `Roll back to ${prev}` : 'Roll back';
   $('#sc-disconnect').hidden = s.state === 'off';
-  // Connected: no need for Reconnect next to the real actions (the host field + Enter still reconnects).
   $('#sc-connect').hidden = needs || installing || s.state === 'connected';
   $('#sc-connect').textContent = s.state === 'off' ? 'Connect' : 'Reconnect';
-  $('#sc-host').disabled = installing;
+  $('#sc-remove').disabled = installing;
 }
 
-async function open() {
+/**
+ * Open the Servers dialog. `key` selects that server; `add` (or no saved
+ * server at all) puts the cursor in the add form.
+ */
+async function open({ key = null, add = false } = {}) {
   if (!modal) return;
   const input = modal.querySelector('#sc-host');
   const list = modal.querySelector('#sc-hosts');
   let hosts = [];
   try { hosts = await ipcRenderer.invoke(IPC.SERVER_SSH_HOSTS); } catch (_) { hosts = []; }
-  list.replaceChildren(...(hosts || []).map((h) => { const o = document.createElement('option'); o.value = h; return o; }));
-  input.value = status.host || (status.saved && status.saved.host) || '';
+  const saved = new Set(servers.map((s) => s.host.toLowerCase()));
+  list.replaceChildren(...(hosts || []).filter((h) => !saved.has(String(h).toLowerCase())).map((h) => { const o = document.createElement('option'); o.value = h; return o; }));
+  if (key && getServer(key)) selectedKey = key;
+  selectedKey = model.pickSelected(servers, selectedKey);
+  input.value = '';
+  modal.querySelector('#sc-add-error').textContent = '';
   renderModal();
   modal.classList.add('visible');
   // Back from a fix terminal (a sign-in): check again rather than show the old result.
-  const t = model.takeRecheck(m);
-  m = t.model;
-  if (status.state === 'connected') loadDoctor(t.recheck);
-  input.focus();
-  input.select();
+  if (selectedKey) {
+    const t = model.takeRecheck(m(selectedKey));
+    setModel(selectedKey, t.model);
+    if (statusOf(selectedKey).state === 'connected') loadDoctor(selectedKey, t.recheck);
+  }
+  if (add || !servers.length) {
+    input.focus();
+  } else {
+    const row = modal.querySelector('#sc-servers .sc-server.on');
+    if (row) row.focus();
+  }
 }
 
 /**
- * A terminal on the server, in its home folder, in the current view
+ * A terminal on the selected server, in its home folder, in the current view
  * (server-onboarding). With `command`, that check-up fix is typed in for the
  * user to run; the dialog closes so the terminal has the screen, and checks
  * again when it is opened next.
  */
 async function openServerTerminal(command) {
-  if (status.state !== 'connected') return;
-  m = model.noteFixOpened(m);
+  const key = selectedKey;
+  const s = statusOf(key);
+  if (s.state !== 'connected') return;
+  setModel(key, model.noteFixOpened(m(key)));
   close();
   try {
     const ui = require('./terminal').getMultiTerminalUI();
-    const id = await ui.getManager().createServerHomeTerminal({ command });
+    const id = await ui.getManager().createServerHomeTerminal({ command, serverKey: key });
     ui.enterLane(id);
   } catch (err) {
-    notify.error(`Could not open a terminal on ${status.host}: ${err.message}`);
+    notify.error(`Could not open a terminal on ${s.host}: ${err.message}`);
   }
 }
 
 function close() {
-  wantClose = false;
+  wantClose = null;
   consent = null;
   if (modal) modal.classList.remove('visible');
 }
 
-async function connect() {
-  const host = modal.querySelector('#sc-host').value.trim();
-  const res = await ipcRenderer.invoke(IPC.SERVER_CONNECT, { host });
+/** Add the host typed in the form, select it and connect it. */
+async function addServer() {
+  const input = modal.querySelector('#sc-host');
+  const errEl = modal.querySelector('#sc-add-error');
+  const host = input.value.trim();
+  errEl.textContent = '';
+  if (!host) { input.focus(); return; }
+  const res = await ipcRenderer.invoke(IPC.SERVER_ADD, { host });
+  if (res && res.error) {
+    errEl.textContent = res.error;
+    if (res.existing) select(res.existing.key);
+    return;
+  }
+  input.value = '';
+  selectedKey = res.entry.key;
+  await connect(res.entry.key);
+}
+
+async function connect(key) {
+  if (!key) return;
+  const res = await ipcRenderer.invoke(IPC.SERVER_CONNECT, { key });
   if (res && res.error) {
     modal.querySelector('#sc-error').textContent = res.error;
     return;
   }
   // Main accepted the connect: a fresh check-up follows it.
-  m = { ...m, doctor: null, doctorFor: null };
-  wantClose = true;
-  if (res && res.status) apply(res.status);
-}
-
-/** Install, update or roll back; update and rollback first ask about running agents. */
-async function runAction(kind, confirmAgents = false) {
-  const channel = kind === 'install' ? IPC.SERVER_INSTALL : kind === 'rollback' ? IPC.SERVER_ROLLBACK : IPC.SERVER_UPDATE;
-  // One action at a time; nothing is cleared here — main's `installing`
-  // status clears the old progress when the install really starts (S12).
-  const start = model.startAction(m);
-  if (!start.allowed) return;
-  m = start.model;
-  renderModal();
-  let res;
-  try {
-    res = await ipcRenderer.invoke(channel, { host: status.host || modal.querySelector('#sc-host').value.trim(), confirmAgents });
-  } catch (err) {
-    res = { error: err.message };
-  } finally {
-    m = model.endAction(m);
-  }
-  if (res && res.needsConsent) {
-    consent = { kind, agents: res.agents };
-    renderModal();
-    return;
-  }
-  if (res && res.error) {
-    notify.error(`${kind === 'rollback' ? 'Rollback' : 'Install'} failed: ${res.error}`);
-    renderModal();
-    return;
-  }
-  const r = res && res.result;
-  notify.success(kind === 'rollback' ? `Rolled back to Frame Server ${r ? r.version : ''}` : `Frame Server ${r ? r.version : ''} is running on ${status.host}`);
-  wantClose = false;
+  setModel(key, { ...m(key), doctor: null, doctorFor: null });
+  wantClose = key;
   if (isOpen()) renderModal();
 }
 
-async function disconnect() {
-  const res = await ipcRenderer.invoke(IPC.SERVER_DISCONNECT);
-  if (res && res.status) apply({ ...res.status, saved: { host: status.host, autoConnect: false } });
-  notify.info('Disconnected from the server');
+/** Disconnect one server; it stays in the list and off at the next launch. */
+async function disconnectOne(key) {
+  const srv = getServer(key);
+  if (!srv) return;
+  await ipcRenderer.invoke(IPC.SERVER_DISCONNECT, { key });
+  notify.info(`Disconnected from ${srv.host}`);
 }
 
-module.exports = { init, open, close, getStatus, onChange, disconnect, LABELS };
+/** Disconnect every server (File ▸ Disconnect from Server, palette). */
+async function disconnect() {
+  await ipcRenderer.invoke(IPC.SERVER_DISCONNECT, {});
+  notify.info(servers.length > 1 ? 'Disconnected from every server' : 'Disconnected from the server');
+}
+
+/** Forget a server after asking; nothing on the server is touched. */
+async function removeServer(key) {
+  const srv = getServer(key);
+  if (!srv) return;
+  const ok = window.confirm(`Remove ${srv.host} from Frame?\n\nIts workspaces and terminals leave this window. Nothing on ${srv.host} is deleted — its terminals keep running there, and adding it again brings them back.`);
+  if (!ok) return;
+  const res = await ipcRenderer.invoke(IPC.SERVER_REMOVE, { key });
+  if (res && res.error) { notify.error(res.error); return; }
+  if (selectedKey === key) selectedKey = null;
+  notify.info(`Removed ${srv.host}`);
+}
+
+/** Install, update or roll back the selected server; update and rollback first ask about its running agents. */
+async function runAction(kind, confirmAgents = false) {
+  const key = selectedKey;
+  if (!key) return;
+  const channel = kind === 'install' ? IPC.SERVER_INSTALL : kind === 'rollback' ? IPC.SERVER_ROLLBACK : IPC.SERVER_UPDATE;
+  // One action at a time per server; nothing is cleared here — main's
+  // `installing` status clears the old progress when the install really
+  // starts (S12).
+  const start = model.startAction(m(key));
+  if (!start.allowed) return;
+  setModel(key, start.model);
+  renderModal();
+  let res;
+  try {
+    res = await ipcRenderer.invoke(channel, { key, confirmAgents });
+  } catch (err) {
+    res = { error: err.message };
+  } finally {
+    setModel(key, model.endAction(m(key)));
+  }
+  const host = statusOf(key).host;
+  if (res && res.needsConsent) {
+    consent = { key, kind, agents: res.agents };
+    if (isOpen()) renderModal();
+    return;
+  }
+  if (res && res.error) {
+    notify.error(`${kind === 'rollback' ? 'Rollback' : 'Install'} on ${host} failed: ${res.error}`);
+    if (isOpen()) renderModal();
+    return;
+  }
+  const r = res && res.result;
+  notify.success(kind === 'rollback' ? `Rolled back ${host} to Frame Server ${r ? r.version : ''}` : `Frame Server ${r ? r.version : ''} is running on ${host}`);
+  if (wantClose === key) wantClose = null;
+  if (isOpen()) renderModal();
+}
+
+module.exports = { init, open, close, getStatus, getServers, getServer, onChange, onServersChange, disconnect, LABELS };

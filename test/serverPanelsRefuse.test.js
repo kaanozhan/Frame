@@ -19,14 +19,32 @@ fs.mkdirSync(path.join(LOCAL, 'src'), { recursive: true });
 fs.writeFileSync(path.join(LOCAL, 'src', 'a.js'), '');
 const SERVER_ROOT = '/srv/ws/sage';
 
-let serverUp = true;
-const fakeServer = {
-  isConnected: () => serverUp,
-  getStatus: () => ({ state: serverUp ? 'connected' : 'reconnecting', host: 'box' }),
-  on: () => () => {},
-  call: async (method) => { if (method === 'files.tree') throw new Error('permission denied on the server'); return null; }
+const SERVER_ROOT_B = '/srv/other/ws/teal';
+
+// Two saved servers (multi-server-connections): box (whose files.tree fails)
+// and gpu (whose tree answers); each workspace's panels go to its own server.
+const links = {
+  kbox: { key: 'kbox', host: 'box', up: true, calls: [] },
+  kgpu: { key: 'kgpu', host: 'gpu', up: true, calls: [] }
 };
-const fakeWorkspaces = { serverRoots: () => [{ root: SERVER_ROOT, id: 'srv-ws', host: 'box' }], serverLocation: () => null };
+for (const l of Object.values(links)) {
+  l.isConnected = () => l.up;
+  l.getStatus = () => ({ state: l.up ? 'connected' : 'reconnecting', host: l.host });
+}
+links.kbox.call = async (method) => { links.kbox.calls.push(method); if (method === 'files.tree') throw new Error('permission denied on the server'); return null; };
+links.kgpu.call = async (method, params) => { links.kgpu.calls.push(method); if (method === 'files.tree') return { root: params.root, files: [{ name: 'gpu.txt' }] }; return null; };
+const fakeServer = {
+  of: (key) => links[key] || null,
+  all: () => Object.values(links),
+  on: () => () => {}
+};
+const fakeWorkspaces = {
+  serverRoots: () => [
+    { root: SERVER_ROOT, id: 'srv-ws', host: 'box', serverKey: 'kbox' },
+    { root: SERVER_ROOT_B, id: 'gpu-ws', host: 'gpu', serverKey: 'kgpu' }
+  ],
+  serverLocation: () => null
+};
 
 const MAIN = path.join(__dirname, '..', 'src', 'main');
 const loadOriginal = Module._load;
@@ -83,4 +101,21 @@ test('T10: branch and worktree changes under a server root are refused; the work
   const wt = await handlers[IPC.LOAD_GIT_WORKTREES]({}, SERVER_ROOT, ctx);
   assert.deepEqual(wt.worktrees, []);
   assert.match(String(wt.note), /server/i);
+});
+
+test('panel calls go to the workspace\'s own server; a down server answers offline naming its host', async () => {
+  links.kbox.calls = []; links.kgpu.calls = [];
+  const reply = await loadTree(SERVER_ROOT_B, { workspaceId: 'gpu-ws' });
+  assert.equal(reply.error || null, null, String(reply.error));
+  assert.deepEqual(links.kgpu.calls, ['files.tree']);
+  assert.deepEqual(links.kbox.calls, [], 'box was not asked');
+
+  links.kgpu.up = false;
+  try {
+    const down = await loadTree(SERVER_ROOT_B, { workspaceId: 'gpu-ws' });
+    assert.match(String(down.error), /gpu is offline/);
+    assert.deepEqual(links.kbox.calls, [], 'never another server');
+  } finally {
+    links.kgpu.up = true;
+  }
 });

@@ -7,7 +7,7 @@ Nothing runs as root, and nothing runs in Docker. Frame Server runs as your user
 ## Install from Frame (recommended)
 
 1. Make sure `ssh <host> true` works **without a password prompt**. Frame runs SSH in batch mode, so keys, ssh-agent, `~/.ssh/config` and Tailscale SSH all work, but typed passwords and host-key questions do not.
-2. In Frame, choose **File ▸ Connect to Server…**, pick the host and press **Connect**.
+2. In Frame, choose **File ▸ Add Server…**, pick the host and press **Connect**.
 3. If Frame Server is not there, Frame says so. Press **Install Frame Server**. Frame then:
    - detects the server's platform (Linux x86_64 or aarch64);
    - has the server download the matching package from the GitHub release and verify its SHA-256. If the server cannot reach GitHub, Frame downloads the package and sends it over SSH;

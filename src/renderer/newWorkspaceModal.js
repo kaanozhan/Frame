@@ -25,6 +25,7 @@ const state = require('./state');
 const notify = require('./notify');
 const laneStatus = require('./laneStatus');
 const { escapeHtml } = require('./htmlUtils');
+const branchOptions = require('./workspaces/branchOptions');
 
 const SETUP_TERMINAL_NAME = 'setup';
 const SETTLE_MS = 800;              // a fresh shell's beat before typing (agentDispatch does the same)
@@ -58,7 +59,117 @@ function init() {
   // it from the branch's upstream, else the default branch, until the user
   // types their own.
   modalEl.querySelector('#nw-branch').addEventListener('change', prefillBaseForBranch);
-  modalEl.querySelector('#nw-base').addEventListener('input', (e) => { e.target.dataset.touched = '1'; });
+  modalEl.querySelector('#nw-base').addEventListener('input', (e) => { e.target.dataset.touched = '1'; paintFromHint(); });
+  modalEl.querySelector('#nw-base').addEventListener('change', paintFromHint);
+  attachCombo(modalEl.querySelector('#nw-branch'), modalEl.querySelector('#nw-branch-list'));
+  attachCombo(modalEl.querySelector('#nw-base'), modalEl.querySelector('#nw-base-list'));
+}
+
+// ─── Branch fields: Frame's own filterable list ──────────────
+//
+// The browser's datalist drew an unstyled native popup and matched only how
+// the platform chose to. This list is the project menu's surface, Local and
+// Remote sections, and matches anywhere in the name (branchOptions). Arrows
+// walk it, Enter or a click picks, Escape closes the list (not the dialog).
+
+function attachCombo(input, list) {
+  let items = [];
+  let highlight = -1;
+  const isOpen = () => !list.hidden;
+  const close = () => {
+    list.hidden = true;
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+  };
+  const paint = () => {
+    const filter = input.dataset.filtering ? input.value : '';
+    const { sections } = branchOptions.build({ local: branchNames.local, remote: branchNames.remote, filter });
+    items = sections.flatMap((s) => s.items);
+    if (!items.length) {
+      list.innerHTML = `<div class="sidebar-project-menu-empty">${branchNames.local.length || branchNames.remote.length ? 'No branch matches' : 'Loading branches…'}</div>`;
+    } else {
+      let i = 0;
+      list.innerHTML = sections.map((s) => `
+        <div class="nw-combo-section">${escapeHtml(s.label)}</div>
+        ${s.items.map((name) => {
+          const idx = i++;
+          const on = name === input.value.trim();
+          return `<div class="sidebar-project-menu-item nw-combo-item${idx === highlight ? ' highlight' : ''}${on ? ' active' : ''}" role="option" id="${list.id}-${idx}" data-index="${idx}" aria-selected="${idx === highlight}"><span class="sidebar-project-menu-item-name">${escapeHtml(name)}</span></div>`;
+        }).join('')}
+        ${s.more ? `<div class="sidebar-project-menu-empty">${s.more} more — keep typing</div>` : ''}`).join('');
+    }
+    if (highlight >= 0) {
+      input.setAttribute('aria-activedescendant', `${list.id}-${highlight}`);
+      const el = list.querySelector(`[data-index="${highlight}"]`);
+      if (el) el.scrollIntoView({ block: 'nearest' });
+    } else {
+      input.removeAttribute('aria-activedescendant');
+    }
+  };
+  const open = () => {
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    paint();
+  };
+  const pick = (name) => {
+    input.value = name;
+    delete input.dataset.filtering;
+    close();
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  // Focus shows every branch (the current value marked); typing filters.
+  input.addEventListener('focus', () => {
+    delete input.dataset.filtering;
+    highlight = -1;
+    if (input.dataset.quiet) { delete input.dataset.quiet; return; } // the dialog's own focus: list stays shut
+    open();
+  });
+  input.addEventListener('click', () => { if (!isOpen()) open(); });
+  input.addEventListener('input', () => {
+    input.dataset.filtering = '1';
+    const filtered = branchOptions.build({ local: branchNames.local, remote: branchNames.remote, filter: input.value }).items;
+    highlight = branchOptions.initialHighlight(filtered, input.value);
+    open();
+  });
+  input.addEventListener('blur', () => setTimeout(close, 0));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!isOpen()) open();
+      highlight = branchOptions.move(items, highlight, e.key === 'ArrowDown' ? 1 : -1);
+      paint();
+    } else if (e.key === 'Enter' && isOpen() && highlight >= 0 && items[highlight]) {
+      e.preventDefault();
+      e.stopPropagation(); // a pick, not a submit
+      pick(items[highlight]);
+    } else if (e.key === 'Escape' && isOpen()) {
+      e.preventDefault();
+      e.stopPropagation(); // close the list, keep the dialog
+      close();
+    } else if (e.key === 'Tab') {
+      close();
+    }
+  });
+  // mousedown keeps the focus in the input, so blur does not close first.
+  list.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    const row = e.target.closest('[data-index]');
+    if (row) pick(items[Number(row.dataset.index)]);
+  });
+}
+
+/**
+ * What the base means for the chosen start (workspace-hardening L4): a new
+ * branch is cut from it; an existing branch keeps it as the branch its pull
+ * request targets and Update from base pulls from.
+ */
+function paintFromHint() {
+  const from = modalEl.querySelector('input[name="nw-from"]:checked').value;
+  const base = modalEl.querySelector('#nw-base').value.trim() || defaultBase || 'the default branch';
+  modalEl.querySelector('#nw-base-label').textContent = from === 'new' ? 'Branch from' : 'Merges into';
+  modalEl.querySelector('#nw-from-hint').textContent = from === 'new'
+    ? `A new branch is created from origin/${base}, fetched first.`
+    : `The workspace opens this branch. Its pull request targets ${base}, and Update from base pulls from it.`;
 }
 
 async function prefillBaseForBranch() {
@@ -93,10 +204,15 @@ function syncFrom() {
   const branchRow = modalEl.querySelector('#nw-branch-row');
   baseRow.hidden = false;
   branchRow.hidden = from !== 'branch';
-  (from === 'new' ? modalEl.querySelector('#nw-base') : modalEl.querySelector('#nw-branch')).focus();
+  paintFromHint();
+  // Focus the first field without opening its list on top of the form.
+  const first = from === 'new' ? modalEl.querySelector('#nw-base') : modalEl.querySelector('#nw-branch');
+  first.dataset.quiet = '1';
+  first.focus();
+  first.select();
 }
 
-async function open() {
+async function open({ location = null, serverKey = null } = {}) {
   if (!modalEl || busy) return;
   const projectPath = state.getProjectPath();
   if (!projectPath) {
@@ -109,7 +225,7 @@ async function open() {
   delete modalEl.querySelector('#nw-base').dataset.touched;
   modalEl.querySelector('input[name="nw-from"][value="new"]').checked = true;
   modalEl.querySelector('#nw-error').textContent = '';
-  syncLocation();
+  syncLocation(location, serverKey);
   setBusy(false);
   modalEl.classList.add('visible');
   syncFrom();
@@ -128,30 +244,62 @@ async function open() {
   const baseInput = modalEl.querySelector('#nw-base');
   if (!baseInput.value || baseInput.dataset.project !== projectPath) baseInput.value = defaultBase || '';
   baseInput.dataset.project = projectPath;
-  const names = [...new Set([...branchNames.local, ...branchNames.remote])].sort();
-  modalEl.querySelector('#nw-branches').innerHTML = names.map((n) => `<option value="${escapeHtml(n)}"></option>`).join('');
+  paintFromHint();
+}
+
+// The last location used per project (multi-server-connections):
+// localStorage `frame-nw-location` = { [projectPath]: 'local' | serverKey }.
+const LOCATION_KEY = 'frame-nw-location';
+
+function lastLocation(projectPath) {
+  try { return (JSON.parse(localStorage.getItem(LOCATION_KEY) || '{}') || {})[projectPath] || null; } catch (_) { return null; }
+}
+
+function rememberLocation(projectPath, value) {
+  try {
+    const all = JSON.parse(localStorage.getItem(LOCATION_KEY) || '{}') || {};
+    all[projectPath] = value;
+    localStorage.setItem(LOCATION_KEY, JSON.stringify(all));
+  } catch (_) { /* a preference, not state */ }
 }
 
 /**
- * Location (server-workspaces): "This Mac", or the server Frame is
- * connected to. Shown once a server has been used; the server option is
- * disabled while the link is down.
+ * Location (server-workspaces; multi-server-connections): "This Mac", or one
+ * of the saved servers. Shown once a server is saved; a server that is down
+ * is listed but disabled. From Remote's "+" the pick is a server (this
+ * project's last one, else the first connected); otherwise this project's
+ * last location, else This Mac.
  */
-function syncLocation() {
+function syncLocation(preferred = null, serverKey = null) {
   const row = modalEl.querySelector('#nw-location-row');
   const sel = modalEl.querySelector('#nw-location');
   const hint = modalEl.querySelector('#nw-location-hint');
-  const s = require('./serverConnect').getStatus();
-  const host = s.host || (s.saved && s.saved.host);
-  row.hidden = !host;
-  if (!host) { sel.innerHTML = '<option value="local">This Mac</option>'; return; }
-  const up = s.state === 'connected';
-  const keep = sel.value === 'server' && up ? 'server' : 'local';
-  sel.innerHTML = `<option value="local">This Mac</option><option value="server"${up ? '' : ' disabled'}>Server · ${escapeHtml(host)}${up ? '' : ' (not connected)'}</option>`;
-  sel.value = keep;
+  const servers = require('./serverConnect').getServers();
+  row.hidden = !servers.length;
+  const opts = ['<option value="local">This Mac</option>'];
+  for (const srv of servers) {
+    const up = srv.status && srv.status.state === 'connected';
+    opts.push(`<option value="${escapeHtml(srv.key)}"${up ? '' : ' disabled'}>Server · ${escapeHtml(srv.host)}${up ? '' : ' (not connected)'}</option>`);
+  }
+  sel.innerHTML = opts.join('');
+  const usable = (v) => v === 'local' || servers.some((x) => x.key === v && x.status && x.status.state === 'connected');
+  const remembered = lastLocation(state.getProjectPath());
+  const firstUp = (servers.find((x) => x.status && x.status.state === 'connected') || {}).key || null;
+  let wanted;
+  if (preferred === 'server') {
+    // Opened from Remote's "+": a server — the given one, else the one this
+    // project used last, else the first connected.
+    wanted = [serverKey, remembered !== 'local' ? remembered : null, firstUp].find((v) => v && usable(v)) || null;
+  } else if (preferred === 'local') {
+    wanted = 'local';
+  } else {
+    wanted = remembered;
+  }
+  sel.value = wanted && usable(wanted) ? wanted : 'local';
   const paint = () => {
-    hint.textContent = sel.value === 'server'
-      ? 'Cloned from the remote on the server; terminals and agents run there and keep running while this Mac is away.'
+    const srv = servers.find((x) => x.key === sel.value);
+    hint.textContent = srv
+      ? `Cloned from the remote on ${srv.host}; terminals and agents run there and keep running while this Mac is away.`
       : '';
   };
   sel.onchange = paint;
@@ -184,12 +332,14 @@ async function submit() {
     return;
   }
 
+  const where = modalEl.querySelector('#nw-location').value || 'local';
   setBusy(true);
   let result;
   try {
     result = await ipcRenderer.invoke(IPC.WORKSPACE_CREATE, {
       projectPath,
-      location: modalEl.querySelector('#nw-location').value || 'local',
+      location: where === 'local' ? 'local' : 'server',
+      serverKey: where === 'local' ? null : where,
       from,
       base: base || undefined,
       branch: from === 'branch' ? branch : undefined
@@ -204,6 +354,7 @@ async function submit() {
   }
 
   modalEl.classList.remove('visible');
+  rememberLocation(projectPath, where);
   if (result.fetch && !result.fetch.skipped && !result.fetch.fetched) {
     notify.info(`Couldn't fetch origin/${result.workspace.base} — started from the local copy.`);
   }
@@ -211,7 +362,8 @@ async function submit() {
     // The project went to the server as a git bundle (server-onboarding):
     // committed history only — say what stayed here.
     const n = Number(result.sent.uncommitted) || 0;
-    notify.info(`Sent this project's committed history to the server.${n ? ` ${n} uncommitted change${n === 1 ? '' : 's'} stayed on this Mac — commit and push them to use them there.` : ''}`);
+    const host = (result.workspace && result.workspace.host) || 'the server';
+    notify.info(`Sent this project's committed history to ${host}.${n ? ` ${n} uncommitted change${n === 1 ? '' : 's'} stayed on this Mac — commit and push them to use them there.` : ''}`);
   }
 
   const section = require('./workspaceSection');
