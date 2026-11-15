@@ -151,9 +151,9 @@ function rememberLocation(projectPath, value) {
 /**
  * Location (server-workspaces; multi-server-connections): "This Mac", or one
  * of the saved servers. Shown once a server is saved; a server that is down
- * is listed but disabled. The pick is the server the dialog was opened for
- * (a server's "New remote workspace"), else this project's last location,
- * else This Mac.
+ * is listed but disabled. From Remote's "+" the pick is a server (this
+ * project's last one, else the first connected); otherwise this project's
+ * last location, else This Mac.
  */
 function syncLocation(preferred = null, serverKey = null) {
   const row = modalEl.querySelector('#nw-location-row');
@@ -169,9 +169,17 @@ function syncLocation(preferred = null, serverKey = null) {
   sel.innerHTML = opts.join('');
   const usable = (v) => v === 'local' || servers.some((x) => x.key === v && x.status && x.status.state === 'connected');
   const remembered = lastLocation(state.getProjectPath());
-  const wanted = preferred === 'server' && serverKey ? serverKey
-    : preferred === 'local' ? 'local'
-      : remembered;
+  const firstUp = (servers.find((x) => x.status && x.status.state === 'connected') || {}).key || null;
+  let wanted;
+  if (preferred === 'server') {
+    // Opened from Remote's "+": a server — the given one, else the one this
+    // project used last, else the first connected.
+    wanted = [serverKey, remembered !== 'local' ? remembered : null, firstUp].find((v) => v && usable(v)) || null;
+  } else if (preferred === 'local') {
+    wanted = 'local';
+  } else {
+    wanted = remembered;
+  }
   sel.value = wanted && usable(wanted) ? wanted : 'local';
   const paint = () => {
     const srv = servers.find((x) => x.key === sel.value);

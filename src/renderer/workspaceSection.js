@@ -5,9 +5,9 @@
  * selected workspace, and a dropdown grouped in two, split by a hairline:
  *   - Local: the main row (the project's own checkout), then this Mac's
  *     workspaces; "+" opens New workspace.
- *   - Remote: one sub-header per saved Frame Server (host + link dot) with
- *     that server's workspaces, or its next step — reconnect it while it is
- *     down, create a remote workspace once it is up — then "Add server…"
+ *   - Remote: "+" opens New Workspace on a server (chosen there); then one
+ *     sub-header per saved Frame Server (host + link dot, Connect while it
+ *     is down) with that server's workspaces, then "Add server…"
  *     (multi-server-connections). With no server saved: "Connect a server".
  * Each row: the branch as the primary label, the color name as the
  * secondary one, and a status dot folded from the workspace's terminals
@@ -99,6 +99,7 @@ function init() {
 
   state.onProjectChange(() => {
     menuOpen = false;
+    lastServerCounts = null; // counts are per project
     workspaces = [];
     archived = [];
     showArchived = false;
@@ -137,6 +138,7 @@ async function load({ reselect = false } = {}) {
   loadedFor = projectPath;
   isRepo = !!(result && result.isRepo);
   workspaces = (result && result.workspaces) || [];
+  if (!(result && result.error)) openServersThatGrew(workspaces);
   archived = (result && result.archived) || [];
   // Saved terminal sessions of workspaces that are gone free their slots (R14).
   if (result && !result.error && result.isRepo) {
@@ -266,27 +268,82 @@ function serverViews() {
   try { return require('./serverConnect').getServers().map(linkView); } catch (_) { return []; }
 }
 
-/** One server's sub-header in Remote: its link dot and host, then "+" when it is up or Connect when it is down. */
-function serverHeadHtml(link, canCreate) {
+/**
+ * One server's sub-header in Remote, drawn as a labelled sub-separator: the
+ * host, a hairline, and Connect / Set up while it is down (a down host reads
+ * muted). Creating goes through Remote's one "+" (the server is chosen in New
+ * Workspace), not a "+" per server.
+ */
+function serverHeadHtml(link, { collapsed, count, locked }) {
   const label = require('./serverConnect').LABELS[link.state] || link.state;
   let action = '';
-  if (link.phase === 'up') {
-    action = `<button class="ws-group-add" data-act="new-remote" data-key="${escapeHtml(link.key)}" type="button" ${canCreate ? '' : 'disabled'} title="${canCreate ? `New remote workspace on ${escapeHtml(link.host)}` : 'Workspaces need a git repository'}" aria-label="New remote workspace on ${escapeHtml(link.host)}">${PLUS}</button>`;
-  } else if (link.phase !== 'busy') {
+  if (link.phase !== 'up' && link.phase !== 'busy') {
     action = `<button class="ws-group-link" data-act="connect" data-key="${escapeHtml(link.key)}" type="button">${link.phase === 'setup' ? 'Set up' : 'Connect'}</button>`;
   }
-  return `<div class="ws-server-head">
-      <span class="ws-group-host ${link.phase}" title="${escapeHtml(link.host)} · ${escapeHtml(label)}"><span class="ws-link-dot" aria-hidden="true"></span>${escapeHtml(link.host)}</span>
+  const { Server } = require('lucide');
+  const icon = require('./dock').lucideIcon(Server, 12);
+  // The selected workspace's server stays open: its row must not disappear.
+  const toggle = locked
+    ? ''
+    : ` data-act="toggle-server" data-key="${escapeHtml(link.key)}" tabindex="0" role="button" aria-expanded="${!collapsed}"`;
+  return `<div class="ws-server-head ${link.phase}${collapsed ? ' collapsed' : ''}${locked ? ' locked' : ''}"${toggle} title="${escapeHtml(link.host)} · ${escapeHtml(label)}${locked ? '' : collapsed ? ' — show workspaces' : ' — hide workspaces'}">
+      <span class="ws-server-caret" aria-hidden="true"></span>
+      <span class="ws-server-icon" aria-hidden="true">${icon}</span>
+      <span class="ws-server-name">${escapeHtml(link.host)}</span>
+      ${collapsed && count ? `<span class="ws-server-count">${count}</span>` : ''}
+      <span class="ws-server-rule" aria-hidden="true"></span>
       ${action}
     </div>`;
 }
 
+// Open / closed server sections (multi-server-connections), a view
+// preference kept in this browser: localStorage `frame-ws-server-open` =
+// { [serverKey]: true | false } — only servers the user toggled (or that just
+// got a new workspace) have an entry. Without one, a server with no
+// workspaces of the project starts closed and one with workspaces open.
+const OPEN_KEY = 'frame-ws-server-open';
+let serverOpen = (() => {
+  try { return JSON.parse(localStorage.getItem(OPEN_KEY) || '{}') || {}; } catch (_) { return {}; }
+})();
+
+function isServerOpen(key, count) {
+  return typeof serverOpen[key] === 'boolean' ? serverOpen[key] : count > 0;
+}
+
+function setServerOpen(key, open) {
+  serverOpen = { ...serverOpen, [key]: !!open };
+  try { localStorage.setItem(OPEN_KEY, JSON.stringify(serverOpen)); } catch (_) { /* preference only */ }
+}
+
+function toggleServer(key) {
+  const count = workspaces.filter((w) => w.location === 'server' && w.serverKey === key).length;
+  setServerOpen(key, !isServerOpen(key, count));
+  render();
+}
+
+// Workspaces per server at the last load of this project: a server whose
+// count grew (a workspace was just created there, from any path) opens, so
+// the new row is in sight instead of hidden behind a closed header.
+let lastServerCounts = null;
+
+function serverCounts(list) {
+  const out = {};
+  for (const w of list) if (w.location === 'server' && w.serverKey) out[w.serverKey] = (out[w.serverKey] || 0) + 1;
+  return out;
+}
+
+function openServersThatGrew(list) {
+  const now = serverCounts(list);
+  if (lastServerCounts) {
+    for (const [key, n] of Object.entries(now)) if (n > (lastServerCounts[key] || 0)) setServerOpen(key, true);
+  }
+  lastServerCounts = now;
+}
+
 /** What a server with no workspaces of this project offers: the next step for its link. */
-function serverEmptyHtml(link, canCreate) {
+function serverEmptyHtml(link) {
   if (link.phase === 'up') {
-    return `<div class="ws-empty ws-empty-compact">
-        <button class="ws-cta" data-act="new-remote" data-key="${escapeHtml(link.key)}" type="button" ${canCreate ? '' : 'disabled'}${canCreate ? '' : ' title="Workspaces need a git repository"'}>${PLUS}<span>New remote workspace</span></button>
-      </div>`;
+    return '<div class="ws-empty ws-empty-compact"><p class="ws-empty-text">No workspaces yet</p></div>';
   }
   if (link.phase === 'busy') {
     return `<div class="ws-empty ws-empty-compact"><p class="ws-empty-text">${escapeHtml(require('./serverConnect').LABELS[link.state] || 'Connecting…')}</p></div>`;
@@ -313,12 +370,21 @@ function remoteGroupHtml(remote, { canCreate, selectedId, sums }) {
   }
   const blocks = links.map((link) => {
     const rows = remote.filter((w) => w.serverKey === link.key);
+    const locked = rows.some((w) => w.id === selectedId);
+    const collapsed = !locked && !isServerOpen(link.key, rows.length);
+    const body = collapsed ? '' : (rows.length ? rows.map((ws) => rowHtml(ws, { selectedId, sums })).join('') : serverEmptyHtml(link));
     return `<div class="ws-server" role="group" aria-label="${escapeHtml(link.host)}">
-        ${serverHeadHtml(link, canCreate)}
-        ${rows.length ? rows.map((ws) => rowHtml(ws, { selectedId, sums })).join('') : serverEmptyHtml(link, canCreate)}
+        ${serverHeadHtml(link, { collapsed, count: rows.length, locked })}
+        ${body}
       </div>`;
   }).join('');
-  return `<div class="ws-group-head"><span class="ws-group-label">Remote</span></div>
+  const anyUp = links.some((l) => l.phase === 'up');
+  const addTitle = !canCreate ? 'Workspaces need a git repository'
+    : anyUp ? 'New remote workspace' : 'Connect a server first';
+  return `<div class="ws-group-head">
+      <span class="ws-group-label">Remote</span>
+      <button class="ws-group-add" data-act="new-remote" type="button" ${canCreate && anyUp ? '' : 'disabled'} title="${addTitle}" aria-label="New remote workspace">${PLUS}</button>
+    </div>
     ${blocks}
     <button class="ws-add-server" data-act="add-server" type="button">${PLUS}<span>Add server…</span></button>`;
 }
@@ -435,7 +501,7 @@ function closeDropdown({ focusTrigger = false } = {}) {
 
 /** Arrow keys walk the dropdown's rows and buttons, top to bottom. */
 function moveFocus(step) {
-  const items = [...rootEl.querySelectorAll('.ws-menu .ws-row[tabindex="0"], .ws-menu .ws-cta:not(:disabled), .ws-menu .ws-add-server, .ws-menu .ws-archived-toggle')];
+  const items = [...rootEl.querySelectorAll('.ws-menu .ws-row[tabindex="0"], .ws-menu .ws-server-head[tabindex="0"], .ws-menu .ws-cta:not(:disabled), .ws-menu .ws-add-server, .ws-menu .ws-archived-toggle')];
   if (!items.length) return;
   const at = items.indexOf(document.activeElement);
   const next = items[(at + step + items.length) % items.length] || items[0];
@@ -459,6 +525,7 @@ function onClick(e) {
     if (act === 'new-remote') { closeDropdown(); return openNew({ location: 'server', serverKey: actEl.dataset.key || null }); }
     if (act === 'connect') { closeDropdown(); return require('./serverConnect').open({ key: actEl.dataset.key || null }); }
     if (act === 'add-server') { closeDropdown(); return require('./serverConnect').open({ add: true }); }
+    if (act === 'toggle-server') return toggleServer(actEl.dataset.key);
     if (act === 'toggle-archived') { showArchived = !showArchived; return render(); }
     if (act === 'menu' && ws) {
       const rect = actEl.getBoundingClientRect();
@@ -482,6 +549,11 @@ function onKeyDown(e) {
   if (e.target.classList && e.target.classList.contains('ws-rename')) {
     if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
     if (e.key === 'Escape') { e.preventDefault(); renaming = null; render(); }
+    return;
+  }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('ws-server-head') && e.target.dataset.key) {
+    e.preventDefault();
+    toggleServer(e.target.dataset.key);
     return;
   }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('ws-row')) {

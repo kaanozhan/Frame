@@ -826,16 +826,89 @@
 
 .ws-server + .ws-server { margin-top: 4px; }
 
+/* A labelled sub-separator: host, then a hairline to the edge (and Connect
+   while the server is down). Quieter than the Local / Remote labels. */
 .ws-server-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 6px;
   min-height: 22px;
-  padding: 2px 2px 2px 8px;
+  padding: 4px 2px 2px 4px;
+  border-radius: var(--radius-sm);
+  outline: none;
 }
 
-.ws-server-head .ws-group-host { max-width: none; flex: 1; }
+/* Collapsible (multi-server-connections): the whole sub-header toggles; the
+   selected workspace's server is locked open, so it has no caret. */
+.ws-server-head[data-act="toggle-server"] { cursor: pointer; }
+.ws-server-head[data-act="toggle-server"]:hover .ws-server-name,
+.ws-server-head[data-act="toggle-server"]:hover .ws-server-icon,
+.ws-server-head[data-act="toggle-server"]:hover .ws-server-caret { color: var(--text-secondary); }
+.ws-server-head:focus-visible { box-shadow: inset 0 0 0 1px var(--accent-primary); }
+
+.ws-server-caret {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.ws-server-caret::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-right: 1.25px solid currentColor;
+  border-bottom: 1.25px solid currentColor;
+  transform: translateY(-1px) rotate(45deg);
+  transition: transform 150ms ease;
+}
+
+.ws-server-head.collapsed .ws-server-caret::before { transform: rotate(-45deg); }
+.ws-server-head.locked .ws-server-caret::before { visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-server-caret::before { transition: none; }
+}
+
+/* The status bar's server mark, smaller. */
+.ws-server-icon {
+  flex: none;
+  display: inline-flex;
+  color: var(--text-tertiary);
+}
+
+.ws-server-head:not(.up) .ws-server-icon { color: var(--text-muted); }
+
+.ws-server-count {
+  flex: none;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ws-server-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.ws-server-head:not(.up) .ws-server-name { color: var(--text-muted); }
+.ws-server-head.setup .ws-server-name { color: var(--warning); }
+
+.ws-server-rule {
+  flex: 1 1 16px;
+  min-width: 16px;
+  height: 1px;
+  background: var(--border-subtle);
+}
 
 .ws-empty-compact { padding: 2px 8px 6px; }
 
