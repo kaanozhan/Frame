@@ -2861,7 +2861,7 @@
         "electron",
         "../shared/ipcChannels",
         "../shared/frameConstants",
-        "workspace",
+        "projectRegistry",
         "frameStore",
         "userSettings",
         "fsSafe",
@@ -3078,7 +3078,7 @@
           "CLOUD_PROJECTS_STATE"
         ]
       },
-      "sizeBytes": 24395,
+      "sizeBytes": 24401,
       "extraction": {
         "status": "parsed"
       },
@@ -43706,6 +43706,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "601b90124c616d94652f5764cc7558bc6f96f68c3e447d59f63bbc510d00543d"
+    "revision": "bff22b97bae3937b91610c566d866e098a70320a9ad2878c2a7d5a66e4440fa0"
   }
 }
