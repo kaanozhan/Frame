@@ -86,3 +86,11 @@ _Captured: 2026-11-15 · 2 file change(s)_
 
 ---
 
+## T12 — New Workspace locations, offline view, Disconnect
+
+Made `src/renderer/newWorkspaceModal.js` list every saved server as a location, pick the opened-for server or the project's last location (`frame-nw-location`), and send `serverKey` with the create. In `src/renderer/index.js`, the offline view follows the workspace's own server and Disconnect from Server covers every server. Divergence: the `workspacePr.js` change planned here shipped in T07.
+
+_Captured: 2026-11-15 · 2 file change(s)_
+
+---
+

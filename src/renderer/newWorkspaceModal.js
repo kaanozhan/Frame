@@ -96,7 +96,7 @@ function syncFrom() {
   (from === 'new' ? modalEl.querySelector('#nw-base') : modalEl.querySelector('#nw-branch')).focus();
 }
 
-async function open({ location = null } = {}) {
+async function open({ location = null, serverKey = null } = {}) {
   if (!modalEl || busy) return;
   const projectPath = state.getProjectPath();
   if (!projectPath) {
@@ -109,7 +109,7 @@ async function open({ location = null } = {}) {
   delete modalEl.querySelector('#nw-base').dataset.touched;
   modalEl.querySelector('input[name="nw-from"][value="new"]').checked = true;
   modalEl.querySelector('#nw-error').textContent = '';
-  syncLocation(location);
+  syncLocation(location, serverKey);
   setBusy(false);
   modalEl.classList.add('visible');
   syncFrom();
@@ -132,28 +132,51 @@ async function open({ location = null } = {}) {
   modalEl.querySelector('#nw-branches').innerHTML = names.map((n) => `<option value="${escapeHtml(n)}"></option>`).join('');
 }
 
+// The last location used per project (multi-server-connections):
+// localStorage `frame-nw-location` = { [projectPath]: 'local' | serverKey }.
+const LOCATION_KEY = 'frame-nw-location';
+
+function lastLocation(projectPath) {
+  try { return (JSON.parse(localStorage.getItem(LOCATION_KEY) || '{}') || {})[projectPath] || null; } catch (_) { return null; }
+}
+
+function rememberLocation(projectPath, value) {
+  try {
+    const all = JSON.parse(localStorage.getItem(LOCATION_KEY) || '{}') || {};
+    all[projectPath] = value;
+    localStorage.setItem(LOCATION_KEY, JSON.stringify(all));
+  } catch (_) { /* a preference, not state */ }
+}
+
 /**
- * Location (server-workspaces): "This Mac", or the server Frame is
- * connected to. Shown once a server has been used; the server option is
- * disabled while the link is down. `preferred` ('local' | 'server') is the
- * group the dialog was opened from (the workspace switcher's Local / Remote).
+ * Location (server-workspaces; multi-server-connections): "This Mac", or one
+ * of the saved servers. Shown once a server is saved; a server that is down
+ * is listed but disabled. The pick is the server the dialog was opened for
+ * (a server's "New remote workspace"), else this project's last location,
+ * else This Mac.
  */
-function syncLocation(preferred = null) {
+function syncLocation(preferred = null, serverKey = null) {
   const row = modalEl.querySelector('#nw-location-row');
   const sel = modalEl.querySelector('#nw-location');
   const hint = modalEl.querySelector('#nw-location-hint');
-  const s = require('./serverConnect').getStatus();
-  const host = s.host || (s.saved && s.saved.host);
-  row.hidden = !host;
-  if (!host) { sel.innerHTML = '<option value="local">This Mac</option>'; return; }
-  const up = s.state === 'connected';
-  const want = preferred || sel.value;
-  const keep = want === 'server' && up ? 'server' : 'local';
-  sel.innerHTML = `<option value="local">This Mac</option><option value="server"${up ? '' : ' disabled'}>Server · ${escapeHtml(host)}${up ? '' : ' (not connected)'}</option>`;
-  sel.value = keep;
+  const servers = require('./serverConnect').getServers();
+  row.hidden = !servers.length;
+  const opts = ['<option value="local">This Mac</option>'];
+  for (const srv of servers) {
+    const up = srv.status && srv.status.state === 'connected';
+    opts.push(`<option value="${escapeHtml(srv.key)}"${up ? '' : ' disabled'}>Server · ${escapeHtml(srv.host)}${up ? '' : ' (not connected)'}</option>`);
+  }
+  sel.innerHTML = opts.join('');
+  const usable = (v) => v === 'local' || servers.some((x) => x.key === v && x.status && x.status.state === 'connected');
+  const remembered = lastLocation(state.getProjectPath());
+  const wanted = preferred === 'server' && serverKey ? serverKey
+    : preferred === 'local' ? 'local'
+      : remembered;
+  sel.value = wanted && usable(wanted) ? wanted : 'local';
   const paint = () => {
-    hint.textContent = sel.value === 'server'
-      ? 'Cloned from the remote on the server; terminals and agents run there and keep running while this Mac is away.'
+    const srv = servers.find((x) => x.key === sel.value);
+    hint.textContent = srv
+      ? `Cloned from the remote on ${srv.host}; terminals and agents run there and keep running while this Mac is away.`
       : '';
   };
   sel.onchange = paint;
@@ -186,12 +209,14 @@ async function submit() {
     return;
   }
 
+  const where = modalEl.querySelector('#nw-location').value || 'local';
   setBusy(true);
   let result;
   try {
     result = await ipcRenderer.invoke(IPC.WORKSPACE_CREATE, {
       projectPath,
-      location: modalEl.querySelector('#nw-location').value || 'local',
+      location: where === 'local' ? 'local' : 'server',
+      serverKey: where === 'local' ? null : where,
       from,
       base: base || undefined,
       branch: from === 'branch' ? branch : undefined
@@ -206,6 +231,7 @@ async function submit() {
   }
 
   modalEl.classList.remove('visible');
+  rememberLocation(projectPath, where);
   if (result.fetch && !result.fetch.skipped && !result.fetch.fetched) {
     notify.info(`Couldn't fetch origin/${result.workspace.base} — started from the local copy.`);
   }
@@ -213,7 +239,8 @@ async function submit() {
     // The project went to the server as a git bundle (server-onboarding):
     // committed history only — say what stayed here.
     const n = Number(result.sent.uncommitted) || 0;
-    notify.info(`Sent this project's committed history to the server.${n ? ` ${n} uncommitted change${n === 1 ? '' : 's'} stayed on this Mac — commit and push them to use them there.` : ''}`);
+    const host = (result.workspace && result.workspace.host) || 'the server';
+    notify.info(`Sent this project's committed history to ${host}.${n ? ` ${n} uncommitted change${n === 1 ? '' : 's'} stayed on this Mac — commit and push them to use them there.` : ''}`);
   }
 
   const section = require('./workspaceSection');

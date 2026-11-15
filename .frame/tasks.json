@@ -8313,13 +8313,13 @@
       "title": "List This Mac plus every saved server (down ones disabled) as locations in `src/renderer/newWorkspaceModal.js`, remember the last location per project in localStorage `frame-nw-location`, accept `open({ location, serverKey })`; read `serverAccess[ws.serverKey]` in `src/renderer/workspacePr.js`; in `src/renderer/index.js` make the offline view follow the selected workspace's own server, pass `serverKey` from `onNew`, and make \"Disconnect from Server\" disconnect every server",
       "description": "",
       "source": "spec:multi-server-connections:T12",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: multi-server-connections",
       "createdAt": "2026-11-15T12:36:21.721Z",
-      "updatedAt": "2026-11-15T12:36:21.721Z",
-      "completedAt": null
+      "updatedAt": "2026-11-15T13:44:57.681Z",
+      "completedAt": "2026-11-15T13:44:57.681Z"
     },
     {
       "id": "task-spec-multi-server-connections-T13",
@@ -8335,7 +8335,7 @@
       "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T13:43:29.172Z",
+  "lastUpdated": "2026-11-15T13:44:57.681Z",
   "metadata": {
     "totalCreated": 641
   }
