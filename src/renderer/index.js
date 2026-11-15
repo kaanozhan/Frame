@@ -328,7 +328,7 @@ function init() {
   require('./serverConnect').init();
   newWorkspaceModal.init();
   workspaceSection.setActions({
-    onNew: () => newWorkspaceModal.open(),
+    onNew: (opts) => newWorkspaceModal.open(opts),
     // A restored folder came back without dependencies: rerun setup only.
     onRestored: (ws, result) => newWorkspaceModal.runSetupThenAgent({ setupScript: result && result.setupScript, openAgent: false })
   });

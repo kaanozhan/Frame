@@ -96,7 +96,7 @@ function syncFrom() {
   (from === 'new' ? modalEl.querySelector('#nw-base') : modalEl.querySelector('#nw-branch')).focus();
 }
 
-async function open() {
+async function open({ location = null } = {}) {
   if (!modalEl || busy) return;
   const projectPath = state.getProjectPath();
   if (!projectPath) {
@@ -109,7 +109,7 @@ async function open() {
   delete modalEl.querySelector('#nw-base').dataset.touched;
   modalEl.querySelector('input[name="nw-from"][value="new"]').checked = true;
   modalEl.querySelector('#nw-error').textContent = '';
-  syncLocation();
+  syncLocation(location);
   setBusy(false);
   modalEl.classList.add('visible');
   syncFrom();
@@ -135,9 +135,10 @@ async function open() {
 /**
  * Location (server-workspaces): "This Mac", or the server Frame is
  * connected to. Shown once a server has been used; the server option is
- * disabled while the link is down.
+ * disabled while the link is down. `preferred` ('local' | 'server') is the
+ * group the dialog was opened from (the workspace switcher's Local / Remote).
  */
-function syncLocation() {
+function syncLocation(preferred = null) {
   const row = modalEl.querySelector('#nw-location-row');
   const sel = modalEl.querySelector('#nw-location');
   const hint = modalEl.querySelector('#nw-location-hint');
@@ -146,7 +147,8 @@ function syncLocation() {
   row.hidden = !host;
   if (!host) { sel.innerHTML = '<option value="local">This Mac</option>'; return; }
   const up = s.state === 'connected';
-  const keep = sel.value === 'server' && up ? 'server' : 'local';
+  const want = preferred || sel.value;
+  const keep = want === 'server' && up ? 'server' : 'local';
   sel.innerHTML = `<option value="local">This Mac</option><option value="server"${up ? '' : ' disabled'}>Server · ${escapeHtml(host)}${up ? '' : ' (not connected)'}</option>`;
   sel.value = keep;
   const paint = () => {
