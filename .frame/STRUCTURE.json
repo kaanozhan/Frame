@@ -26604,6 +26604,143 @@
         }
       }
     },
+    "shared/sendFilesModel": {
+      "file": "src/shared/sendFilesModel.js",
+      "description": "sendFilesModel — the rules behind the \"Send files to server\" modal",
+      "exports": [
+        "HEAVY_DIRS",
+        "WARN_BYTES",
+        "REFUSE_BYTES",
+        "isHeavy",
+        "buildTree",
+        "leaves",
+        "defaultSelection",
+        "toggle",
+        "selectAll",
+        "selectionSize",
+        "sizeVerdict",
+        "patternsFor",
+        "mergePatterns"
+      ],
+      "depends": [
+        "copyFilesMatch"
+      ],
+      "functions": {
+        "clean": {
+          "line": 29,
+          "params": [
+            "p"
+          ]
+        },
+        "isHeavy": {
+          "line": 34,
+          "params": [
+            "relPath"
+          ],
+          "purpose": "A dependency/build/cache folder (or something inside one), or OS clutter."
+        },
+        "buildGroup": {
+          "line": 44,
+          "params": [
+            "group",
+            "paths",
+            "sizes = {}",
+            "server = {}"
+          ],
+          "purpose": "Build one group's tree. `paths`: git's list (collapsed folders end with"
+        },
+        "buildTree": {
+          "line": 84,
+          "params": [
+            "{ ignored = []",
+            "untracked = []",
+            "sizes = {}",
+            "server = {} } = {}"
+          ],
+          "purpose": "`{ ignored, untracked }` trees."
+        },
+        "leaves": {
+          "line": 89,
+          "params": [
+            "node"
+          ],
+          "purpose": "Every tickable leaf under `node` (or under both groups of a tree)."
+        },
+        "defaultSelection": {
+          "line": 101,
+          "params": [
+            "tree",
+            "copyFiles"
+          ],
+          "purpose": "What the modal opens with: leaves matching the project's `copyFiles`,"
+        },
+        "toggle": {
+          "line": 112,
+          "params": [
+            "selected",
+            "node",
+            "on"
+          ],
+          "purpose": "Tick or untick everything under `node`; returns a new Set."
+        },
+        "selectAll": {
+          "line": 120,
+          "params": [
+            "tree"
+          ]
+        },
+        "selectionSize": {
+          "line": 125,
+          "params": [
+            "tree",
+            "selected"
+          ],
+          "purpose": "`{ bytes, files, cut }` for the ticked leaves; `cut` when a folder's size is a lower bound."
+        },
+        "sizeVerdict": {
+          "line": 139,
+          "params": [
+            "bytes"
+          ],
+          "purpose": "'ok' | 'warn' (above 50 MB) | 'refuse' (above 1 GB)."
+        },
+        "patternsFor": {
+          "line": 151,
+          "params": [
+            "tree",
+            "selected"
+          ],
+          "purpose": "`.env` at any depth); a collapsed folder becomes `folder/**`."
+        },
+        "mergePatterns": {
+          "line": 162,
+          "params": [
+            "existing",
+            "added"
+          ],
+          "purpose": "Existing patterns plus new ones, in order, without duplicates."
+        }
+      },
+      "sizeBytes": 6158,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7d5cf8dcbcc87c08",
+        "purposes": {
+          "buildGroup": "90071a145840fa09",
+          "buildTree": "03b0c5082f0dfb11",
+          "defaultSelection": "e3e738d8f8137156",
+          "isHeavy": "6b24e6d864f7eeea",
+          "leaves": "b31449c9cbd1cbc0",
+          "mergePatterns": "6ea98bb02d250f4c",
+          "patternsFor": "f8b14db6c724f1ee",
+          "selectionSize": "3e53385c4250b155",
+          "sizeVerdict": "58f0a8cd67d68e0e",
+          "toggle": "dea8dfc0a1b9b1b8"
+        }
+      }
+    },
     "shared/serverInstall": {
       "file": "src/shared/serverInstall.js",
       "description": "serverInstall — the rules behind installing and updating Frame Server",
@@ -30850,6 +30987,25 @@
         }
       }
     },
+    "test/sendFilesModel.test": {
+      "file": "test/sendFilesModel.test.js",
+      "description": "The rules behind the \"Send files to server\" modal (server-copy-files T02).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/sendFilesModel",
+        "src/shared/copyFilesMatch"
+      ],
+      "functions": {},
+      "sizeBytes": 4075,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "8854f9cddc4e8d98"
+      }
+    },
     "test/serverConnectModel.test": {
       "file": "test/serverConnectModel.test.js",
       "description": "serverConnectModel — the Connect dialog's state rules (server-hardening S12).",
@@ -34099,6 +34255,18 @@
         "description": "File Tree UI Module"
       }
     ],
+    "files": [
+      {
+        "module": "shared/copyFilesMatch",
+        "file": "src/shared/copyFilesMatch.js",
+        "description": "copyFilesMatch — which gitignored files a new workspace copies from the"
+      },
+      {
+        "module": "shared/sendFilesModel",
+        "file": "src/shared/sendFilesModel.js",
+        "description": "sendFilesModel — the rules behind the \"Send files to server\" modal"
+      }
+    ],
     "frame": [
       {
         "module": "main/frameStore",
@@ -34415,6 +34583,11 @@
         "module": "shared/reviewModel",
         "file": "src/shared/reviewModel.js",
         "description": "reviewModel — the rules behind a workspace review (workspace-review spec)."
+      },
+      {
+        "module": "shared/sendFilesModel",
+        "file": "src/shared/sendFilesModel.js",
+        "description": "sendFilesModel — the rules behind the \"Send files to server\" modal"
       }
     ],
     "names": [
@@ -35103,7 +35276,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 386,
+        "parsed": 388,
         "unsupported": 91,
         "partial": 0
       }
@@ -35150,9 +35323,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 571,
+      "visitedEntries": 573,
       "traversedDirectories": 86,
-      "eligibleFiles": 477,
+      "eligibleFiles": 479,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -35169,7 +35342,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 477,
+      "indexedFiles": 479,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -35177,6 +35350,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "265aa758388ae6368b2afdf301748aa1b4487d1f14dbff928e733c29ee494b21"
+    "revision": "8fe826280c711ed52a3d96951417d85921d338dba4f5a570116b70a3971fde25"
   }
 }
