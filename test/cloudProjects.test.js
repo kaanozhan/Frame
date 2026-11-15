@@ -90,23 +90,64 @@ test('matchFolders: a cloud-only project is listed with no folder (S1)', () => {
   assert.deepEqual(folderRows, []);
   assert.deepEqual(projectRows, [{
     id: 'p1', slug: 'p1-slug', name: 'Project p1', source: 'scratch',
-    connected: false, folderNames: [], openPath: null,
+    state: 'notClaimed', folderNames: [], openPath: null,
   }]);
 });
 
-test('matchFolders: a folder whose id a project carries is connected on both sides (S5)', () => {
+test('normalizeProject: thisDevice is true only for connection.thisDevice === true', () => {
+  assert.equal(core.normalizeProject(project('p1', { connection: { thisDevice: true, devices: ['Studio'] } })).thisDevice, true);
+  assert.equal(core.normalizeProject(project('p1', { connection: { thisDevice: false, devices: [] } })).thisDevice, false);
+  assert.equal(core.normalizeProject(project('p1', { connection: { thisDevice: null, devices: [] } })).thisDevice, false);
+  assert.equal(core.normalizeProject(project('p1', { connection: { thisDevice: 'yes' } })).thisDevice, false);
+  assert.equal(core.normalizeProject(project('p1')).thisDevice, false, 'a server without connections');
+});
+
+test('matchFolders: a folder this device has connected is connected on both sides (S5)', () => {
   const { projectRows, folderRows } = core.matchFolders(
-    norm([project('p1', { frameProjectId: 'f1' }), project('p2')]),
+    norm([project('p1', { frameProjectId: 'f1', connection: { thisDevice: true } }), project('p2')]),
     [{ path: '/code/app', name: 'app', projectId: 'f1' }]
   );
   assert.deepEqual(folderRows, [{
-    path: '/code/app', name: 'app', connected: true,
+    path: '/code/app', name: 'app', connected: true, ready: false,
     project: { id: 'p1', slug: 'p1-slug', name: 'Project p1' },
   }]);
-  assert.equal(projectRows[0].connected, true);
+  assert.equal(projectRows[0].state, 'connected');
   assert.deepEqual(projectRows[0].folderNames, ['app']);
   assert.equal(projectRows[0].openPath, '/code/app');
-  assert.equal(projectRows[1].connected, false);
+  assert.equal(projectRows[1].state, 'notClaimed');
+});
+
+test("matchFolders: a teammate's clone of a claimed project is ready, not connected", () => {
+  const { projectRows, folderRows } = core.matchFolders(
+    norm([project('p1', { frameProjectId: 'f1', connection: { thisDevice: false, devices: [] } })]),
+    [{ path: '/code/app', name: 'app', projectId: 'f1' }]
+  );
+  assert.deepEqual(folderRows, [{
+    path: '/code/app', name: 'app', connected: false, ready: true,
+    project: { id: 'p1', slug: 'p1-slug', name: 'Project p1' },
+  }]);
+  assert.equal(projectRows[0].state, 'ready');
+  assert.deepEqual(projectRows[0].folderNames, ['app']);
+});
+
+test('matchFolders: a claimed project with no folder here reads notConnected', () => {
+  const { projectRows } = core.matchFolders(
+    norm([project('p1', { frameProjectId: 'f1', connection: { thisDevice: false } })]),
+    [{ path: '/code/other', name: 'other', projectId: 'f9' }]
+  );
+  assert.equal(projectRows[0].state, 'notConnected');
+  assert.deepEqual(projectRows[0].folderNames, []);
+  assert.equal(projectRows[0].openPath, null);
+});
+
+test('matchFolders: a connected device with no folder here still reads connected', () => {
+  const { projectRows } = core.matchFolders(
+    norm([project('p1', { frameProjectId: 'f1', connection: { thisDevice: true } })]),
+    []
+  );
+  assert.equal(projectRows[0].state, 'connected');
+  assert.deepEqual(projectRows[0].folderNames, []);
+  assert.equal(projectRows[0].openPath, null);
 });
 
 test('matchFolders: never matches by name or path', () => {
@@ -119,9 +160,29 @@ test('matchFolders: never matches by name or path', () => {
   assert.deepEqual(projectRows[0].folderNames, []);
 });
 
-test('matchFolders: two folders sharing an id both read connected', () => {
-  const { projectRows, folderRows } = core.matchFolders(
+test('matchFolders: two folders sharing an id follow the one device connection', () => {
+  const connected = core.matchFolders(
+    norm([project('p1', { frameProjectId: 'f1', connection: { thisDevice: true } })]),
+    [
+      { path: '/a/app', name: 'app', projectId: 'f1' },
+      { path: '/b/app-clone', name: 'app-clone', projectId: 'f1' },
+    ]
+  );
+  assert.deepEqual(connected.folderRows.map((f) => [f.connected, f.ready]), [[true, false], [true, false]]);
+  const ready = core.matchFolders(
     norm([project('p1', { frameProjectId: 'f1' })]),
+    [
+      { path: '/a/app', name: 'app', projectId: 'f1' },
+      { path: '/b/app-clone', name: 'app-clone', projectId: 'f1' },
+    ]
+  );
+  assert.deepEqual(ready.folderRows.map((f) => [f.connected, f.ready]), [[false, true], [false, true]]);
+  assert.equal(ready.projectRows[0].state, 'ready');
+});
+
+test('matchFolders: two folders sharing an id are both named, the first opens', () => {
+  const { projectRows, folderRows } = core.matchFolders(
+    norm([project('p1', { frameProjectId: 'f1', connection: { thisDevice: true } })]),
     [
       { path: '/a/app', name: 'app', projectId: 'f1' },
       { path: '/b/app-clone', name: 'app-clone', projectId: 'f1' },
@@ -138,6 +199,7 @@ test('matchFolders: an id no longer listed falls back to not connected (S8)', ()
     [{ path: '/code/app', name: 'app', projectId: 'f1' }]
   );
   assert.equal(folderRows[0].connected, false);
+  assert.equal(folderRows[0].ready, false);
   assert.equal(folderRows[0].project, null);
 });
 
@@ -150,13 +212,12 @@ test('matchFolders: a folder with no id is not connected, even to an unlinked pr
   assert.deepEqual(projectRows[0].folderNames, []);
 });
 
-test('matchFolders: a connected project with no folder here still reads connected', () => {
+test('matchFolders: an identity alone no longer reads connected — only this device connecting does', () => {
   const { projectRows } = core.matchFolders(norm([project('p1', { frameProjectId: 'f1' })]), [
     { path: '/code/other', name: 'other', projectId: 'f2' },
   ]);
-  assert.equal(projectRows[0].connected, true);
-  assert.deepEqual(projectRows[0].folderNames, []);
-  assert.equal(projectRows[0].openPath, null);
+  assert.equal(projectRows[0].state, 'notConnected');
+  assert.equal('connected' in projectRows[0], false);
 });
 
 // ─── Linking calls ────────────────────────────────────────────
@@ -225,22 +286,40 @@ test('create posts name, slug and identity, and a taken slug classifies as slugT
   assert.deepEqual(calls[1].body, { name: 'My App', slug: 'my-app-2', frameProjectId: 'f1' });
 });
 
-test('release answers ok, and reads FRAME_PROJECT_MISMATCH as already detached', async () => {
-  const { fetchJson, calls } = fakeFetch({
-    '/trpc/link.release': [ok({ ok: true }), trpcErr(409, 'FRAME_PROJECT_MISMATCH', 'CONFLICT')],
-  });
-  const args = { api: API, token: 'tk', fetchJson, projectId: 'p1', frameProjectId: 'f1' };
-  assert.deepEqual(await core.release(args), { ok: true, notOwner: false });
+test('connect posts the project and the folder identity, and unwraps the answer', async () => {
+  const { fetchJson, calls } = fakeFetch({ '/trpc/link.connect': [ok(LINKED)] });
+  assert.deepEqual(await core.connect({ api: API, token: 'tk', fetchJson, projectId: 'p1', frameProjectId: 'f1' }), LINKED);
+  assert.equal(calls[0].method, 'POST');
+  assert.equal(calls[0].token, 'tk');
   assert.deepEqual(calls[0].body, { projectId: 'p1', frameProjectId: 'f1' });
-  assert.deepEqual(await core.release(args), { ok: true, notOwner: true });
 });
 
-test('release still throws on anything but a mismatch', async () => {
-  const { fetchJson } = fakeFetch({ '/trpc/link.release': [trpcErr(404, 'PROJECT_NOT_FOUND', 'NOT_FOUND')] });
+test('connect on a stale list: an unclaimed project reads unlinked, a taken-over one mismatch', async () => {
+  const { fetchJson } = fakeFetch({
+    '/trpc/link.connect': [trpcErr(409, 'PROJECT_UNLINKED', 'CONFLICT'), trpcErr(409, 'FRAME_PROJECT_MISMATCH', 'CONFLICT')],
+  });
+  const args = { api: API, token: 'tk', fetchJson, projectId: 'p1', frameProjectId: 'f1' };
+  await assert.rejects(core.connect(args), (err) => core.classifyLinkError(err) === 'unlinked');
+  await assert.rejects(core.connect(args), (err) => core.classifyLinkError(err) === 'mismatch');
+});
+
+test('disconnect posts the project id only', async () => {
+  const { fetchJson, calls } = fakeFetch({ '/trpc/link.disconnect': [ok({ ok: true })] });
+  assert.deepEqual(await core.disconnect({ api: API, token: 'tk', fetchJson, projectId: 'p1' }), { ok: true });
+  assert.equal(calls[0].method, 'POST');
+  assert.deepEqual(calls[0].body, { projectId: 'p1' });
+});
+
+test('disconnect throws on a refusal, a missing project reading notFound', async () => {
+  const { fetchJson } = fakeFetch({ '/trpc/link.disconnect': [trpcErr(404, 'PROJECT_NOT_FOUND', 'NOT_FOUND')] });
   await assert.rejects(
-    core.release({ api: API, token: 'tk', fetchJson, projectId: 'p1', frameProjectId: 'f1' }),
+    core.disconnect({ api: API, token: 'tk', fetchJson, projectId: 'p1' }),
     (err) => core.classifyLinkError(err) === 'notFound'
   );
+});
+
+test('release is gone: FrameCloud removed link.release', () => {
+  assert.equal(core.release, undefined);
 });
 
 test('classifyLinkError maps server codes and transport kinds', async () => {
@@ -248,6 +327,7 @@ test('classifyLinkError maps server codes and transport kinds', async () => {
     [trpcErr(409, 'REMOTE_MISMATCH', 'CONFLICT'), 'remoteMismatch'],
     [trpcErr(409, 'FRAME_PROJECT_MISMATCH', 'CONFLICT'), 'mismatch'],
     [trpcErr(409, 'FRAME_PROJECT_TAKEN', 'CONFLICT'), 'taken'],
+    [trpcErr(409, 'PROJECT_UNLINKED', 'CONFLICT'), 'unlinked'],
     [trpcErr(409, 'SLUG_TAKEN', 'CONFLICT'), 'slugTaken'],
     [trpcErr(400, 'Invalid input', 'BAD_REQUEST'), 'badRequest'],
     [trpcErr(404, 'PROJECT_NOT_FOUND', 'NOT_FOUND'), 'notFound'],

@@ -305,7 +305,8 @@ const IPC = {
   CLOUD_CHECK_SLUG: 'cloud-check-slug',                 // renderer → main (invoke): slug → { ok, available, suggestion? } | { ok: false, reason }
   CLOUD_LINK_CLAIM: 'cloud-link-claim',                 // renderer → main (invoke): { path, projectId, acceptRemoteMismatch?, takeOver? } → { ok, reason? }
   CLOUD_LINK_CREATE: 'cloud-link-create',               // renderer → main (invoke): { path, name, slug } → { ok, reason?, field?, suggestion? }
-  CLOUD_LINK_RELEASE: 'cloud-link-release',             // renderer → main (invoke): { path } → { ok, reason? }
+  CLOUD_LINK_CONNECT: 'cloud-link-connect',             // renderer → main (invoke): { path } → { ok, reason? } — this device connects to the project carrying the folder's identity
+  CLOUD_LINK_DISCONNECT: 'cloud-link-disconnect',       // renderer → main (invoke): { projectId } → { ok, reason? } — this device's connection only
   CLOUD_OPEN_ON_WEB: 'cloud-open-on-web',               // renderer → main (invoke): cloud project id → opened?
   CLOUD_OPEN_WORKSPACE_ON_WEB: 'cloud-open-workspace-on-web', // renderer → main (invoke): () → opened?
   CLOUD_PROJECTS_STATE: 'cloud-projects-state',         // main → renderer: projects state on every change (no token)

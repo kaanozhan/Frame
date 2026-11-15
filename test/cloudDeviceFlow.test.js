@@ -20,7 +20,7 @@ const CODE_BODY = {
   interval: 5,
 };
 
-const INFO = { name: 'Studio', os: 'darwin 24.3.0', appVersion: '2.8.1' };
+const INFO = { name: 'Studio', os: 'darwin 24.3.0', appVersion: '2.8.1', installId: '3f2a7c1e-9b4d-4e8f-a1c2-5d6e7f8a9b0c' };
 
 // ─── Fakes ────────────────────────────────────────────────────
 
@@ -180,6 +180,30 @@ test('formatDeviceInfo builds the register input within the server limits', () =
   assert.equal(info.name, 'studio');
   assert.equal(info.os, 'darwin 24.3.0');
   assert.equal(info.appVersion.length, 40);
+});
+
+test('formatDeviceInfo carries the install id, cut to the server limit', () => {
+  const id = '3f2a7c1e-9b4d-4e8f-a1c2-5d6e7f8a9b0c';
+  assert.equal(flow.formatDeviceInfo({ hostname: 'studio', installId: id }).installId, id);
+  assert.equal(flow.formatDeviceInfo({ hostname: 'studio', installId: 'x'.repeat(200) }).installId.length, flow.INSTALL_ID_MAX);
+  assert.equal(flow.formatDeviceInfo({ hostname: 'studio' }).installId, '');
+});
+
+test('resolveInstallId keeps a stored UUID and replaces anything else', () => {
+  const stored = '3f2a7c1e-9b4d-4e8f-a1c2-5d6e7f8a9b0c';
+  const mint = () => 'minted-id';
+  assert.deepEqual(flow.resolveInstallId(stored, mint), { id: stored, write: null });
+  assert.deepEqual(flow.resolveInstallId(stored.toUpperCase(), mint), { id: stored.toUpperCase(), write: null });
+  for (const bad of [undefined, null, '', 'not-a-uuid', 42, `${stored}x`]) {
+    assert.deepEqual(flow.resolveInstallId(bad, mint), { id: 'minted-id', write: 'set' }, String(bad));
+  }
+});
+
+test('resolveInstallId mints a UUID by default', () => {
+  const { id, write } = flow.resolveInstallId(undefined);
+  assert.equal(write, 'set');
+  assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+  assert.deepEqual(flow.resolveInstallId(id), { id, write: null });
 });
 
 test('parseCodeResponse converts to milliseconds and rejects a body missing device_code', () => {

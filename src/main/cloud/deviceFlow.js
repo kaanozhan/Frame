@@ -20,6 +20,8 @@
  * The token is returned to the caller and never passed to onState.
  */
 
+const { randomUUID } = require('crypto');
+
 const CLIENT_ID = 'frame-desktop';
 const DEVICE_GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:device_code';
 const DEFAULT_EXPIRES_IN_S = 900;
@@ -176,13 +178,34 @@ function deviceName(hostname) {
  * Raw machine facts → the `device.register` input, cut to the server's limits.
  * `computerName` (the name the user gave the machine, e.g. macOS's
  * ComputerName) wins over `hostname` when the shell can supply it.
+ * `installId` is this Frame install's id (resolveInstallId).
  */
-function formatDeviceInfo({ computerName, hostname, platform, release, appVersion } = {}) {
+function formatDeviceInfo({ computerName, hostname, platform, release, appVersion, installId } = {}) {
   return {
     name: cleanName(computerName) || deviceName(hostname),
     os: [platform, release].filter(Boolean).join(' ').slice(0, 100),
     appVersion: String(appVersion || '').slice(0, 40),
+    installId: String(installId || '').slice(0, INSTALL_ID_MAX),
   };
+}
+
+// ─── Install id ───────────────────────────────────────────────
+
+// FrameCloud's longest install id (device-connections, `deviceInstallIdSchema`).
+const INSTALL_ID_MAX = 128;
+const INSTALL_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * This Frame install's id, sent with every `device.register`. FrameCloud keeps
+ * one device per user and install (device-connections), so signing out and
+ * back in on this machine finds the same device and its project connections.
+ * A stored UUID is kept; anything else — nothing yet, or a value that is not
+ * a UUID — is replaced, and `write: 'set'` tells the shell to store the new
+ * one. `mint` is injected so tests can name the id.
+ */
+function resolveInstallId(stored, mint = randomUUID) {
+  if (typeof stored === 'string' && INSTALL_ID_RE.test(stored)) return { id: stored, write: null };
+  return { id: mint(), write: 'set' };
 }
 
 // ─── Endpoint calls ───────────────────────────────────────────
@@ -237,7 +260,7 @@ function registerDevice({ api, token, info, fetchJson, signal }) {
     api, token, fetchJson, signal,
     name: 'device.register',
     method: 'POST',
-    input: { name: info.name, os: info.os, appVersion: info.appVersion },
+    input: { name: info.name, os: info.os, appVersion: info.appVersion, installId: info.installId },
   });
 }
 
@@ -505,6 +528,8 @@ module.exports = {
   classifyTrpcError,
   deviceName,
   formatDeviceInfo,
+  INSTALL_ID_MAX,
+  resolveInstallId,
   requestDeviceCode,
   pollForToken,
   registerDevice,

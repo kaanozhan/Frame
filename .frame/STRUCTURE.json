@@ -2486,7 +2486,8 @@
         "getCandidates",
         "claim",
         "create",
-        "release",
+        "connect",
+        "disconnect",
         "classifyLinkError",
         "TRANSLITERATE",
         "suggestSlug",
@@ -2530,14 +2531,14 @@
           ]
         },
         "normalizeProject": {
-          "line": 75,
+          "line": 79,
           "params": [
             "raw"
           ],
-          "purpose": "One `project.list` entry, reduced to the fields Frame uses."
+          "purpose": "One `project.list` entry, reduced to the fields Frame uses. `thisDevice` is"
         },
         "listProjects": {
-          "line": 89,
+          "line": 95,
           "params": [
             "{ api",
             "token",
@@ -2547,22 +2548,29 @@
           "purpose": "`project.list` → normalized projects, server order."
         },
         "matchFolders": {
-          "line": 112,
+          "line": 124,
           "params": [
             "projects",
             "folders"
           ],
           "purpose": "The workspace's projects and this device's folders, seen from each side."
         },
+        "projectState": {
+          "line": 160,
+          "params": [
+            "project",
+            "foldersHere"
+          ]
+        },
         "compact": {
-          "line": 150,
+          "line": 169,
           "params": [
             "input"
           ],
           "purpose": "Optional fields are left out rather than sent empty."
         },
         "checkSlug": {
-          "line": 159,
+          "line": 178,
           "params": [
             "{ api",
             "token",
@@ -2573,13 +2581,13 @@
           "purpose": "`project.checkSlug` → true when the slug is free in the cloud workspace."
         },
         "normalizeCandidate": {
-          "line": 164,
+          "line": 183,
           "params": [
             "raw"
           ]
         },
         "getCandidates": {
-          "line": 176,
+          "line": 195,
           "params": [
             "{ api",
             "token",
@@ -2592,7 +2600,7 @@
           "purpose": "`link.candidates` → projects this folder could connect to, matches first (server order)."
         },
         "claim": {
-          "line": 187,
+          "line": 206,
           "params": [
             "{ api",
             "token",
@@ -2607,7 +2615,7 @@
           "purpose": "`link.claim` → `{ projectId, projectSlug, workspaceSlug }`. Throws CloudError."
         },
         "create": {
-          "line": 197,
+          "line": 216,
           "params": [
             "{ api",
             "token",
@@ -2620,8 +2628,8 @@
           ],
           "purpose": "`link.create` → the same answer as claim; the project is created already linked. Throws CloudError."
         },
-        "release": {
-          "line": 211,
+        "connect": {
+          "line": 231,
           "params": [
             "{ api",
             "token",
@@ -2630,38 +2638,49 @@
             "projectId",
             "frameProjectId }"
           ],
-          "purpose": "`link.release`. A refusal because this folder is not the one the project"
+          "purpose": "`link.connect` → the same answer as claim. Connects this device to a project"
+        },
+        "disconnect": {
+          "line": 245,
+          "params": [
+            "{ api",
+            "token",
+            "fetchJson",
+            "signal",
+            "projectId }"
+          ],
+          "purpose": "`link.disconnect` → `{ ok: true }`. Removes this device's connection only:"
         },
         "classifyLinkError": {
-          "line": 252,
+          "line": 282,
           "params": [
             "err"
           ],
           "purpose": "A failed link call → what Frame does about it. The server puts its code in"
         },
         "suggestSlug": {
-          "line": 272,
+          "line": 302,
           "params": [
             "name"
           ],
           "purpose": "A project name → a slug suggestion, or '' when none is valid. Mirrors the"
         },
         "validateSlug": {
-          "line": 285,
+          "line": 315,
           "params": [
             "slug"
           ],
           "purpose": "null when `slug` is valid, else 'empty' | 'length' | 'format' | 'reserved'."
         },
         "nextSlug": {
-          "line": 294,
+          "line": 324,
           "params": [
             "slug"
           ],
           "purpose": "The next slug to try after a collision: `app` → `app-2`, `app-2` → `app-3`, kept within 32."
         },
         "planFolderRow": {
-          "line": 314,
+          "line": 344,
           "params": [
             "folderRow",
             "candidates",
@@ -2670,7 +2689,7 @@
           "purpose": "An unconnected folder and its `link.candidates` → how On this device draws"
         },
         "shouldAutoShowDevices": {
-          "line": 344,
+          "line": 374,
           "params": [
             "{ userStartedSignIn",
             "dismissed",
@@ -2680,7 +2699,7 @@
           "purpose": "The one automatic tab switch: after a sign-in the user started, unless"
         },
         "buildWebUrl": {
-          "line": 356,
+          "line": 386,
           "params": [
             "{ apiUrl",
             "webOrigin",
@@ -2690,7 +2709,7 @@
           "purpose": "`{webOrigin}/{workspace}/{project}`, or null when any guard fails:"
         },
         "buildWorkspaceWebUrl": {
-          "line": 363,
+          "line": 393,
           "params": [
             "{ apiUrl",
             "webOrigin",
@@ -2699,7 +2718,7 @@
           "purpose": "`{webOrigin}/{workspace}`, under the same guards as buildWebUrl."
         },
         "buildNewWorkspaceWebUrl": {
-          "line": 370,
+          "line": 400,
           "params": [
             "{ apiUrl",
             "webOrigin } = {}"
@@ -2707,7 +2726,7 @@
           "purpose": "`{webOrigin}/new`, where a signed-in user without a workspace creates one."
         },
         "webBase": {
-          "line": 376,
+          "line": 406,
           "params": [
             "apiUrl",
             "webOrigin"
@@ -2715,7 +2734,7 @@
           "purpose": "The web origin every link starts from, or null when the origin guards fail."
         }
       },
-      "sizeBytes": 15319,
+      "sizeBytes": 16740,
       "extraction": {
         "status": "parsed"
       },
@@ -2730,15 +2749,16 @@
           "claim": "769c45734c36b118",
           "classifyLinkError": "91b336de9155e952",
           "compact": "8ee8da7ba7781094",
+          "connect": "1c5acca95b1f3111",
           "create": "26b5dbc3f162c5b5",
+          "disconnect": "c9862f2ab8beb67b",
           "getCandidates": "698c266b927a686f",
           "listProjects": "d8369ccb8c2922b5",
           "matchFolders": "b8709b39d9b41e06",
           "nextSlug": "9aa7ad26d11b38b7",
-          "normalizeProject": "255c7bd02102edd5",
+          "normalizeProject": "674d61f005000c36",
           "permissionsOf": "fd378634756f8916",
           "planFolderRow": "db7bb2d4c03fd3a7",
-          "release": "65f8bba6901b0bb5",
           "shouldAutoShowDevices": "b19a83d69089bb1b",
           "suggestSlug": "facf882f803b4fba",
           "validateSlug": "6333b6bd09c662da",
@@ -2776,123 +2796,123 @@
       ],
       "functions": {
         "hasConfig": {
-          "line": 69,
+          "line": 71,
           "params": [
             "folderPath"
           ]
         },
         "scanFolders": {
-          "line": 78,
+          "line": 80,
           "purpose": "Known folders with `.frame/config.json`, most recently opened first. Read-only."
         },
         "findFolder": {
-          "line": 112,
+          "line": 114,
           "params": [
             "folderPath"
           ]
         },
         "readRemote": {
-          "line": 117,
+          "line": 119,
           "params": [
             "folderPath"
           ],
           "purpose": "`git remote get-url origin`, or undefined when there is none."
         },
         "cachePath": {
-          "line": 133
+          "line": 135
         },
         "loadCache": {
-          "line": 137,
+          "line": 139,
           "params": [
             "serverUrl",
             "workspaceSlug"
           ]
         },
         "saveCache": {
-          "line": 149,
+          "line": 151,
           "params": [
             "serverUrl",
             "workspaceSlug"
           ]
         },
         "deleteCache": {
-          "line": 164
+          "line": 166
         },
         "hasWorkspace": {
-          "line": 178,
+          "line": 180,
           "purpose": "Signed in to a workspace. Without one, no workspace procedure is ever called."
         },
         "permissions": {
-          "line": 187,
+          "line": 189,
           "purpose": "The signed-in role's two answers, `{ work, manage }`. Both false while"
         },
         "can": {
-          "line": 194,
+          "line": 196,
           "params": [
             "permission"
           ],
           "purpose": "Whether the signed-in role holds `permission` (`work` | `manage`)."
         },
         "refuseUnless": {
-          "line": 203,
+          "line": 205,
           "params": [
             "permission"
           ],
           "purpose": "Main's own check before a write: null when the role may, otherwise the"
         },
         "permissionsKey": {
-          "line": 207,
+          "line": 209,
           "params": [
             "p"
           ]
         },
         "status": {
-          "line": 211
+          "line": 213
         },
         "publicState": {
-          "line": 222,
+          "line": 224,
           "purpose": "The renderer's view. Built field by field — no token, no identity, no remote."
         },
         "push": {
-          "line": 255
+          "line": 258
         },
         "resetList": {
-          "line": 263
+          "line": 266
         },
         "call": {
-          "line": 283,
+          "line": 286,
           "params": [
             "fn"
           ],
           "purpose": "One bearer call through the shared rules: 401 signs out quietly, a"
         },
         "refresh": {
-          "line": 311,
+          "line": 314,
           "purpose": "Re-read the project list (and the folders). Concurrent callers share one request."
         },
         "loadCandidates": {
-          "line": 370,
+          "line": 373,
           "purpose": "`link.candidates` for every unconnected folder, three at a time, pushing as answers land."
         },
         "linkBlocked": {
-          "line": 402
+          "line": 406
         },
         "identityFor": {
-          "line": 410,
+          "line": 414,
           "params": [
             "folder"
           ],
           "purpose": "Stamp the folder's identity at the moment the user links it (S6)."
         },
         "afterLink": {
-          "line": 419,
+          "line": 423,
           "params": [
             "folderPath",
             "result"
           ]
         },
         "linkClaim": {
-          "line": 426,
+          "line": 430,
           "params": [
             "{ path",
             "projectId",
@@ -2901,58 +2921,66 @@
           ]
         },
         "linkCreate": {
-          "line": 448,
+          "line": 452,
           "params": [
             "{ path",
             "name",
             "slug } = {}"
           ]
         },
-        "linkRelease": {
-          "line": 469,
+        "linkConnect": {
+          "line": 480,
           "params": [
             "{ path"
-          ]
+          ],
+          "purpose": "Connects this device to the project that already carries the folder's"
+        },
+        "linkDisconnect": {
+          "line": 507,
+          "params": [
+            "{ projectId } = {}"
+          ],
+          "purpose": "Removes this device's connection to a project (`link.disconnect`). By"
         },
         "checkSlug": {
-          "line": 491,
+          "line": 524,
           "params": [
             "slug"
           ]
         },
         "openOnWeb": {
-          "line": 504,
+          "line": 537,
           "params": [
             "projectId"
           ],
           "purpose": "The renderer sends a project id; the URL is built and opened here."
         },
         "connectedProject": {
-          "line": 524,
+          "line": 557,
           "params": [
             "folderPath"
           ],
           "purpose": "The cloud project a known folder is connected to, from this service's own"
         },
         "openWorkspaceOnWeb": {
-          "line": 533,
+          "line": 566,
           "purpose": "The workspace's page, or `/new` to create one when there is none."
         },
         "onSessionChange": {
-          "line": 547,
+          "line": 580,
           "params": [
             "{ state",
             "userStarted }"
           ]
         },
         "init": {
-          "line": 592,
+          "line": 625,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 601,
+          "line": 634,
           "params": [
             "ipcMain"
           ]
@@ -2966,7 +2994,8 @@
           "CLOUD_CHECK_SLUG",
           "CLOUD_LINK_CLAIM",
           "CLOUD_LINK_CREATE",
-          "CLOUD_LINK_RELEASE",
+          "CLOUD_LINK_CONNECT",
+          "CLOUD_LINK_DISCONNECT",
           "CLOUD_OPEN_ON_WEB",
           "CLOUD_OPEN_WORKSPACE_ON_WEB"
         ],
@@ -2974,7 +3003,7 @@
           "CLOUD_PROJECTS_STATE"
         ]
       },
-      "sizeBytes": 22735,
+      "sizeBytes": 24395,
       "extraction": {
         "status": "parsed"
       },
@@ -2986,6 +3015,8 @@
           "connectedProject": "054506ed2772cbad",
           "hasWorkspace": "3b3e140bd8ad52de",
           "identityFor": "3d9dd68e1bdef09d",
+          "linkConnect": "2507ab05540500a6",
+          "linkDisconnect": "abd462b7b60b6021",
           "loadCandidates": "66b5efe2696cf936",
           "openOnWeb": "6971cb7f8f9ec839",
           "openWorkspaceOnWeb": "f870b2690db8cd97",
@@ -3033,17 +3064,17 @@
       ],
       "functions": {
         "resolveUrl": {
-          "line": 89
+          "line": 90
         },
         "refusalReason": {
-          "line": 103,
+          "line": 104,
           "params": [
             "address"
           ],
           "purpose": "Scheme and host only: the rest of a mistyped address could carry anything."
         },
         "fetchJson": {
-          "line": 120,
+          "line": 121,
           "params": [
             "url",
             "{ method = 'GET'",
@@ -3054,41 +3085,44 @@
           "purpose": "`net.fetch` → `{ status, body }`. A timeout rejects with a plain Error so"
         },
         "sleep": {
-          "line": 161,
+          "line": 162,
           "params": [
             "ms",
             "signal"
           ]
         },
         "originOf": {
-          "line": 181,
+          "line": 182,
           "params": [
             "url"
           ]
         },
         "openUrl": {
-          "line": 190,
+          "line": 191,
           "params": [
             "url"
           ]
         },
         "readComputerName": {
-          "line": 203
+          "line": 204
+        },
+        "readInstallId": {
+          "line": 232
         },
         "deviceInfo": {
-          "line": 225
+          "line": 240
         },
         "toPublicState": {
-          "line": 237
-        },
-        "getPublicState": {
-          "line": 249
-        },
-        "publish": {
           "line": 253
         },
+        "getPublicState": {
+          "line": 265
+        },
+        "publish": {
+          "line": 269
+        },
         "setState": {
-          "line": 262,
+          "line": 278,
           "params": [
             "next",
             "{ userStarted = false } = {}"
@@ -3096,18 +3130,18 @@
           "purpose": "Every transition is pushed to the renderer, then told to main-process"
         },
         "onChange": {
-          "line": 276,
+          "line": 292,
           "params": [
             "listener"
           ],
           "purpose": "Subscribe to session changes. Returns the unsubscribe function."
         },
         "getAuth": {
-          "line": 285,
+          "line": 301,
           "purpose": "What a main-process caller needs to make a bearer call, or null while not"
         },
         "signedInState": {
-          "line": 296,
+          "line": 312,
           "params": [
             "serverUrl",
             "session",
@@ -3115,65 +3149,65 @@
           ]
         },
         "bringToFront": {
-          "line": 310,
+          "line": 326,
           "purpose": "Device flow has no redirect back to the app, so a completed sign-in is what"
         },
         "abortAttempt": {
-          "line": 318
+          "line": 334
         },
         "signIn": {
-          "line": 327,
+          "line": 343,
           "purpose": "Start a sign-in. Resolves when the attempt ends; callers need not wait."
         },
         "cancel": {
-          "line": 379
+          "line": 395
         },
         "readInviteMode": {
-          "line": 396,
+          "line": 412,
           "purpose": "Signed out: one `invite.mode`, so the window knows whether to lead with the"
         },
         "joinWaitlist": {
-          "line": 420,
+          "line": 436,
           "params": [
             "rawEmail"
           ],
           "purpose": "Join the waitlist with the address the renderer typed. Main normalizes it"
         },
         "refresh": {
-          "line": 437,
+          "line": 453,
           "purpose": "One silent device.me. A dead token signs out quietly; an unreachable server"
         },
         "sessionExpired": {
-          "line": 467,
+          "line": 483,
           "purpose": "A bearer call answered 401: forget the session quietly, no error shown."
         },
         "reRegister": {
-          "line": 481,
+          "line": 497,
           "purpose": "The server forgot this device (412 DEVICE_NOT_REGISTERED): register it"
         },
         "signOut": {
-          "line": 488,
+          "line": 504,
           "purpose": "Tell the server, then forget the session locally whatever it said."
         },
         "startup": {
-          "line": 514,
+          "line": 530,
           "purpose": "Launch: show the stored session at once, then refresh it in the background."
         },
         "loadSession": {
-          "line": 518
+          "line": 534
         },
         "getState": {
-          "line": 546,
+          "line": 562,
           "purpose": "The current state, re-resolving first if the server address changed underneath."
         },
         "init": {
-          "line": 553,
+          "line": 569,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 565,
+          "line": 581,
           "params": [
             "ipcMain"
           ]
@@ -3192,7 +3226,7 @@
           "CLOUD_SESSION_STATE"
         ]
       },
-      "sizeBytes": 19114,
+      "sizeBytes": 19698,
       "extraction": {
         "status": "parsed"
       },
@@ -4144,6 +4178,8 @@
         "classifyTrpcError",
         "deviceName",
         "formatDeviceInfo",
+        "INSTALL_ID_MAX",
+        "resolveInstallId",
         "requestDeviceCode",
         "pollForToken",
         "registerDevice",
@@ -4157,24 +4193,26 @@
         "normalizeWaitlistEmail",
         "joinWaitlist"
       ],
-      "depends": [],
+      "depends": [
+        "crypto"
+      ],
       "functions": {
         "isAbort": {
-          "line": 39,
+          "line": 41,
           "params": [
             "err",
             "signal"
           ]
         },
         "checkServerUrl": {
-          "line": 54,
+          "line": 56,
           "params": [
             "url"
           ],
           "purpose": "Whether Frame may talk to `url`: https on any host, http on LOOPBACK_HOSTS"
         },
         "resolveServerUrl": {
-          "line": 72,
+          "line": 74,
           "params": [
             "{ env",
             "setting",
@@ -4183,66 +4221,75 @@
           "purpose": "The first non-empty of env → setting → default, without trailing slashes,"
         },
         "parseCodeResponse": {
-          "line": 83,
+          "line": 85,
           "params": [
             "body"
           ],
           "purpose": "`/api/auth/device/code` body → camelCase, milliseconds. Throws on a malformed body."
         },
         "formatUserCode": {
-          "line": 106,
+          "line": 108,
           "params": [
             "userCode"
           ],
           "purpose": "Display-only grouping: 'TTN4YFST' → 'TTN4-YFST'. Other shapes are returned as-is."
         },
         "classifyTokenResponse": {
-          "line": 113,
+          "line": 115,
           "params": [
             "res"
           ],
           "purpose": "One `/api/auth/device/token` answer → what the poll loop does next."
         },
         "classifyTrpcError": {
-          "line": 141,
+          "line": 143,
           "params": [
             "res"
           ],
           "purpose": "A failed tRPC answer → CloudError kind."
         },
         "looksLikeAddress": {
-          "line": 157,
+          "line": 159,
           "params": [
             "name"
           ],
           "purpose": "A hostname that is really a network address (macOS without a HostName"
         },
         "cleanName": {
-          "line": 161,
+          "line": 163,
           "params": [
             "raw"
           ]
         },
         "deviceName": {
-          "line": 171,
+          "line": 173,
           "params": [
             "hostname"
           ],
           "purpose": "A machine name → the name the server shows for this device."
         },
         "formatDeviceInfo": {
-          "line": 180,
+          "line": 183,
           "params": [
             "{ computerName",
             "hostname",
             "platform",
             "release",
-            "appVersion } = {}"
+            "appVersion",
+            "installId } = {}"
           ],
           "purpose": "Raw machine facts → the `device.register` input, cut to the server's limits."
         },
+        "resolveInstallId": {
+          "line": 206,
+          "params": [
+            "stored",
+            "mint = randomUUID"
+          ],
+          "purpose": "This Frame install's id, sent with every `device.register`. FrameCloud keeps"
+        },
         "send": {
-          "line": 190,
+          "line": 213,
           "params": [
             "fetchJson",
             "url",
@@ -4250,7 +4297,7 @@
           ]
         },
         "requestDeviceCode": {
-          "line": 199,
+          "line": 222,
           "params": [
             "{ api",
             "fetchJson",
@@ -4258,7 +4305,7 @@
           ]
         },
         "callTrpc": {
-          "line": 217,
+          "line": 240,
           "params": [
             "{ api",
             "name",
@@ -4271,7 +4318,7 @@
           "purpose": "One tRPC procedure, no transformer. A query (GET) carries its input as"
         },
         "registerDevice": {
-          "line": 235,
+          "line": 258,
           "params": [
             "{ api",
             "token",
@@ -4281,7 +4328,7 @@
           ]
         },
         "fetchMe": {
-          "line": 244,
+          "line": 267,
           "params": [
             "{ api",
             "token",
@@ -4290,7 +4337,7 @@
           ]
         },
         "signOutDevice": {
-          "line": 248,
+          "line": 271,
           "params": [
             "{ api",
             "token",
@@ -4299,7 +4346,7 @@
           ]
         },
         "fetchInviteMode": {
-          "line": 262,
+          "line": 285,
           "params": [
             "{ api",
             "fetchJson",
@@ -4308,20 +4355,20 @@
           "purpose": "Whether the server only lets invited people sign up (FrameCloud"
         },
         "normalizeWaitlistEmail": {
-          "line": 278,
+          "line": 301,
           "params": [
             "raw"
           ],
           "purpose": "A waitlist address as the server stores it — trimmed and lowercased as a"
         },
         "joinReason": {
-          "line": 289,
+          "line": 312,
           "params": [
             "err"
           ]
         },
         "joinWaitlist": {
-          "line": 304,
+          "line": 327,
           "params": [
             "{ api",
             "email",
@@ -4331,7 +4378,7 @@
           "purpose": "Put `email` on FrameCloud's waitlist from this machine (`waitlist.join`,"
         },
         "pollForToken": {
-          "line": 324,
+          "line": 347,
           "params": [
             "{ api",
             "code",
@@ -4343,13 +4390,13 @@
           "purpose": "Poll `/api/auth/device/token` until the user decides, the code expires or"
         },
         "signInReason": {
-          "line": 377,
+          "line": 400,
           "params": [
             "err"
           ]
         },
         "runSignIn": {
-          "line": 395,
+          "line": 418,
           "params": [
             "{ api",
             "fetchJson",
@@ -4363,19 +4410,19 @@
           "purpose": "The whole sign-in: code → browser → poll → register."
         },
         "refreshReason": {
-          "line": 453,
+          "line": 476,
           "params": [
             "err"
           ]
         },
         "sessionFromMe": {
-          "line": 465,
+          "line": 488,
           "params": [
             "data"
           ]
         },
         "refreshSession": {
-          "line": 479,
+          "line": 502,
           "params": [
             "{ api",
             "token",
@@ -4386,7 +4433,7 @@
           "purpose": "`device.me`, re-registering once when the server has forgotten this device."
         }
       },
-      "sizeBytes": 17958,
+      "sizeBytes": 19222,
       "extraction": {
         "status": "parsed"
       },
@@ -4407,6 +4454,7 @@
           "parseCodeResponse": "4626cbf9184c6f5c",
           "pollForToken": "b146490edbbeb889",
           "refreshSession": "1d622fffd281eb11",
+          "resolveInstallId": "96a455b0f16e9868",
           "resolveServerUrl": "ef1826ded8765dc2",
           "runSignIn": "cb6126d231cc3199"
         }
@@ -14406,6 +14454,110 @@
         }
       }
     },
+    "renderer/cloudConnectionCopy": {
+      "file": "src/renderer/cloudConnectionCopy.js",
+      "description": "cloudConnectionCopy — the words Frame says about a device's Frame Cloud",
+      "exports": [
+        "STATUS_CHIPS",
+        "statusChip",
+        "CLAIM_LINE",
+        "ACTIONS",
+        "notHereNote",
+        "CONNECTED_EXPLANATION",
+        "readyLead",
+        "TAKEOVER_QUESTION",
+        "CLAIMED_ELSEWHERE",
+        "disconnectQuestion",
+        "settingsRow",
+        "connectRefusal",
+        "disconnectRefusal"
+      ],
+      "depends": [
+        "cloudRoles"
+      ],
+      "functions": {
+        "statusChip": {
+          "line": 27,
+          "params": [
+            "state"
+          ],
+          "purpose": "A row state → its chip; an unknown state reads Not connected."
+        },
+        "notHereNote": {
+          "line": 61,
+          "params": [
+            "state"
+          ],
+          "purpose": "The info mark beside \"Not on this device\", for a row in `state`."
+        },
+        "projectLabel": {
+          "line": 65,
+          "params": [
+            "project"
+          ]
+        },
+        "readyLead": {
+          "line": 79,
+          "params": [
+            "project"
+          ],
+          "purpose": "A Ready folder's detail: it is the project's clone, and connecting changes no one else's."
+        },
+        "disconnectQuestion": {
+          "line": 103,
+          "params": [
+            "project",
+            "{ folderHere = true } = {}"
+          ],
+          "purpose": "Before this device's connection goes. Says what changes (Briefs leave this"
+        },
+        "workspaceLabel": {
+          "line": 110,
+          "params": [
+            "workspace"
+          ]
+        },
+        "settingsRow": {
+          "line": 121,
+          "params": [
+            "state",
+            "project",
+            "workspace"
+          ],
+          "purpose": "Project Settings' Frame Cloud row for the open folder → `{ label, description }`."
+        },
+        "connectRefusal": {
+          "line": 148,
+          "params": [
+            "reason"
+          ],
+          "purpose": "A refused Connect → the line under it. `unauthorized` says nothing: the window is back on sign-in."
+        },
+        "disconnectRefusal": {
+          "line": 154,
+          "params": [
+            "reason"
+          ],
+          "purpose": "A refused Disconnect → the line under it."
+        }
+      },
+      "sizeBytes": 7284,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7d2c9d2ae0434dfe",
+        "purposes": {
+          "connectRefusal": "02e3e9fc5432304a",
+          "disconnectQuestion": "57c0a119354534fb",
+          "disconnectRefusal": "ef6e8c864a670b4b",
+          "notHereNote": "93f49a67bd89e035",
+          "readyLead": "1f1d5f59596521b3",
+          "settingsRow": "d5c757026e5146d9",
+          "statusChip": "9b020d4229640f36"
+        }
+      }
+    },
     "renderer/cloudEarlyAccess": {
       "file": "src/renderer/cloudEarlyAccess.js",
       "description": "cloudEarlyAccess — the words the Frame Cloud window says while the server",
@@ -14676,35 +14828,36 @@
         "shared/ipcChannels",
         "tooltip",
         "cloudRoles",
+        "cloudConnectionCopy",
         "projectListUI"
       ],
       "functions": {
         "init": {
-          "line": 64,
+          "line": 68,
           "params": [
             "cloudHub"
           ]
         },
         "render": {
-          "line": 73,
+          "line": 77,
           "params": [
             "state",
             "activeTab"
           ]
         },
         "onShow": {
-          "line": 89,
+          "line": 94,
           "params": [
             "tab",
             "opts = {}"
           ]
         },
         "requestCandidates": {
-          "line": 105,
+          "line": 110,
           "purpose": "link.candidates runs once the list is ready and on every Refresh; answers"
         },
         "el": {
-          "line": 115,
+          "line": 120,
           "params": [
             "tag",
             "className",
@@ -14712,7 +14865,7 @@
           ]
         },
         "button": {
-          "line": 122,
+          "line": 127,
           "params": [
             "label",
             "onClick",
@@ -14724,7 +14877,7 @@
           ]
         },
         "message": {
-          "line": 134,
+          "line": 139,
           "params": [
             "text",
             "{ retry = false",
@@ -14732,109 +14885,129 @@
           ]
         },
         "staleNote": {
-          "line": 141,
+          "line": 146,
           "params": [
             "state"
           ]
         },
         "workspaceName": {
-          "line": 149,
+          "line": 154,
           "params": [
             "state"
           ]
         },
         "renderProjectsTab": {
-          "line": 156,
+          "line": 161,
           "params": [
             "state"
           ]
         },
         "projectCase": {
-          "line": 194,
+          "line": 199,
           "params": [
             "project",
             "state"
           ],
-          "purpose": "What a project row is, seen from this device:"
+          "purpose": "What a project row draws, from main's `state` (cloudProjects.matchFolders):"
         },
         "projectRow": {
-          "line": 223,
+          "line": 220,
           "params": [
             "project",
             "state"
           ]
         },
-        "appendConnect": {
-          "line": 278,
+        "projectUi": {
+          "line": 295,
+          "params": [
+            "projectId"
+          ]
+        },
+        "appendProjectStatus": {
+          "line": 301,
           "params": [
             "row",
-            "actions",
             "project",
-            "folders",
+            "c",
             "stale"
           ],
-          "purpose": "Connect on a Ready to connect row runs the link right here, on the one"
+          "purpose": "Progress, the Disconnect question or the last refusal, under a project row."
+        },
+        "connectProjectNow": {
+          "line": 321,
+          "params": [
+            "project",
+            "folderPath"
+          ],
+          "purpose": "This device connects to a Ready project, through a folder here that carries its identity."
+        },
+        "disconnectProjectNow": {
+          "line": 340,
+          "params": [
+            "project"
+          ],
+          "purpose": "This device leaves a connected project; teammates and other devices stay."
         },
         "openFolder": {
-          "line": 295,
+          "line": 359,
           "params": [
             "folderPath"
           ]
         },
         "ui": {
-          "line": 313,
+          "line": 377,
           "params": [
             "path"
           ]
         },
         "effective": {
-          "line": 319,
+          "line": 383,
           "params": [
             "folder"
           ],
           "purpose": "What a folder does now: the plan, with whatever the user changed on top."
         },
         "folderKind": {
-          "line": 335,
+          "line": 399,
           "params": [
             "folder"
           ],
           "purpose": "Which list a folder sits in. By the plan, so a choice made in the detail never moves it."
         },
         "kindTitle": {
-          "line": 343,
+          "line": 409,
           "params": [
             "kind",
             "folders"
           ]
         },
         "shortPath": {
-          "line": 350,
+          "line": 417,
           "params": [
             "p"
           ]
         },
         "renderDeviceTab": {
-          "line": 355,
+          "line": 422,
           "params": [
             "state"
           ]
         },
         "uninitialisedNote": {
-          "line": 416,
+          "line": 483,
           "params": [
             "n"
           ]
         },
         "sideItem": {
-          "line": 426,
+          "line": 493,
           "params": [
             "folder",
             "kind"
           ]
         },
         "drawDetail": {
-          "line": 444,
+          "line": 511,
           "params": [
             "detail",
             "folder",
@@ -14843,13 +15016,13 @@
           ]
         },
         "facts": {
-          "line": 465,
+          "line": 533,
           "params": [
             "rows"
           ]
         },
         "drawConnect": {
-          "line": 477,
+          "line": 545,
           "params": [
             "detail",
             "folder",
@@ -14858,11 +15031,11 @@
           ]
         },
         "canManage": {
-          "line": 524,
+          "line": 592,
           "purpose": "Whether the signed-in role may add a project (`link.create`). Main checks again."
         },
         "drawCreateAdminOnly": {
-          "line": 533,
+          "line": 601,
           "params": [
             "detail",
             "folder",
@@ -14873,7 +15046,7 @@
           "purpose": "A folder no cloud project matches, for a role that cannot add one: the"
         },
         "drawCreate": {
-          "line": 548,
+          "line": 616,
           "params": [
             "detail",
             "folder",
@@ -14883,28 +15056,44 @@
           ]
         },
         "drawConnected": {
-          "line": 590,
+          "line": 658,
           "params": [
             "detail",
             "folder",
             "stale"
           ]
         },
+        "drawReady": {
+          "line": 708,
+          "params": [
+            "detail",
+            "folder",
+            "stale"
+          ],
+          "purpose": "A clone of a claimed project, on a device not connected to it: the identity"
+        },
+        "connectFolderNow": {
+          "line": 732,
+          "params": [
+            "folder"
+          ],
+          "purpose": "This device connects to the project a Ready folder's identity names."
+        },
         "chooseCreate": {
-          "line": 634,
+          "line": 750,
           "params": [
             "folder"
           ]
         },
         "picker": {
-          "line": 643,
+          "line": 759,
           "params": [
             "folder",
             "e"
           ]
         },
         "field": {
-          "line": 669,
+          "line": 785,
           "params": [
             "folder",
             "key",
@@ -14915,20 +15104,20 @@
           ]
         },
         "slugStatus": {
-          "line": 698,
+          "line": 814,
           "params": [
             "u"
           ]
         },
         "checkSlugSoon": {
-          "line": 722,
+          "line": 838,
           "params": [
             "folderPath",
             "slug"
           ]
         },
         "appendStatus": {
-          "line": 746,
+          "line": 862,
           "params": [
             "target",
             "folder",
@@ -14937,7 +15126,7 @@
           "purpose": "Progress, a question that needs an answer, or the last error — above the folder's button."
         },
         "connectRowNow": {
-          "line": 776,
+          "line": 892,
           "params": [
             "path",
             "flags"
@@ -14945,56 +15134,60 @@
           "purpose": "Claim or create one row. `flags` carries a question the user just"
         },
         "applyRefusal": {
-          "line": 811,
+          "line": 927,
           "params": [
             "u",
             "res"
           ]
         },
         "disconnect": {
-          "line": 834,
+          "line": 950,
           "params": [
             "folder"
           ]
         },
         "rerender": {
-          "line": 859
+          "line": 970
         },
         "applyPendingFocus": {
-          "line": 867,
+          "line": 978,
           "params": [
             "folders"
           ],
           "purpose": "Selects the folder a caller asked for (a path, or the folder whose"
         },
         "captureFocus": {
-          "line": 892,
+          "line": 1003,
           "purpose": "A push while the user types must not steal the caret."
         },
         "restoreFocus": {
-          "line": 898,
+          "line": 1009,
           "params": [
             "focus"
           ]
         }
       },
-      "sizeBytes": 34813,
+      "sizeBytes": 39506,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "db46ec01cd7662f9",
         "purposes": {
-          "appendConnect": "41e0cc127caf971c",
+          "appendProjectStatus": "4e74a09da41423e4",
           "appendStatus": "5626039285afeee9",
           "applyPendingFocus": "21b996b8e3bed484",
           "canManage": "ebff70f5ad13bc25",
           "captureFocus": "a129819f2137f85b",
+          "connectFolderNow": "97b23a5afd43f86c",
+          "connectProjectNow": "38e858803bce862d",
           "connectRowNow": "1baf245e0ffbe4c6",
+          "disconnectProjectNow": "f1c7574ec0617d5c",
           "drawCreateAdminOnly": "cdc0078cde8518ea",
+          "drawReady": "ce626acfe1873ef7",
           "effective": "ecc71c4b3ae89d9d",
           "folderKind": "ba7830656021c4ab",
-          "projectCase": "63bbf66b1b7c1643",
+          "projectCase": "fc9fd439927e9693",
           "requestCandidates": "300b32719800bef8"
         }
       }
@@ -20423,22 +20616,23 @@
         "cloudHub",
         "cloudNoWorkspace",
         "cloudRoles",
+        "cloudConnectionCopy",
         "cloudEarlyAccess",
         "migrationModal"
       ],
       "functions": {
         "init": {
-          "line": 59
+          "line": 60
         },
         "syncFromProject": {
-          "line": 285
+          "line": 286
         },
         "syncCloudRow": {
-          "line": 303,
+          "line": 304,
           "purpose": "Re-read both Frame Cloud states on open (the hub re-renders from the"
         },
         "cloudButton": {
-          "line": 322,
+          "line": 323,
           "params": [
             "label",
             "onClick",
@@ -20447,98 +20641,108 @@
           ]
         },
         "renderCloudRow": {
-          "line": 332
+          "line": 333
         },
-        "disconnectFromCloud": {
-          "line": 409,
+        "connectToCloud": {
+          "line": 422,
           "params": [
             "projectPath"
-          ]
+          ],
+          "purpose": "This device connects to the project the folder's identity names."
+        },
+        "disconnectFromCloud": {
+          "line": 438,
+          "params": [
+            "projectId"
+          ],
+          "purpose": "This device's connection to the cloud project, nothing else."
         },
         "setWorkspacesNote": {
-          "line": 428,
+          "line": 454,
           "params": [
             "message"
           ]
         },
         "paintWorkspaceSettings": {
-          "line": 434,
+          "line": 460,
           "params": [
             "settings"
           ]
         },
         "syncWorkspaceSettings": {
-          "line": 446,
+          "line": 472,
           "purpose": "Read `settings.workspaces`. Defaults show for a project without Frame —"
         },
         "saveWorkspaceSettings": {
-          "line": 463,
+          "line": 489,
           "params": [
             "settings"
           ]
         },
         "renderDoneWindow": {
-          "line": 483,
+          "line": 509,
           "purpose": "Paint both window selects from the store. With no project open there is"
         },
         "setDoneWindowNote": {
-          "line": 495,
+          "line": 521,
           "params": [
             "message"
           ]
         },
         "syncFrameSetup": {
-          "line": 512,
+          "line": 538,
           "purpose": "Setup and removal are two surfaces. A project without `.frame/` gets the"
         },
         "syncMigrationDecision": {
-          "line": 528,
+          "line": 554,
           "purpose": "Shown only while this project still has something to answer. The decision"
         },
         "syncDefaultProject": {
-          "line": 548,
+          "line": 574,
           "purpose": "The launch-project row. It is hidden outright below two projects: with one"
         },
         "syncSpecDrivenToggle": {
-          "line": 574,
+          "line": 600,
           "purpose": "Reflect the current project's features.specDriven flag. With no project"
         },
         "renderGitSharing": {
-          "line": 599,
+          "line": 625,
           "params": [
             "stateObj"
           ],
           "purpose": "Paint the sharing row from main's state object. `error` means the project"
         },
         "syncGitSharing": {
-          "line": 615
+          "line": 641
         },
         "setRemoveFrameNote": {
-          "line": 629,
+          "line": 655,
           "params": [
             "message"
           ]
         },
         "setGitSharingWarning": {
-          "line": 635,
+          "line": 661,
           "params": [
             "message"
           ]
         },
         "setSpecDrivenNote": {
-          "line": 641,
+          "line": 667,
           "params": [
             "message"
           ]
         }
       },
-      "sizeBytes": 27102,
+      "sizeBytes": 28288,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "7189e58be0db4170",
         "purposes": {
+          "connectToCloud": "3e653b2931d4a3e1",
+          "disconnectFromCloud": "2102094e3a9c2481",
           "renderDoneWindow": "f90e651e2a0efdd7",
           "renderGitSharing": "bcc466bcbad35aaa",
           "syncCloudRow": "df81003c7adbbecd",
@@ -23577,7 +23781,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 22484,
+      "sizeBytes": 22891,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -31967,7 +32171,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 24148,
+      "sizeBytes": 24374,
       "extraction": {
         "status": "parsed"
       },
@@ -34282,6 +34486,25 @@
         "description": "b35834d1791768a8"
       }
     },
+    "test/cloudConnectionCopy.test": {
+      "file": "test/cloudConnectionCopy.test.js",
+      "description": "cloudConnectionCopy tests — the words Frame says about a device's Frame",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/renderer/cloudConnectionCopy",
+        "src/renderer/cloudRoles"
+      ],
+      "functions": {},
+      "sizeBytes": 6575,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "40bdf074c1b558d9"
+      }
+    },
     "test/cloudDeviceFlow.test": {
       "file": "test/cloudDeviceFlow.test.js",
       "description": "deviceFlow tests — the pure core of Frame Cloud sign-in.",
@@ -34319,14 +34542,14 @@
           ]
         },
         "signInHarness": {
-          "line": 446,
+          "line": 470,
           "params": [
             "routes",
             "extra = {}"
           ]
         }
       },
-      "sizeBytes": 32726,
+      "sizeBytes": 34079,
       "extraction": {
         "status": "parsed"
       },
@@ -34517,7 +34740,7 @@
           ]
         }
       },
-      "sizeBytes": 26125,
+      "sizeBytes": 30235,
       "extraction": {
         "status": "parsed"
       },
@@ -40204,6 +40427,16 @@
         "name": "cloud-brief-move-undo",
         "direction": "",
         "description": ""
+      },
+      "CLOUD_LINK_CONNECT": {
+        "name": "cloud-link-connect",
+        "direction": "",
+        "description": ""
+      },
+      "CLOUD_LINK_DISCONNECT": {
+        "name": "cloud-link-disconnect",
+        "direction": "",
+        "description": ""
       }
     }
   },
@@ -40410,11 +40643,28 @@
         "description": "serverConnectModel — the Connect dialog's state rules (server-hardening S12)."
       }
     ],
+    "connection": [
+      {
+        "module": "main/serverConnection",
+        "file": "src/main/serverConnection.js",
+        "description": "Server connection — the desktop's link to Frame Server"
+      },
+      {
+        "module": "renderer/cloudConnectionCopy",
+        "file": "src/renderer/cloudConnectionCopy.js",
+        "description": "cloudConnectionCopy — the words Frame says about a device's Frame Cloud"
+      }
+    ],
     "copy": [
       {
         "module": "renderer/cloudBriefsCopy",
         "file": "src/renderer/cloudBriefsCopy.js",
         "description": "cloudBriefsCopy — the words the cloud Briefs view says."
+      },
+      {
+        "module": "renderer/cloudConnectionCopy",
+        "file": "src/renderer/cloudConnectionCopy.js",
+        "description": "cloudConnectionCopy — the words Frame says about a device's Frame Cloud"
       },
       {
         "module": "shared/copyFilesMatch",
@@ -41635,7 +41885,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 426,
+        "parsed": 428,
         "unsupported": 93,
         "partial": 0
       }
@@ -41682,9 +41932,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 614,
+      "visitedEntries": 616,
       "traversedDirectories": 87,
-      "eligibleFiles": 519,
+      "eligibleFiles": 521,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -41701,7 +41951,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 519,
+      "indexedFiles": 521,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -41709,6 +41959,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "ab0bf0440ea84d9d7679cea1121ef7d1fc5f03b4c4b031b7a8fe169beda353aa"
+    "revision": "27192dc0188b4788ca4e730016a6341c0b65dfa8d20c6e3eaba270234fea9519"
   }
 }

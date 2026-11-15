@@ -805,6 +805,20 @@
   border-color: transparent;
 }
 
+/* A Not claimed chip's line saying what claiming is. */
+.cloud-cell-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.cloud-chip-note {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-tertiary);
+}
+
 /* ─── On this device ────────────────────────────────────── */
 
 /* The folder list and the selected folder's detail fill the tab. */
@@ -918,6 +932,11 @@
 
 .cloud-state-connected {
   background: var(--success);
+}
+
+/* A recognised clone: the green ring that fills once this device connects. */
+.cloud-state-ready {
+  box-shadow: inset 0 0 0 1.5px var(--success);
 }
 
 .cloud-uninitialised {

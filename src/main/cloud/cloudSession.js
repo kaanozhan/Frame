@@ -25,6 +25,7 @@ const sessionStore = require('./sessionStore');
 const {
   resolveServerUrl,
   formatDeviceInfo,
+  resolveInstallId,
   runSignIn,
   refreshSession,
   registerDevice,
@@ -222,6 +223,20 @@ function readComputerName() {
   return computerName;
 }
 
+// This install's id for device.register. It lives in Frame's settings, not in
+// the session file (cleared on sign-out) and apart from the analytics id
+// (deleted when analytics is turned off), so a sign-out keeps the device.
+const INSTALL_ID_KEY = 'cloudInstallId';
+let installId = null;
+
+function readInstallId() {
+  if (installId) return installId;
+  const { id, write } = resolveInstallId(userSettings.get(INSTALL_ID_KEY));
+  if (write === 'set') userSettings.set(INSTALL_ID_KEY, id);
+  installId = id;
+  return installId;
+}
+
 function deviceInfo() {
   return formatDeviceInfo({
     computerName: readComputerName(),
@@ -229,6 +244,7 @@ function deviceInfo() {
     platform: process.platform,
     release: os.release(),
     appVersion: app.getVersion(),
+    installId: readInstallId(),
   });
 }
 

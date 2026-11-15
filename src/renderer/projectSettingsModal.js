@@ -28,6 +28,7 @@ const doneWindow = require('./doneWindow');
 const cloudHub = require('./cloudHub');
 const cloudNoWorkspace = require('./cloudNoWorkspace');
 const cloudRoles = require('./cloudRoles');
+const cloudConnectionCopy = require('./cloudConnectionCopy');
 const cloudEarlyAccess = require('./cloudEarlyAccess');
 
 let overlay = null;
@@ -380,13 +381,16 @@ function renderCloudRow() {
       : 'Loading…';
     actions.push(cloudButton('Open Frame Cloud', () => openHub({ tab: 'projects' })));
   } else if (folder && folder.connected && folder.project) {
-    const ws = projects.cloudWorkspace || {};
-    cloudLabelEl.textContent = `Connected to ${folder.project.name || folder.project.slug}`;
-    cloudDescEl.textContent = cloudConfirmingDisconnect
-      ? `Disconnect from ${folder.project.name || folder.project.slug}? The cloud project stays.`
-      : `In ${ws.name || ws.slug || 'Frame Cloud'}.`;
+    // Connected is this device's (frame-cloud-teammate-connection).
+    const copy = cloudConnectionCopy.settingsRow(
+      cloudConfirmingDisconnect ? 'confirmDisconnect' : 'connected',
+      folder.project,
+      projects.cloudWorkspace
+    );
+    cloudLabelEl.textContent = copy.label;
+    cloudDescEl.textContent = copy.description;
     if (cloudConfirmingDisconnect) {
-      actions.push(cloudButton('Disconnect', () => disconnectFromCloud(projectPath), { primary: true, disabled: stale || cloudBusy }));
+      actions.push(cloudButton('Disconnect', () => disconnectFromCloud(folder.project.id), { primary: true, disabled: stale || cloudBusy }));
       actions.push(cloudButton('Cancel', () => {
         cloudConfirmingDisconnect = false;
         renderCloudRow();
@@ -398,31 +402,53 @@ function renderCloudRow() {
         renderCloudRow();
       }, { disabled: stale }));
     }
+  } else if (folder && folder.ready && folder.project) {
+    // A clone of a claimed project: nothing to choose, so it connects here.
+    const copy = cloudConnectionCopy.settingsRow('ready', folder.project, projects.cloudWorkspace);
+    cloudLabelEl.textContent = copy.label;
+    cloudDescEl.textContent = copy.description;
+    actions.push(cloudButton('Open Frame Cloud', () => openHub({ tab: 'device', folderPath: projectPath })));
+    actions.push(cloudButton(cloudConnectionCopy.ACTIONS.connect, () => connectToCloud(projectPath), { primary: true, disabled: stale || cloudBusy }));
   } else {
-    cloudLabelEl.textContent = 'Not connected';
-    cloudDescEl.textContent = 'Connect this project to a Frame Cloud project, or create one for it.';
+    const copy = cloudConnectionCopy.settingsRow('notConnected');
+    cloudLabelEl.textContent = copy.label;
+    cloudDescEl.textContent = copy.description;
     actions.push(cloudButton('Connect…', () => openHub({ tab: 'device', folderPath: projectPath }), { primary: true }));
   }
   cloudActionsEl.replaceChildren(...actions);
 }
 
-async function disconnectFromCloud(projectPath) {
+// This device connects to the project the folder's identity names.
+async function connectToCloud(projectPath) {
   cloudBusy = true;
   renderCloudRow();
   let res = null;
   try {
-    res = await ipcRenderer.invoke(IPC.CLOUD_LINK_RELEASE, { path: projectPath });
+    res = await ipcRenderer.invoke(IPC.CLOUD_LINK_CONNECT, { path: projectPath });
+  } catch (err) {
+    console.error('Project settings: connect failed', err);
+  }
+  cloudBusy = false;
+  renderCloudRow();
+  const refusal = res && res.ok ? null : cloudConnectionCopy.connectRefusal(res ? res.reason : 'other');
+  if (refusal) cloudDescEl.textContent = refusal;
+}
+
+// This device's connection to the cloud project, nothing else.
+async function disconnectFromCloud(projectId) {
+  cloudBusy = true;
+  renderCloudRow();
+  let res = null;
+  try {
+    res = await ipcRenderer.invoke(IPC.CLOUD_LINK_DISCONNECT, { projectId });
   } catch (err) {
     console.error('Project settings: disconnect failed', err);
   }
   cloudBusy = false;
   cloudConfirmingDisconnect = false;
   renderCloudRow();
-  if (!res || (!res.ok && res.reason !== 'unauthorized')) {
-    cloudDescEl.textContent = res && res.reason === 'network'
-      ? "Frame Cloud couldn't be reached."
-      : "Couldn't disconnect this project. Try again.";
-  }
+  const refusal = res && res.ok ? null : cloudConnectionCopy.disconnectRefusal(res ? res.reason : 'other');
+  if (refusal) cloudDescEl.textContent = refusal;
 }
 
 function setWorkspacesNote(message) {
