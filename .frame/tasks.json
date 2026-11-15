@@ -8300,13 +8300,13 @@
       "title": "Render REMOTE in `src/renderer/workspaceSection.js` as one sub-header per saved server (host + link dot, its rows or its own Connect / New remote workspace empty state) followed by an \"Add server…\" row, with the styles in `src/renderer/styles/components/workspaces.css`",
       "description": "",
       "source": "spec:multi-server-connections:T11",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: multi-server-connections",
       "createdAt": "2026-11-15T12:36:21.721Z",
-      "updatedAt": "2026-11-15T12:36:21.721Z",
-      "completedAt": null
+      "updatedAt": "2026-11-15T13:43:29.172Z",
+      "completedAt": "2026-11-15T13:43:29.172Z"
     },
     {
       "id": "task-spec-multi-server-connections-T12",
@@ -8335,7 +8335,7 @@
       "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T13:41:45.758Z",
+  "lastUpdated": "2026-11-15T13:43:29.172Z",
   "metadata": {
     "totalCreated": 641
   }

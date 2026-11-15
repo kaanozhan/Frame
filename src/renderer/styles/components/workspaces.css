@@ -816,3 +816,45 @@
 
 .sc-remove { color: var(--text-tertiary); }
 .sc-remove:hover { color: var(--error); }
+
+/* ─── Remote: one sub-header per server (multi-server-connections) ─── */
+.ws-server {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ws-server + .ws-server { margin-top: 4px; }
+
+.ws-server-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 22px;
+  padding: 2px 2px 2px 8px;
+}
+
+.ws-server-head .ws-group-host { max-width: none; flex: 1; }
+
+.ws-empty-compact { padding: 2px 8px 6px; }
+
+.ws-add-server {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 5px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.ws-add-server:hover,
+.ws-add-server:focus-visible { background: var(--bg-hover); color: var(--text-primary); }

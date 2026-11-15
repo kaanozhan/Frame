@@ -78,3 +78,11 @@ _Captured: 2026-11-15 · 1 file change(s)_
 
 ---
 
+## T11 — Workspace switcher: a sub-header per server
+
+Replaced the single-host Remote group in `src/renderer/workspaceSection.js` with one sub-header per saved server (host, link dot, '+' or Connect / Set up), its own rows or compact empty state, and an 'Add server…' row. Buttons carry `data-key`, and the group re-renders on every server's state change. Styled it in `src/renderer/styles/components/workspaces.css`. No divergence from plan.md.
+
+_Captured: 2026-11-15 · 2 file change(s)_
+
+---
+

@@ -5,9 +5,10 @@
  * selected workspace, and a dropdown grouped in two, split by a hairline:
  *   - Local: the main row (the project's own checkout), then this Mac's
  *     workspaces; "+" opens New workspace.
- *   - Remote: workspaces on the Frame Server. Empty, it offers the next
- *     step — connect a server while there is no link, or create a remote
- *     workspace once connected.
+ *   - Remote: one sub-header per saved Frame Server (host + link dot) with
+ *     that server's workspaces, or its next step — reconnect it while it is
+ *     down, create a remote workspace once it is up — then "Add server…"
+ *     (multi-server-connections). With no server saved: "Connect a server".
  * Each row: the branch as the primary label, the color name as the
  * secondary one, and a status dot folded from the workspace's terminals
  * (workspaces/rollup.js). Clicking a row selects it (state.setWorkspace),
@@ -90,9 +91,10 @@ function init() {
     e.preventDefault();
     closeDropdown({ focusTrigger: true });
   });
-  // Remote's empty state follows the server link.
-  require('./serverConnect').onChange((next, prev) => {
-    if (!prev || next.state !== prev.state || next.host !== prev.host) scheduleRender();
+  // Remote's sub-headers and empty states follow every server's link.
+  require('./serverConnect').onServersChange((next, prev) => {
+    const sig = (list) => (list || []).map((s) => `${s.key}:${s.host}:${s.status && s.status.state}`).join('|');
+    if (sig(next) !== sig(prev)) scheduleRender();
   });
 
   state.onProjectChange(() => {
@@ -249,49 +251,76 @@ const CARET = '<svg class="sidebar-current-project-caret" width="12" height="12"
 const PLUS = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
 const SERVER = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><line x1="7" y1="7.5" x2="7.01" y2="7.5"/><line x1="7" y1="16.5" x2="7.01" y2="16.5"/></svg>';
 
-/** The server link as the Remote group reads it. */
-function serverLink() {
-  const s = require('./serverConnect').getStatus() || {};
-  const host = s.host || (s.saved && s.saved.host) || null;
+/** A saved server as the Remote group reads it: `{ key, host, phase, state }`. */
+function linkView(srv) {
+  const st = (srv.status && srv.status.state) || 'off';
   let phase = 'off';
-  if (s.state === 'connected') phase = 'up';
-  else if (s.state === 'connecting' || s.state === 'reconnecting' || s.state === 'installing') phase = 'busy';
-  else if (s.state === 'needs-install' || s.state === 'needs-update') phase = 'setup';
-  return { host, phase, state: s.state || 'off' };
+  if (st === 'connected') phase = 'up';
+  else if (st === 'connecting' || st === 'reconnecting' || st === 'installing') phase = 'busy';
+  else if (st === 'needs-install' || st === 'needs-update') phase = 'setup';
+  return { key: srv.key, host: srv.host, phase, state: st };
 }
 
-/** The Remote group's head: the label, the host with its link dot, and "+" once connected. */
-function remoteHeadHtml(link, { canCreate, hasRows }) {
-  const hostChip = link.host
-    ? `<span class="ws-group-host ${link.phase}" title="${escapeHtml(link.host)} · ${escapeHtml(require('./serverConnect').LABELS[link.state] || link.state)}"><span class="ws-link-dot" aria-hidden="true"></span>${escapeHtml(link.host)}</span>`
-    : '';
+/** Every saved server, in list order (multi-server-connections). */
+function serverViews() {
+  try { return require('./serverConnect').getServers().map(linkView); } catch (_) { return []; }
+}
+
+/** One server's sub-header in Remote: its link dot and host, then "+" when it is up or Connect when it is down. */
+function serverHeadHtml(link, canCreate) {
+  const label = require('./serverConnect').LABELS[link.state] || link.state;
   let action = '';
-  if (link.phase === 'up' && hasRows) {
-    action = `<button class="ws-group-add" data-act="new-remote" type="button" ${canCreate ? '' : 'disabled'} title="New remote workspace on ${escapeHtml(link.host || 'the server')}" aria-label="New remote workspace">${PLUS}</button>`;
-  } else if (link.phase !== 'up' && link.phase !== 'busy' && hasRows) {
-    action = '<button class="ws-group-link" data-act="connect" type="button">Connect</button>';
+  if (link.phase === 'up') {
+    action = `<button class="ws-group-add" data-act="new-remote" data-key="${escapeHtml(link.key)}" type="button" ${canCreate ? '' : 'disabled'} title="${canCreate ? `New remote workspace on ${escapeHtml(link.host)}` : 'Workspaces need a git repository'}" aria-label="New remote workspace on ${escapeHtml(link.host)}">${PLUS}</button>`;
+  } else if (link.phase !== 'busy') {
+    action = `<button class="ws-group-link" data-act="connect" data-key="${escapeHtml(link.key)}" type="button">${link.phase === 'setup' ? 'Set up' : 'Connect'}</button>`;
   }
-  return `<div class="ws-group-head"><span class="ws-group-label">Remote</span>${hostChip}${action}</div>`;
+  return `<div class="ws-server-head">
+      <span class="ws-group-host ${link.phase}" title="${escapeHtml(link.host)} · ${escapeHtml(label)}"><span class="ws-link-dot" aria-hidden="true"></span>${escapeHtml(link.host)}</span>
+      ${action}
+    </div>`;
 }
 
-/** What an empty Remote group offers: the next step for the link it has. */
-function remoteEmptyHtml(link, canCreate) {
+/** What a server with no workspaces of this project offers: the next step for its link. */
+function serverEmptyHtml(link, canCreate) {
   if (link.phase === 'up') {
-    return `<div class="ws-empty">
-        <p class="ws-empty-text">Nothing on ${escapeHtml(link.host || 'the server')} yet. Agents there keep running while this Mac sleeps.</p>
-        <button class="ws-cta" data-act="new-remote" type="button" ${canCreate ? '' : 'disabled'}${canCreate ? '' : ' title="Workspaces need a git repository"'}>${PLUS}<span>New remote workspace</span></button>
+    return `<div class="ws-empty ws-empty-compact">
+        <button class="ws-cta" data-act="new-remote" data-key="${escapeHtml(link.key)}" type="button" ${canCreate ? '' : 'disabled'}${canCreate ? '' : ' title="Workspaces need a git repository"'}>${PLUS}<span>New remote workspace</span></button>
       </div>`;
   }
   if (link.phase === 'busy') {
-    return `<div class="ws-empty"><p class="ws-empty-text">${escapeHtml(require('./serverConnect').LABELS[link.state] || 'Connecting…')}${link.host ? ` ${escapeHtml(link.host)}` : ''}</p></div>`;
+    return `<div class="ws-empty ws-empty-compact"><p class="ws-empty-text">${escapeHtml(require('./serverConnect').LABELS[link.state] || 'Connecting…')}</p></div>`;
   }
-  const label = link.phase === 'setup' && link.host
-    ? `Finish setup on ${escapeHtml(link.host)}`
-    : (link.host ? `Reconnect ${escapeHtml(link.host)}` : 'Connect a server');
-  return `<div class="ws-empty">
-      <p class="ws-empty-text">Run workspaces on your own machine over SSH — agents keep running while this Mac is away.</p>
-      <button class="ws-cta" data-act="connect" type="button">${SERVER}<span>${label}</span></button>
+  const label = link.phase === 'setup' ? `Finish setup on ${escapeHtml(link.host)}` : `Reconnect ${escapeHtml(link.host)}`;
+  return `<div class="ws-empty ws-empty-compact">
+      <button class="ws-cta" data-act="connect" data-key="${escapeHtml(link.key)}" type="button">${SERVER}<span>${label}</span></button>
     </div>`;
+}
+
+/**
+ * The Remote group: one sub-header per saved server with its own rows or its
+ * own empty state, then "Add server…". With no server saved yet, the one
+ * "Connect a server" offer.
+ */
+function remoteGroupHtml(remote, { canCreate, selectedId, sums }) {
+  const links = serverViews();
+  if (!links.length) {
+    return `<div class="ws-group-head"><span class="ws-group-label">Remote</span></div>
+      <div class="ws-empty">
+        <p class="ws-empty-text">Run workspaces on your own machines over SSH — agents keep running while this Mac is away.</p>
+        <button class="ws-cta" data-act="add-server" type="button">${SERVER}<span>Connect a server</span></button>
+      </div>`;
+  }
+  const blocks = links.map((link) => {
+    const rows = remote.filter((w) => w.serverKey === link.key);
+    return `<div class="ws-server" role="group" aria-label="${escapeHtml(link.host)}">
+        ${serverHeadHtml(link, canCreate)}
+        ${rows.length ? rows.map((ws) => rowHtml(ws, { selectedId, sums })).join('') : serverEmptyHtml(link, canCreate)}
+      </div>`;
+  }).join('');
+  return `<div class="ws-group-head"><span class="ws-group-label">Remote</span></div>
+    ${blocks}
+    <button class="ws-add-server" data-act="add-server" type="button">${PLUS}<span>Add server…</span></button>`;
 }
 
 /** The trigger's face: the selected workspace and its status dot. */
@@ -331,7 +360,6 @@ function render() {
   const mainOn = selectedId === state.MAIN_WORKSPACE_ID ? ' on' : '';
   const local = workspaces.filter((w) => w.location !== 'server');
   const remote = workspaces.filter((w) => w.location === 'server');
-  const link = serverLink();
 
   const archivedHtml = archived.length
     ? `<div class="sidebar-project-menu-sep" role="separator"></div>
@@ -363,8 +391,7 @@ function render() {
       </div>
       <div class="sidebar-project-menu-sep" role="separator"></div>
       <div class="ws-group" role="group" aria-label="Remote">
-        ${remoteHeadHtml(link, { canCreate, hasRows: remote.length > 0 })}
-        ${remote.length ? remote.map((ws) => rowHtml(ws, { selectedId, sums })).join('') : remoteEmptyHtml(link, canCreate)}
+        ${remoteGroupHtml(remote, { canCreate, selectedId, sums })}
       </div>
       ${archivedHtml}
     </div>`;
@@ -408,7 +435,7 @@ function closeDropdown({ focusTrigger = false } = {}) {
 
 /** Arrow keys walk the dropdown's rows and buttons, top to bottom. */
 function moveFocus(step) {
-  const items = [...rootEl.querySelectorAll('.ws-menu .ws-row[tabindex="0"], .ws-menu .ws-cta:not(:disabled), .ws-menu .ws-archived-toggle')];
+  const items = [...rootEl.querySelectorAll('.ws-menu .ws-row[tabindex="0"], .ws-menu .ws-cta:not(:disabled), .ws-menu .ws-add-server, .ws-menu .ws-archived-toggle')];
   if (!items.length) return;
   const at = items.indexOf(document.activeElement);
   const next = items[(at + step + items.length) % items.length] || items[0];
@@ -429,8 +456,9 @@ function onClick(e) {
     const ws = row ? findWs(row.dataset.id) : null;
     if (act === 'toggle') return menuOpen ? closeDropdown() : openDropdown();
     if (act === 'new') { closeDropdown(); return openNew(); }
-    if (act === 'new-remote') { closeDropdown(); return openNew({ location: 'server' }); }
-    if (act === 'connect') { closeDropdown(); return require('./serverConnect').open(); }
+    if (act === 'new-remote') { closeDropdown(); return openNew({ location: 'server', serverKey: actEl.dataset.key || null }); }
+    if (act === 'connect') { closeDropdown(); return require('./serverConnect').open({ key: actEl.dataset.key || null }); }
+    if (act === 'add-server') { closeDropdown(); return require('./serverConnect').open({ add: true }); }
     if (act === 'toggle-archived') { showArchived = !showArchived; return render(); }
     if (act === 'menu' && ws) {
       const rect = actEl.getBoundingClientRect();
