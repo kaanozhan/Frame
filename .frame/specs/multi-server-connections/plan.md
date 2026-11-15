@@ -193,6 +193,10 @@
 - `src/renderer/index.js` — **Modified**: the offline view follows the
   selected workspace's own server; `onNew` passes `serverKey`; "Disconnect
   from Server" disconnects every server.
+- `src/renderer/terminalManager.js` — **Modified** (added 2026-11-15 during
+  implementation, T13): the reconnect banner follows each server terminal's
+  own server, adopt runs when any server connects, and a home terminal is
+  labelled with its own host.
 - `index.html` — **Modified**: Connect dialog markup becomes list + detail
   with an add form.
 - `src/renderer/styles/components/workspaces.css` — **Modified**: REMOTE
@@ -244,6 +248,7 @@
 - src/renderer/newWorkspaceModal.js
 - src/renderer/workspacePr.js
 - src/renderer/index.js
+- src/renderer/terminalManager.js
 - index.html
 - src/renderer/styles/components/workspaces.css
 - test/serverList.test.js
@@ -339,3 +344,11 @@ None.
    - `workspacePr.access` reads `serverAccess[serverKey]`.
    - `index.js`: the offline view follows the selected workspace's own
      server, and "Disconnect from Server" disconnects every server.
+9. **Server terminals in the renderer, per server** (added 2026-11-15 during
+   implementation: T08 found `terminalManager.js` still holding one server
+   status).
+   - The "Reconnecting to <host>…" banner on each server terminal follows
+     that terminal's own server (its key in the desktop id), from the
+     `servers` list in SERVER_STATUS_CHANGED.
+   - Adopt runs when any server turns connected, not only the default one.
+   - A home terminal is labelled `Server · <its host>`.

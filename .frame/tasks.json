@@ -8320,10 +8320,23 @@
       "createdAt": "2026-11-15T12:36:21.721Z",
       "updatedAt": "2026-11-15T12:36:21.721Z",
       "completedAt": null
+    },
+    {
+      "id": "task-spec-multi-server-connections-T13",
+      "title": "Make server terminals in `src/renderer/terminalManager.js` follow their own server: the reconnect banner per terminal from its server key and the `servers` list, adopt when any server turns connected, and home terminals labelled with their own host",
+      "description": "",
+      "source": "spec:multi-server-connections:T13",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "From spec: multi-server-connections",
+      "createdAt": "2026-11-15T13:36:34.362Z",
+      "updatedAt": "2026-11-15T13:36:34.362Z",
+      "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T13:34:43.417Z",
+  "lastUpdated": "2026-11-15T13:36:34.363Z",
   "metadata": {
-    "totalCreated": 640
+    "totalCreated": 641
   }
 }
