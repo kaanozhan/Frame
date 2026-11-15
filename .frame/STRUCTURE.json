@@ -25884,6 +25884,64 @@
         }
       }
     },
+    "shared/fileArchive": {
+      "file": "src/shared/fileArchive.js",
+      "description": "fileArchive — the archive that carries git-ignored files from the desktop",
+      "exports": [
+        "pack",
+        "readEntries",
+        "checkEntries",
+        "pathProblem",
+        "MAGIC"
+      ],
+      "depends": [
+        "zlib",
+        "path"
+      ],
+      "functions": {
+        "pack": {
+          "line": 29,
+          "params": [
+            "entries"
+          ],
+          "purpose": "Build an archive."
+        },
+        "readEntries": {
+          "line": 44,
+          "params": [
+            "archive"
+          ],
+          "purpose": "Parse an archive into `[{ path, type, mode, size, data?, target? }]`; throws on anything malformed."
+        },
+        "pathProblem": {
+          "line": 80,
+          "params": [
+            "p"
+          ],
+          "purpose": "Why `p` is not a safe relative path, or null."
+        },
+        "checkEntries": {
+          "line": 97,
+          "params": [
+            "entries"
+          ],
+          "purpose": "The first entry that must not be written, as `{ path, reason }`, or null"
+        }
+      },
+      "sizeBytes": 5117,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "345b39c5e0d58809",
+        "purposes": {
+          "checkEntries": "2013f095774e52de",
+          "pack": "803019d8b0f9b0db",
+          "pathProblem": "b2d99156125cf6ee",
+          "readEntries": "324d0d2f38f9cb27"
+        }
+      }
+    },
     "shared/frameConstants": {
       "file": "src/shared/frameConstants.js",
       "description": "Frame Constants",
@@ -28673,6 +28731,25 @@
           "readIssueUrl": "993cd23316240f8f",
           "readMailto": "fd8d7e1632c805d7"
         }
+      }
+    },
+    "test/fileArchive.test": {
+      "file": "test/fileArchive.test.js",
+      "description": "The archive that carries git-ignored files to Frame Server (server-copy-files T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "zlib",
+        "src/shared/fileArchive"
+      ],
+      "functions": {},
+      "sizeBytes": 3480,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "c9f4b06e7e8e2cb3"
       }
     },
     "test/findModule.test": {
@@ -35026,7 +35103,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 384,
+        "parsed": 386,
         "unsupported": 91,
         "partial": 0
       }
@@ -35073,9 +35150,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 569,
+      "visitedEntries": 571,
       "traversedDirectories": 86,
-      "eligibleFiles": 475,
+      "eligibleFiles": 477,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -35092,7 +35169,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 475,
+      "indexedFiles": 477,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -35100,6 +35177,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "11292f482a2b928fd3edf3d923dde9abe4772aa210d8efe526b9caa02d427520"
+    "revision": "265aa758388ae6368b2afdf301748aa1b4487d1f14dbff928e733c29ee494b21"
   }
 }
