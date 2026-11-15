@@ -8170,13 +8170,13 @@
       "title": "Add `src/shared/serverList.js` (validate and add a host, refuse an alias already listed, remove by key, migrate the old `server` setting to `servers` with a random 8-hex key, find an entry by `serverId`, list auto-connect keys) with `test/serverList.test.js`",
       "description": "",
       "source": "spec:multi-server-connections:T01",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: multi-server-connections",
       "createdAt": "2026-11-15T12:36:21.721Z",
-      "updatedAt": "2026-11-15T12:36:21.721Z",
-      "completedAt": null
+      "updatedAt": "2026-11-15T13:14:08.873Z",
+      "completedAt": "2026-11-15T13:14:08.873Z"
     },
     {
       "id": "task-spec-multi-server-connections-T02",
@@ -8322,7 +8322,7 @@
       "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T12:36:21.721Z",
+  "lastUpdated": "2026-11-15T13:14:08.873Z",
   "metadata": {
     "totalCreated": 640
   }
