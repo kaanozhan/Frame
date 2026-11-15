@@ -6,3 +6,11 @@ Added `hintCommand(script, mode)` to `src/shared/frameTemplates.js`, exported fo
 _Captured: 2026-11-15 · 3 file change(s)_
 
 ---
+
+## T02 — Default shell on Linux and unknown shell paths
+
+`ptyManager.getDefaultShell` now delegates the Unix case to `defaultUnixShell(platform, env, exists)`: `$SHELL`, else `/bin/zsh` on macOS, else `/bin/bash` on Linux, falling back to `/bin/sh`. `createTerminal` passes the requested shell through `requestedShell(path, platform, exists)`, which off macOS and Windows drops an absolute path that does not exist on that machine (logged) and uses the default. On a Frame Server this covers a desktop sending `/bin/zsh`. Both rules take the platform and an exists check, so `test/serverShells.test.js` tests Linux on any machine. `fs`/`path` are now required at the top of `src/main/ptyManager.js`.
+
+_Captured: 2026-11-15 · 2 file change(s)_
+
+---

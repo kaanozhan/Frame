@@ -5412,11 +5412,15 @@
         "wasDestroyedOnRequest",
         "getLastOutputAt",
         "getAvailableShells",
+        "defaultUnixShell",
+        "requestedShell",
         "serverTerminalInfo",
         "noteServerTerminal",
         "setupIPC"
       ],
       "depends": [
+        "fs",
+        "path",
         "node-pty",
         "shared/ipcChannels",
         "logger",
@@ -5425,43 +5429,60 @@
         "pollGate",
         "sessionRestore",
         "child_process",
-        "fs",
         "shared/serverRouting",
         "workspaceManager",
         "serverConnection"
       ],
       "functions": {
         "flushOutput": {
-          "line": 27,
+          "line": 29,
           "params": [
             "terminalId"
           ],
           "purpose": "Flush a terminal's buffered output as one coalesced send."
         },
         "init": {
-          "line": 47,
+          "line": 49,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
         "getForegroundCommand": {
-          "line": 62,
+          "line": 64,
           "params": [
             "shellPid",
             "callback"
           ],
           "purpose": "Resolve the full command line of the terminal's foreground process."
         },
+        "defaultUnixShell": {
+          "line": 90,
+          "params": [
+            "platform = process.platform",
+            "env = process.env",
+            "exists = fs.existsSync"
+          ],
+          "purpose": "The Unix shell to start when none was chosen (server-linux-readiness)."
+        },
+        "requestedShell": {
+          "line": 102,
+          "params": [
+            "shellPath",
+            "platform = process.platform",
+            "exists = fs.existsSync"
+          ],
+          "purpose": "The shell a create asked for, or null to use the default. Off macOS and"
+        },
         "getDefaultShell": {
-          "line": 81
+          "line": 112
         },
         "getAvailableShells": {
-          "line": 98,
+          "line": 129,
           "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 184,
+          "line": 215,
           "params": [
             "workingDir = null",
             "projectPath = null",
@@ -5472,28 +5493,28 @@
           "purpose": "Create a new terminal instance"
         },
         "getTerminalsByProject": {
-          "line": 333,
+          "line": 364,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 348,
+          "line": 379,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 360,
+          "line": 391,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
         "writeToTerminal": {
-          "line": 368,
+          "line": 399,
           "params": [
             "terminalId",
             "data"
@@ -5501,7 +5522,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 378,
+          "line": 409,
           "params": [
             "terminalId",
             "cols",
@@ -5510,13 +5531,13 @@
           "purpose": "Resize specific terminal"
         },
         "wasDestroyedOnRequest": {
-          "line": 393,
+          "line": 424,
           "params": [
             "terminalId"
           ]
         },
         "destroyTerminal": {
-          "line": 401,
+          "line": 432,
           "params": [
             "terminalId",
             "{ teardown = false } = {}"
@@ -5524,42 +5545,42 @@
           "purpose": "Destroy specific terminal. `teardown` marks one that dies with its"
         },
         "destroyAll": {
-          "line": 422,
+          "line": 453,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 442,
+          "line": 473,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 449,
+          "line": 480,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 459,
+          "line": 490,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 469,
+          "line": 500,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "serverLocationOf": {
-          "line": 490,
+          "line": 521,
           "params": [
             "workspaceId"
           ]
         },
         "server": {
-          "line": 499
+          "line": 530
         },
         "createServerTerminal": {
-          "line": 503,
+          "line": 534,
           "params": [
             "loc",
             "{ cwd",
@@ -5571,14 +5592,14 @@
           ]
         },
         "serverTerminalInfo": {
-          "line": 517,
+          "line": 548,
           "params": [
             "terminalId"
           ],
           "purpose": "Local project/workspace of a server terminal this window knows, or null."
         },
         "noteServerTerminal": {
-          "line": 522,
+          "line": 553,
           "params": [
             "terminalId",
             "info"
@@ -5586,17 +5607,17 @@
           "purpose": "Remember a server terminal found on reconnect (adopted by the renderer)."
         },
         "wireServerEvents": {
-          "line": 527
+          "line": 558
         },
         "adoptServerTerminals": {
-          "line": 562,
+          "line": 593,
           "params": [
             "projectPath"
           ],
           "purpose": "The connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 606,
+          "line": 637,
           "params": [
             "ipcMain"
           ]
@@ -5619,7 +5640,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 26634,
+      "sizeBytes": 27984,
       "extraction": {
         "status": "parsed"
       },
@@ -5628,6 +5649,7 @@
         "purposes": {
           "adoptServerTerminals": "d5f8a7894f921258",
           "createTerminal": "b33d916178fe23ba",
+          "defaultUnixShell": "e480633b2b7c7207",
           "destroyAll": "ae9b9368ced1121a",
           "destroyExcept": "2db42ba4367a26b0",
           "destroyTerminal": "1c5d8c995da929c7",
@@ -5642,6 +5664,7 @@
           "hasTerminal": "b3801ea1d7b0ad94",
           "init": "a7cc4fe0948dfdd7",
           "noteServerTerminal": "34da8c9dde687e61",
+          "requestedShell": "65b3ebb6642173f5",
           "resizeTerminal": "810c8f104494f695",
           "serverTerminalInfo": "907874f886605317",
           "writeToTerminal": "6e7ca448a2aac555"
@@ -30952,6 +30975,28 @@
         "description": "fcf3f8ab11a04e0e"
       }
     },
+    "test/serverShells.test": {
+      "file": "test/serverShells.test.js",
+      "description": "Shells on a Linux Frame Server (server-linux-readiness T02, T03).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "path",
+        "os",
+        "fs",
+        "node:module",
+        "src/main/ptyManager"
+      ],
+      "functions": {},
+      "sizeBytes": 2670,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "b8abd72623569050"
+      }
+    },
     "test/serverSocket.test": {
       "file": "test/serverSocket.test.js",
       "description": "Frame Server listens on a Unix socket (server-hardening S8).",
@@ -34870,7 +34915,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 382,
+        "parsed": 383,
         "unsupported": 91,
         "partial": 0
       }
@@ -34917,9 +34962,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 567,
+      "visitedEntries": 568,
       "traversedDirectories": 86,
-      "eligibleFiles": 473,
+      "eligibleFiles": 474,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -34936,7 +34981,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 473,
+      "indexedFiles": 474,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -34944,6 +34989,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "df49371c1b3e3918f0f759137b4156711c075e3e9c9af3bdc4475364cb70a479"
+    "revision": "5bb55603dee32c6ee36846675d3397a715a50078202cb2102ff4c59d9c096077"
   }
 }

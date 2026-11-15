@@ -3,6 +3,8 @@
  * Manages multiple PTY instances for multi-terminal support
  */
 
+const fs = require('fs');
+const path = require('path');
 const pty = require('node-pty');
 const { IPC } = require('../shared/ipcChannels');
 const logger = require('./logger');
@@ -78,6 +80,35 @@ function getForegroundCommand(shellPid, callback) {
   });
 }
 
+/**
+ * The Unix shell to start when none was chosen (server-linux-readiness).
+ * `$SHELL` when set; otherwise macOS keeps `/bin/zsh` (its default since
+ * Catalina), and Linux — where zsh is often not installed, and a Frame Server
+ * started by systemd may run without `$SHELL` — takes `/bin/bash`, else
+ * `/bin/sh`.
+ */
+function defaultUnixShell(platform = process.platform, env = process.env, exists = fs.existsSync) {
+  if (env.SHELL) return env.SHELL;
+  if (platform === 'darwin') return '/bin/zsh';
+  return exists('/bin/bash') ? '/bin/bash' : '/bin/sh';
+}
+
+/**
+ * The shell a create asked for, or null to use the default. Off macOS and
+ * Windows, an absolute path that does not exist here is dropped: a desktop
+ * may send its own shell (say `/bin/zsh`) to a Linux Frame Server that has
+ * no such file, and the terminal would fail to start.
+ */
+function requestedShell(shellPath, platform = process.platform, exists = fs.existsSync) {
+  if (!shellPath) return null;
+  if (platform === 'darwin' || platform === 'win32') return shellPath;
+  if (path.isAbsolute(shellPath) && !exists(shellPath)) {
+    logger.warn('ptyManager', `shell ${shellPath} does not exist here — using the default shell`);
+    return null;
+  }
+  return shellPath;
+}
+
 function getDefaultShell() {
   if (process.platform === 'win32') {
     try {
@@ -87,7 +118,7 @@ function getDefaultShell() {
       return 'powershell.exe';
     }
   } else {
-    return process.env.SHELL || '/bin/zsh';
+    return defaultUnixShell();
   }
 }
 
@@ -195,7 +226,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
 
   const terminalId = `term-${++terminalCounter}`;
   const cwd = workingDir || process.env.HOME || process.env.USERPROFILE;
-  const shell = shellPath || getDefaultShell();
+  const shell = requestedShell(shellPath) || getDefaultShell();
 
   // Determine shell arguments based on shell type
   let shellArgs = [];
@@ -733,6 +764,8 @@ module.exports = {
   wasDestroyedOnRequest,
   getLastOutputAt,
   getAvailableShells,
+  defaultUnixShell,
+  requestedShell,
   serverTerminalInfo,
   noteServerTerminal,
   setupIPC
