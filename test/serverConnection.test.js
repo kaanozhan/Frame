@@ -52,7 +52,11 @@ Module._load = function (request, ...rest) {
 };
 
 fs.mkdirSync(path.join(SANDBOX, 'userData'), { recursive: true });
-require('../src/main/userSettings').init();
+const userSettings = require('../src/main/userSettings');
+userSettings.init();
+// A build with one saved server (multi-server-connections S7), left
+// disconnected so init does not connect it before the tests do.
+userSettings.set('server', { host: 'box', autoConnect: false });
 const sc = require('../src/main/serverConnection');
 const installer = require('../src/main/serverInstaller');
 const { IPC } = require('../src/shared/ipcChannels');
@@ -60,8 +64,13 @@ sc.init(null, '9.0.0');
 
 const SERVER_HOME = path.join(REMOTE_HOME, '.frame-server');
 
-function remotePid() {
-  try { return JSON.parse(fs.readFileSync(path.join(SERVER_HOME, 'connection.json'), 'utf8')).pid; } catch (_) { return null; }
+// A second server (multi-server-connections): its own remote home.
+const REMOTE_HOME_B = path.join(SANDBOX, 'remote-b');
+fs.mkdirSync(REMOTE_HOME_B, { recursive: true });
+process.env.FAKE_REMOTE_HOMES = JSON.stringify({ box: REMOTE_HOME, 'box-alias': REMOTE_HOME, boxb: REMOTE_HOME_B });
+
+function remotePid(home = REMOTE_HOME) {
+  try { return JSON.parse(fs.readFileSync(path.join(home, '.frame-server', 'connection.json'), 'utf8')).pid; } catch (_) { return null; }
 }
 function alive(pid) { try { process.kill(pid, 0); return true; } catch (_) { return false; } }
 
@@ -74,7 +83,7 @@ async function waitFor(pred, ms, what) {
   throw new Error(`timed out waiting for ${what} (status: ${JSON.stringify(sc.getStatus())})`);
 }
 
-function installRemote(version) {
+function installRemote(version, home = REMOTE_HOME) {
   const top = path.join(SANDBOX, 'pkg', `frame-server-${version}`);
   fs.mkdirSync(path.join(top, 'bin'), { recursive: true });
   fs.mkdirSync(path.join(top, 'app', 'src', 'server'), { recursive: true });
@@ -87,19 +96,30 @@ function installRemote(version) {
   const tarball = path.join(SANDBOX, 'pkg', `fs-${version}.tar.gz`);
   assert.equal(spawnSync('tar', ['-czf', tarball, '-C', path.dirname(top), path.basename(top)]).status, 0);
   const r = spawnSync('bash', [path.join(ROOT, 'scripts', 'install-frame-server.sh'), '--package-file', tarball], {
-    env: { ...process.env, HOME: REMOTE_HOME, PATH: `${BIN}:${process.env.PATH}`, FRAME_SERVER_HOME: '' }, encoding: 'utf8'
+    env: { ...process.env, HOME: home, PATH: `${BIN}:${process.env.PATH}`, FRAME_SERVER_HOME: '' }, encoding: 'utf8'
   });
   assert.equal(r.status, 0, `${r.stdout}\n${r.stderr}`);
 }
 
 after(() => {
   sc.disconnect({ forget: true, quiet: true });
-  const pid = remotePid();
-  if (pid && alive(pid)) process.kill(pid, 'SIGTERM');
+  for (const home of [REMOTE_HOME, REMOTE_HOME_B]) {
+    const pid = remotePid(home);
+    if (pid && alive(pid)) process.kill(pid, 'SIGTERM');
+  }
   fs.rmSync(SANDBOX, { recursive: true, force: true });
 });
 
 installRemote('9.0.0');
+
+test('S7: a single saved server from an older build migrates and keeps its setting', () => {
+  const servers = sc.list();
+  assert.equal(servers.length, 1);
+  assert.equal(servers[0].host, 'box');
+  assert.match(servers[0].key, /^[0-9a-f]{8}$/);
+  assert.equal(servers[0].autoConnect, false, 'left disconnected stays off');
+  assert.deepEqual(userSettings.get('server'), { host: 'box', autoConnect: false }, 'the old setting is left for a downgrade');
+});
 
 test('S4: after the server dies leaving connection.json, the desktop starts it and reconnects', async () => {
   sc.connect('box');
@@ -125,7 +145,7 @@ test('S4: the probe of a hand-run server checks its pid', async () => {
   fs.writeFileSync(path.join(other, '.frame-server', 'connection.json'), JSON.stringify({ port: 1, token: 't', protocol: 1, frameVersion: '9.0.0', pid: 999999 }));
   process.env.FAKE_REMOTE_HOME = other;
   try {
-    const p = await installer.probe('box');
+    const p = await installer.probe('manualbox'); // a host with no home of its own in FAKE_REMOTE_HOMES
     assert.equal(p.installed.manual, true);
     assert.equal(p.installed.running, false, 'a dead pid is not a running server');
   } finally {
@@ -172,5 +192,85 @@ test('S8: an sshd that refuses socket forwarding gets a message naming the setti
     delete process.env.FAKE_SSH_NO_STREAMLOCAL;
     sc.disconnect({ forget: false, quiet: true });
     fs.rmSync(path.join(SERVER_HOME, 'fake-socket'), { force: true });
+  }
+});
+
+// ─── multi-server-connections: several servers at once ───────
+
+function keyOf(host) {
+  const e = sc.list().find((s) => s.host === host);
+  return e ? e.key : null;
+}
+
+test('S1: adding a second server keeps the first connected; both answer', async () => {
+  fs.writeFileSync(path.join(SERVER_HOME, 'server-id'), 'aaaaaaaaaaaaaaaa\n');
+  installRemote('9.0.0', REMOTE_HOME_B);
+  fs.writeFileSync(path.join(REMOTE_HOME_B, '.frame-server', 'server-id'), 'bbbbbbbbbbbbbbbb\n');
+  sc.connect('box');
+  await waitFor(() => sc.of(keyOf('box')).isConnected(), 20000, 'box connected');
+  const r = sc.connect('boxb');
+  assert.equal(r.error, null);
+  await waitFor(() => sc.of(keyOf('boxb')).isConnected(), 25000, 'boxb connected');
+  assert.ok(sc.of(keyOf('box')).isConnected(), 'box is still connected');
+  assert.equal(sc.of(keyOf('box')).getStatus().serverId, 'aaaaaaaaaaaaaaaa');
+  assert.equal(sc.of(keyOf('boxb')).getStatus().serverId, 'bbbbbbbbbbbbbbbb');
+  assert.equal((await sc.of(keyOf('box')).call('server.ping', {})).platform, 'linux');
+  assert.equal((await sc.of(keyOf('boxb')).call('server.ping', {})).platform, 'linux');
+  assert.deepEqual(sc.list().map((s) => s.serverId), ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb'], 'ids are saved');
+});
+
+test('S2: one server dropping leaves the other connected, and it reconnects on its own', async () => {
+  const a = sc.of(keyOf('box'));
+  const b = sc.of(keyOf('boxb'));
+  const events = [];
+  const off = sc.on('disconnected', (payload, key) => events.push(key));
+  try {
+    const before = remotePid(REMOTE_HOME_B);
+    process.kill(before, 'SIGKILL');
+    await waitFor(() => !b.isConnected(), 5000, 'boxb loss to be noticed');
+    assert.ok(a.isConnected(), 'box is untouched');
+    assert.deepEqual(events, [keyOf('boxb')], 'the event names the server that dropped');
+    await waitFor(() => b.isConnected() && remotePid(REMOTE_HOME_B) !== before, 25000, 'boxb back');
+    assert.ok(a.isConnected());
+  } finally {
+    off();
+  }
+});
+
+test('S6: disconnecting one server keeps the other set to reconnect on launch', () => {
+  sc.disconnect(keyOf('boxb'), { forget: true });
+  assert.equal(sc.of(keyOf('boxb')).getStatus().state, 'off');
+  assert.ok(sc.of(keyOf('box')).isConnected());
+  const saved = userSettings.get('servers');
+  assert.deepEqual(saved.filter((s) => s.autoConnect).map((s) => s.host), ['box']);
+});
+
+test('the same machine through a second alias is refused, naming the first', async () => {
+  const sent = [];
+  sc.init({ isDestroyed: () => false, webContents: { send: (ch, p) => sent.push([ch, p]) } }, '9.0.0');
+  sc.connect('box-alias');
+  await waitFor(() => !keyOf('box-alias'), 25000, 'the duplicate entry to be removed');
+  const notice = sent.map(([, p]) => p && p.notice).find(Boolean);
+  assert.deepEqual({ kind: notice.kind, host: notice.host, existingHost: notice.existingHost }, { kind: 'duplicate', host: 'box-alias', existingHost: 'box' });
+  assert.ok(sc.of(keyOf('box')).isConnected(), 'the first entry is untouched');
+  sc.init(null, '9.0.0');
+});
+
+test('S8: removing a server closes only its link and forgets it', async () => {
+  sc.connect('boxb');
+  await waitFor(() => sc.of(keyOf('boxb')).isConnected(), 25000, 'boxb connected');
+  const key = keyOf('boxb');
+  const removed = [];
+  const off = sc.on('removed', (p, k) => removed.push(k));
+  try {
+    const link = sc.of(key);
+    sc.remove(key);
+    assert.equal(link.isConnected(), false);
+    assert.equal(sc.of(key), null);
+    assert.equal(keyOf('boxb'), null);
+    assert.deepEqual(removed, [key]);
+    assert.ok(sc.of(keyOf('box')).isConnected(), 'box stays connected');
+  } finally {
+    off();
   }
 });

@@ -8209,13 +8209,13 @@
       "title": "Turn `src/main/serverConnection.js` into the registry of links: `of`, `all`, `on(name, fn(payload, key))`, add / remove / connect / disconnect by key, key-aware `SERVER_*` IPC plus new `SERVERS_LIST` / `SERVER_ADD` / `SERVER_REMOVE` in `src/shared/ipcChannels.js`, migration and auto-connect on init, a duplicate `serverId` dropping the new entry, and a single-server fallback for callers that pass no key; give `test/fixtures/fake-ssh.js` a remote home per host and extend `test/serverConnection.test.js` (two servers at once, one dropping, relaunch auto-connect, migrating one saved server, removing a server, duplicate `serverId`)",
       "description": "",
       "source": "spec:multi-server-connections:T04",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: multi-server-connections",
       "createdAt": "2026-11-15T12:36:21.721Z",
-      "updatedAt": "2026-11-15T12:36:21.721Z",
-      "completedAt": null
+      "updatedAt": "2026-11-15T13:22:59.084Z",
+      "completedAt": "2026-11-15T13:22:59.084Z"
     },
     {
       "id": "task-spec-multi-server-connections-T05",
@@ -8322,7 +8322,7 @@
       "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T13:18:30.313Z",
+  "lastUpdated": "2026-11-15T13:22:59.084Z",
   "metadata": {
     "totalCreated": 640
   }

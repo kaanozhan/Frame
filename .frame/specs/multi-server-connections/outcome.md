@@ -22,3 +22,11 @@ _Captured: 2026-11-15 · 2 file change(s)_
 
 ---
 
+## T04 — Server registry, key-aware IPC, migration
+
+Turned `src/main/serverConnection.js` into the registry of per-server links: saved list in `servers` (migrated from `server`), `of`/`all`/`list`/`add`/`remove`/`connect`/`disconnect`, `on(name, fn(payload, key))`, default-server fallback for keyless callers, duplicate `serverId` removal with a notice, and key-aware IPC plus `SERVERS_LIST`/`SERVER_ADD`/`SERVER_REMOVE` in `src/shared/ipcChannels.js`. `test/fixtures/fake-ssh.js` takes `FAKE_REMOTE_HOMES`, and `test/serverConnection.test.js` covers S1, S2, S6, S7, S8 and the duplicate case. Divergence: `connect` also accepts a host and adds it, and the status payload keeps the default server's fields, so the single-server renderer works until T09.
+
+_Captured: 2026-11-15 · 4 file change(s)_
+
+---
+
