@@ -256,6 +256,43 @@ test('the same machine through a second alias is refused, naming the first', asy
   sc.init(null, '9.0.0');
 });
 
+test('S10: updating one server asks only about its own agents and leaves the other connected', async () => {
+  sc.connect('boxb');
+  await waitFor(() => sc.of(keyOf('boxb')).isConnected() && sc.of(keyOf('box')).isConnected(), 25000, 'both connected');
+  const agent = (id) => ({ terminalId: id, workspaceId: 'w1', process: { processName: 'claude', commandLine: 'claude' } });
+  fs.writeFileSync(path.join(SERVER_HOME, 'fake-terminals'), JSON.stringify([agent('srv-a-1')]));
+  fs.writeFileSync(path.join(REMOTE_HOME_B, '.frame-server', 'fake-terminals'), JSON.stringify([agent('srv-b-1'), agent('srv-b-2')]));
+  const handlers = {};
+  sc.setupIPC({ handle: (ch, fn) => { handlers[ch] = fn; }, removeHandler() {}, on() {} });
+  try {
+    const res = await handlers[IPC.SERVER_UPDATE]({}, { key: keyOf('boxb') });
+    assert.equal(res.needsConsent, true);
+    assert.deepEqual(res.agents.map((a) => a.terminalId), ['srv-b-1', 'srv-b-2'], "only boxb's agents");
+    assert.ok(sc.of(keyOf('box')).isConnected() && sc.of(keyOf('boxb')).isConnected(), 'asking changes nothing');
+    // Confirmed: an installer action runs on boxb only (a rollback: no
+    // download in tests — whether it succeeds does not matter here); box
+    // never drops while it runs.
+    let boxDropped = false;
+    const off = sc.on('disconnected', (p, k) => { if (k === keyOf('box')) boxDropped = true; });
+    try {
+      const states = [];
+      const offS = sc.on('status', (st, k) => { if (k === keyOf('boxb')) states.push(st.state); });
+      await handlers[IPC.SERVER_ROLLBACK]({}, { key: keyOf('boxb'), confirmAgents: true });
+      offS();
+      assert.ok(states.includes('installing'), `boxb ran the installer: ${states.join(',')}`);
+      assert.equal(boxDropped, false, 'box stayed connected through boxb\'s install');
+      assert.ok(sc.of(keyOf('box')).isConnected());
+      sc.connect('boxb');
+      await waitFor(() => sc.of(keyOf('boxb')).isConnected(), 30000, 'boxb back');
+    } finally {
+      off();
+    }
+  } finally {
+    fs.rmSync(path.join(SERVER_HOME, 'fake-terminals'), { force: true });
+    fs.rmSync(path.join(REMOTE_HOME_B, '.frame-server', 'fake-terminals'), { force: true });
+  }
+});
+
 test('S8: removing a server closes only its link and forgets it', async () => {
   sc.connect('boxb');
   await waitFor(() => sc.of(keyOf('boxb')).isConnected(), 25000, 'boxb connected');

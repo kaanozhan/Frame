@@ -292,11 +292,19 @@ async function rollback(host, { onProgress = () => {} } = {}) {
  * cannot be read (not connected, an error, a timeout) — unknown is never
  * "none running" (server-hardening S9).
  */
-async function runningAgents() {
+/**
+ * The agents running on one server (`key`; the default server without one),
+ * for the update / rollback consent: only that server's terminals, so an
+ * update of A never names B's agents (multi-server-connections). null when
+ * the list cannot be read.
+ */
+async function runningAgents(key = null) {
   const sc = require('./serverConnection');
-  if (!sc.isConnected()) return null;
+  const link = key ? sc.of(key) : null;
+  const target = link || (key ? null : sc);
+  if (!target || !target.isConnected()) return null;
   let list;
-  try { list = await sc.call('terminals.list', {}); } catch (_) { return null; }
+  try { list = await target.call('terminals.list', {}); } catch (_) { return null; }
   if (!Array.isArray(list)) return null;
   let names = new Map();
   try {

@@ -30,3 +30,11 @@ _Captured: 2026-11-15 · 4 file change(s)_
 
 ---
 
+## T05 — Installs per server
+
+Made `serverInstaller.runningAgents(key)` read one server's terminals and passed the link's key from `serverLink.runAction`. The fake server lists terminals from `<home>/fake-terminals`, and `test/serverConnection.test.js` covers S10: consent for boxb names only boxb's agents, and box stays connected while boxb's installer runs. Divergence: the test drives a rollback rather than an update, to avoid a network download.
+
+_Captured: 2026-11-15 · 4 file change(s)_
+
+---
+

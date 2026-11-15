@@ -447,7 +447,7 @@ function createLink({ key, host, frameVersion = () => '0.0.0', onStatus = () => 
     try {
       if (kind !== 'install' && !confirmAgents) {
         const connected = isConnected();
-        const agents = connected ? await installer().runningAgents() : null;
+        const agents = connected ? await installer().runningAgents(key) : null;
         const installed = !!(status.install && status.install.current);
         // Unknown (unreadable list, or not connected) asks in general (S9).
         if (consentNeeded({ connected, agents, installed })) return { error: null, needsConsent: true, agents };

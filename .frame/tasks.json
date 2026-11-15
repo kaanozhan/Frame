@@ -8222,13 +8222,13 @@
       "title": "Run install / update / rollback per server: `runAction(kind, { key })` with a per-key busy flag, `serverInstaller.runningAgents(key)` listing only that server's agents, and tests in `test/serverConnection.test.js` that updating A keeps B connected and the consent names only A's agents",
       "description": "",
       "source": "spec:multi-server-connections:T05",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: multi-server-connections",
       "createdAt": "2026-11-15T12:36:21.721Z",
-      "updatedAt": "2026-11-15T12:36:21.721Z",
-      "completedAt": null
+      "updatedAt": "2026-11-15T13:25:17.960Z",
+      "completedAt": "2026-11-15T13:25:17.960Z"
     },
     {
       "id": "task-spec-multi-server-connections-T06",
@@ -8322,7 +8322,7 @@
       "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T13:22:59.084Z",
+  "lastUpdated": "2026-11-15T13:25:17.960Z",
   "metadata": {
     "totalCreated": 640
   }
