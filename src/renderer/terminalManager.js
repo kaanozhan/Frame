@@ -75,7 +75,6 @@ class TerminalManager {
     this.activeTerminalId = null;
     this.viewMode = 'board'; // 'board' (default) | 'terminals' | 'specs' | 'tasks' | 'panel'
     this.maxTerminals = 9;
-    this.terminalCounter = 0;
     this.onStateChange = null;
     this.currentProjectPath = null; // Current active project (null = global)
     // The selected workspace within it (workspaces spec): terminals carry a
@@ -153,6 +152,20 @@ class TerminalManager {
   _inScope(state) {
     return state.projectPath === this.currentProjectPath
       && (state.workspaceId || 'main') === this.currentWorkspaceId;
+  }
+
+  /**
+   * The default name for a new terminal in one project + workspace: the
+   * lowest number no terminal there already carries. Numbering is per
+   * workspace (a workspace's first terminal is "1st Terminal" whatever runs
+   * in main or the other workspaces), and a closed terminal's number is
+   * reused so the names stay short.
+   */
+  _nextDefaultName(projectPath, workspaceId) {
+    const taken = new Set(this.getTerminalsInScope(projectPath, workspaceId).map(t => t.name));
+    let n = 1;
+    while (taken.has(terminalName(n))) n++;
+    return terminalName(n);
   }
 
   /** Terminals of one project + workspace, oldest first. */
@@ -464,14 +477,16 @@ class TerminalManager {
       terminal.focus();
     });
 
+    const projectPath = options.projectPath !== undefined ? options.projectPath : this.currentProjectPath;
+    const workspaceId = options.workspaceId || 'main';
     const state = {
       id: terminalId,
-      name: options.name || terminalName(++this.terminalCounter),
+      name: options.name || this._nextDefaultName(projectPath, workspaceId),
       customName: null,
       isActive: false,
       createdAt: Date.now(),
-      projectPath: options.projectPath !== undefined ? options.projectPath : this.currentProjectPath,
-      workspaceId: options.workspaceId || 'main',
+      projectPath,
+      workspaceId,
       // What this lane is working on (set by agentDispatch):
       // { kind: 'task'|'spec', label, ref } — presentation metadata only,
       // session-scoped, dies with the lane (never persisted).
@@ -1033,12 +1048,19 @@ class TerminalManager {
 
   /**
    * Renumber terminals for a project to ensure sequential naming (1st Terminal, 2nd Terminal, ...)
-   * Only affects terminals without custom names.
+   * Only affects terminals without custom names. Numbering is per workspace
+   * (main counts as one), matching _nextDefaultName — counting the whole
+   * project made a workspace's second terminal "4th Terminal" when main
+   * already had terminals.
    */
   _renumberTerminals(projectPath) {
     const terminals = this.getTerminalsByProject(projectPath);
-    
-    terminals.forEach((tState, index) => {
+    const perWorkspace = new Map();
+
+    terminals.forEach((tState) => {
+      const ws = tState.workspaceId || 'main';
+      const index = perWorkspace.get(ws) || 0;
+      perWorkspace.set(ws, index + 1);
       const instance = this.terminals.get(tState.id);
       if (instance && !instance.state.customName) {
         const newName = terminalName(index + 1);
