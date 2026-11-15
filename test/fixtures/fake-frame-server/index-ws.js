@@ -1,6 +1,6 @@
 // A Frame Server stand-in that speaks the real protocol (serverConnection.test.js):
 // listens on 127.0.0.1, writes connection.json, checks the token, says hello,
-// answers server.ping and terminals.list. `<home>/fake-mode` changes it per
+// answers server.ping, server.info (from <home>/server-id) and terminals.list. `<home>/fake-mode` changes it per
 // connection: "close" closes right after the upgrade (before hello),
 // "slow-list" answers terminals.list after 1.5 s. With `<home>/fake-socket`
 // present at start it listens on `<home>/server.sock` and writes `socket`.
@@ -31,6 +31,13 @@ wss.on('connection', (ws) => {
     if (!d.ok || d.msg.type !== 'req') return;
     const { id, method } = d.msg;
     if (method === 'server.ping') ws.send(P.encode(P.reply(id, { platform: 'linux', arch: 'x64' })));
+    else if (method === 'server.info') {
+      // `<home>/server-id` present → that id; absent → an old server that
+      // does not know the method.
+      let sid = null;
+      try { sid = fs.readFileSync(path.join(home, 'server-id'), 'utf8').trim(); } catch (_) { /* old server */ }
+      ws.send(P.encode(sid ? P.reply(id, { serverId: sid }) : P.failure(id, 'Unknown method server.info')));
+    }
     else if (method === 'terminals.list') setTimeout(() => ws.send(P.encode(P.reply(id, []))), mode() === 'slow-list' ? 1500 : 0);
     else ws.send(P.encode(P.failure(id, `fake server: no ${method}`)));
   });

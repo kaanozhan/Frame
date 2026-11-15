@@ -6,3 +6,11 @@ _Captured: 2026-11-15 · 2 file change(s)_
 
 ---
 
+## T02 — Server identity on Frame Server
+
+Added the `server.info` method and `serverId(home)` to `src/server/index.js` (id in `<HOME>/server-id`, 16 hex, 0600, read on every call, malformed file replaced). Made `test/fixtures/fake-frame-server/index-ws.js` answer it, or answer Unknown method when there is no id file, and pinned stability in `test/serverSocket.test.js`. No divergence from plan.md.
+
+_Captured: 2026-11-15 · 3 file change(s)_
+
+---
+

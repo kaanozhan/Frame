@@ -8183,13 +8183,13 @@
       "title": "Add the `server.info` method to `src/server/index.js`, returning a stable `serverId` read from or created once in `<HOME>/server-id` (16 random hex, 0600), make `test/fixtures/fake-frame-server/index-ws.js` answer it, and extend `test/serverSocket.test.js` to show the id survives a restart",
       "description": "",
       "source": "spec:multi-server-connections:T02",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: multi-server-connections",
       "createdAt": "2026-11-15T12:36:21.721Z",
-      "updatedAt": "2026-11-15T12:36:21.721Z",
-      "completedAt": null
+      "updatedAt": "2026-11-15T13:15:44.534Z",
+      "completedAt": "2026-11-15T13:15:44.534Z"
     },
     {
       "id": "task-spec-multi-server-connections-T03",
@@ -8322,7 +8322,7 @@
       "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T13:14:08.873Z",
+  "lastUpdated": "2026-11-15T13:15:44.534Z",
   "metadata": {
     "totalCreated": 640
   }
