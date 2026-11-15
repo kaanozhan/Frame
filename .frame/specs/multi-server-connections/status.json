@@ -1,0 +1,24 @@
+{
+  "slug": "multi-server-connections",
+  "title": "Multiple Frame Servers",
+  "phase": "tasks_generated",
+  "generated_task_ids": [
+    "task-spec-multi-server-connections-T01",
+    "task-spec-multi-server-connections-T02",
+    "task-spec-multi-server-connections-T03",
+    "task-spec-multi-server-connections-T04",
+    "task-spec-multi-server-connections-T05",
+    "task-spec-multi-server-connections-T06",
+    "task-spec-multi-server-connections-T07",
+    "task-spec-multi-server-connections-T08",
+    "task-spec-multi-server-connections-T09",
+    "task-spec-multi-server-connections-T10",
+    "task-spec-multi-server-connections-T11",
+    "task-spec-multi-server-connections-T12"
+  ],
+  "ai_tool": "claude",
+  "created_at": "2026-11-15T12:25:28Z",
+  "updated_at": "2026-11-15T12:36:21.721Z",
+  "last_phase_at": "2026-11-15T12:36:21Z",
+  "implement_mode": "guided"
+}
