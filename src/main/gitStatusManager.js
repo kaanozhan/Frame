@@ -142,7 +142,175 @@ function resolveGitDir(projectPath) {
   }
 }
 
-function startWatching(projectPath) {
+// ─── Linux: one watch per folder git cares about (server-linux-readiness) ──
+//
+// On Linux, Node implements `fs.watch(dir, { recursive: true })` by placing
+// one inotify watch on every directory below `dir`. A repository with
+// `node_modules` can exhaust `fs.inotify.max_user_watches` that way, and the
+// watcher then dies silently. So on Linux the working tree is watched one
+// folder at a time, and only the folders git does not ignore: those holding
+// tracked files, untracked-but-not-ignored files, and empty untracked
+// folders. `node_modules` and other ignored trees are never watched.
+//
+// Loop and CPU bounds (the user asked for no loops and no CPU spikes):
+//   - the folder list is re-read only when a watched folder gains or loses a
+//     subfolder, debounced (LINUX_WATCH.REBUILD_DEBOUNCE_MS), never sooner
+//     than LINUX_WATCH.REBUILD_MIN_INTERVAL_MS after the previous re-read,
+//     and never two at a time;
+//   - the re-read itself is `git ls-files`, which writes nothing, and the
+//     events our `git status` causes land in `.git`, which is filtered, so a
+//     re-read can never trigger another.
+
+const LINUX_WATCH = {
+  REBUILD_DEBOUNCE_MS: 1000,
+  REBUILD_MIN_INTERVAL_MS: 10 * 1000,
+  LIST_MAX_BUFFER: 64 * 1024 * 1024
+};
+
+/** Promise of git's stdout split on NUL; rejects on failure. */
+function gitList(root, args) {
+  return new Promise((resolve, reject) => {
+    execFile('git', args, { cwd: root, maxBuffer: LINUX_WATCH.LIST_MAX_BUFFER, encoding: 'utf8' }, (err, stdout) => {
+      if (err) return reject(err);
+      resolve(String(stdout || '').split('\0').filter(Boolean));
+    });
+  });
+}
+
+/**
+ * The folders (relative, '' = the root) git cares about in `root`: parents
+ * of tracked files, parents of untracked files that are not ignored, and
+ * untracked folders (empty ones included). `.git` and `.frame` are left out,
+ * as the recursive watcher leaves them out.
+ */
+async function watchedDirsFor(root) {
+  const [tracked, untracked, untrackedDirs] = await Promise.all([
+    gitList(root, ['ls-files', '-z']),
+    gitList(root, ['ls-files', '-o', '--exclude-standard', '-z']),
+    gitList(root, ['ls-files', '-o', '--exclude-standard', '--directory', '-z'])
+  ]);
+  const dirs = new Set(['']);
+  const addParents = (rel) => {
+    let dir = path.posix.dirname(rel);
+    while (dir && dir !== '.' && !dirs.has(dir)) {
+      dirs.add(dir);
+      dir = path.posix.dirname(dir);
+    }
+  };
+  for (const f of tracked) addParents(f);
+  for (const f of untracked) addParents(f);
+  for (const d of untrackedDirs) {
+    if (!d.endsWith('/')) continue;
+    const dir = d.slice(0, -1);
+    dirs.add(dir);
+    addParents(dir);
+  }
+  for (const d of Array.from(dirs)) {
+    if (d && isIgnoredWorktreePath(d)) dirs.delete(d);
+  }
+  return dirs;
+}
+
+/**
+ * Per-folder watching of `root`. `onChange` is called for every relevant
+ * event (the caller debounces); the folder set follows the tree as above.
+ * `stats()` is what the tests read.
+ */
+function createDirWatcher(root, onChange) {
+  const watchers = new Map(); // rel → fs.FSWatcher
+  let rebuildTimer = null;
+  let rebuilding = false;
+  let rebuildWanted = false;
+  let lastRebuildAt = 0;
+  let stopped = false;
+  const counts = { rebuilds: 0 };
+
+  function abs(rel) {
+    return rel ? path.join(root, rel) : root;
+  }
+
+  function scheduleRebuild() {
+    if (stopped) return;
+    if (rebuilding) { rebuildWanted = true; return; }
+    if (rebuildTimer) return; // one pending re-read covers the whole burst
+    const wait = Math.max(LINUX_WATCH.REBUILD_DEBOUNCE_MS, lastRebuildAt + LINUX_WATCH.REBUILD_MIN_INTERVAL_MS - Date.now());
+    rebuildTimer = setTimeout(() => { rebuildTimer = null; rebuild(); }, wait);
+    if (typeof rebuildTimer.unref === 'function') rebuildTimer.unref();
+  }
+
+  function onEvent(rel, eventType, filename) {
+    if (stopped) return;
+    const child = filename ? (rel ? `${rel}/${String(filename)}` : String(filename)) : rel;
+    if (isIgnoredWorktreePath(child)) return;
+    onChange();
+    // A folder appearing or disappearing changes what should be watched.
+    if (eventType !== 'rename' || !filename) return;
+    if (watchers.has(child)) { scheduleRebuild(); return; }
+    try {
+      if (fs.statSync(abs(child)).isDirectory()) scheduleRebuild();
+    } catch (_) { /* gone already: a file, or a folder we never watched */ }
+  }
+
+  function watchOne(rel) {
+    try {
+      const w = fs.watch(abs(rel), { persistent: false }, (eventType, filename) => onEvent(rel, eventType, filename));
+      w.on('error', () => { try { w.close(); } catch (_) { /* closed */ } watchers.delete(rel); });
+      watchers.set(rel, w);
+    } catch (_) {
+      // The folder vanished between listing and watching; the next re-read settles it.
+    }
+  }
+
+  async function rebuild() {
+    if (stopped) return;
+    rebuilding = true;
+    lastRebuildAt = Date.now();
+    counts.rebuilds += 1;
+    let changed = false;
+    try {
+      const wanted = await watchedDirsFor(root);
+      if (stopped) return;
+      for (const [rel, w] of watchers) {
+        if (wanted.has(rel)) continue;
+        try { w.close(); } catch (_) { /* closed */ }
+        watchers.delete(rel);
+        changed = true;
+      }
+      for (const rel of wanted) {
+        if (watchers.has(rel)) continue;
+        watchOne(rel);
+        changed = true;
+      }
+    } catch (err) {
+      logger.warn('gitStatus', `could not list folders to watch in ${root}: ${err.message}`);
+    } finally {
+      rebuilding = false;
+    }
+    // Files may have landed in a new folder before it was watched.
+    if (changed && counts.rebuilds > 1) onChange();
+    if (rebuildWanted) { rebuildWanted = false; scheduleRebuild(); }
+  }
+
+  function close() {
+    stopped = true;
+    if (rebuildTimer) { clearTimeout(rebuildTimer); rebuildTimer = null; }
+    for (const w of watchers.values()) { try { w.close(); } catch (_) { /* closed */ } }
+    watchers.clear();
+  }
+
+  rebuild();
+  return { close, stats: () => ({ rebuilds: counts.rebuilds, watching: Array.from(watchers.keys()).sort() }) };
+}
+
+// The live per-folder watcher, when the platform uses one.
+let dirWatcher = null;
+
+/** Exposed for tests: the per-folder watcher's counters, or null when not in use. */
+function linuxWatchStats() {
+  return dirWatcher ? dirWatcher.stats() : null;
+}
+
+function startWatching(projectPath, { platform = process.platform } = {}) {
   stopWatching();
   currentProjectPath = projectPath;
   // Point the activity record at this project. Doing it here rather than
@@ -156,8 +324,11 @@ function startWatching(projectPath) {
   pushStatus();
 
   // Working-tree watcher: new/edited/deleted files. Events under `.git/` are
-  // ignored here because the dedicated .git watcher handles those.
-  try {
+  // ignored here because the dedicated .git watcher handles those. On Linux,
+  // one watch per folder git cares about instead of a recursive watch (above).
+  if (platform === 'linux') {
+    dirWatcher = createDirWatcher(projectPath, () => scheduleRefresh('git-worktree'));
+  } else try {
     worktreeWatcher = fsSafe.safeWatch(
       projectPath,
       { recursive: true, persistent: false },
@@ -201,6 +372,10 @@ function startWatching(projectPath) {
 }
 
 function stopWatching() {
+  if (dirWatcher) {
+    dirWatcher.close();
+    dirWatcher = null;
+  }
   if (worktreeWatcher) {
     try { worktreeWatcher.close(); } catch (_) { /* ignore */ }
   }
@@ -459,4 +634,4 @@ function classify(index, worktree) {
   return 'modified';
 }
 
-module.exports = { init, setupIPC, readGitStatus, startWatching, stopWatching, pushStatus, isIgnoredWorktreePath, gitDirFromDotGitFile, resolveGitDir };
+module.exports = { init, setupIPC, readGitStatus, startWatching, stopWatching, pushStatus, isIgnoredWorktreePath, gitDirFromDotGitFile, resolveGitDir, watchedDirsFor, linuxWatchStats, LINUX_WATCH };

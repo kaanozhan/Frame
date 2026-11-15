@@ -3535,7 +3535,10 @@
         "pushStatus",
         "isIgnoredWorktreePath",
         "gitDirFromDotGitFile",
-        "resolveGitDir"
+        "resolveGitDir",
+        "watchedDirsFor",
+        "linuxWatchStats",
+        "LINUX_WATCH"
       ],
       "depends": [
         "child_process",
@@ -3593,60 +3596,88 @@
           ],
           "purpose": "The real git dir for `projectPath`: `.git` itself, or where a `.git` file points."
         },
-        "startWatching": {
-          "line": 145,
+        "gitList": {
+          "line": 171,
           "params": [
-            "projectPath"
+            "root",
+            "args"
+          ],
+          "purpose": "Promise of git's stdout split on NUL; rejects on failure."
+        },
+        "watchedDirsFor": {
+          "line": 186,
+          "params": [
+            "root"
+          ],
+          "purpose": "The folders (relative, '' = the root) git cares about in `root`: parents"
+        },
+        "createDirWatcher": {
+          "line": 219,
+          "params": [
+            "root",
+            "onChange"
+          ],
+          "purpose": "Per-folder watching of `root`. `onChange` is called for every relevant"
+        },
+        "linuxWatchStats": {
+          "line": 309,
+          "purpose": "Exposed for tests: the per-folder watcher's counters, or null when not in use."
+        },
+        "startWatching": {
+          "line": 313,
+          "params": [
+            "projectPath",
+            "{ platform = process.platform } = {}"
           ]
         },
         "stopWatching": {
-          "line": 203
+          "line": 374
         },
         "isGitInternalPath": {
-          "line": 223,
+          "line": 398,
           "params": [
             "filename"
           ],
           "purpose": "True for paths that live inside the repo's `.git` directory, so the worktree"
         },
         "isIgnoredWorktreePath": {
-          "line": 242,
+          "line": 417,
           "params": [
             "filename"
           ],
           "purpose": "Paths the working-tree watcher does not care about."
         },
         "isGitBookkeeping": {
-          "line": 269,
+          "line": 444,
           "params": [
             "filename"
           ],
           "purpose": "Is this .git event just bookkeeping rather than a real repository change?"
         },
         "scheduleRefresh": {
-          "line": 275,
+          "line": 450,
           "params": [
             "watcher"
           ]
         },
         "pushStatus": {
-          "line": 293
+          "line": 468
         },
         "readGitStatus": {
-          "line": 344,
+          "line": 519,
           "params": [
             "projectPath"
           ]
         },
         "parsePorcelainV1": {
-          "line": 377,
+          "line": 552,
           "params": [
             "stdout"
           ],
           "purpose": "Parse `git status --porcelain=v1 -z --branch` output."
         },
         "classify": {
-          "line": 434,
+          "line": 609,
           "params": [
             "index",
             "worktree"
@@ -3665,7 +3696,7 @@
           "GIT_STATUS_DATA"
         ]
       },
-      "sizeBytes": 16571,
+      "sizeBytes": 23247,
       "extraction": {
         "status": "parsed"
       },
@@ -3673,12 +3704,16 @@
         "description": "b94430732ba65bb0",
         "purposes": {
           "classify": "124ff1c7e9926e51",
+          "createDirWatcher": "4bb50ad49ba4a482",
           "gitDirFromDotGitFile": "7cf958d4ce19e6ff",
+          "gitList": "dc45d999b0413db3",
           "isGitBookkeeping": "07ff15b1d7bfb24d",
           "isGitInternalPath": "9b41de2bd762f400",
           "isIgnoredWorktreePath": "6b8e394b475ca715",
+          "linuxWatchStats": "3ca4e34f6fac61ee",
           "parsePorcelainV1": "0f95a69cb744569a",
-          "resolveGitDir": "393bc0cf0b8ae000"
+          "resolveGitDir": "393bc0cf0b8ae000",
+          "watchedDirsFor": "88f9c9166fb60156"
         }
       }
     },
@@ -29667,6 +29702,53 @@
         "description": "86fd3b0fca750c4a"
       }
     },
+    "test/gitWatchLinux.test": {
+      "file": "test/gitWatchLinux.test.js",
+      "description": "Git status on Linux watches one folder at a time (server-linux-readiness T04).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "node:module",
+        "src/main/gitStatusManager",
+        "src/shared/ipcChannels"
+      ],
+      "functions": {
+        "waitFor": {
+          "line": 49,
+          "params": [
+            "pred",
+            "ms",
+            "what"
+          ]
+        },
+        "repo": {
+          "line": 57,
+          "purpose": "A repo with tracked src/ and docs/, an ignored node_modules tree, and an untracked new/ file."
+        },
+        "write": {
+          "line": 47,
+          "params": [
+            "file",
+            "body = 'x\\n'"
+          ]
+        }
+      },
+      "sizeBytes": 7040,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "c3aa5da75cd24dfd",
+        "purposes": {
+          "repo": "d959d21bb782c54f"
+        }
+      }
+    },
     "test/githubAccessState.test": {
       "file": "test/githubAccessState.test.js",
       "description": "The GitHub panel's access resolver (github-view-tree-layout spec, G3 / D6).",
@@ -34935,7 +35017,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 383,
+        "parsed": 384,
         "unsupported": 91,
         "partial": 0
       }
@@ -34982,9 +35064,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 568,
+      "visitedEntries": 569,
       "traversedDirectories": 86,
-      "eligibleFiles": 474,
+      "eligibleFiles": 475,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -35001,7 +35083,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 474,
+      "indexedFiles": 475,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -35009,6 +35091,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "89140015f8776a5cd6f17c8007a00f2200c04ca5df100158aff044797804a1ab"
+    "revision": "cf6c64b0f116c73e9b30d2d89fd020d25b85158915c77a7a4a9a61a08b6367a0"
   }
 }

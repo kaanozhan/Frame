@@ -22,3 +22,11 @@ Added `terminals.shells` to `src/server/terminals.js` (the server's `getAvailabl
 _Captured: 2026-11-15 · 6 file change(s)_
 
 ---
+
+## T04 — Linux watches one folder at a time
+
+On `platform === 'linux'`, which `startWatching` now takes as an option for tests, `gitStatusManager` replaces the recursive worktree watch with `createDirWatcher`. It holds one non-recursive `fs.watch` per folder from `watchedDirsFor(root)`: parents of `git ls-files` (tracked) and `ls-files -o --exclude-standard` (untracked, not ignored) files, plus untracked folders from `--directory`, minus `.git`/`.frame`. The set is re-read only when a watched folder gains or loses a subfolder: debounced 1 s, never sooner than 10 s after the previous re-read (`LINUX_WATCH`, shortened in tests), never two at once, with one pending re-read covering a burst. After a re-read that changed the set, one refresh catches files made in a new folder before it was watched. The `.git` watcher and macOS/Windows behavior are unchanged. Tests in `test/gitWatchLinux.test.js` cover the folder set, live edits, nested new folders, a 40-folder burst taking ≤ 3 re-reads, and no re-read or push storm from Frame's own reads.
+
+_Captured: 2026-11-15 · 2 file change(s)_
+
+---
