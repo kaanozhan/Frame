@@ -14,3 +14,11 @@ _Captured: 2026-11-15 · 3 file change(s)_
 
 ---
 
+## T03 — One link per server
+
+Added `src/main/serverLink.js`: today's connection loop and install actions, held per instance, plus a `server.info` call after hello that stores `serverId` in the status. Reduced `src/main/serverConnection.js` to settings, window, IPC and one link behind the unchanged API. Divergence: a refused call now says "Not connected to <host>." from the link ("Not connected to a server." only when no link exists).
+
+_Captured: 2026-11-15 · 2 file change(s)_
+
+---
+

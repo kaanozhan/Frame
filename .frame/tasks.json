@@ -8196,13 +8196,13 @@
       "title": "Move the connection loop and install actions out of `src/main/serverConnection.js` into a per-instance `src/main/serverLink.js` (own status, tunnel, local socket dir, pending calls, retry timer and busy flag; calls `server.info` after hello and stores the `serverId`, null on \"Unknown method\")",
       "description": "",
       "source": "spec:multi-server-connections:T03",
-      "status": "pending",
+      "status": "completed",
       "priority": "medium",
       "category": "feature",
       "context": "From spec: multi-server-connections",
       "createdAt": "2026-11-15T12:36:21.721Z",
-      "updatedAt": "2026-11-15T12:36:21.721Z",
-      "completedAt": null
+      "updatedAt": "2026-11-15T13:18:30.313Z",
+      "completedAt": "2026-11-15T13:18:30.313Z"
     },
     {
       "id": "task-spec-multi-server-connections-T04",
@@ -8322,7 +8322,7 @@
       "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T13:15:44.534Z",
+  "lastUpdated": "2026-11-15T13:18:30.313Z",
   "metadata": {
     "totalCreated": 640
   }
