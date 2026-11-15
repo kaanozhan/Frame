@@ -80,6 +80,24 @@ function getForegroundCommand(shellPid, callback) {
   });
 }
 
+// The one entry a server workspace's shell menu shows when Frame Server
+// cannot say which shells it has (an older server, or none connected): the
+// server user's own login shell. Its null path means "no shell chosen", so
+// the server picks its default. Never an empty list — the menus treat empty
+// as "still loading" and ask again.
+const SERVER_DEFAULT_SHELL = { id: 'server-default', name: 'Default shell', path: null, isDefault: true };
+
+/** A server workspace's shells, from Frame Server; never rejects, never empty. */
+async function availableShellsOnServer() {
+  try {
+    if (!server().isConnected()) return [SERVER_DEFAULT_SHELL];
+    const shells = await server().call('terminals.shells', {});
+    return Array.isArray(shells) && shells.length ? shells : [SERVER_DEFAULT_SHELL];
+  } catch (_) {
+    return [SERVER_DEFAULT_SHELL];
+  }
+}
+
 /**
  * The Unix shell to start when none was chosen (server-linux-readiness).
  * `$SHELL` when set; otherwise macOS keeps `/bin/zsh` (its default since
@@ -646,8 +664,15 @@ function setupIPC(ipcMain) {
   });
   try { wireServerEvents(); } catch (err) { logger.warn('ptyManager', `server terminal events not wired: ${err.message}`); }
 
-  // Get available shells
-  ipcMain.on(IPC.GET_AVAILABLE_SHELLS, (event) => {
+  // Get available shells — this machine's, or (server-linux-readiness) a
+  // server workspace's own, from Frame Server.
+  ipcMain.on(IPC.GET_AVAILABLE_SHELLS, (event, data) => {
+    const workspaceId = data && typeof data.workspaceId === 'string' ? data.workspaceId : null;
+    const loc = workspaceId && workspaceId !== 'main' ? serverLocationOf(workspaceId) : null;
+    if (loc) {
+      availableShellsOnServer().then((shells) => event.reply(IPC.AVAILABLE_SHELLS_DATA, { shells, success: true }));
+      return;
+    }
     try {
       const shells = getAvailableShells();
       event.reply(IPC.AVAILABLE_SHELLS_DATA, { shells, success: true });

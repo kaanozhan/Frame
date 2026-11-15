@@ -431,7 +431,8 @@ class TerminalManager {
       };
 
       ipcRenderer.on(IPC.AVAILABLE_SHELLS_DATA, handler);
-      ipcRenderer.send(IPC.GET_AVAILABLE_SHELLS);
+      // A server workspace lists the server's shells (server-linux-readiness).
+      ipcRenderer.send(IPC.GET_AVAILABLE_SHELLS, { workspaceId: this.currentWorkspaceId || 'main' });
     });
   }
 

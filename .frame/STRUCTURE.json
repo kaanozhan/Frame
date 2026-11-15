@@ -5456,8 +5456,12 @@
           ],
           "purpose": "Resolve the full command line of the terminal's foreground process."
         },
+        "availableShellsOnServer": {
+          "line": 91,
+          "purpose": "A server workspace's shells, from Frame Server; never rejects, never empty."
+        },
         "defaultUnixShell": {
-          "line": 90,
+          "line": 108,
           "params": [
             "platform = process.platform",
             "env = process.env",
@@ -5466,7 +5470,7 @@
           "purpose": "The Unix shell to start when none was chosen (server-linux-readiness)."
         },
         "requestedShell": {
-          "line": 102,
+          "line": 120,
           "params": [
             "shellPath",
             "platform = process.platform",
@@ -5475,14 +5479,14 @@
           "purpose": "The shell a create asked for, or null to use the default. Off macOS and"
         },
         "getDefaultShell": {
-          "line": 112
+          "line": 130
         },
         "getAvailableShells": {
-          "line": 129,
+          "line": 147,
           "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 215,
+          "line": 233,
           "params": [
             "workingDir = null",
             "projectPath = null",
@@ -5493,28 +5497,28 @@
           "purpose": "Create a new terminal instance"
         },
         "getTerminalsByProject": {
-          "line": 364,
+          "line": 382,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 379,
+          "line": 397,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 391,
+          "line": 409,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
         "writeToTerminal": {
-          "line": 399,
+          "line": 417,
           "params": [
             "terminalId",
             "data"
@@ -5522,7 +5526,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 409,
+          "line": 427,
           "params": [
             "terminalId",
             "cols",
@@ -5531,13 +5535,13 @@
           "purpose": "Resize specific terminal"
         },
         "wasDestroyedOnRequest": {
-          "line": 424,
+          "line": 442,
           "params": [
             "terminalId"
           ]
         },
         "destroyTerminal": {
-          "line": 432,
+          "line": 450,
           "params": [
             "terminalId",
             "{ teardown = false } = {}"
@@ -5545,42 +5549,42 @@
           "purpose": "Destroy specific terminal. `teardown` marks one that dies with its"
         },
         "destroyAll": {
-          "line": 453,
+          "line": 471,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 473,
+          "line": 491,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 480,
+          "line": 498,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 490,
+          "line": 508,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 500,
+          "line": 518,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "serverLocationOf": {
-          "line": 521,
+          "line": 539,
           "params": [
             "workspaceId"
           ]
         },
         "server": {
-          "line": 530
+          "line": 548
         },
         "createServerTerminal": {
-          "line": 534,
+          "line": 552,
           "params": [
             "loc",
             "{ cwd",
@@ -5592,14 +5596,14 @@
           ]
         },
         "serverTerminalInfo": {
-          "line": 548,
+          "line": 566,
           "params": [
             "terminalId"
           ],
           "purpose": "Local project/workspace of a server terminal this window knows, or null."
         },
         "noteServerTerminal": {
-          "line": 553,
+          "line": 571,
           "params": [
             "terminalId",
             "info"
@@ -5607,17 +5611,17 @@
           "purpose": "Remember a server terminal found on reconnect (adopted by the renderer)."
         },
         "wireServerEvents": {
-          "line": 558
+          "line": 576
         },
         "adoptServerTerminals": {
-          "line": 593,
+          "line": 611,
           "params": [
             "projectPath"
           ],
           "purpose": "The connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 637,
+          "line": 655,
           "params": [
             "ipcMain"
           ]
@@ -5640,7 +5644,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 27984,
+      "sizeBytes": 29284,
       "extraction": {
         "status": "parsed"
       },
@@ -5648,6 +5652,7 @@
         "description": "e5d8e57c0450283d",
         "purposes": {
           "adoptServerTerminals": "d5f8a7894f921258",
+          "availableShellsOnServer": "088597f5f30a7d24",
           "createTerminal": "b33d916178fe23ba",
           "defaultUnixShell": "e480633b2b7c7207",
           "destroyAll": "ae9b9368ced1121a",
@@ -13028,7 +13033,7 @@
           ]
         }
       },
-      "sizeBytes": 12103,
+      "sizeBytes": 12705,
       "extraction": {
         "status": "parsed"
       },
@@ -19337,7 +19342,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 38946,
+      "sizeBytes": 39078,
       "extraction": {
         "status": "parsed"
       },
@@ -19393,7 +19398,7 @@
           "THEME_CHANGED"
         ]
       },
-      "sizeBytes": 22056,
+      "sizeBytes": 22605,
       "extraction": {
         "status": "parsed"
       },
@@ -25287,7 +25292,7 @@
           "purpose": "An id of another boot names no terminal here."
         }
       },
-      "sizeBytes": 6320,
+      "sizeBytes": 6529,
       "extraction": {
         "status": "parsed"
       },
@@ -30986,15 +30991,30 @@
         "os",
         "fs",
         "node:module",
-        "src/main/ptyManager"
+        "events",
+        "src/main/ptyManager",
+        "src/shared/ipcChannels",
+        "src/server/electronShim",
+        "src/server/terminals"
       ],
-      "functions": {},
-      "sizeBytes": 2670,
+      "functions": {
+        "shellsFor": {
+          "line": 70,
+          "params": [
+            "workspaceId"
+          ],
+          "purpose": "Ask for the shell list like the renderer does; resolve the reply."
+        }
+      },
+      "sizeBytes": 7046,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "b8abd72623569050"
+        "description": "b8abd72623569050",
+        "purposes": {
+          "shellsFor": "82f869891a1db8ef"
+        }
       }
     },
     "test/serverSocket.test": {
@@ -34989,6 +35009,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "5bb55603dee32c6ee36846675d3397a715a50078202cb2102ff4c59d9c096077"
+    "revision": "89140015f8776a5cd6f17c8007a00f2200c04ca5df100158aff044797804a1ab"
   }
 }

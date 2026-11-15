@@ -405,7 +405,21 @@ class TerminalTabBar {
     }
   }
 
-  _showShellMenu(x, y) {
+  /**
+   * Every open re-reads the list for the current workspace — a server
+   * workspace lists the server's shells (server-linux-readiness) — showing
+   * the list in hand meanwhile. The re-read happens once per open: the
+   * re-render it triggers (`refreshed`) never asks again, so an empty answer
+   * cannot turn into a request loop.
+   */
+  _showShellMenu(x, y, refreshed = false) {
+    if (!refreshed) {
+      const before = JSON.stringify(this.availableShells);
+      this._loadAvailableShells().then(() => {
+        if (!this.shellMenu.classList.contains('visible')) return;
+        if (JSON.stringify(this.availableShells) !== before || this.availableShells.length === 0) this._showShellMenu(x, y, true);
+      });
+    }
     // Clear previous items
     this.shellMenu.innerHTML = '';
 
@@ -419,16 +433,9 @@ class TerminalTabBar {
     if (this.availableShells.length === 0) {
       const noShells = document.createElement('div');
       noShells.className = 'terminal-context-menu-item';
-      noShells.textContent = 'Loading...';
+      noShells.textContent = refreshed ? 'No shells found' : 'Loading...';
       noShells.style.opacity = '0.5';
       this.shellMenu.appendChild(noShells);
-
-      // Try to reload shells
-      this._loadAvailableShells().then(() => {
-        if (this.shellMenu.classList.contains('visible')) {
-          this._showShellMenu(x, y);
-        }
-      });
     } else {
       this.availableShells.forEach((shell, index) => {
         const item = document.createElement('div');

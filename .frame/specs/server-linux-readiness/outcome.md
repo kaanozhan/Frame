@@ -14,3 +14,11 @@ _Captured: 2026-11-15 · 3 file change(s)_
 _Captured: 2026-11-15 · 2 file change(s)_
 
 ---
+
+## T03 — A server workspace's shell menu lists the server's shells
+
+Added `terminals.shells` to `src/server/terminals.js` (the server's `getAvailableShells()`). `GET_AVAILABLE_SHELLS` in `src/main/ptyManager.js` now takes `{ workspaceId }` and answers a server workspace from Frame Server, and `terminalManager.getAvailableShells` sends the current workspace id. Deviation from the plan's 'empty list on an older server': that answer is a single `Default shell` entry with a null path (the server picks its default), because both menus read an empty list as 'Loading...' and re-ask, which would loop while the menu stays open. Second deviation, approved by the user: `homeBoard.js` and `terminalTabBar.js` (not in the plan) cached the list once at startup, so each now re-reads it once per open for the current workspace and re-renders without asking again, showing 'No shells found' instead of re-asking forever. Tests in `test/serverShells.test.js`; the menus are DOM code with no harness and get the spec's closing live check.
+
+_Captured: 2026-11-15 · 6 file change(s)_
+
+---
