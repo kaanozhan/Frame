@@ -594,6 +594,8 @@ function showMenu(ws, x, y) {
   const items = [
     ...prItems,
     ...(prItems.length ? [{ separator: true }] : []),
+    // A connected server workspace can be sent the files git leaves out (server-copy-files).
+    ...(ws.location === 'server' && !ws.offline ? [{ id: 'send-files', label: 'Send files to server…' }, { separator: true }] : []),
     { id: 'rename', label: 'Rename…' },
     { id: 'rename-branch', label: 'Rename branch…' },
     { id: 'archive', label: 'Archive…', danger: true }
@@ -623,6 +625,15 @@ function onMenuClick(e) {
   if (item.dataset.menu === 'rename') startRename(ws, 'name');
   else if (item.dataset.menu === 'rename-branch') startRename(ws, 'branch');
   else if (item.dataset.menu === 'archive') archiveWorkspace(ws);
+  else if (item.dataset.menu === 'send-files') sendFilesTo(ws);
+}
+
+async function sendFilesTo(ws) {
+  const projectPath = state.getProjectPath();
+  if (!projectPath) return;
+  const sendFiles = require('./sendFilesModal');
+  const picked = await sendFiles.open({ projectPath, workspace: ws, context: 'resend' });
+  if (picked && picked.sent) notify.info(sendFiles.summary(picked.sent));
 }
 
 // ─── Actions ─────────────────────────────────────────────────
