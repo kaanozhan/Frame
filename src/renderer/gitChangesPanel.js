@@ -13,6 +13,7 @@ const { IPC } = require('../shared/ipcChannels');
 
 let emptyEl = null;
 let bodyEl = null;
+let liveNoteEl = null;
 let sections = { staged: null, changes: null, conflict: null };
 let lists = { staged: null, changes: null, conflict: null };
 
@@ -53,8 +54,29 @@ function init(opts = {}) {
   });
 }
 
+/**
+ * One line above the list when the working tree is not watched live (on
+ * Linux: too many folders, or the system's watcher limit), so a stale panel
+ * says why instead of looking current (server-linux-readiness).
+ */
+function showLiveNote(payload) {
+  if (!emptyEl) return;
+  if (!liveNoteEl) {
+    liveNoteEl = document.createElement('div');
+    liveNoteEl.className = 'git-changes-empty git-changes-live-note';
+    emptyEl.parentNode.insertBefore(liveNoteEl, emptyEl);
+  }
+  if (payload.live === false) {
+    liveNoteEl.textContent = `Live updates are off for this workspace — ${payload.liveReason || 'it cannot be watched'}. Changes refresh every 30 s.`;
+    liveNoteEl.style.display = '';
+  } else {
+    liveNoteEl.style.display = 'none';
+  }
+}
+
 function handleStatus(payload) {
   currentProjectPath = payload.projectPath || null;
+  showLiveNote(payload);
 
   if (!payload.isRepo) {
     lastOrdered = [];

@@ -30,3 +30,11 @@ On `platform === 'linux'`, which `startWatching` now takes as an option for test
 _Captured: 2026-11-15 · 2 file change(s)_
 
 ---
+
+## T05 — Watch cap, timer fallback and the live-updates-off note
+
+`createDirWatcher` now stops watching folders and switches to a refresh timer in two cases: when the folder set exceeds `LINUX_WATCH.MAX_DIRS` (4000), or when a watch fails with `ENOSPC`/`EMFILE`, at creation or later. The timer runs every `FALLBACK_INTERVAL_MS` (30 s), skips a tick while a `git status` is in flight, does no further re-reads, and is cleared by `stopWatching` (and by Frame Server's idle). The status push carries `live: false, liveReason`, the de-dupe includes it, and the push goes out at once on fallback. `src/renderer/gitChangesPanel.js` adds one line above the list: 'Live updates are off for this workspace — <reason>. Changes refresh every 30 s.' It is created in JS with the panel's existing empty-state class, so `index.html` and the styles are untouched. Tests cover the cap, the timer catching an edit, no re-reads on the timer, the timer stopping with the watch, no live flag when watched live, and ENOSPC via a patched `fs.watch`. The spec's closing live check (isolated app, server package from this branch) confirmed the T03 menus: in a server workspace the request carried its workspace id; offline showed one 'Default shell' entry, with one request in 2.5 s while the menu stayed open.
+
+_Captured: 2026-11-15 · 4 file change(s)_
+
+---

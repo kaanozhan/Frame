@@ -164,8 +164,19 @@ function resolveGitDir(projectPath) {
 const LINUX_WATCH = {
   REBUILD_DEBOUNCE_MS: 1000,
   REBUILD_MIN_INTERVAL_MS: 10 * 1000,
-  LIST_MAX_BUFFER: 64 * 1024 * 1024
+  LIST_MAX_BUFFER: 64 * 1024 * 1024,
+  // Above this many folders, or when the system runs out of watches, the
+  // working tree is not watched at all: the status is refreshed on a slow
+  // timer instead, and the push says so (T05).
+  MAX_DIRS: 4000,
+  FALLBACK_INTERVAL_MS: 30 * 1000
 };
+
+const WATCH_LIMIT_REASON = 'the system limit for file watchers is reached (fs.inotify.max_user_watches)';
+
+// Why the working tree is not watched live right now, or null when it is.
+// Carried in every status push as `live: false, liveReason` (T05).
+let notLiveReason = null;
 
 /** Promise of git's stdout split on NUL; rejects on failure. */
 function gitList(root, args) {
@@ -216,9 +227,10 @@ async function watchedDirsFor(root) {
  * event (the caller debounces); the folder set follows the tree as above.
  * `stats()` is what the tests read.
  */
-function createDirWatcher(root, onChange) {
+function createDirWatcher(root, onChange, { onFallback = () => {}, onTick = () => {} } = {}) {
   const watchers = new Map(); // rel → fs.FSWatcher
   let rebuildTimer = null;
+  let fallbackTimer = null;
   let rebuilding = false;
   let rebuildWanted = false;
   let lastRebuildAt = 0;
@@ -229,8 +241,28 @@ function createDirWatcher(root, onChange) {
     return rel ? path.join(root, rel) : root;
   }
 
+  function closeWatchers() {
+    for (const w of watchers.values()) { try { w.close(); } catch (_) { /* closed */ } }
+    watchers.clear();
+  }
+
+  /**
+   * Stop watching folders and refresh on a slow timer instead. Once in this
+   * mode the watcher stays there until the watch is started again: no
+   * re-reads, no retries, one timer.
+   */
+  function fallBack(reason) {
+    if (stopped || fallbackTimer) return;
+    if (rebuildTimer) { clearTimeout(rebuildTimer); rebuildTimer = null; }
+    closeWatchers();
+    logger.warn('gitStatus', `live updates off for ${root}: ${reason}`);
+    fallbackTimer = setInterval(() => { if (!stopped) onTick(); }, LINUX_WATCH.FALLBACK_INTERVAL_MS);
+    if (typeof fallbackTimer.unref === 'function') fallbackTimer.unref();
+    onFallback(reason);
+  }
+
   function scheduleRebuild() {
-    if (stopped) return;
+    if (stopped || fallbackTimer) return;
     if (rebuilding) { rebuildWanted = true; return; }
     if (rebuildTimer) return; // one pending re-read covers the whole burst
     const wait = Math.max(LINUX_WATCH.REBUILD_DEBOUNCE_MS, lastRebuildAt + LINUX_WATCH.REBUILD_MIN_INTERVAL_MS - Date.now());
@@ -251,13 +283,23 @@ function createDirWatcher(root, onChange) {
     } catch (_) { /* gone already: a file, or a folder we never watched */ }
   }
 
+  const outOfWatches = (err) => err && (err.code === 'ENOSPC' || err.code === 'EMFILE');
+
+  /** Watch one folder; false when the system is out of watches. */
   function watchOne(rel) {
     try {
       const w = fs.watch(abs(rel), { persistent: false }, (eventType, filename) => onEvent(rel, eventType, filename));
-      w.on('error', () => { try { w.close(); } catch (_) { /* closed */ } watchers.delete(rel); });
+      w.on('error', (err) => {
+        try { w.close(); } catch (_) { /* closed */ }
+        watchers.delete(rel);
+        if (outOfWatches(err)) fallBack(WATCH_LIMIT_REASON);
+      });
       watchers.set(rel, w);
-    } catch (_) {
+      return true;
+    } catch (err) {
+      if (outOfWatches(err)) return false;
       // The folder vanished between listing and watching; the next re-read settles it.
+      return true;
     }
   }
 
@@ -269,7 +311,11 @@ function createDirWatcher(root, onChange) {
     let changed = false;
     try {
       const wanted = await watchedDirsFor(root);
-      if (stopped) return;
+      if (stopped || fallbackTimer) return;
+      if (wanted.size > LINUX_WATCH.MAX_DIRS) {
+        fallBack(`too many folders to watch (${wanted.size}; the limit is ${LINUX_WATCH.MAX_DIRS})`);
+        return;
+      }
       for (const [rel, w] of watchers) {
         if (wanted.has(rel)) continue;
         try { w.close(); } catch (_) { /* closed */ }
@@ -278,7 +324,7 @@ function createDirWatcher(root, onChange) {
       }
       for (const rel of wanted) {
         if (watchers.has(rel)) continue;
-        watchOne(rel);
+        if (!watchOne(rel)) { fallBack(WATCH_LIMIT_REASON); return; }
         changed = true;
       }
     } catch (err) {
@@ -286,6 +332,7 @@ function createDirWatcher(root, onChange) {
     } finally {
       rebuilding = false;
     }
+    if (fallbackTimer) return;
     // Files may have landed in a new folder before it was watched.
     if (changed && counts.rebuilds > 1) onChange();
     if (rebuildWanted) { rebuildWanted = false; scheduleRebuild(); }
@@ -294,12 +341,15 @@ function createDirWatcher(root, onChange) {
   function close() {
     stopped = true;
     if (rebuildTimer) { clearTimeout(rebuildTimer); rebuildTimer = null; }
-    for (const w of watchers.values()) { try { w.close(); } catch (_) { /* closed */ } }
-    watchers.clear();
+    if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; }
+    closeWatchers();
   }
 
   rebuild();
-  return { close, stats: () => ({ rebuilds: counts.rebuilds, watching: Array.from(watchers.keys()).sort() }) };
+  return {
+    close,
+    stats: () => ({ rebuilds: counts.rebuilds, watching: Array.from(watchers.keys()).sort(), fallback: !!fallbackTimer })
+  };
 }
 
 // The live per-folder watcher, when the platform uses one.
@@ -327,7 +377,12 @@ function startWatching(projectPath, { platform = process.platform } = {}) {
   // ignored here because the dedicated .git watcher handles those. On Linux,
   // one watch per folder git cares about instead of a recursive watch (above).
   if (platform === 'linux') {
-    dirWatcher = createDirWatcher(projectPath, () => scheduleRefresh('git-worktree'));
+    dirWatcher = createDirWatcher(projectPath, () => scheduleRefresh('git-worktree'), {
+      // Say so at once, then keep the status current on the slow timer —
+      // never on top of a status run already in flight.
+      onFallback: (reason) => { notLiveReason = reason; lastSerialized = null; pushStatus(); },
+      onTick: () => { if (!isFetching) pushStatus(); }
+    });
   } else try {
     worktreeWatcher = fsSafe.safeWatch(
       projectPath,
@@ -391,6 +446,7 @@ function stopWatching() {
   currentProjectPath = null;
   lastSerialized = null;
   pendingRefetch = false;
+  notLiveReason = null;
 }
 
 // True for paths that live inside the repo's `.git` directory, so the worktree
@@ -492,14 +548,16 @@ async function pushStatus() {
     }
 
     // Skip if identical to the last push (avoids needless renderer work).
-    const serialized = JSON.stringify(result);
+    const live = notLiveReason ? { live: false, liveReason: notLiveReason } : {};
+    const serialized = JSON.stringify([result, live]);
     if (serialized !== lastSerialized) {
       lastSerialized = serialized;
       mainWindow.webContents.send(IPC.GIT_STATUS_DATA, {
         projectPath,
         isRepo: result.isRepo,
         branch: result.branch || null,
-        files: result.files
+        files: result.files,
+        ...live
       });
     }
   } finally {

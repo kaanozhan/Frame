@@ -3597,7 +3597,7 @@
           "purpose": "The real git dir for `projectPath`: `.git` itself, or where a `.git` file points."
         },
         "gitList": {
-          "line": 171,
+          "line": 182,
           "params": [
             "root",
             "args"
@@ -3605,79 +3605,80 @@
           "purpose": "Promise of git's stdout split on NUL; rejects on failure."
         },
         "watchedDirsFor": {
-          "line": 186,
+          "line": 197,
           "params": [
             "root"
           ],
           "purpose": "The folders (relative, '' = the root) git cares about in `root`: parents"
         },
         "createDirWatcher": {
-          "line": 219,
+          "line": 230,
           "params": [
             "root",
-            "onChange"
+            "onChange",
+            "{ onFallback = ("
           ],
           "purpose": "Per-folder watching of `root`. `onChange` is called for every relevant"
         },
         "linuxWatchStats": {
-          "line": 309,
+          "line": 359,
           "purpose": "Exposed for tests: the per-folder watcher's counters, or null when not in use."
         },
         "startWatching": {
-          "line": 313,
+          "line": 363,
           "params": [
             "projectPath",
             "{ platform = process.platform } = {}"
           ]
         },
         "stopWatching": {
-          "line": 374
+          "line": 429
         },
         "isGitInternalPath": {
-          "line": 398,
+          "line": 454,
           "params": [
             "filename"
           ],
           "purpose": "True for paths that live inside the repo's `.git` directory, so the worktree"
         },
         "isIgnoredWorktreePath": {
-          "line": 417,
+          "line": 473,
           "params": [
             "filename"
           ],
           "purpose": "Paths the working-tree watcher does not care about."
         },
         "isGitBookkeeping": {
-          "line": 444,
+          "line": 500,
           "params": [
             "filename"
           ],
           "purpose": "Is this .git event just bookkeeping rather than a real repository change?"
         },
         "scheduleRefresh": {
-          "line": 450,
+          "line": 506,
           "params": [
             "watcher"
           ]
         },
         "pushStatus": {
-          "line": 468
+          "line": 524
         },
         "readGitStatus": {
-          "line": 519,
+          "line": 577,
           "params": [
             "projectPath"
           ]
         },
         "parsePorcelainV1": {
-          "line": 552,
+          "line": 610,
           "params": [
             "stdout"
           ],
           "purpose": "Parse `git status --porcelain=v1 -z --branch` output."
         },
         "classify": {
-          "line": 609,
+          "line": 667,
           "params": [
             "index",
             "worktree"
@@ -3696,7 +3697,7 @@
           "GIT_STATUS_DATA"
         ]
       },
-      "sizeBytes": 23247,
+      "sizeBytes": 25705,
       "extraction": {
         "status": "parsed"
       },
@@ -11322,57 +11323,64 @@
       ],
       "functions": {
         "init": {
-          "line": 25,
+          "line": 26,
           "params": [
             "opts = {}"
           ]
         },
+        "showLiveNote": {
+          "line": 62,
+          "params": [
+            "payload"
+          ],
+          "purpose": "One line above the list when the working tree is not watched live (on"
+        },
         "handleStatus": {
-          "line": 56,
+          "line": 77,
           "params": [
             "payload"
           ]
         },
         "showMessage": {
-          "line": 88,
+          "line": 110,
           "params": [
             "text"
           ]
         },
         "partition": {
-          "line": 99,
+          "line": 121,
           "params": [
             "files"
           ],
           "purpose": "Partition `{ [relPath]: { index, worktree, classification } }` into three"
         },
         "renderGroup": {
-          "line": 136,
+          "line": 158,
           "params": [
             "group",
             "entries"
           ]
         },
         "buildRow": {
-          "line": 154,
+          "line": 176,
           "params": [
             "entry"
           ]
         },
         "badgeChar": {
-          "line": 195,
+          "line": 217,
           "params": [
             "entry"
           ]
         },
         "normalize": {
-          "line": 207,
+          "line": 229,
           "params": [
             "ch"
           ]
         },
         "getOrderedFiles": {
-          "line": 213,
+          "line": 235,
           "purpose": "Current changed files in display order (for the diff section's prev/next)."
         }
       },
@@ -11382,7 +11390,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 6590,
+      "sizeBytes": 7396,
       "extraction": {
         "status": "parsed"
       },
@@ -11390,7 +11398,8 @@
         "description": "a7ed0818456ab425",
         "purposes": {
           "getOrderedFiles": "39d84a3dd87cdf7d",
-          "partition": "14514db21072da67"
+          "partition": "14514db21072da67",
+          "showLiveNote": "09775dee26b3ea41"
         }
       }
     },
@@ -29738,7 +29747,7 @@
           ]
         }
       },
-      "sizeBytes": 7040,
+      "sizeBytes": 10905,
       "extraction": {
         "status": "parsed"
       },
@@ -35091,6 +35100,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "cf6c64b0f116c73e9b30d2d89fd020d25b85158915c77a7a4a9a61a08b6367a0"
+    "revision": "11292f482a2b928fd3edf3d923dde9abe4772aa210d8efe526b9caa02d427520"
   }
 }

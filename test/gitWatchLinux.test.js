@@ -135,3 +135,77 @@ test('T04: other platforms keep the recursive watch', () => {
   assert.equal(gitStatus.linuxWatchStats(), null);
   gitStatus.stopWatching();
 });
+
+// ─── T05: cap and fallback ───────────────────────────────────
+
+test('T05: above the folder cap nothing is watched; the status refreshes on the timer and says why', async () => {
+  const saved = { max: gitStatus.LINUX_WATCH.MAX_DIRS, every: gitStatus.LINUX_WATCH.FALLBACK_INTERVAL_MS };
+  gitStatus.LINUX_WATCH.MAX_DIRS = 3;
+  gitStatus.LINUX_WATCH.FALLBACK_INTERVAL_MS = 300;
+  try {
+    const dir = repo(); // five folders > 3
+    pushes.length = 0;
+    gitStatus.startWatching(dir, { platform: 'linux' });
+    await waitFor(() => gitStatus.linuxWatchStats() && gitStatus.linuxWatchStats().fallback, 3000, 'the fallback');
+    assert.deepEqual(gitStatus.linuxWatchStats().watching, [], 'no folder watches at all');
+    await waitFor(() => pushes.some((p) => p.live === false), 3000, 'a push saying live updates are off');
+    assert.match(pushes.find((p) => p.live === false).liveReason, /too many folders to watch \(5; the limit is 3\)/);
+    pushes.length = 0;
+    write(path.join(dir, 'src', 'a.js'), 'edited under the timer\n');
+    await waitFor(() => pushes.some((p) => changedIn(p, 'src/a.js') && p.live === false), 3000, 'the timer to pick up the edit');
+    const rebuilds = gitStatus.linuxWatchStats().rebuilds;
+    for (let i = 0; i < 5; i++) write(path.join(dir, 'src', `more${i}`, 'f.js'));
+    await sleep(900);
+    assert.equal(gitStatus.linuxWatchStats().rebuilds, rebuilds, 'no re-reads once on the timer');
+  } finally {
+    gitStatus.stopWatching();
+    Object.assign(gitStatus.LINUX_WATCH, { MAX_DIRS: saved.max, FALLBACK_INTERVAL_MS: saved.every });
+  }
+});
+
+test('T05: the fallback timer stops with the watch, and a normal watch carries no live flag', async () => {
+  const saved = { max: gitStatus.LINUX_WATCH.MAX_DIRS, every: gitStatus.LINUX_WATCH.FALLBACK_INTERVAL_MS };
+  gitStatus.LINUX_WATCH.MAX_DIRS = 3;
+  gitStatus.LINUX_WATCH.FALLBACK_INTERVAL_MS = 200;
+  const dir = repo();
+  try {
+    gitStatus.startWatching(dir, { platform: 'linux' });
+    await waitFor(() => gitStatus.linuxWatchStats() && gitStatus.linuxWatchStats().fallback, 3000, 'the fallback');
+  } finally {
+    gitStatus.stopWatching();
+    Object.assign(gitStatus.LINUX_WATCH, { MAX_DIRS: saved.max, FALLBACK_INTERVAL_MS: saved.every });
+  }
+  pushes.length = 0;
+  write(path.join(dir, 'src', 'a.js'), 'after stop\n');
+  await sleep(700);
+  assert.equal(pushes.length, 0, 'no timer pushes after the watch stopped');
+  gitStatus.startWatching(dir, { platform: 'linux' });
+  await waitFor(() => pushes.length > 0, 3000, 'a push from the new watch');
+  assert.equal('live' in pushes[pushes.length - 1], false, 'watched live: no live flag');
+  gitStatus.stopWatching();
+});
+
+test('T05: running out of system watches (ENOSPC) falls back to the timer and names the limit', async () => {
+  const realWatch = fs.watch;
+  let calls = 0;
+  fs.watch = (...args) => {
+    calls += 1;
+    if (calls >= 3) { const e = new Error('System limit for number of file watchers reached'); e.code = 'ENOSPC'; throw e; }
+    return realWatch(...args);
+  };
+  const every = gitStatus.LINUX_WATCH.FALLBACK_INTERVAL_MS;
+  gitStatus.LINUX_WATCH.FALLBACK_INTERVAL_MS = 300;
+  try {
+    const dir = repo();
+    pushes.length = 0;
+    gitStatus.startWatching(dir, { platform: 'linux' });
+    await waitFor(() => gitStatus.linuxWatchStats() && gitStatus.linuxWatchStats().fallback, 3000, 'the fallback');
+    assert.deepEqual(gitStatus.linuxWatchStats().watching, [], 'the watches already made are closed too');
+    await waitFor(() => pushes.some((p) => p.live === false), 3000, 'the live flag');
+    assert.match(pushes.find((p) => p.live === false).liveReason, /max_user_watches/);
+  } finally {
+    fs.watch = realWatch;
+    gitStatus.stopWatching();
+    gitStatus.LINUX_WATCH.FALLBACK_INTERVAL_MS = every;
+  }
+});
