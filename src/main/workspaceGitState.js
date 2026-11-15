@@ -120,72 +120,84 @@ function send(payload) {
 
 // ─── Server workspaces (server-workspace-panels) ──────────────
 //
-// A server workspace's git and PR state is read on Frame Server by its own
-// workspaceGitState (gh as the server user) and pushed as `pr.state`. Here it
-// is kept per desktop project and merged into every WORKSPACE_GIT_STATE, the
-// server's GitHub access kept apart as `serverAccess`. Actions on a server
-// workspace go to the server by id.
+// A server workspace's git and PR state is read on its Frame Server by that
+// server's own workspaceGitState (gh as the server user) and pushed as
+// `pr.state`. Here it is kept per desktop project and per server
+// (multi-server-connections) and merged into every WORKSPACE_GIT_STATE, each
+// server's GitHub access kept apart as `serverAccess[serverKey]`. Actions on a
+// server workspace go to its own server by id.
 
-const serverState = new Map(); // desktop projectPath → last server payload
+const serverState = new Map(); // desktop projectPath → Map<serverKey, last server payload>
 let serverWired = false;
 
 function serverLocationOf(id) {
   try { return require('./workspaceManager').serverLocation(id); } catch (_) { return null; }
 }
 
-function serverProjectOf(projectPath) {
-  try {
-    const hit = require('./workspaceManager').serverRoots().find((r) => r.projectPath === projectPath);
-    return hit || null;
-  } catch (_) {
-    return null;
-  }
+/** `[serverKey, serverProjectPath]` of every server that holds workspaces of `projectPath`. */
+function serverProjectsOf(projectPath) {
+  let roots = [];
+  try { roots = require('./workspaceManager').serverRoots(); } catch (_) { roots = []; }
+  const out = new Map();
+  for (const r of roots) if (r.projectPath === projectPath && r.serverKey && !out.has(r.serverKey)) out.set(r.serverKey, r.serverProjectPath);
+  return [...out];
+}
+
+function dropServer(key) {
+  for (const byServer of serverState.values()) byServer.delete(key);
 }
 
 function withServer(payload) {
   if (!payload || !payload.projectPath) return payload;
   const { mergeGitStatePayloads } = require('../shared/serverRouting');
-  return mergeGitStatePayloads(payload, serverState.get(payload.projectPath) || null, payload.projectPath);
+  const byServer = serverState.get(payload.projectPath);
+  return mergeGitStatePayloads(payload, byServer ? Object.fromEntries(byServer) : null, payload.projectPath);
 }
 
 function wireServer() {
   if (serverWired) return;
   serverWired = true;
   const sc = require('./serverConnection');
-  sc.on('pr.state', (payload) => {
-    if (!payload || !payload.projectPath) return;
+  sc.on('pr.state', (payload, key) => {
+    if (!payload || !payload.projectPath || !key) return;
     let roots = [];
     try { roots = require('./workspaceManager').serverRoots(); } catch (_) { roots = []; }
-    const local = roots.find((r) => r.serverProjectPath === payload.projectPath);
+    const local = roots.find((r) => r.serverKey === key && r.serverProjectPath === payload.projectPath);
     if (!local) return;
-    serverState.set(local.projectPath, payload);
+    if (!serverState.has(local.projectPath)) serverState.set(local.projectPath, new Map());
+    serverState.get(local.projectPath).set(key, payload);
     if (local.projectPath === watchedProject) {
       send(lastState.get(local.projectPath) || { projectPath: local.projectPath, access: null, workspaces: {} });
     }
   });
-  sc.on('disconnected', () => serverState.clear());
+  sc.on('disconnected', (status, key) => dropServer(key));
+  sc.on('removed', (payload, key) => dropServer(key));
 }
 
-/** Ask the server for its state of `projectPath`'s server workspaces (and make it push changes). */
+/** Ask every server holding `projectPath`'s workspaces for their state (and make them push changes). */
 async function refreshServer(projectPath) {
-  const sp = serverProjectOf(projectPath);
   const sc = require('./serverConnection');
-  if (!sp || !sc.isConnected()) return;
-  try {
-    const payload = await sc.call('pr.refresh', { projectPath: sp.serverProjectPath }, 120000);
-    if (payload) serverState.set(projectPath, payload);
-  } catch (err) {
-    logger.warn('workspaces', `server git state failed: ${err.message}`);
-  }
+  await Promise.all(serverProjectsOf(projectPath).map(async ([key, serverProjectPath]) => {
+    const link = sc.of(key);
+    if (!link || !link.isConnected()) return;
+    try {
+      const payload = await link.call('pr.refresh', { projectPath: serverProjectPath }, 120000);
+      if (!payload) return;
+      if (!serverState.has(projectPath)) serverState.set(projectPath, new Map());
+      serverState.get(projectPath).set(key, payload);
+    } catch (err) {
+      logger.warn('workspaces', `server git state on ${link.host} failed: ${err.message}`);
+    }
+  }));
 }
 
-/** Run a PR-flow action of a server workspace on the server, or return null for a local one. */
+/** Run a PR-flow action of a server workspace on its own server, or return null for a local one. */
 function onServer(method, id, params) {
   const loc = serverLocationOf(id);
   if (!loc) return null;
-  const sc = require('./serverConnection');
-  if (!sc.isConnected()) return Promise.resolve({ error: `${loc.host || 'The server'} is offline — reconnect to continue.` });
-  return sc.call(method, { projectPath: loc.serverProjectPath, id, ...params }, 11 * 60 * 1000)
+  const link = require('./serverConnection').of(loc.serverKey);
+  if (!link || !link.isConnected()) return Promise.resolve({ error: `${loc.host || 'The server'} is offline — reconnect to continue.` });
+  return link.call(method, { projectPath: loc.serverProjectPath, id, ...params }, 11 * 60 * 1000)
     .catch((err) => ({ error: err.message }));
 }
 

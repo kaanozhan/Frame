@@ -44,6 +44,27 @@ const STEPS = [
     requiresNoProject: false
   },
   {
+    id: 'workspaces',
+    title: 'Workspaces',
+    body: 'Under the project, pick where you work: main, or a workspace with its own branch and folder, on this Mac or on a server. New workspace at the top of this list creates one.',
+    targets: [{ selector: '#workspace-section .ws-switch', placement: 'right' }],
+    advance: 'next',
+    requiresProject: true,
+    requiresNoProject: false
+  },
+  {
+    id: 'servers',
+    title: 'Your own servers',
+    body: 'Add a machine of yours over SSH and its workspaces keep running while this Mac is away. Add as many as you like; each gets its own section under Remote.',
+    targets: [
+      { selector: '#add-server-btn', placement: 'right' },
+      { selector: '#status-bar .sb-server', placement: 'top' }
+    ],
+    advance: 'next',
+    requiresProject: true,
+    requiresNoProject: false
+  },
+  {
     id: 'agent',
     title: 'Bring your own agent',
     body: 'Frame has no AI of its own: it runs the agent you already use, Claude Code or Codex. Pick it here, and Start opens it in a terminal.',

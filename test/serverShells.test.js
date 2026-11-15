@@ -28,7 +28,13 @@ const STUBS = {
 const { EventEmitter } = require('events');
 const serverCalls = [];
 const fakeServer = new EventEmitter();
+// One saved server (multi-server-connections): the fake is both the registry
+// (of / all) and that server's link (key kbox).
 Object.assign(fakeServer, {
+  key: 'kbox',
+  host: 'box',
+  of(key) { return key === 'kbox' ? this : null; },
+  all() { return [this]; },
   connected: true,
   shells: [{ id: 'bash', name: 'Bash', path: '/bin/bash', isDefault: true }, { id: 'sh', name: 'Shell', path: '/bin/sh' }],
   isConnected() { return this.connected; },
@@ -44,7 +50,7 @@ Object.assign(fakeServer, {
   }
 });
 const fakeWorkspaces = {
-  serverLocation: (id) => (id === 'srv-ws' ? { path: '/home/u/frame/workspaces/app/teal', host: 'box', projectPath: '/Users/me/app', serverProjectPath: '/home/u/frame/projects/app' } : null),
+  serverLocation: (id) => (id === 'srv-ws' ? { path: '/home/u/frame/workspaces/app/teal', host: 'box', serverKey: 'kbox', projectPath: '/Users/me/app', serverProjectPath: '/home/u/frame/projects/app' } : null),
   serverRoots: () => []
 };
 const MAIN = path.join(__dirname, '..', 'src', 'main');

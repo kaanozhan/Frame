@@ -102,7 +102,7 @@ function getMenuTemplate() {
       cmd('Review Changes…', 'workspace.review', 'CmdOrCtrl+Alt+R'),
       cmd('Create Pull Request…', 'workspace.createPr', 'CmdOrCtrl+Alt+P'),
       SEP,
-      cmd('Connect to Server…', 'server.connect'),
+      cmd('Add Server…', 'server.add', 'CmdOrCtrl+Alt+N'),
       SEP,
       cmd('Add Project…', 'project.add'),
       cmd('Create New Project…', 'project.create'),

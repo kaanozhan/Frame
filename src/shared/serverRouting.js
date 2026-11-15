@@ -26,11 +26,32 @@ function serverTerminalId(n, boot = null) {
   return boot ? `${SERVER_TERMINAL_PREFIX}${boot}-${n}` : `${SERVER_TERMINAL_PREFIX}${n}`;
 }
 
-/** `{ boot, n }` of a server terminal id (`boot` null for an old `srv-<n>`), or null. */
+/**
+ * `{ key, boot, n }` of a server terminal id: `key` is the desktop's server
+ * key of a desktop-side id (`srv-<key>.<boot>-<n>`), null for an id as Frame
+ * Server names it; `boot` is null for an old `srv-<n>`. null for anything else.
+ */
 function parseServerTerminalId(id) {
   if (!isServerTerminalId(id)) return null;
-  const m = /^srv-(?:([a-z0-9]+)-)?(\d+)$/.exec(id);
-  return m ? { boot: m[1] || null, n: Number(m[2]) } : null;
+  const m = /^srv-(?:([0-9a-z]+)\.)?(?:([a-z0-9]+)-)?(\d+)$/.exec(id);
+  return m ? { key: m[1] || null, boot: m[2] || null, n: Number(m[3]) } : null;
+}
+
+/**
+ * The desktop's id for a server's terminal (multi-server-connections):
+ * Frame Server's `srv-<boot>-<n>` with the server's key added,
+ * `srv-<key>.<boot>-<n>`. Two servers can never hand the desktop the same id,
+ * and the `srv-` prefix rule is unchanged.
+ */
+function desktopTerminalId(serverKey, serverTerminalId) {
+  if (!serverKey || !isServerTerminalId(serverTerminalId)) return null;
+  return `${SERVER_TERMINAL_PREFIX}${serverKey}.${serverTerminalId.slice(SERVER_TERMINAL_PREFIX.length)}`;
+}
+
+/** `{ serverKey, serverTerminalId }` of a desktop-side id, or null (a local id, or one without a key). */
+function splitDesktopTerminalId(id) {
+  const m = typeof id === 'string' ? /^srv-([0-9a-z]+)\.(.+)$/.exec(id) : null;
+  return m ? { serverKey: m[1], serverTerminalId: `${SERVER_TERMINAL_PREFIX}${m[2]}` } : null;
 }
 
 /**
@@ -175,17 +196,26 @@ function serverRootFor(p, roots) {
 
 /**
  * One WORKSPACE_GIT_STATE payload for a desktop project: its local
- * workspaces' rows plus the server workspaces' rows from Frame Server's own
- * `workspaceGitState`. The server's GitHub access is kept apart
- * (`serverAccess`) — its `gh` is not the desktop's.
+ * workspaces' rows plus each server's workspace rows from that Frame Server's
+ * own `workspaceGitState`. `servers` is `{ [serverKey]: payload }`
+ * (multi-server-connections). Each server's GitHub access is kept apart in
+ * `serverAccess[serverKey]` — a server's `gh` is neither the desktop's nor
+ * another server's. `serverAccess` is null when no server reported.
  */
-function mergeGitStatePayloads(local, server, projectPath) {
+function mergeGitStatePayloads(local, servers, projectPath) {
   const none = { gh: false, authed: false, repoName: null };
+  const entries = Object.entries(servers || {}).filter(([, p]) => p);
+  const workspaces = { ...((local && local.workspaces) || {}) };
+  const serverAccess = {};
+  for (const [key, p] of entries) {
+    serverAccess[key] = p.access || none;
+    Object.assign(workspaces, p.workspaces || {});
+  }
   return {
     projectPath: projectPath || (local && local.projectPath) || null,
     access: (local && local.access) || none,
-    serverAccess: server ? (server.access || none) : null,
-    workspaces: { ...((local && local.workspaces) || {}), ...((server && server.workspaces) || {}) }
+    serverAccess: entries.length ? serverAccess : null,
+    workspaces
   };
 }
 
@@ -196,8 +226,8 @@ function mergeGitStatePayloads(local, server, projectPath) {
  * (two machines sharing a home path); a server workspace id routes to it when
  * the path lies in its folder. Only a call without a workspace id falls back
  * to matching the path against the known server folders.
- *   roots:     [{ root, id, host, … }] (workspaceManager.serverRoots())
- *   locations: { [workspaceId]: { path, host } } for server workspaces
+ *   roots:     [{ root, id, host, serverKey, … }] (workspaceManager.serverRoots())
+ *   locations: { [workspaceId]: { path, host, serverKey } } for server workspaces
  */
 function routeOf(p, ctx, roots, locations) {
   const id = ctx && typeof ctx.workspaceId === 'string' ? ctx.workspaceId : null;
@@ -206,7 +236,7 @@ function routeOf(p, ctx, roots, locations) {
     if (!loc) return { local: true };
     const hit = serverRootFor(p, [loc.path]);
     if (!hit) return { local: true };
-    const entry = (roots || []).find((r) => r.id === id) || { root: loc.path, id, host: loc.host };
+    const entry = (roots || []).find((r) => r.id === id) || { root: loc.path, id, host: loc.host, serverKey: loc.serverKey || null };
     return { remote: entry };
   }
   const all = roots || [];
@@ -222,6 +252,8 @@ module.exports = {
   SERVER_TERMINAL_PREFIX,
   isServerTerminalId,
   parseServerTerminalId,
+  desktopTerminalId,
+  splitDesktopTerminalId,
   adoptPlan,
   serverTerminalId,
   normalizeRemoteUrl,

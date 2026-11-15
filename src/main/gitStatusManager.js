@@ -67,12 +67,15 @@ function wireRemote() {
   if (remoteWired) return;
   remoteWired = true;
   const sc = require('./serverConnection');
-  sc.on('git.status', (payload) => {
+  // Events of other servers are not this watch's (multi-server-connections).
+  sc.on('git.status', (payload, key) => {
     if (!remoteWatch || !payload || payload.projectPath !== remoteWatch.root) return;
+    if (key && remoteWatch.entry.serverKey && key !== remoteWatch.entry.serverKey) return;
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(IPC.GIT_STATUS_DATA, payload);
   });
-  sc.on('connected', () => {
-    if (remoteWatch) serverPanels().call(remoteWatch.entry, 'git.watch', { root: remoteWatch.root }).catch(() => {});
+  sc.on('connected', (status, key) => {
+    if (!remoteWatch || (key && remoteWatch.entry.serverKey && key !== remoteWatch.entry.serverKey)) return;
+    serverPanels().call(remoteWatch.entry, 'git.watch', { root: remoteWatch.root }).catch(() => {});
   });
 }
 

@@ -353,7 +353,9 @@ function setupIPC() {
     }
     if (loc) {
       try {
-        const res = await require('./serverConnection').call('tools.check', {
+        const link = require('./serverConnection').of(loc.serverKey);
+        if (!link || !link.isConnected()) throw new Error(`${loc.host || 'The server'} is offline — reconnect to check its tools.`);
+        const res = await link.call('tools.check', {
           toolId: payload.toolId,
           tool: getAvailableTools()[payload.toolId] || null,
           launchFlags: payload.launchFlags || null,

@@ -67,12 +67,16 @@ function rowState(id) {
 }
 
 /**
- * GitHub access for `ws`: the desktop's `gh` for local workspaces, the
- * server's for a server workspace (server-workspace-panels).
+ * GitHub access for `ws`: the desktop's `gh` for local workspaces, its own
+ * server's for a server workspace (server-workspace-panels;
+ * multi-server-connections: `serverAccess` is keyed by server).
  */
 function access(ws) {
   const none = { gh: false, authed: false, repoName: null };
-  if (ws && ws.location === 'server') return (current && current.serverAccess) || none;
+  if (ws && ws.location === 'server') {
+    const byServer = (current && current.serverAccess) || null;
+    return (byServer && ws.serverKey && byServer[ws.serverKey]) || none;
+  }
   return (current && current.access) || none;
 }
 

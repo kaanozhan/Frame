@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // ssh stand-in for test/serverConnection.test.js (server-hardening T04).
 //   ssh [-o …] host <command>  → runs <command> with bash under
-//                                HOME=$FAKE_REMOTE_HOME, $FAKE_BIN_DIR first on PATH
+//                                HOME=<host's home in $FAKE_REMOTE_HOMES, else
+//                                $FAKE_REMOTE_HOME>, $FAKE_BIN_DIR first on PATH
 //                                (fake uname / systemctl), stdin passed through.
 //   ssh -N … -L <local>:<remote> host → a proxy until killed. <local> is
 //                                `127.0.0.1:lp` or a socket path; <remote> is
@@ -10,6 +11,15 @@
 //                                refused like sshd's AllowStreamLocalForwarding no.
 // Host "nohost" fails like an unknown host.
 const net = require('net');
+// One remote home per host (multi-server-connections): FAKE_REMOTE_HOMES is
+// a JSON object host → home; any other host uses FAKE_REMOTE_HOME.
+function remoteHome(host) {
+  try {
+    const homes = JSON.parse(process.env.FAKE_REMOTE_HOMES || '{}');
+    if (homes && typeof homes[host] === 'string') return homes[host];
+  } catch (_) { /* fall back */ }
+  return process.env.FAKE_REMOTE_HOME;
+}
 const { spawn } = require('child_process');
 const raw = process.argv.slice(2);
 const args = [];
@@ -45,8 +55,9 @@ if (args.includes('-N')) {
 } else {
   const [host, ...cmd] = args.filter((a) => a !== '-T');
   if (host === 'nohost') { process.stderr.write('ssh: Could not resolve hostname nohost\n'); process.exit(255); }
-  const env = { ...process.env, HOME: process.env.FAKE_REMOTE_HOME, PATH: `${process.env.FAKE_BIN_DIR}:${process.env.PATH}` };
+  const home = remoteHome(host);
+  const env = { ...process.env, HOME: home, PATH: `${process.env.FAKE_BIN_DIR}:${process.env.PATH}` };
   delete env.FRAME_SERVER_HOME;
-  const child = spawn('bash', ['-c', cmd.join(' ')], { env, stdio: 'inherit', cwd: process.env.FAKE_REMOTE_HOME });
+  const child = spawn('bash', ['-c', cmd.join(' ')], { env, stdio: 'inherit', cwd: home });
   child.on('close', (code) => process.exit(code == null ? 1 : code));
 }
