@@ -3,10 +3,11 @@
  *
  * The second level under the project switcher: a trigger showing the
  * selected workspace, and a dropdown grouped in two, split by a hairline:
+ *   - "New workspace…" first, the way the project menu leads with "Add a
+ *     project…"; the dialog picks where it runs.
  *   - Local: the main row (the project's own checkout), then this Mac's
- *     workspaces; "+" opens New workspace.
- *   - Remote: "+" opens New Workspace on a server (chosen there); then one
- *     sub-header per saved Frame Server (host + link dot, Connect while it
+ *     workspaces.
+ *   - Remote: one sub-header per saved Frame Server (host, Connect while it
  *     is down) with that server's workspaces, then "Add server…"
  *     (multi-server-connections). With no server saved: "Connect a server".
  * Each row: the branch as the primary label, the color name as the
@@ -271,8 +272,8 @@ function serverViews() {
 /**
  * One server's sub-header in Remote, drawn as a labelled sub-separator: the
  * host, a hairline, and Connect / Set up while it is down (a down host reads
- * muted). Creating goes through Remote's one "+" (the server is chosen in New
- * Workspace), not a "+" per server.
+ * muted). Creating goes through the menu's one "New workspace…" (the server
+ * is chosen in the dialog), not a "+" per server.
  */
 function serverHeadHtml(link, { collapsed, count, locked }) {
   const label = require('./serverConnect').LABELS[link.state] || link.state;
@@ -378,15 +379,9 @@ function remoteGroupHtml(remote, { canCreate, selectedId, sums }) {
         ${body}
       </div>`;
   }).join('');
-  const anyUp = links.some((l) => l.phase === 'up');
-  const addTitle = !canCreate ? 'Workspaces need a git repository'
-    : anyUp ? 'New remote workspace' : 'Connect a server first';
-  return `<div class="ws-group-head">
-      <span class="ws-group-label">Remote</span>
-      <button class="ws-group-add" data-act="new-remote" type="button" ${canCreate && anyUp ? '' : 'disabled'} title="${addTitle}" aria-label="New remote workspace">${PLUS}</button>
-    </div>
+  return `<div class="ws-group-head"><span class="ws-group-label">Remote</span></div>
     ${blocks}
-    <button class="ws-add-server" data-act="add-server" type="button">${PLUS}<span>Add server…</span></button>`;
+    <button class="ws-add-server" data-act="add-server" type="button" title="Add server (⌘⌥N)">${PLUS}<span>Add server…</span><span class="ws-new-key" aria-hidden="true">⌘⌥N</span></button>`;
 }
 
 /** The trigger's face: the selected workspace and its status dot. */
@@ -421,7 +416,7 @@ function render() {
   const sums = summaries();
   const canCreate = isRepo && loadedFor === projectPath;
   const addTitle = canCreate
-    ? 'New workspace (⌘⇧N)'
+    ? 'New workspace — on this Mac or a server (⌘⇧N)'
     : (loadedFor === projectPath ? 'Workspaces need a git repository' : 'Loading…');
   const mainOn = selectedId === state.MAIN_WORKSPACE_ID ? ' on' : '';
   const local = workspaces.filter((w) => w.location !== 'server');
@@ -443,11 +438,13 @@ function render() {
   rootEl.innerHTML = `
     ${triggerHtml({ selectedId, sums })}
     <div class="sidebar-project-menu ws-menu" role="menu" aria-label="Workspaces"${menuOpen ? '' : ' hidden'}>
+      <button class="sidebar-project-menu-item sidebar-project-menu-add ws-new" data-act="new" type="button" role="menuitem" ${canCreate ? '' : 'disabled'} title="${escapeHtml(addTitle)}">
+        <span class="sidebar-project-menu-item-name">+ New workspace</span>
+        <span class="ws-new-key" aria-hidden="true">⌘⇧N</span>
+      </button>
+      <div class="sidebar-project-menu-sep" role="separator"></div>
       <div class="ws-group" role="group" aria-label="Local">
-        <div class="ws-group-head">
-          <span class="ws-group-label">Local</span>
-          <button class="ws-group-add" data-act="new" type="button" ${canCreate ? '' : 'disabled'} title="${escapeHtml(addTitle)}" aria-label="New local workspace">${PLUS}</button>
-        </div>
+        <div class="ws-group-head"><span class="ws-group-label">Local</span></div>
         <div class="ws-row main${mainOn}" data-id="main" tabindex="0" role="menuitemradio" aria-checked="${!!mainOn}">
           ${dotHtml(rollup.summaryFor(sums, state.MAIN_WORKSPACE_ID))}
           <span class="ws-labels"><span class="ws-primary" title="The project's own checkout">main</span></span>
@@ -501,7 +498,7 @@ function closeDropdown({ focusTrigger = false } = {}) {
 
 /** Arrow keys walk the dropdown's rows and buttons, top to bottom. */
 function moveFocus(step) {
-  const items = [...rootEl.querySelectorAll('.ws-menu .ws-row[tabindex="0"], .ws-menu .ws-server-head[tabindex="0"], .ws-menu .ws-cta:not(:disabled), .ws-menu .ws-add-server, .ws-menu .ws-archived-toggle')];
+  const items = [...rootEl.querySelectorAll('.ws-menu .ws-row[tabindex="0"], .ws-menu .ws-new:not(:disabled), .ws-menu .ws-server-head[tabindex="0"], .ws-menu .ws-cta:not(:disabled), .ws-menu .ws-add-server, .ws-menu .ws-archived-toggle')];
   if (!items.length) return;
   const at = items.indexOf(document.activeElement);
   const next = items[(at + step + items.length) % items.length] || items[0];
@@ -521,9 +518,9 @@ function onClick(e) {
     const act = actEl.dataset.act;
     const ws = row ? findWs(row.dataset.id) : null;
     if (act === 'toggle') return menuOpen ? closeDropdown() : openDropdown();
-    // Local's "+" opens New Workspace on This Mac; Remote's on a server.
-    if (act === 'new') { closeDropdown(); return openNew({ location: 'local' }); }
-    if (act === 'new-remote') { closeDropdown(); return openNew({ location: 'server', serverKey: actEl.dataset.key || null }); }
+    // The one "New workspace…" at the top: the location is chosen in the
+    // dialog (this project's last one by default).
+    if (act === 'new') { closeDropdown(); return openNew(); }
     if (act === 'connect') { closeDropdown(); return require('./serverConnect').open({ key: actEl.dataset.key || null }); }
     if (act === 'add-server') { closeDropdown(); return require('./serverConnect').open({ add: true }); }
     if (act === 'toggle-server') return toggleServer(actEl.dataset.key);

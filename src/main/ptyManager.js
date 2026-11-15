@@ -724,7 +724,7 @@ function setupIPC(ipcMain) {
       if (data && data.location === 'server-home') {
         const link = data.serverKey ? connectedLink(data.serverKey) : server().all().find((l) => l.isConnected());
         if (!link) {
-          reply({ success: false, error: 'Connect to a server first (File ▸ Connect to Server…).' });
+          reply({ success: false, error: 'Connect to a server first (File ▸ Add Server…).' });
           return;
         }
         link.call('terminals.create', { home: true, homeFor: projectPath || null, homeWorkspace: workspaceId || 'main', shell: shellPath, cols: (data && data.cols) || 80, rows: (data && data.rows) || 24 })

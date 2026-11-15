@@ -826,6 +826,12 @@
 
 .ws-server + .ws-server { margin-top: 4px; }
 
+/* A server's workspaces sit a step in under its host, so the host reads as
+   their parent: each row's dot lines up with the server icon (head: 4px
+   padding + 8px caret + 6px gap = 18px; row: 8px padding). */
+.ws-server > .ws-row { margin-left: 10px; }
+.ws-server > .ws-empty { padding-left: 18px; }
+
 /* A labelled sub-separator: host, then a hairline to the edge (and Connect
    while the server is down). Quieter than the Local / Remote labels. */
 .ws-server-head {
@@ -932,6 +938,8 @@
   outline: none;
 }
 
+.ws-add-server > span:not(.ws-new-key) { flex: 1; }
+
 .ws-add-server:hover,
 .ws-add-server:focus-visible { background: var(--bg-hover); color: var(--text-primary); }
 
@@ -1033,3 +1041,19 @@
   background: var(--bg-hover);
   color: var(--text-primary);
 }
+
+/* "New workspace…" leads the menu, like the project menu's "Add a project…". */
+.ws-new-key {
+  flex: none;
+  margin-left: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+
+/* Scoped under .ws-menu: menu.css (imported after this file) sets every
+   .sidebar-project-menu-item to 13px, which beat a bare .ws-new. Same size
+   and height as "Add server…". */
+.ws-menu .ws-new { height: 28px; padding: 0 8px; line-height: 28px; font-size: 11px; font-weight: 400; }
+.ws-new:disabled { opacity: 0.45; cursor: default; }
+.ws-new:disabled:hover { background: transparent; color: var(--text-tertiary); }

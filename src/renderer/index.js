@@ -268,7 +268,7 @@ function init() {
   const showServerOffline = (rec) => {
     ipcRenderer.send(IPC.UNWATCH_GIT_STATUS);
     // A note the tree's late replies cannot wipe (server-hardening T7).
-    fileTreeUI.showNote(`${rec.host || 'The server'} is offline — reconnect it (File ▸ Connect to Server…) to see “${rec.name}”. Its terminals and agents keep running there.`, 'ws-server-placeholder offline');
+    fileTreeUI.showNote(`${rec.host || 'The server'} is offline — reconnect it from the server in the status bar to see “${rec.name}”. Its terminals and agents keep running there.`, 'ws-server-placeholder offline');
   };
   const serverRecordOf = (ws) => {
     const rec = ws && require('./workspaceSection').getWorkspaces().find((w) => w.id === ws.id);
@@ -439,6 +439,11 @@ function setupButtonHandlers() {
   // The foot of the sidebar rail — Plugins, Feedback, then Frame Settings:
   // each a modal (pluginsPanel, feedbackPanel, frameSettingsModal), not a
   // view — hence no .sidebar-tab-btn on the buttons. All three toggle.
+  const addServerBtn = document.getElementById('add-server-btn');
+  if (addServerBtn) {
+    addServerBtn.addEventListener('click', () => commandRegistry.runById('server.add'));
+    tooltip.attach(addServerBtn, 'Add Server (Cmd+Alt+N)', { placement: 'right' });
+  }
   const pluginsBtn = document.getElementById('plugins-btn');
   if (pluginsBtn) {
     pluginsBtn.addEventListener('click', () => pluginsPanel.toggle());
@@ -1113,6 +1118,13 @@ function registerCommands() {
     title: 'Connect to Server…',
     category: 'Server',
     run: () => require('./serverConnect').open()
+  });
+  r({
+    id: 'server.add',
+    title: 'Add Server…',
+    category: 'Server',
+    shortcut: 'CmdOrCtrl+Alt+N',
+    run: () => require('./serverConnect').open({ add: true })
   });
   r({
     id: 'server.disconnect',

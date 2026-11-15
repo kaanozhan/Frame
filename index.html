@@ -241,7 +241,14 @@
              .sidebar-tab-btn (that class drives view switching).
              .sidebar-rail-btn-foot on the first pushes the group to the
              bottom. -->
-        <button id="plugins-btn" class="sidebar-rail-btn sidebar-rail-btn-foot" aria-label="Plugins" tabindex="-1">
+        <!-- Add Server: opens the Servers dialog on its add field
+             (serverConnect.open({ add: true }), like File ▸ Add Server…). -->
+        <button id="add-server-btn" class="sidebar-rail-btn sidebar-rail-btn-foot" aria-label="Add Server" tabindex="-1">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/>
+          </svg>
+        </button>
+        <button id="plugins-btn" class="sidebar-rail-btn" aria-label="Plugins" tabindex="-1">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>
           </svg>

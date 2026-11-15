@@ -337,7 +337,7 @@ function serverCall(method, projectPath, id, extra = {}) {
  */
 async function createOnServer(projectPath, { from, base, branch, serverKey = null }) {
   const link = serverKey ? server().of(serverKey) : links().find((l) => l.isConnected());
-  if (!link) return { error: serverKey ? 'That server is no longer in the list.' : 'Connect to a server first (File ▸ Connect to Server…).' };
+  if (!link) return { error: serverKey ? 'That server is no longer in the list.' : 'Connect to a server first (File ▸ Add Server…).' };
   if (!link.isConnected()) return { error: `Not connected to ${link.host} — connect it first.` };
   try {
     const { serverProjectPath: sp, sent } = await ensureOnServer(projectPath, link);

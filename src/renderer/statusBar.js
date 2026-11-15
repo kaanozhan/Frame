@@ -172,7 +172,8 @@ function _buildNoticeTray() {
 // One server: its host and state dot. Several: "connected / total servers"
 // with the worst state's dot (serverConnectModel.summary — a server the user
 // disconnected does not grey it while another is connected), and the tooltip
-// lists each server. A click opens the Servers dialog.
+// lists each server. A click opens the Servers dialog. With no server saved,
+// it offers "Add server", which opens the dialog on the add field.
 
 function _buildServer() {
   const slot = barEl.querySelector('.status-bar-left');
@@ -183,13 +184,18 @@ function _buildServer() {
   btn.type = 'button';
   btn.className = 'sb-branch sb-server';
   btn.hidden = true;
-  btn.addEventListener('click', () => serverConnect.open());
+  btn.addEventListener('click', () => serverConnect.open({ add: !serverConnect.getServers().length }));
   slot.appendChild(btn);
   const paint = () => {
     const list = serverConnect.getServers();
     const sum = summary(list);
-    if (!sum) { btn.hidden = true; return; }
     btn.hidden = false;
+    if (!sum) {
+      delete btn.dataset.state;
+      btn.innerHTML = `${dock.lucideIcon(Server, 16)}<span class="sb-branch-name">Add server</span>`;
+      btn.title = 'Add a Frame Server (⌘⌥N)';
+      return;
+    }
     btn.dataset.state = sum.state;
     const one = list.length === 1 ? list[0] : null;
     const label = one ? one.host : `${sum.connected}/${sum.total} servers`;
