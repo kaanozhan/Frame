@@ -277,6 +277,8 @@ const IPC = {
   GIT_DEFAULT_BRANCH: 'git-default-branch',          // renderer → main (invoke): projectPath → { error, branch, hasOrigin }
   GET_WORKSPACE_SETTINGS: 'get-workspace-settings',  // renderer → main (invoke): projectPath → { setupScript, copyFiles, branchPrefix, frameProject }
   SET_WORKSPACE_SETTINGS: 'set-workspace-settings',  // renderer → main (invoke): { projectPath, settings } → normalised settings | { error }
+  SEND_FILES_LIST: 'send-files-list',                // renderer → main (invoke): { projectPath, workspaceId, serverKey } → { ignored, untracked, sizes, server, copyFiles, host } | { error } (server-copy-files)
+  SEND_FILES_SEND: 'send-files-send',                // renderer → main (invoke): { projectPath, workspaceId, serverKey, paths, remember } → { written, overwritten, skipped, toMainCopy, remembered } | { error }
 
   // Layout migration (pre-overlay project → .frame/), consented per project
   GET_MIGRATION_DECISIONS: 'get-migration-decisions',      // renderer → main (invoke): what is left to ask, or []

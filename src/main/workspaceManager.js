@@ -109,8 +109,10 @@ function newId() {
  * Only gitignored, untracked paths are candidates (tracked files are already
  * there). Never overwrites a file that exists in the worktree.
  */
-async function copyIgnoredFiles(projectPath, worktreePath) {
-  const { copyFiles } = settingsFor(projectPath);
+async function copyIgnoredFiles(projectPath, worktreePath, patterns = null) {
+  // A server workspace is created with the desktop's patterns (server-copy-files):
+  // the server's own config may lag behind them, or not exist (local mode).
+  const copyFiles = Array.isArray(patterns) ? patterns : settingsFor(projectPath).copyFiles;
   if (!copyFiles.length) return [];
   const { paths } = await git.listIgnoredCandidates(projectPath);
   const chosen = selectFiles(paths, copyFiles);
@@ -263,31 +265,38 @@ function toServerRow(row, serverProjectPath, link) {
   return { ...row, location: 'server', host: link.host, serverKey: link.key, serverProjectPath };
 }
 
-/** One server's workspaces of `projectPath`; its last known rows, offline, while it is down. */
+/**
+ * One server's workspaces of `projectPath`: `{ rows, archived }`. While the
+ * server is down, its last known lists, offline. Archived rows come from the
+ * server's own list (archived there, restorable from here).
+ */
 async function listOn(projectPath, link) {
   const prev = rowsFor(projectPath, link.key);
-  const offline = () => (prev ? prev.rows.map((r) => ({ ...r, offline: true })) : []);
+  const offline = () => (prev
+    ? { rows: prev.rows.map((r) => ({ ...r, offline: true })), archived: (prev.archived || []).map((r) => ({ ...r, offline: true })) }
+    : { rows: [], archived: [] });
   if (!link.isConnected()) return offline();
   try {
     const sp = await serverProjectFor(projectPath, link);
     if (!sp) {
       if (serverRows.has(projectPath)) serverRows.get(projectPath).delete(link.key);
-      return [];
+      return { rows: [], archived: [] };
     }
     const res = await link.call('workspaces.list', { projectPath: sp });
     const rows = ((res && res.workspaces) || []).map((w) => toServerRow(w, sp, link));
-    setRows(projectPath, { serverProjectPath: sp, host: link.host, serverKey: link.key, rows });
-    return rows;
+    const archived = ((res && res.archived) || []).map((w) => toServerRow(w, sp, link));
+    setRows(projectPath, { serverProjectPath: sp, host: link.host, serverKey: link.key, rows, archived });
+    return { rows, archived };
   } catch (err) {
     logger.warn('workspaces', `server workspaces of ${projectPath} on ${link.host}: ${err.message}`);
     return offline();
   }
 }
 
-/** Every saved server's workspaces of `projectPath`, server by server in list order. */
+/** Every saved server's workspaces of `projectPath`, server by server in list order: `{ workspaces, archived }`. */
 async function listServer(projectPath) {
   const perServer = await Promise.all(links().map((link) => listOn(projectPath, link)));
-  return perServer.flat();
+  return { workspaces: perServer.flatMap((p) => p.rows), archived: perServer.flatMap((p) => p.archived) };
 }
 
 /**
@@ -313,7 +322,8 @@ function serverRoots() {
 function serverLocation(workspaceId, serverKey = null) {
   for (const [projectPath, entry] of currentEntries()) {
     if (serverKey && entry.serverKey !== serverKey) continue;
-    const row = entry.rows.find((r) => r.id === workspaceId);
+    // Archived rows too: restoring one is routed to its server.
+    const row = entry.rows.find((r) => r.id === workspaceId) || (entry.archived || []).find((r) => r.id === workspaceId);
     if (row) return { projectPath, serverProjectPath: entry.serverProjectPath, path: row.path, host: entry.host, serverKey: entry.serverKey, name: row.name };
   }
   return null;
@@ -345,7 +355,10 @@ async function createOnServer(projectPath, { from, base, branch, serverKey = nul
   if (!link.isConnected()) return { error: `Not connected to ${link.host} — connect it first.` };
   try {
     const { serverProjectPath: sp, sent } = await ensureOnServer(projectPath, link);
-    const res = await link.call('workspaces.create', { projectPath: sp, from, base, branch }, 11 * 60 * 1000);
+    // This desktop's copyFiles patterns (server-copy-files): the server copies
+    // the matching files it holds in its main copy into the new worktree.
+    const copyFiles = settingsFor(projectPath).copyFiles || [];
+    const res = await link.call('workspaces.create', { projectPath: sp, from, base, branch, copyFiles }, 11 * 60 * 1000);
     if (!res || res.error) return { error: (res && res.error) || `Could not create the workspace on ${link.host}.` };
     const workspace = toServerRow(res.workspace, sp, link);
     const entry = rowsFor(projectPath, link.key) || { serverProjectPath: sp, host: link.host, serverKey: link.key, rows: [] };
@@ -390,7 +403,12 @@ async function list(projectPath) {
   const local = await listLocal(projectPath);
   if (local.error || !local.isRepo) return local;
   const remote = await listServer(projectPath);
-  return { ...local, workspaces: [...local.workspaces.map((w) => ({ ...w, location: 'local' })), ...remote] };
+  return {
+    ...local,
+    workspaces: [...local.workspaces.map((w) => ({ ...w, location: 'local' })), ...remote.workspaces],
+    // Archived on a server too, shown with its host and restorable from here.
+    archived: [...(local.archived || []), ...remote.archived]
+  };
 }
 
 function realPath(p) {
@@ -404,9 +422,12 @@ async function listLocal(projectPath) {
   // row only counts when its folder is still on disk.
   const present = worktrees.filter((w) => w && w.path && fs.existsSync(w.path));
   const reconciled = registry.reconcile(records(projectPath), present, { canon: realPath });
+  // The main checkout is git's first worktree; its branch labels the main row.
+  const main = worktrees.find((w) => w && w.isMain);
   return {
     error: null,
     isRepo: true,
+    mainBranch: main ? (main.branch || (main.detached ? 'detached HEAD' : null)) : null,
     workspaces: await withBase(projectPath, registry.activeOf(reconciled)),
     archived: registry.archivedOf(reconciled)
   };
@@ -451,7 +472,7 @@ async function status(projectPath, id) {
  *                    first; a failed fetch falls back to what is local)
  *   from: 'branch' → an existing branch (local, or remote-only via git's DWIM)
  */
-async function create(projectPath, { from = 'new', base, branch, location = 'local', serverKey = null } = {}) {
+async function create(projectPath, { from = 'new', base, branch, location = 'local', serverKey = null, copyFiles = null } = {}) {
   if (!projectPath) return { error: 'No project selected' };
   // Branch text from the dialog (or the server protocol) reaches git argv:
   // refuse anything that is not a plain branch name before any git runs
@@ -550,7 +571,7 @@ async function create(projectPath, { from = 'new', base, branch, location = 'loc
     return { error: result.ok ? 'This project is not in the project registry.' : result.error.message };
   }
 
-  const copied = await copyIgnoredFiles(projectPath, worktreePath);
+  const copied = await copyIgnoredFiles(projectPath, worktreePath, copyFiles);
   tooling.provision(projectPath, worktreePath);
   notify(projectPath);
   return { error: null, workspace: result.record, copied, fetch, setupScript: settings.setupScript };
@@ -628,6 +649,9 @@ async function archive(projectPath, id, { action, message, rescue = false } = {}
 
 /** Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere. */
 async function restore(projectPath, id) {
+  // A workspace archived on a server is restored there.
+  const routed = serverCall('workspaces.restore', projectPath, id);
+  if (routed) return routed;
   const current = records(projectPath);
   const check = registry.restore(current, id);
   if (!check.ok) return { error: check.error.message };

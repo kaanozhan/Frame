@@ -530,3 +530,16 @@ test('push and pull requests of a project without a remote say a remote is neede
   const pr = await workspaceGitState.prCreate(project, created.workspace.id, { title: 'x' });
   assert.match(String(pr.error), /no remote — add one/);
 });
+
+// ─── The main row names the main checkout's branch ───────────
+
+test('the list names the branch the main checkout is on, not "main"', async () => {
+  const { project } = makeProject();
+  assert.equal((await workspaceManager.list(project)).mainBranch, 'main');
+  git(['checkout', '-q', '-b', 'feat/x'], project);
+  const created = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.equal(created.error, null, created.error);
+  assert.equal((await workspaceManager.list(project)).mainBranch, 'feat/x', 'a workspace never stands in for the main checkout');
+  git(['checkout', '-q', '--detach'], project);
+  assert.equal((await workspaceManager.list(project)).mainBranch, 'detached HEAD');
+});

@@ -3,9 +3,10 @@
  * Initializes Electron app, creates window, loads modules
  */
 
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
+const { isSafeExternalUrl } = require('../shared/externalLink');
 
 // Import modules
 const logger = require('./logger');
@@ -109,6 +110,22 @@ function createWindow() {
   });
 
   mainWindow.loadFile('index.html');
+
+  // Never open remote content inside a Frame window: the renderer runs with
+  // nodeIntegration, so a child window (window.open) or an in-place
+  // navigation to a web URL would give that site Node access — and a child
+  // window crashed the renderer. http(s) goes to the system browser; any
+  // other window.open / renderer-initiated navigation away from the app's
+  // own file:// pages is dropped.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (isSafeExternalUrl(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (url.startsWith('file:')) return;
+    event.preventDefault();
+    if (isSafeExternalUrl(url)) shell.openExternal(url);
+  });
 
   // Open DevTools only in development mode
   if (process.env.NODE_ENV === 'development') {
@@ -232,6 +249,7 @@ function setupAllIPC() {
   sessionRestore.setupIPC(ipcMain);
   dialogs.setupIPC(ipcMain);
   fileTree.setupIPC(ipcMain);
+  require('./sendFiles').setupIPC(ipcMain);
   promptLogger.setupIPC(ipcMain);
   projectRegistry.setupIPC(ipcMain);
   frameProject.setupIPC(ipcMain);

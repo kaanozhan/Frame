@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-15",
+  "lastUpdated": "2026-11-16",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -7389,6 +7389,7 @@
         "electron",
         "path",
         "shared/ipcChannels",
+        "shared/externalLink",
         "logger",
         "envPath",
         "perfMonitor",
@@ -7435,30 +7436,31 @@
         "cloud/cloudStartService",
         "cloud/cloudDoneService",
         "structureLifecycle",
-        "child_process"
+        "child_process",
+        "sendFiles"
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 71,
+          "line": 72,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 89,
+          "line": 90,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 196
+          "line": 213
         },
         "setupAllIPC": {
-          "line": 226,
+          "line": 243,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 332,
+          "line": 350,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 380,
+          "line": 398,
           "params": [
             "window"
           ],
@@ -7481,7 +7483,7 @@
           "MAIN_PROCESS_ERROR"
         ]
       },
-      "sizeBytes": 17980,
+      "sizeBytes": 18855,
       "extraction": {
         "status": "parsed"
       },
@@ -9243,6 +9245,128 @@
           "routeOfTerminal": "c04c4b8094dd649f",
           "serverTerminalInfo": "e74374f9e9a0d275",
           "writeToTerminal": "6e7ca448a2aac555"
+        }
+      }
+    },
+    "main/sendFiles": {
+      "file": "src/main/sendFiles.js",
+      "description": "Send git-ignored files to a server workspace (server-copy-files).",
+      "exports": [
+        "setupIPC",
+        "list",
+        "send",
+        "boundedSize",
+        "offered"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "shared/ipcChannels",
+        "shared/fileArchive",
+        "shared/sendFilesModel",
+        "serverConnection",
+        "gitBranchesManager",
+        "workspaceManager",
+        "frameProject",
+        "serverInstaller"
+      ],
+      "functions": {
+        "server": {
+          "line": 37
+        },
+        "git": {
+          "line": 38
+        },
+        "offered": {
+          "line": 41,
+          "params": [
+            "rel"
+          ],
+          "purpose": "Never offered: Frame's own folder."
+        },
+        "locate": {
+          "line": 51,
+          "params": [
+            "workspaceId",
+            "serverKey = null"
+          ],
+          "purpose": "The server workspace `workspaceId` names and the link of its own server"
+        },
+        "candidates": {
+          "line": 62,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "`{ ignored, untracked }` as git lists them, minus `.frame/`."
+        },
+        "boundedSize": {
+          "line": 76,
+          "params": [
+            "dir"
+          ],
+          "purpose": "Bytes under `dir`, stopping after WALK_MAX_ENTRIES entries or WALK_MAX_MS; `{ size, cut }`."
+        },
+        "sha256": {
+          "line": 98,
+          "params": [
+            "file"
+          ]
+        },
+        "list": {
+          "line": 102,
+          "params": [
+            "{ projectPath",
+            "workspaceId",
+            "serverKey = null } = {}"
+          ]
+        },
+        "entriesFor": {
+          "line": 140,
+          "params": [
+            "projectPath",
+            "rel",
+            "out"
+          ],
+          "purpose": "Archive entries for one chosen path (a file, a symlink, or a whole collapsed folder)."
+        },
+        "send": {
+          "line": 151,
+          "params": [
+            "{ projectPath",
+            "workspaceId",
+            "serverKey = null",
+            "paths",
+            "remember = false } = {}"
+          ]
+        },
+        "setupIPC": {
+          "line": 202,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SEND_FILES_LIST",
+          "SEND_FILES_SEND"
+        ],
+        "emits": []
+      },
+      "sizeBytes": 9418,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "a4e7eec84011a277",
+        "purposes": {
+          "boundedSize": "423a187c431ce0e5",
+          "candidates": "0a2827990991bcde",
+          "entriesFor": "3952c7ee8b770373",
+          "locate": "cd075ba3bf8111f5",
+          "offered": "806466f4ce320908"
         }
       }
     },
@@ -12056,19 +12180,20 @@
           "line": 112,
           "params": [
             "projectPath",
-            "worktreePath"
+            "worktreePath",
+            "patterns = null"
           ],
           "purpose": "Copy the `copyFiles` selection from the main checkout into a worktree."
         },
         "server": {
-          "line": 159
+          "line": 161
         },
         "links": {
-          "line": 164,
+          "line": 166,
           "purpose": "Every saved server's link, in list order."
         },
         "rowsFor": {
-          "line": 169,
+          "line": 171,
           "params": [
             "projectPath",
             "serverKey"
@@ -12076,31 +12201,31 @@
           "purpose": "The cached entry of one server for `projectPath`, or null."
         },
         "setRows": {
-          "line": 174,
+          "line": 176,
           "params": [
             "projectPath",
             "entry"
           ]
         },
         "currentEntries": {
-          "line": 184,
+          "line": 186,
           "purpose": "`[projectPath, entry]` of every saved server, in the saved list's order (the"
         },
         "originOf": {
-          "line": 193,
+          "line": 195,
           "params": [
             "projectPath"
           ]
         },
         "localIdentity": {
-          "line": 203,
+          "line": 205,
           "params": [
             "projectPath"
           ],
           "purpose": "How the server knows `projectPath`: its remote, its root commit, and the key (serverRouting.projectKey)."
         },
         "findOnServer": {
-          "line": 211,
+          "line": 213,
           "params": [
             "link",
             "id"
@@ -12108,7 +12233,7 @@
           "purpose": "`link`'s clone of `projectPath`, matched by remote or (no remote) by root commit; null when none."
         },
         "ensureOnServer": {
-          "line": 225,
+          "line": 227,
           "params": [
             "projectPath",
             "link"
@@ -12116,7 +12241,7 @@
           "purpose": "Make sure `link`'s server has `projectPath` (server-onboarding): the"
         },
         "serverProjectFor": {
-          "line": 254,
+          "line": 256,
           "params": [
             "projectPath",
             "link"
@@ -12124,7 +12249,7 @@
           "purpose": "`link`'s clone of `projectPath`, or null (cached per server; matched by remote or root commit)."
         },
         "toServerRow": {
-          "line": 262,
+          "line": 264,
           "params": [
             "row",
             "serverProjectPath",
@@ -12132,26 +12257,26 @@
           ]
         },
         "listOn": {
-          "line": 267,
+          "line": 273,
           "params": [
             "projectPath",
             "link"
           ],
-          "purpose": "One server's workspaces of `projectPath`; its last known rows, offline, while it is down."
+          "purpose": "One server's workspaces of `projectPath`: `{ rows, archived }`. While the"
         },
         "listServer": {
-          "line": 288,
+          "line": 297,
           "params": [
             "projectPath"
           ],
-          "purpose": "Every saved server's workspaces of `projectPath`, server by server in list order."
+          "purpose": "Every saved server's workspaces of `projectPath`, server by server in list order: `{ workspaces, archived }`."
         },
         "serverRoots": {
-          "line": 299,
+          "line": 308,
           "purpose": "Every known server workspace folder (server-workspace-panels): what panel"
         },
         "serverLocation": {
-          "line": 313,
+          "line": 322,
           "params": [
             "workspaceId",
             "serverKey = null"
@@ -12159,14 +12284,14 @@
           "purpose": "Where a workspace id lives on a server, or null when it is not a server"
         },
         "linkOfLocation": {
-          "line": 323,
+          "line": 333,
           "params": [
             "loc"
           ],
           "purpose": "The connected link of `loc`'s server, or null."
         },
         "serverCall": {
-          "line": 328,
+          "line": 338,
           "params": [
             "method",
             "projectPath",
@@ -12175,7 +12300,7 @@
           ]
         },
         "createOnServer": {
-          "line": 342,
+          "line": 352,
           "params": [
             "projectPath",
             "{ from",
@@ -12186,35 +12311,35 @@
           "purpose": "Create a workspace on one server (`serverKey`). Without a key — a caller"
         },
         "notifyRenderer": {
-          "line": 362,
+          "line": 375,
           "params": [
             "projectPath"
           ],
           "purpose": "Tell the renderer only (no spec/git refresh — those are local concerns)."
         },
         "wireServerEvents": {
-          "line": 367
+          "line": 380
         },
         "list": {
-          "line": 388,
+          "line": 401,
           "params": [
             "projectPath"
           ]
         },
         "realPath": {
-          "line": 396,
+          "line": 414,
           "params": [
             "p"
           ]
         },
         "listLocal": {
-          "line": 400,
+          "line": 418,
           "params": [
             "projectPath"
           ]
         },
         "withBase": {
-          "line": 419,
+          "line": 440,
           "params": [
             "projectPath",
             "rows"
@@ -12222,7 +12347,7 @@
           "purpose": "Records stored before workspaces knew their base (`base: null`) read as the"
         },
         "baseForBranch": {
-          "line": 426,
+          "line": 447,
           "params": [
             "projectPath",
             "branch"
@@ -12230,33 +12355,34 @@
           "purpose": "The base to prefill for a workspace opened from `branch` (decision B2)."
         },
         "status": {
-          "line": 435,
+          "line": 456,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "create": {
-          "line": 454,
+          "line": 475,
           "params": [
             "projectPath",
             "{ from = 'new'",
             "base",
             "branch",
             "location = 'local'",
-            "serverKey = null } = {}"
+            "serverKey = null",
+            "copyFiles = null } = {}"
           ],
           "purpose": "Create a workspace."
         },
         "refExists": {
-          "line": 559,
+          "line": 580,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "archive": {
-          "line": 575,
+          "line": 596,
           "params": [
             "projectPath",
             "id",
@@ -12267,7 +12393,7 @@
           "purpose": "Archive. With uncommitted changes and no `action`, nothing happens and"
         },
         "restore": {
-          "line": 630,
+          "line": 651,
           "params": [
             "projectPath",
             "id"
@@ -12275,7 +12401,7 @@
           "purpose": "Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere."
         },
         "rename": {
-          "line": 655,
+          "line": 679,
           "params": [
             "projectPath",
             "id",
@@ -12285,7 +12411,7 @@
           "purpose": "Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`)."
         },
         "removeRecord": {
-          "line": 689,
+          "line": 713,
           "params": [
             "projectPath",
             "id"
@@ -12293,13 +12419,13 @@
           "purpose": "Forget a record whose worktree is gone (missing) or that is archived."
         },
         "setupIPC": {
-          "line": 705,
+          "line": 729,
           "params": [
             "ipcMain"
           ]
         },
         "archiveQueued": {
-          "line": 732,
+          "line": 756,
           "params": [
             "projectPath",
             "id",
@@ -12326,7 +12452,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 32888,
+      "sizeBytes": 34517,
       "extraction": {
         "status": "parsed"
       },
@@ -12344,8 +12470,8 @@
           "findOnServer": "4f465b9a955eaefe",
           "linkOfLocation": "83cd6bec5d2d6b72",
           "links": "49d31c8f2c7e4214",
-          "listOn": "68f2099fe1be492f",
-          "listServer": "5207577dfb4207b0",
+          "listOn": "6d8b2d3aaa039050",
+          "listServer": "04ca1bea10b3974d",
           "localIdentity": "45f45e051f23b3c6",
           "notifyRenderer": "f9f667afbfb4fe2c",
           "removeRecord": "cfa0e770acc4b861",
@@ -20410,6 +20536,7 @@
         "aiToolSelector",
         "serverConnect",
         "workspaceSection",
+        "sendFilesModal",
         "agentDispatch"
       ],
       "functions": {
@@ -20480,14 +20607,14 @@
           "line": 320
         },
         "waitForSetupToFinish": {
-          "line": 382,
+          "line": 390,
           "params": [
             "terminalId"
           ],
           "purpose": "Resolve when `terminalId` has run something and come back to its shell prompt."
         },
         "runSetupThenAgent": {
-          "line": 409,
+          "line": 417,
           "params": [
             "{ setupScript",
             "toolId = null",
@@ -20497,7 +20624,7 @@
           "purpose": "In the selected workspace: run the setup script (if any) in a \"setup\""
         },
         "openAgent": {
-          "line": 444,
+          "line": 452,
           "params": [
             "{ toolId",
             "prompt",
@@ -20506,7 +20633,7 @@
           ]
         }
       },
-      "sizeBytes": 20215,
+      "sizeBytes": 20703,
       "extraction": {
         "status": "parsed"
       },
@@ -22270,6 +22397,47 @@
         "purposes": {
           "anchorFor": "9aa51a7605fd597b",
           "place": "a417eef24a82a12b"
+        }
+      }
+    },
+    "renderer/sendFilesModal": {
+      "file": "src/renderer/sendFilesModal.js",
+      "description": "Send files to server — pick the files git does not carry and send them to",
+      "exports": [
+        "open",
+        "summary"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "shared/sendFilesModel",
+        "htmlUtils"
+      ],
+      "functions": {
+        "open": {
+          "line": 22,
+          "params": [
+            "{ projectPath",
+            "workspace",
+            "context = 'resend' } = {}"
+          ]
+        },
+        "summary": {
+          "line": 200,
+          "params": [
+            "result"
+          ],
+          "purpose": "One line for a notice: what was sent, overwritten and skipped."
+        }
+      },
+      "sizeBytes": 9865,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "106c77f7a7670933",
+        "purposes": {
+          "summary": "6fb45034ef57d1fd"
         }
       }
     },
@@ -25044,6 +25212,18 @@
         "reason": "no-extractor"
       }
     },
+    "renderer/styles/components/send-files-modal.css": {
+      "file": "src/renderer/styles/components/send-files-modal.css",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 3125,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     "renderer/styles/components/settings-modal.css": {
       "file": "src/renderer/styles/components/settings-modal.css",
       "description": "",
@@ -25206,7 +25386,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 3794,
+      "sizeBytes": 3837,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -26296,6 +26476,7 @@
       ],
       "depends": [
         "electron",
+        "shared/externalLink",
         "shared/reviewModel",
         "xterm",
         "xterm-addon-fit",
@@ -26306,20 +26487,20 @@
       ],
       "functions": {
         "getTerminalTheme": {
-          "line": 16,
+          "line": 17,
           "purpose": "Terminal theme for the current app theme (themes.js owns the palettes)."
         },
         "escapePathForShell": {
-          "line": 34,
+          "line": 35,
           "params": [
             "p"
           ]
         },
         "installGlobalDropGuard": {
-          "line": 50
+          "line": 51
         },
         "terminalName": {
-          "line": 65,
+          "line": 66,
           "params": [
             "n"
           ],
@@ -26345,7 +26526,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 41062,
+      "sizeBytes": 41561,
       "extraction": {
         "status": "parsed"
       },
@@ -26911,46 +27092,47 @@
         "serverConnect",
         "terminal",
         "lucide",
-        "dock"
+        "dock",
+        "sendFilesModal"
       ],
       "functions": {
         "setActions": {
-          "line": 60,
+          "line": 62,
           "params": [
             "next"
           ],
           "purpose": "Let the dialogs plug in without this module requiring them."
         },
         "init": {
-          "line": 64
+          "line": 66
         },
         "load": {
-          "line": 126,
+          "line": 138,
           "params": [
             "{ reselect = false } = {}"
           ],
           "purpose": "Re-read the project's workspaces; with `reselect`, restore the remembered selection."
         },
         "select": {
-          "line": 172,
+          "line": 185,
           "params": [
             "ws"
           ]
         },
         "scheduleRender": {
-          "line": 188
+          "line": 201
         },
         "summaries": {
-          "line": 198
+          "line": 211
         },
         "dotHtml": {
-          "line": 215,
+          "line": 228,
           "params": [
             "summary"
           ]
         },
         "rowHtml": {
-          "line": 220,
+          "line": 233,
           "params": [
             "ws",
             "{ selectedId",
@@ -26958,18 +27140,18 @@
           ]
         },
         "linkView": {
-          "line": 259,
+          "line": 272,
           "params": [
             "srv"
           ],
           "purpose": "A saved server as the Remote group reads it: `{ key, host, phase, state }`."
         },
         "serverViews": {
-          "line": 269,
+          "line": 282,
           "purpose": "Every saved server, in list order (multi-server-connections)."
         },
         "serverHeadHtml": {
-          "line": 279,
+          "line": 292,
           "params": [
             "link",
             "{ collapsed",
@@ -26979,46 +27161,46 @@
           "purpose": "One server's sub-header in Remote, drawn as a labelled sub-separator: the"
         },
         "isServerOpen": {
-          "line": 311,
+          "line": 324,
           "params": [
             "key",
             "count"
           ]
         },
         "setServerOpen": {
-          "line": 315,
+          "line": 328,
           "params": [
             "key",
             "open"
           ]
         },
         "toggleServer": {
-          "line": 320,
+          "line": 333,
           "params": [
             "key"
           ]
         },
         "serverCounts": {
-          "line": 331,
+          "line": 344,
           "params": [
             "list"
           ]
         },
         "openServersThatGrew": {
-          "line": 337,
+          "line": 350,
           "params": [
             "list"
           ]
         },
         "serverEmptyHtml": {
-          "line": 346,
+          "line": 359,
           "params": [
             "link"
           ],
           "purpose": "What a server with no workspaces of this project offers: the next step for its link."
         },
         "remoteGroupHtml": {
-          "line": 364,
+          "line": 377,
           "params": [
             "remote",
             "{ canCreate",
@@ -27027,8 +27209,12 @@
           ],
           "purpose": "The Remote group: one sub-header per saved server with its own rows or its"
         },
+        "mainLabel": {
+          "line": 405,
+          "purpose": "The main row's label: the branch the project's own checkout is on, like"
+        },
         "triggerHtml": {
-          "line": 389,
+          "line": 410,
           "params": [
             "{ selectedId",
             "sums }"
@@ -27036,50 +27222,50 @@
           "purpose": "The trigger's face: the selected workspace and its status dot."
         },
         "render": {
-          "line": 404
+          "line": 425
         },
         "openDropdown": {
-          "line": 475
+          "line": 496
         },
         "closeDropdown": {
-          "line": 485,
+          "line": 506,
           "params": [
             "{ focusTrigger = false } = {}"
           ]
         },
         "moveFocus": {
-          "line": 501,
+          "line": 522,
           "params": [
             "step"
           ],
           "purpose": "Arrow keys walk the dropdown's rows and buttons, top to bottom."
         },
         "findWs": {
-          "line": 509,
+          "line": 530,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 513,
+          "line": 534,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 547,
+          "line": 568,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 575,
+          "line": 596,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 588,
+          "line": 609,
           "params": [
             "ws",
             "x",
@@ -27087,42 +27273,48 @@
           ]
         },
         "hideMenu": {
-          "line": 613
+          "line": 636
         },
         "onMenuClick": {
-          "line": 617,
+          "line": 640,
           "params": [
             "e"
           ]
         },
+        "sendFilesTo": {
+          "line": 652,
+          "params": [
+            "ws"
+          ]
+        },
         "openNew": {
-          "line": 630,
+          "line": 662,
           "params": [
             "opts"
           ]
         },
         "startRename": {
-          "line": 638,
+          "line": 670,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 645,
+          "line": 677,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 665,
+          "line": 697,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "rescueBranchName": {
-          "line": 706,
+          "line": 738,
           "params": [
             "ws",
             "head"
@@ -27130,7 +27322,7 @@
           "purpose": "The branch name archive's rescue creates; the sha may be unknown before a commit is made."
         },
         "askRescue": {
-          "line": 712,
+          "line": 744,
           "params": [
             "ws",
             "head"
@@ -27138,14 +27330,14 @@
           "purpose": "The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false."
         },
         "closeWorkspaceTerminals": {
-          "line": 749,
+          "line": 781,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 762,
+          "line": 794,
           "params": [
             "ws",
             "count"
@@ -27153,41 +27345,41 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 820,
+          "line": 852,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 826,
+          "line": 858,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 839,
+          "line": 871,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 848,
+          "line": 880,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 861,
+          "line": 893,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 875,
+          "line": 907,
           "purpose": "Active workspaces of the current project, as last loaded."
         },
         "serverOpen": {
-          "line": 307,
+          "line": 320,
           "params": [
             "("
           ]
@@ -27195,11 +27387,12 @@
       },
       "ipc": {
         "listens": [
-          "WORKSPACES_UPDATED"
+          "WORKSPACES_UPDATED",
+          "GIT_STATUS_DATA"
         ],
         "emits": []
       },
-      "sizeBytes": 40606,
+      "sizeBytes": 42218,
       "extraction": {
         "status": "parsed"
       },
@@ -27213,6 +27406,7 @@
           "getWorkspaces": "0eab879c07f7a326",
           "linkView": "aeb38c4ced639f63",
           "load": "e807754c516c9be1",
+          "mainLabel": "edac7efb729dd2d6",
           "moveFocus": "e1d5336f87eacefc",
           "remoteGroupHtml": "adc0ab63d3466cbd",
           "rescueBranchName": "9535b434ca8c9ced",
@@ -32203,6 +32397,7 @@
         "projects",
         "panels",
         "specs",
+        "sendFiles",
         "doctor"
       ],
       "functions": {
@@ -32300,7 +32495,7 @@
           "purpose": "An installed package carries its exact version (a dev build's is"
         }
       },
-      "sizeBytes": 11502,
+      "sizeBytes": 11574,
       "extraction": {
         "status": "parsed"
       },
@@ -32387,7 +32582,7 @@
           ]
         }
       },
-      "sizeBytes": 8469,
+      "sizeBytes": 8897,
       "extraction": {
         "status": "parsed"
       },
@@ -32431,6 +32626,59 @@
         "description": "3e1a03f2467a9a7e",
         "purposes": {
           "loadXterm": "4b95af42b3ca39f2"
+        }
+      }
+    },
+    "server/sendFiles": {
+      "file": "src/server/sendFiles.js",
+      "description": "Receiving git-ignored files from the desktop (server-copy-files).",
+      "exports": [
+        "setup",
+        "HASH_MAX_BYTES"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "shared/fileArchive",
+        "child_process",
+        "main/projectRegistry",
+        "shared/workspaceRegistry"
+      ],
+      "functions": {
+        "excludeInMainCopy": {
+          "line": 44,
+          "params": [
+            "mainCopy",
+            "relPaths"
+          ],
+          "purpose": "Keep the files sent into the main copy out of git there, through its"
+        },
+        "uploadsDir": {
+          "line": 68
+        },
+        "sha256": {
+          "line": 73,
+          "params": [
+            "file"
+          ]
+        },
+        "setup": {
+          "line": 77,
+          "params": [
+            "{ registerMethods }"
+          ]
+        }
+      },
+      "sizeBytes": 8701,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "12a57329a352d182",
+        "purposes": {
+          "excludeInMainCopy": "7d74298c5dace78a"
         }
       }
     },
@@ -32972,6 +33220,33 @@
         }
       }
     },
+    "shared/externalLink": {
+      "file": "src/shared/externalLink.js",
+      "description": "externalLink — which URLs Frame may hand to the system browser.",
+      "exports": [
+        "isSafeExternalUrl"
+      ],
+      "depends": [],
+      "functions": {
+        "isSafeExternalUrl": {
+          "line": 14,
+          "params": [
+            "url"
+          ],
+          "purpose": "True when `url` is a well-formed http(s) URL safe to open externally."
+        }
+      },
+      "sizeBytes": 809,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "ba76e0457ebc3818",
+        "purposes": {
+          "isSafeExternalUrl": "44cc7d9548f3f7ea"
+        }
+      }
+    },
     "shared/feedbackReport": {
       "file": "src/shared/feedbackReport.js",
       "description": "Feedback report — the one composer.",
@@ -33081,6 +33356,64 @@
           "normalizeText": "272d8cd5ef500dd5",
           "typeById": "7dcce95ebef979eb",
           "validate": "5b6fc0a4f9277056"
+        }
+      }
+    },
+    "shared/fileArchive": {
+      "file": "src/shared/fileArchive.js",
+      "description": "fileArchive — the archive that carries git-ignored files from the desktop",
+      "exports": [
+        "pack",
+        "readEntries",
+        "checkEntries",
+        "pathProblem",
+        "MAGIC"
+      ],
+      "depends": [
+        "zlib",
+        "path"
+      ],
+      "functions": {
+        "pack": {
+          "line": 29,
+          "params": [
+            "entries"
+          ],
+          "purpose": "Build an archive."
+        },
+        "readEntries": {
+          "line": 44,
+          "params": [
+            "archive"
+          ],
+          "purpose": "Parse an archive into `[{ path, type, mode, size, data?, target? }]`; throws on anything malformed."
+        },
+        "pathProblem": {
+          "line": 80,
+          "params": [
+            "p"
+          ],
+          "purpose": "Why `p` is not a safe relative path, or null."
+        },
+        "checkEntries": {
+          "line": 97,
+          "params": [
+            "entries"
+          ],
+          "purpose": "The first entry that must not be written, as `{ path, reason }`, or null"
+        }
+      },
+      "sizeBytes": 5117,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "345b39c5e0d58809",
+        "purposes": {
+          "checkEntries": "2013f095774e52de",
+          "pack": "803019d8b0f9b0db",
+          "pathProblem": "b2d99156125cf6ee",
+          "readEntries": "324d0d2f38f9cb27"
         }
       }
     },
@@ -33419,7 +33752,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 25083,
+      "sizeBytes": 25513,
       "extraction": {
         "status": "parsed"
       },
@@ -33743,6 +34076,153 @@
           "reconcileViewed": "79b6a198245b67a0",
           "remainingAfterSend": "f012f9e07b6b19d6",
           "viewedSummary": "e48001f7847fbbcc"
+        }
+      }
+    },
+    "shared/sendFilesModel": {
+      "file": "src/shared/sendFilesModel.js",
+      "description": "sendFilesModel — the rules behind the \"Send files to server\" modal",
+      "exports": [
+        "HEAVY_DIRS",
+        "WARN_BYTES",
+        "REFUSE_BYTES",
+        "formatBytes",
+        "isHeavy",
+        "buildTree",
+        "leaves",
+        "defaultSelection",
+        "toggle",
+        "selectAll",
+        "selectionSize",
+        "sizeVerdict",
+        "patternsFor",
+        "mergePatterns"
+      ],
+      "depends": [
+        "copyFilesMatch"
+      ],
+      "functions": {
+        "clean": {
+          "line": 29,
+          "params": [
+            "p"
+          ]
+        },
+        "isHeavy": {
+          "line": 34,
+          "params": [
+            "relPath"
+          ],
+          "purpose": "A dependency/build/cache folder (or something inside one), or OS clutter."
+        },
+        "buildGroup": {
+          "line": 44,
+          "params": [
+            "group",
+            "paths",
+            "sizes = {}",
+            "server = {}"
+          ],
+          "purpose": "Build one group's tree. `paths`: git's list (collapsed folders end with"
+        },
+        "buildTree": {
+          "line": 89,
+          "params": [
+            "{ ignored = []",
+            "untracked = []",
+            "sizes = {}",
+            "server = {} } = {}"
+          ],
+          "purpose": "`{ ignored, untracked }` trees."
+        },
+        "leaves": {
+          "line": 94,
+          "params": [
+            "node"
+          ],
+          "purpose": "Every tickable leaf under `node` (or under both groups of a tree)."
+        },
+        "defaultSelection": {
+          "line": 106,
+          "params": [
+            "tree",
+            "copyFiles"
+          ],
+          "purpose": "What the modal opens with: leaves matching the project's `copyFiles`,"
+        },
+        "toggle": {
+          "line": 120,
+          "params": [
+            "selected",
+            "node",
+            "on"
+          ],
+          "purpose": "Tick or untick everything under `node`; returns a new Set."
+        },
+        "selectAll": {
+          "line": 128,
+          "params": [
+            "tree"
+          ]
+        },
+        "selectionSize": {
+          "line": 133,
+          "params": [
+            "tree",
+            "selected"
+          ],
+          "purpose": "`{ bytes, files, cut }` for the ticked leaves; `cut` when a folder's size is a lower bound."
+        },
+        "sizeVerdict": {
+          "line": 147,
+          "params": [
+            "bytes"
+          ],
+          "purpose": "'ok' | 'warn' (above 50 MB) | 'refuse' (above 1 GB)."
+        },
+        "patternsFor": {
+          "line": 159,
+          "params": [
+            "tree",
+            "selected"
+          ],
+          "purpose": "`.env` at any depth); a collapsed folder becomes `folder/**`."
+        },
+        "mergePatterns": {
+          "line": 170,
+          "params": [
+            "existing",
+            "added"
+          ],
+          "purpose": "Existing patterns plus new ones, in order, without duplicates."
+        },
+        "formatBytes": {
+          "line": 180,
+          "params": [
+            "bytes",
+            "cut = false"
+          ],
+          "purpose": "`1.2 KB`, `48 MB`; `≥ ` in front when the size is a lower bound."
+        }
+      },
+      "sizeBytes": 7161,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7d5cf8dcbcc87c08",
+        "purposes": {
+          "buildGroup": "90071a145840fa09",
+          "buildTree": "03b0c5082f0dfb11",
+          "defaultSelection": "e3e738d8f8137156",
+          "formatBytes": "32a9492735aa66d0",
+          "isHeavy": "6b24e6d864f7eeea",
+          "leaves": "b31449c9cbd1cbc0",
+          "mergePatterns": "6ea98bb02d250f4c",
+          "patternsFor": "f8b14db6c724f1ee",
+          "selectionSize": "3e53385c4250b155",
+          "sizeVerdict": "58f0a8cd67d68e0e",
+          "toggle": "dea8dfc0a1b9b1b8"
         }
       }
     },
@@ -36673,6 +37153,21 @@
         "description": "4fe4edea06c37bff"
       }
     },
+    "test/externalLink.test": {
+      "file": "test/externalLink.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert",
+        "src/shared/externalLink"
+      ],
+      "functions": {},
+      "sizeBytes": 635,
+      "extraction": {
+        "status": "parsed"
+      }
+    },
     "test/feedbackReport.test": {
       "file": "test/feedbackReport.test.js",
       "description": "The feedback composer — the module every report comes out of.",
@@ -36716,6 +37211,25 @@
           "readIssueUrl": "993cd23316240f8f",
           "readMailto": "fd8d7e1632c805d7"
         }
+      }
+    },
+    "test/fileArchive.test": {
+      "file": "test/fileArchive.test.js",
+      "description": "The archive that carries git-ignored files to Frame Server (server-copy-files T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "zlib",
+        "src/shared/fileArchive"
+      ],
+      "functions": {},
+      "sizeBytes": 3480,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "c9f4b06e7e8e2cb3"
       }
     },
     "test/findModule.test": {
@@ -38883,6 +39397,108 @@
         }
       }
     },
+    "test/sendFilesDesktop.test": {
+      "file": "test/sendFilesDesktop.test.js",
+      "description": "The desktop half of \"Send files to server\" (server-copy-files T05).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "node:module",
+        "child_process",
+        "events",
+        "src/main/sendFiles",
+        "src/shared/fileArchive",
+        "src/main/frameProject",
+        "src/main/workspaceManager"
+      ],
+      "functions": {
+        "makeLink": {
+          "line": 29,
+          "params": [
+            "key",
+            "host"
+          ]
+        },
+        "project": {
+          "line": 90,
+          "purpose": "A Frame project with tracked a.txt; ignored .env, certs/, node_modules/ and .frame/bin; untracked src/new.js."
+        },
+        "write": {
+          "line": 87,
+          "params": [
+            "file",
+            "body = 'x\\n'",
+            "mode"
+          ]
+        }
+      },
+      "sizeBytes": 11266,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "a9c4dd0d5942be6a",
+        "purposes": {
+          "project": "8decf2c0d5889bc1"
+        }
+      }
+    },
+    "test/sendFilesModel.test": {
+      "file": "test/sendFilesModel.test.js",
+      "description": "The rules behind the \"Send files to server\" modal (server-copy-files T02).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/sendFilesModel",
+        "src/shared/copyFilesMatch"
+      ],
+      "functions": {},
+      "sizeBytes": 5324,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "8854f9cddc4e8d98"
+      }
+    },
+    "test/serverArchived.test": {
+      "file": "test/serverArchived.test.js",
+      "description": "Workspaces archived on a server: listed in the desktop's Archived list with",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "node:module",
+        "events",
+        "src/main/projectRegistry",
+        "src/main/workspaceManager"
+      ],
+      "functions": {
+        "fakeLink": {
+          "line": 27,
+          "params": [
+            "key",
+            "host"
+          ]
+        }
+      },
+      "sizeBytes": 5842,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "e610ffc5ef8aae69"
+      }
+    },
     "test/serverConnectModel.test": {
       "file": "test/serverConnectModel.test.js",
       "description": "serverConnectModel — the Connect dialog's state rules (server-hardening S12).",
@@ -39153,6 +39769,29 @@
         "description": "53feb2bccb916eff"
       }
     },
+    "test/serverRestoreWorkspace.test": {
+      "file": "test/serverRestoreWorkspace.test.js",
+      "description": "Frame Server restores an archived workspace (workspaces.restore), the",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "src/server/electronShim",
+        "src/server/projects"
+      ],
+      "functions": {},
+      "sizeBytes": 3337,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "210921afceda0336"
+      }
+    },
     "test/serverRouting.test": {
       "file": "test/serverRouting.test.js",
       "description": "serverRouting — naming across desktop and server (server-workspaces spec, T01).",
@@ -39187,6 +39826,56 @@
       },
       "provenance": {
         "description": "5fab4ba84d6c4f58"
+      }
+    },
+    "test/serverSendFiles.test": {
+      "file": "test/serverSendFiles.test.js",
+      "description": "Frame Server receives git-ignored files (server-copy-files T03, T04).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "child_process",
+        "src/server/electronShim",
+        "src/server/projects",
+        "src/server/sendFiles",
+        "src/shared/fileArchive"
+      ],
+      "functions": {
+        "serverWorkspace": {
+          "line": 42,
+          "purpose": "A server project received by bundle (.gitignore ignores .env, certs/, config/local.json) and one server workspace."
+        },
+        "upload": {
+          "line": 58,
+          "params": [
+            "entries",
+            "name = `files-${crypto.randomBytes(4"
+          ],
+          "purpose": "Upload an archive the way the desktop does: a `files-*.fpk` in the server's tmp folder."
+        },
+        "write": {
+          "line": 38,
+          "params": [
+            "file",
+            "body = 'x\\n'"
+          ]
+        }
+      },
+      "sizeBytes": 11810,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0298f98097e37b7d",
+        "purposes": {
+          "serverWorkspace": "6ec7d5b834df4e69",
+          "upload": "40b0e396d3d296ea"
+        }
       }
     },
     "test/serverSendProject.test": {
@@ -40738,7 +41427,7 @@
           "purpose": "A workspace whose worktree has one commit on a detached HEAD that no branch holds."
         }
       },
-      "sizeBytes": 28600,
+      "sizeBytes": 29350,
       "extraction": {
         "status": "parsed"
       },
@@ -41999,6 +42688,18 @@
         "description": ""
       }
     },
+    "send": {
+      "SEND_FILES_LIST": {
+        "name": "send-files-list",
+        "direction": "",
+        "description": ""
+      },
+      "SEND_FILES_SEND": {
+        "name": "send-files-send",
+        "direction": "",
+        "description": ""
+      }
+    },
     "cloud": {
       "CLOUD_SIGN_IN": {
         "name": "cloud-sign-in",
@@ -42537,6 +43238,33 @@
         "description": "File Tree UI Module"
       }
     ],
+    "files": [
+      {
+        "module": "main/sendFiles",
+        "file": "src/main/sendFiles.js",
+        "description": "Send git-ignored files to a server workspace (server-copy-files)."
+      },
+      {
+        "module": "renderer/sendFilesModal",
+        "file": "src/renderer/sendFilesModal.js",
+        "description": "Send files to server — pick the files git does not carry and send them to"
+      },
+      {
+        "module": "server/sendFiles",
+        "file": "src/server/sendFiles.js",
+        "description": "Receiving git-ignored files from the desktop (server-copy-files)."
+      },
+      {
+        "module": "shared/copyFilesMatch",
+        "file": "src/shared/copyFilesMatch.js",
+        "description": "copyFilesMatch — which gitignored files a new workspace copies from the"
+      },
+      {
+        "module": "shared/sendFilesModel",
+        "file": "src/shared/sendFilesModel.js",
+        "description": "sendFilesModel — the rules behind the \"Send files to server\" modal"
+      }
+    ],
     "frame": [
       {
         "module": "main/frameStore",
@@ -42733,6 +43461,18 @@
         "description": "IPC Channel Constants"
       }
     ],
+    "link": [
+      {
+        "module": "main/serverLink",
+        "file": "src/main/serverLink.js",
+        "description": "Server link — the desktop's connection to ONE Frame Server"
+      },
+      {
+        "module": "shared/externalLink",
+        "file": "src/shared/externalLink.js",
+        "description": "externalLink — which URLs Frame may hand to the system browser."
+      }
+    ],
     "list": [
       {
         "module": "renderer/tasks/listModel",
@@ -42831,6 +43571,11 @@
         "module": "renderer/projectSettingsModal",
         "file": "src/renderer/projectSettingsModal.js",
         "description": "Project Settings"
+      },
+      {
+        "module": "renderer/sendFilesModal",
+        "file": "src/renderer/sendFilesModal.js",
+        "description": "Send files to server — pick the files git does not carry and send them to"
       }
     ],
     "model": [
@@ -42858,6 +43603,11 @@
         "module": "shared/reviewModel",
         "file": "src/shared/reviewModel.js",
         "description": "reviewModel — the rules behind a workspace review (workspace-review spec)."
+      },
+      {
+        "module": "shared/sendFilesModel",
+        "file": "src/shared/sendFilesModel.js",
+        "description": "sendFilesModel — the rules behind the \"Send files to server\" modal"
       }
     ],
     "names": [
@@ -43128,6 +43878,28 @@
         "module": "renderer/workspaceSection",
         "file": "src/renderer/workspaceSection.js",
         "description": "Workspace Section — the sidebar's workspace switcher (workspaces spec, T07)."
+      }
+    ],
+    "send": [
+      {
+        "module": "main/sendFiles",
+        "file": "src/main/sendFiles.js",
+        "description": "Send git-ignored files to a server workspace (server-copy-files)."
+      },
+      {
+        "module": "renderer/sendFilesModal",
+        "file": "src/renderer/sendFilesModal.js",
+        "description": "Send files to server — pick the files git does not carry and send them to"
+      },
+      {
+        "module": "server/sendFiles",
+        "file": "src/server/sendFiles.js",
+        "description": "Receiving git-ignored files from the desktop (server-copy-files)."
+      },
+      {
+        "module": "shared/sendFilesModel",
+        "file": "src/shared/sendFilesModel.js",
+        "description": "sendFilesModel — the rules behind the \"Send files to server\" modal"
       }
     ],
     "server": [
@@ -43632,8 +44404,8 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 439,
-        "unsupported": 93,
+        "parsed": 452,
+        "unsupported": 94,
         "partial": 0
       }
     },
@@ -43679,9 +44451,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 627,
+      "visitedEntries": 641,
       "traversedDirectories": 87,
-      "eligibleFiles": 532,
+      "eligibleFiles": 546,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -43698,7 +44470,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 532,
+      "indexedFiles": 546,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -43706,6 +44478,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "9891ae6b3b74258fd24dc1cd48b52991baabab2d88931387548d5527cff2369d"
+    "revision": "14a80ef3bf7d55856555846c488210721230bf69178176aad4e34231eb442cc5"
   }
 }

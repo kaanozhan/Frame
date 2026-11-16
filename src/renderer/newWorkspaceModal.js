@@ -375,6 +375,14 @@ async function submit() {
     return;
   }
   section.select(result.workspace);
+  // A server workspace has only what git carries: offer the files git leaves
+  // out (.env, local config) before setup runs, since setup often needs them
+  // (server-copy-files). Nothing is sent unless ticked.
+  if (result.location === 'server') {
+    const sendFiles = require('./sendFilesModal');
+    const picked = await sendFiles.open({ projectPath, workspace: result.workspace, context: 'create' });
+    if (picked && picked.sent) notify.info(sendFiles.summary(picked.sent));
+  }
   runSetupThenAgent({ setupScript: result.setupScript, toolId, prompt });
 }
 

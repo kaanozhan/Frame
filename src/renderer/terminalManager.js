@@ -3,7 +3,8 @@
  * Manages multiple terminal instances in the renderer
  */
 
-const { ipcRenderer, clipboard } = require('electron');
+const { ipcRenderer, clipboard, shell } = require('electron');
+const { isSafeExternalUrl } = require('../shared/externalLink');
 const { pruneScopes } = require('../shared/reviewModel');
 const { Terminal } = require('xterm');
 const { FitAddon } = require('xterm-addon-fit');
@@ -461,7 +462,16 @@ class TerminalManager {
       theme: getTerminalTheme(),
       allowTransparency: false,
       scrollback: 10000,
-      scrollOnUserInput: false
+      scrollOnUserInput: false,
+      // OSC 8 hyperlinks (agents print these). Without a handler xterm falls
+      // back to confirm() + window.open(), which opened the URL in a
+      // Node-enabled Electron window and crashed the renderer. Send http(s)
+      // links to the system browser; ignore everything else.
+      linkHandler: {
+        activate: (_event, uri) => {
+          if (isSafeExternalUrl(uri)) shell.openExternal(uri);
+        }
+      }
     });
 
     const fitAddon = new FitAddon();

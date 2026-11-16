@@ -19,6 +19,7 @@
 
 /* 5. Panels (History, Tasks, Plugins, GitHub, Overview, Structure Map) */
 @import 'components/panels.css';
+@import 'components/send-files-modal.css';
 
 /* Shared header of the full-page surfaces (Specs, Tasks, Sessions, Orchestration) */
 @import 'components/view-header.css';
