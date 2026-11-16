@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-15",
+  "lastUpdated": "2026-11-16",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -34,7 +34,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 2456,
+      "sizeBytes": 2495,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -31819,24 +31819,24 @@
       "depends": [
         "node:test",
         "node:assert/strict",
-        "xterm-headless",
-        "src/server/screenMirror"
+        "src/server/screenMirror",
+        "xterm-headless"
       ],
       "functions": {
         "visible": {
-          "line": 14,
+          "line": 17,
           "params": [
             "term"
           ]
         },
         "replay": {
-          "line": 21,
+          "line": 24,
           "params": [
             "snap"
           ]
         },
         "mirrorAndReference": {
-          "line": 27,
+          "line": 30,
           "params": [
             "chunks",
             "{ cols = 40",
@@ -31844,7 +31844,7 @@
           ]
         }
       },
-      "sizeBytes": 2790,
+      "sizeBytes": 2994,
       "extraction": {
         "status": "parsed"
       },
@@ -36607,6 +36607,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "6ee608d13996ae247dbe6b1498dd761bad2db79eac5d5bbd56f0f3486034ee3f"
+    "revision": "5f7530d8910f57e2d71127ac615bdcf7af67cbc1df3688b0da720a332e9ebbf0"
   }
 }
