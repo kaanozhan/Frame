@@ -395,6 +395,12 @@ function createLink({ key, host, frameVersion = () => '0.0.0', onStatus = () => 
       // Never connected yet in this session → error state, still retrying.
       // `errorKind`: what an ssh failure means (server-first-connect), or null.
       const errorKind = err.sshKind || null;
+      // A host key not accepted or a login refused: only the user can fix it,
+      // so the loop waits for Connect instead of rerunning ssh on a backoff.
+      if (sshErrors.needsUser(errorKind)) {
+        setStatus({ state: 'error', error: err.message, errorKind });
+        return;
+      }
       if (status.state === 'connecting') setStatus({ state: 'error', error: err.message, errorKind });
       scheduleRetry(mySession, err.message, errorKind);
     }

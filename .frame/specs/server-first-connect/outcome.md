@@ -14,3 +14,11 @@ _Captured: 2026-11-16 · 2 file change(s)_
 _Captured: 2026-11-16 · 5 file change(s)_
 
 ---
+
+## T03 — Stop the connect loop on access errors
+
+In `serverLink`'s loop, an error whose kind `sshErrors.needsUser` accepts (host-unknown, host-changed, auth) now sets `state: 'error'` with its `errorKind` and returns without `scheduleRetry`; Connect starts a fresh session as before, and every other error keeps `BACKOFF_MS`. The new test in `test/serverConnection.test.js` counts ssh runs through `FAKE_SSH_LOG`: `deniedhost` runs once and waits, Connect runs it again, `nohost` keeps retrying; it was red on the previous commit.
+
+_Captured: 2026-11-16 · 2 file change(s)_
+
+---
