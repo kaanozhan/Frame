@@ -60,8 +60,43 @@ test('invite-only and on the list: "Frame Cloud" with an On the list tag, no cal
   });
 });
 
+test('a machine that has signed in before: "Frame Cloud" with a Sign in tag, no waitlist call', () => {
+  const expected = {
+    kind: 'cloud',
+    label: 'Frame Cloud',
+    tag: 'Sign in',
+    initial: '',
+    tooltip: 'Frame Cloud · Sign in',
+    call: false,
+  };
+  // Whatever the server says of invites, and over a waitlist address never cleared.
+  const variants = [
+    { inviteOnly: true },
+    { inviteOnly: true, waitlistEmail: 'ada@example.com' },
+    { inviteOnly: false },
+    { inviteOnly: null },
+    {},
+  ];
+  for (const extra of variants) {
+    assert.deepEqual(entryFor({ state: 'signedOut', signedInBefore: true, ...extra }), expected, JSON.stringify(extra));
+  }
+  // A machine that never signed in keeps the plain entry on an open server.
+  assert.equal(entryFor({ state: 'signedOut', inviteOnly: false }).tag, null);
+  // Only `true` is the marker: anything else behaves as a machine that never signed in.
+  for (const signedInBefore of [false, null, undefined, 'true', 1]) {
+    const entry = entryFor({ state: 'signedOut', inviteOnly: true, signedInBefore });
+    assert.equal(entry.call, true, String(signedInBefore));
+    assert.equal(entry.tag, 'Early access', String(signedInBefore));
+  }
+});
+
 test('the sign-in steps read exactly as signed out does', () => {
-  const variants = [{}, { inviteOnly: true }, { inviteOnly: true, waitlistEmail: 'ada@example.com' }];
+  const variants = [
+    {},
+    { inviteOnly: true },
+    { inviteOnly: true, waitlistEmail: 'ada@example.com' },
+    { inviteOnly: true, signedInBefore: true },
+  ];
   for (const extra of variants) {
     const signedOut = entryFor({ state: 'signedOut', ...extra });
     for (const state of SIGNED_OUT_STATES) {
@@ -102,6 +137,7 @@ test('signed in ignores the early-access flags', () => {
     state: 'signedIn',
     inviteOnly: true,
     waitlistEmail: 'ada@example.com',
+    signedInBefore: true,
     workspace: { slug: 'acme', name: 'Acme', role: 'admin' },
   });
   assert.equal(entry.kind, 'workspace');
@@ -140,6 +176,7 @@ test('no label, tag or tooltip names a plan, trial, price or Pro', () => {
     { state: 'signedOut' },
     { state: 'signedOut', inviteOnly: true },
     { state: 'signedOut', inviteOnly: true, waitlistEmail: 'ada@example.com' },
+    { state: 'signedOut', inviteOnly: true, signedInBefore: true },
     { state: 'signedIn' },
     { state: 'signedIn', workspace: { slug: 'acme', name: 'Acme', role: 'admin' } },
     { state: 'signedIn', workspace: { slug: 'acme', name: 'Acme', role: 'developer' } },

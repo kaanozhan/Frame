@@ -734,3 +734,52 @@ test('joinWaitlist maps every failure to a reason and never throws', async () =>
     assert.deepEqual(await flow.joinWaitlist({ api: API, email: 'ada@example.com', fetchJson }), { ok: false, reason });
   }
 });
+
+// ─── Early access on this machine ─────────────────────────────
+
+test('earlyAccessFields carries the marker, the invite mode and the address while signed out', () => {
+  assert.deepEqual(flow.earlyAccessFields({ signedIn: false, inviteOnly: true, waitlistEmail: 'ada@example.com' }), {
+    inviteOnly: true,
+    waitlistEmail: 'ada@example.com',
+  });
+  assert.deepEqual(flow.earlyAccessFields({ signedIn: false, inviteOnly: true, signedInBefore: true }), {
+    inviteOnly: true,
+    signedInBefore: true,
+  });
+  // The marker travels before the server has said anything about invites.
+  assert.deepEqual(flow.earlyAccessFields({ signedIn: false, inviteOnly: null, signedInBefore: true }), {
+    signedInBefore: true,
+  });
+});
+
+test('earlyAccessFields is empty while signed in and on a machine with nothing to say', () => {
+  assert.deepEqual(
+    flow.earlyAccessFields({ signedIn: true, inviteOnly: true, waitlistEmail: 'ada@example.com', signedInBefore: true }),
+    {}
+  );
+  for (const input of [undefined, {}, { signedIn: false, inviteOnly: null, waitlistEmail: null, signedInBefore: false }]) {
+    assert.deepEqual(flow.earlyAccessFields(input), {}, JSON.stringify(input));
+  }
+  // A machine that never signed in sends no marker at all, as before.
+  assert.equal('signedInBefore' in flow.earlyAccessFields({ inviteOnly: true, signedInBefore: false }), false);
+});
+
+test('signedInWrites sets the marker and deletes the waitlist address', () => {
+  const keys = { markerKey: 'cloudSignedInBefore', waitlistKey: 'cloudWaitlistEmail' };
+  assert.deepEqual(flow.signedInWrites({ signedInBefore: false, waitlistEmail: 'ada@example.com', ...keys }), [
+    ['cloudSignedInBefore', true],
+    ['cloudWaitlistEmail', null],
+  ]);
+  assert.deepEqual(flow.signedInWrites({ signedInBefore: false, waitlistEmail: null, ...keys }), [
+    ['cloudSignedInBefore', true],
+  ]);
+});
+
+test('signedInWrites writes nothing once the marker is stored and no address is left', () => {
+  const keys = { markerKey: 'cloudSignedInBefore', waitlistKey: 'cloudWaitlistEmail' };
+  assert.deepEqual(flow.signedInWrites({ signedInBefore: true, waitlistEmail: null, ...keys }), []);
+  // An address that came back (joined again while signed out) still goes.
+  assert.deepEqual(flow.signedInWrites({ signedInBefore: true, waitlistEmail: 'ada@example.com', ...keys }), [
+    ['cloudWaitlistEmail', null],
+  ]);
+});

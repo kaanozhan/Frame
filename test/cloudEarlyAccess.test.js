@@ -23,6 +23,22 @@ test('paneMode shows the form until this machine has joined, then the card', () 
   assert.equal(early.paneMode({ inviteOnly: true, waitlistEmail: 'ada@example.com' }), 'joined');
 });
 
+test('paneMode is the sign-in pane once this machine has signed in before', () => {
+  assert.equal(early.paneMode({ inviteOnly: true, signedInBefore: true }), 'classic');
+  // The marker wins over a waitlist address that was never cleared.
+  assert.equal(early.paneMode({ inviteOnly: true, signedInBefore: true, waitlistEmail: 'ada@example.com' }), 'classic');
+  assert.equal(early.paneMode({ inviteOnly: false, signedInBefore: true }), 'classic');
+  // Only `true` is the marker.
+  for (const signedInBefore of [false, null, undefined, 'true', 1]) {
+    assert.equal(early.paneMode({ inviteOnly: true, signedInBefore }), 'form', String(signedInBefore));
+    assert.equal(
+      early.paneMode({ inviteOnly: true, signedInBefore, waitlistEmail: 'ada@example.com' }),
+      'joined',
+      String(signedInBefore)
+    );
+  }
+});
+
 test('joinFailure explains each reason and offers frame.cool when joining here cannot work', () => {
   assert.deepEqual(early.joinFailure('invalid'), {
     message: 'Enter a full email address, like ada@example.com.',

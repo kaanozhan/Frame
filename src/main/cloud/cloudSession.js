@@ -26,6 +26,8 @@ const {
   resolveServerUrl,
   formatDeviceInfo,
   resolveInstallId,
+  earlyAccessFields,
+  signedInWrites,
   runSignIn,
   refreshSession,
   registerDevice,
@@ -60,10 +62,14 @@ const PUBLIC_KEYS = [
   // Early access, beside `state` (see inviteOnly below); only while signed out.
   'inviteOnly',
   'waitlistEmail',
+  'signedInBefore',
 ];
 
 // The address this machine last joined the waitlist with.
 const WAITLIST_EMAIL_KEY = 'cloudWaitlistEmail';
+// Set once this machine has signed in. Kept through sign-out and restart, like
+// the install id: it is about the machine, not the session.
+const SIGNED_IN_BEFORE_KEY = 'cloudSignedInBefore';
 
 let mainWindow = null;
 let state = { state: 'unavailable' };
@@ -76,9 +82,11 @@ let refreshing = null;
 let started = false;
 // Early access. Kept beside `state`, like webOrigin, so every transition keeps
 // them: whether the server is invite-only (null until read, or when it cannot
-// say) and the address this machine joined the waitlist with.
+// say), the address this machine joined the waitlist with, and whether this
+// machine has ever signed in (then the waitlist is behind this person).
 let inviteOnly = null;
 let waitlistEmail = null;
+let signedInBefore = false;
 let readingMode = null;
 const listeners = new Set();
 
@@ -255,11 +263,27 @@ function toPublicState() {
   for (const key of PUBLIC_KEYS) {
     if (state[key] !== undefined) out[key] = state[key];
   }
-  if (state.state !== 'signedIn') {
-    if (inviteOnly !== null) out.inviteOnly = inviteOnly;
-    if (waitlistEmail) out.waitlistEmail = waitlistEmail;
-  }
+  Object.assign(
+    out,
+    earlyAccessFields({ signedIn: state.state === 'signedIn', inviteOnly, waitlistEmail, signedInBefore })
+  );
   return out;
+}
+
+/**
+ * This machine holds a session: remember that it has signed in and drop the
+ * waitlist address, so signing out later offers sign-in, not the waitlist.
+ */
+function rememberSignedIn() {
+  const writes = signedInWrites({
+    signedInBefore,
+    waitlistEmail: userSettings.get(WAITLIST_EMAIL_KEY),
+    markerKey: SIGNED_IN_BEFORE_KEY,
+    waitlistKey: WAITLIST_EMAIL_KEY,
+  });
+  for (const [key, value] of writes) userSettings.set(key, value);
+  signedInBefore = true;
+  waitlistEmail = null;
 }
 
 function getPublicState() {
@@ -379,6 +403,7 @@ async function signIn() {
     token = result.token;
     webOrigin = originOf(verificationUrl);
     const { ephemeral } = sessionStore.save({ serverUrl, token, webOrigin, ...result.session });
+    rememberSignedIn();
     setState(signedInState(serverUrl, result.session, ephemeral), { userStarted: true });
     bringToFront();
     // register does not describe the device; me does.
@@ -537,6 +562,7 @@ function loadSession() {
   const serverUrl = resolveUrl();
   if (serverUrl !== state.serverUrl) inviteOnly = null; // another server's answer
   waitlistEmail = userSettings.get(WAITLIST_EMAIL_KEY) || null;
+  signedInBefore = userSettings.get(SIGNED_IN_BEFORE_KEY) === true;
   if (!serverUrl) {
     token = null;
     webOrigin = null;
@@ -554,6 +580,8 @@ function loadSession() {
   token = stored.token;
   // Sessions stored before web links existed have none; links stay hidden until the next sign-in.
   webOrigin = stored.webOrigin || null;
+  // A session signed in before the marker existed counts as a sign-in too.
+  rememberSignedIn();
   setState(signedInState(serverUrl, stored, stored.ephemeral));
   refresh();
 }

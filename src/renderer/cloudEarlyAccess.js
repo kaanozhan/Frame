@@ -31,10 +31,12 @@ const COPY = {
   settingsRowEarly: 'Frame Cloud is in early access.',
   fallbackLink: 'Join on frame.cool',
   // The header's Frame Cloud entry (cloudEntry.js): its call before this
-  // machine has joined, and the tag beside the label before and after.
+  // machine has joined, and the tag beside the label before and after. A
+  // machine that has signed in before gets the Sign in tag instead.
   entryCall: 'Join Frame Cloud waitlist',
   entryEarly: 'Early access',
   entryJoined: 'On the list',
+  entrySignIn: 'Sign in',
 };
 
 /** The joined card's body: "We'll email ada@example.com when your invite is ready." */
@@ -60,11 +62,12 @@ function joinFailure(reason) {
 /**
  * Which signed-out pane to show: today's (`classic`) unless the server said
  * it is invite-only; then the joined card once this machine has joined,
- * otherwise the form.
+ * otherwise the form. A machine that has signed in before (`signedInBefore`)
+ * is past the waitlist and always gets `classic`.
  */
 function paneMode(state) {
   const s = state || {};
-  if (s.inviteOnly !== true) return 'classic';
+  if (s.inviteOnly !== true || s.signedInBefore === true) return 'classic';
   return s.waitlistEmail ? 'joined' : 'form';
 }
 

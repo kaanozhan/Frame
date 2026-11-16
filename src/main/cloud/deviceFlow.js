@@ -208,6 +208,37 @@ function resolveInstallId(stored, mint = randomUUID) {
   return { id: mint(), write: 'set' };
 }
 
+// ─── Early access on this machine ─────────────────────────────
+
+/**
+ * The early-access fields that travel with the public session state: none
+ * while signed in, otherwise what the server said about invites (when it has
+ * said), the address this machine joined the waitlist with, and
+ * `signedInBefore` once this machine has signed in. Signed out, Frame cannot
+ * ask whether a person has an account, so that marker is how the window knows
+ * to offer sign-in instead of the waitlist.
+ */
+function earlyAccessFields({ signedIn, inviteOnly, waitlistEmail, signedInBefore } = {}) {
+  const out = {};
+  if (signedIn) return out;
+  if (typeof inviteOnly === 'boolean') out.inviteOnly = inviteOnly;
+  if (waitlistEmail) out.waitlistEmail = waitlistEmail;
+  if (signedInBefore === true) out.signedInBefore = true;
+  return out;
+}
+
+/**
+ * What a sign-in changes in user settings, as `[key, value]` writes (null
+ * deletes): the marker is set unless already stored, and the waitlist address
+ * goes, since the person is past the waitlist. Nothing to write → `[]`.
+ */
+function signedInWrites({ signedInBefore, waitlistEmail, markerKey, waitlistKey } = {}) {
+  const writes = [];
+  if (signedInBefore !== true) writes.push([markerKey, true]);
+  if (waitlistEmail) writes.push([waitlistKey, null]);
+  return writes;
+}
+
 // ─── Endpoint calls ───────────────────────────────────────────
 
 async function send(fetchJson, url, opts) {
@@ -530,6 +561,8 @@ module.exports = {
   formatDeviceInfo,
   INSTALL_ID_MAX,
   resolveInstallId,
+  earlyAccessFields,
+  signedInWrites,
   requestDeviceCode,
   pollForToken,
   registerDevice,

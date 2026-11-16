@@ -3139,17 +3139,17 @@
       ],
       "functions": {
         "resolveUrl": {
-          "line": 90
+          "line": 98
         },
         "refusalReason": {
-          "line": 104,
+          "line": 112,
           "params": [
             "address"
           ],
           "purpose": "Scheme and host only: the rest of a mistyped address could carry anything."
         },
         "fetchJson": {
-          "line": 121,
+          "line": 129,
           "params": [
             "url",
             "{ method = 'GET'",
@@ -3160,44 +3160,48 @@
           "purpose": "`net.fetch` → `{ status, body }`. A timeout rejects with a plain Error so"
         },
         "sleep": {
-          "line": 162,
+          "line": 170,
           "params": [
             "ms",
             "signal"
           ]
         },
         "originOf": {
-          "line": 182,
+          "line": 190,
           "params": [
             "url"
           ]
         },
         "openUrl": {
-          "line": 191,
+          "line": 199,
           "params": [
             "url"
           ]
         },
         "readComputerName": {
-          "line": 204
+          "line": 212
         },
         "readInstallId": {
-          "line": 232
-        },
-        "deviceInfo": {
           "line": 240
         },
+        "deviceInfo": {
+          "line": 248
+        },
         "toPublicState": {
-          "line": 253
+          "line": 261
+        },
+        "rememberSignedIn": {
+          "line": 277,
+          "purpose": "This machine holds a session: remember that it has signed in and drop the"
         },
         "getPublicState": {
-          "line": 265
+          "line": 289
         },
         "publish": {
-          "line": 269
+          "line": 293
         },
         "setState": {
-          "line": 278,
+          "line": 302,
           "params": [
             "next",
             "{ userStarted = false } = {}"
@@ -3205,18 +3209,18 @@
           "purpose": "Every transition is pushed to the renderer, then told to main-process"
         },
         "onChange": {
-          "line": 292,
+          "line": 316,
           "params": [
             "listener"
           ],
           "purpose": "Subscribe to session changes. Returns the unsubscribe function."
         },
         "getAuth": {
-          "line": 301,
+          "line": 325,
           "purpose": "What a main-process caller needs to make a bearer call, or null while not"
         },
         "signedInState": {
-          "line": 312,
+          "line": 336,
           "params": [
             "serverUrl",
             "session",
@@ -3224,65 +3228,65 @@
           ]
         },
         "bringToFront": {
-          "line": 326,
+          "line": 350,
           "purpose": "Device flow has no redirect back to the app, so a completed sign-in is what"
         },
         "abortAttempt": {
-          "line": 334
+          "line": 358
         },
         "signIn": {
-          "line": 343,
+          "line": 367,
           "purpose": "Start a sign-in. Resolves when the attempt ends; callers need not wait."
         },
         "cancel": {
-          "line": 395
+          "line": 420
         },
         "readInviteMode": {
-          "line": 412,
+          "line": 437,
           "purpose": "Signed out: one `invite.mode`, so the window knows whether to lead with the"
         },
         "joinWaitlist": {
-          "line": 436,
+          "line": 461,
           "params": [
             "rawEmail"
           ],
           "purpose": "Join the waitlist with the address the renderer typed. Main normalizes it"
         },
         "refresh": {
-          "line": 453,
+          "line": 478,
           "purpose": "One silent device.me. A dead token signs out quietly; an unreachable server"
         },
         "sessionExpired": {
-          "line": 483,
+          "line": 508,
           "purpose": "A bearer call answered 401: forget the session quietly, no error shown."
         },
         "reRegister": {
-          "line": 497,
+          "line": 522,
           "purpose": "The server forgot this device (412 DEVICE_NOT_REGISTERED): register it"
         },
         "signOut": {
-          "line": 504,
+          "line": 529,
           "purpose": "Tell the server, then forget the session locally whatever it said."
         },
         "startup": {
-          "line": 530,
+          "line": 555,
           "purpose": "Launch: show the stored session at once, then refresh it in the background."
         },
         "loadSession": {
-          "line": 534
+          "line": 559
         },
         "getState": {
-          "line": 562,
+          "line": 590,
           "purpose": "The current state, re-resolving first if the server address changed underneath."
         },
         "init": {
-          "line": 569,
+          "line": 597,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 581,
+          "line": 609,
           "params": [
             "ipcMain"
           ]
@@ -3301,7 +3305,7 @@
           "CLOUD_SESSION_STATE"
         ]
       },
-      "sizeBytes": 19698,
+      "sizeBytes": 20738,
       "extraction": {
         "status": "parsed"
       },
@@ -3318,6 +3322,7 @@
           "readInviteMode": "dcc8a44616939165",
           "refresh": "61b40a9ce727f469",
           "refusalReason": "abca5b658054eebe",
+          "rememberSignedIn": "0737e4e54a538402",
           "sessionExpired": "5d56148c50c4781e",
           "setState": "3d2187de732548f8",
           "signIn": "d5bda9fb4a6e3b43",
@@ -4255,6 +4260,8 @@
         "formatDeviceInfo",
         "INSTALL_ID_MAX",
         "resolveInstallId",
+        "earlyAccessFields",
+        "signedInWrites",
         "requestDeviceCode",
         "pollForToken",
         "registerDevice",
@@ -4363,8 +4370,28 @@
           ],
           "purpose": "This Frame install's id, sent with every `device.register`. FrameCloud keeps"
         },
+        "earlyAccessFields": {
+          "line": 221,
+          "params": [
+            "{ signedIn",
+            "inviteOnly",
+            "waitlistEmail",
+            "signedInBefore } = {}"
+          ],
+          "purpose": "The early-access fields that travel with the public session state: none"
+        },
+        "signedInWrites": {
+          "line": 235,
+          "params": [
+            "{ signedInBefore",
+            "waitlistEmail",
+            "markerKey",
+            "waitlistKey } = {}"
+          ],
+          "purpose": "What a sign-in changes in user settings, as `[key, value]` writes (null"
+        },
         "send": {
-          "line": 213,
+          "line": 244,
           "params": [
             "fetchJson",
             "url",
@@ -4372,7 +4399,7 @@
           ]
         },
         "requestDeviceCode": {
-          "line": 222,
+          "line": 253,
           "params": [
             "{ api",
             "fetchJson",
@@ -4380,7 +4407,7 @@
           ]
         },
         "callTrpc": {
-          "line": 240,
+          "line": 271,
           "params": [
             "{ api",
             "name",
@@ -4393,7 +4420,7 @@
           "purpose": "One tRPC procedure, no transformer. A query (GET) carries its input as"
         },
         "registerDevice": {
-          "line": 258,
+          "line": 289,
           "params": [
             "{ api",
             "token",
@@ -4403,7 +4430,7 @@
           ]
         },
         "fetchMe": {
-          "line": 267,
+          "line": 298,
           "params": [
             "{ api",
             "token",
@@ -4412,7 +4439,7 @@
           ]
         },
         "signOutDevice": {
-          "line": 271,
+          "line": 302,
           "params": [
             "{ api",
             "token",
@@ -4421,7 +4448,7 @@
           ]
         },
         "fetchInviteMode": {
-          "line": 285,
+          "line": 316,
           "params": [
             "{ api",
             "fetchJson",
@@ -4430,20 +4457,20 @@
           "purpose": "Whether the server only lets invited people sign up (FrameCloud"
         },
         "normalizeWaitlistEmail": {
-          "line": 301,
+          "line": 332,
           "params": [
             "raw"
           ],
           "purpose": "A waitlist address as the server stores it — trimmed and lowercased as a"
         },
         "joinReason": {
-          "line": 312,
+          "line": 343,
           "params": [
             "err"
           ]
         },
         "joinWaitlist": {
-          "line": 327,
+          "line": 358,
           "params": [
             "{ api",
             "email",
@@ -4453,7 +4480,7 @@
           "purpose": "Put `email` on FrameCloud's waitlist from this machine (`waitlist.join`,"
         },
         "pollForToken": {
-          "line": 347,
+          "line": 378,
           "params": [
             "{ api",
             "code",
@@ -4465,13 +4492,13 @@
           "purpose": "Poll `/api/auth/device/token` until the user decides, the code expires or"
         },
         "signInReason": {
-          "line": 400,
+          "line": 431,
           "params": [
             "err"
           ]
         },
         "runSignIn": {
-          "line": 418,
+          "line": 449,
           "params": [
             "{ api",
             "fetchJson",
@@ -4485,19 +4512,19 @@
           "purpose": "The whole sign-in: code → browser → poll → register."
         },
         "refreshReason": {
-          "line": 476,
+          "line": 507,
           "params": [
             "err"
           ]
         },
         "sessionFromMe": {
-          "line": 488,
+          "line": 519,
           "params": [
             "data"
           ]
         },
         "refreshSession": {
-          "line": 502,
+          "line": 533,
           "params": [
             "{ api",
             "token",
@@ -4508,7 +4535,7 @@
           "purpose": "`device.me`, re-registering once when the server has forgotten this device."
         }
       },
-      "sizeBytes": 19222,
+      "sizeBytes": 20642,
       "extraction": {
         "status": "parsed"
       },
@@ -4520,6 +4547,7 @@
           "classifyTokenResponse": "2f95a6e8fdf2bb48",
           "classifyTrpcError": "34a7196859403c98",
           "deviceName": "35a3ebe056a4adea",
+          "earlyAccessFields": "4ef9650eba53326a",
           "fetchInviteMode": "ef0dda334a7ccabb",
           "formatDeviceInfo": "f82ed8754c1a28c5",
           "formatUserCode": "4c9e76b2335ffad4",
@@ -4531,7 +4559,8 @@
           "refreshSession": "1d622fffd281eb11",
           "resolveInstallId": "96a455b0f16e9868",
           "resolveServerUrl": "ef1826ded8765dc2",
-          "runSignIn": "cb6126d231cc3199"
+          "runSignIn": "cb6126d231cc3199",
+          "signedInWrites": "4b9dd38fbe6dabbc"
         }
       }
     },
@@ -15500,28 +15529,28 @@
       "depends": [],
       "functions": {
         "joinedBody": {
-          "line": 41,
+          "line": 43,
           "params": [
             "email"
           ],
           "purpose": "The joined card's body: \"We'll email ada@example.com when your invite is ready.\""
         },
         "joinFailure": {
-          "line": 56,
+          "line": 58,
           "params": [
             "reason"
           ],
           "purpose": "Why a join failed, as one line, and whether to offer frame.cool instead."
         },
         "paneMode": {
-          "line": 65,
+          "line": 68,
           "params": [
             "state"
           ],
           "purpose": "Which signed-out pane to show: today's (`classic`) unless the server said"
         }
       },
-      "sizeBytes": 2868,
+      "sizeBytes": 3100,
       "extraction": {
         "status": "parsed"
       },
@@ -15548,14 +15577,14 @@
       ],
       "functions": {
         "initialOf": {
-          "line": 25,
+          "line": 26,
           "params": [
             "name"
           ],
           "purpose": "The name's first character, upper-cased, read by code point (\"élan\" → \"É\")."
         },
         "cloud": {
-          "line": 30,
+          "line": 31,
           "params": [
             "label",
             "tag",
@@ -15564,14 +15593,14 @@
           ]
         },
         "entryFor": {
-          "line": 49,
+          "line": 52,
           "params": [
             "session"
           ],
           "purpose": "The header entry for a session → `null` when there is no server address"
         }
       },
-      "sizeBytes": 2743,
+      "sizeBytes": 3080,
       "extraction": {
         "status": "parsed"
       },
@@ -36670,7 +36699,7 @@
           ]
         }
       },
-      "sizeBytes": 34079,
+      "sizeBytes": 36536,
       "extraction": {
         "status": "parsed"
       },
@@ -36766,7 +36795,7 @@
         "src/renderer/cloudEarlyAccess"
       ],
       "functions": {},
-      "sizeBytes": 2464,
+      "sizeBytes": 3292,
       "extraction": {
         "status": "parsed"
       },
@@ -36784,7 +36813,7 @@
         "src/renderer/cloudEntry"
       ],
       "functions": {},
-      "sizeBytes": 5981,
+      "sizeBytes": 7364,
       "extraction": {
         "status": "parsed"
       },
@@ -44726,6 +44755,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "fde42683dd7886f5237f7eb812f349119378e3dcd968f6894191b03598fe1103"
+    "revision": "eb625ac012e8a7be229feb9ea7f0a9982bbb11354a775a7eba83f42fc0814177"
   }
 }

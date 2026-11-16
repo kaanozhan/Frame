@@ -10624,10 +10624,25 @@
       "createdAt": "2026-11-16T08:09:15.321Z",
       "updatedAt": "2026-11-16T08:52:49.883Z",
       "completedAt": "2026-11-16T08:52:49.883Z"
+    },
+    {
+      "id": "task-cloud-skip-waitlist-after-sign-in",
+      "title": "Skip the waitlist once this machine has signed in to Frame Cloud",
+      "description": "On an invite-only server Frame cannot tell whether a signed-out person has an account: it only knows the server's invite.mode and the address remembered on this machine (cloudWaitlistEmail), which is never cleared. So someone who joined the waitlist and was later invited still reads \"On the list\", and an existing member who signs out gets the \"Join Frame Cloud waitlist\" call in the header. Fix: on a successful sign-in, main (src/main/cloud/cloudSession.js) writes a marker to user settings that this machine has signed in and deletes cloudWaitlistEmail; the marker travels with the public session state while signed out. With the marker, cloudEarlyAccess.paneMode returns the classic pane (\"Continue with GitHub\") and cloudEntry.entryFor returns plain \"Frame Cloud\" with no tag and no call. Update test/cloudEarlyAccess.test.js, test/cloudEntry.test.js and the session tests.",
+      "userRequest": "User said: \"Tamam bir kere giriş yaptığında artık ona dönüşmesinde sorun yok bence ? Kullanıcı bir kere makineden girişi yaparsa nan sonra bunu göstermek bence şu aşamada gayet makul bir çözüm\" (after: \"o modal'da hala daha you are on the list diye gözüküyor sağ panelde orada artık sadece github ile giriş butonu olmalı\")",
+      "acceptanceCriteria": "- After one successful sign-in on this machine, signing out on an invite-only server shows the header entry as \"Frame Cloud\" with a \"Sign in\" tag (no waitlist call) and the window opens on the sign-in card, not the waitlist form or the \"You're on the list\" card.\n- A successful sign-in deletes cloudWaitlistEmail from user settings.\n- The marker survives a restart and a sign-out.\n- A machine that has never signed in behaves as today (form, then \"On the list\").\n- No new request and no new IPC channel.\n- npm test covers paneMode and entryFor with and without the marker.",
+      "notes": "Decided 2026-11-16 after PR #39 (frame-cloud-header-entry). The marker is never cleared: a closed account sees the sign-in card, the sign-in is refused, and the existing \"Join the waitlist\" link is the way back. Signed-out members read plain \"Frame Cloud\", not \"Sign in to Frame Cloud\" (frame-cloud-header-entry D2). Not covered, on purpose: an account created on the web with no sign-in in Frame yet still shows \"You're on the list\". Deferred alternatives: (1) restructure the joined card so \"Continue with GitHub\" is the primary button; (2) FrameCloud returns a secret entry key from waitlist.join and Frame asks that entry's status (waiting / invited / account created), which needs a FrameCloud change. The work branch should be cut from feat/frame-cloud-adaptor. Changed during the work (2026-11-16, user request): a machine that has signed in before reads \"Frame Cloud\" with a \"Sign in\" tag in the header (same chip as \"Early access\"), on any server; this replaces the \"plain Frame Cloud, no tag\" line above for that case only (frame-cloud-header-entry D2 still holds for machines that never signed in). The marker is user setting cloudSignedInBefore, public state field signedInBefore. A stored session loaded at launch also sets the marker, so members who signed in before this change are covered without signing in again.",
+      "status": "completed",
+      "priority": "medium",
+      "category": "fix",
+      "context": "Session 2026-11-16, follow-up to frame-cloud-header-entry and frame-cloud-early-access",
+      "createdAt": "2026-11-16T10:53:33.353Z",
+      "updatedAt": "2026-11-16T11:16:10.256Z",
+      "completedAt": "2026-11-16T11:16:10.256Z"
     }
   ],
-  "lastUpdated": "2026-11-16T08:52:49.883Z",
+  "lastUpdated": "2026-11-16T11:16:10.256Z",
   "metadata": {
-    "totalCreated": 814
+    "totalCreated": 815
   }
 }

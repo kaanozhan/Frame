@@ -4,8 +4,9 @@
  *
  * The entry sits right of the Frame mark and follows the session the
  * renderer already receives: nothing without a server address, the waitlist
- * call while the server is invite-only and this machine has not joined, the
- * workspace once signed in with one. This module is the rule only;
+ * call while the server is invite-only and this machine has neither joined nor
+ * ever signed in, a Sign in tag on a machine that has, the workspace once
+ * signed in with one. This module is the rule only;
  * `appHeader.bindCloudEntry` paints it.
  *
  * Words stay with their owners: early access in `cloudEarlyAccess`, "No
@@ -43,14 +44,17 @@ function cloud(label, tag, tooltipParts, call) {
  * (`unavailable`, or no session at all), otherwise
  * `{ kind: 'cloud' | 'workspace', label, tag, initial, tooltip, call }`.
  *
- * Every state but `signedIn` reads as signed out: `inviteOnly` and
- * `waitlistEmail` reach the renderer through the sign-in steps too.
+ * Every state but `signedIn` reads as signed out: `inviteOnly`,
+ * `waitlistEmail` and `signedInBefore` reach the renderer through the sign-in
+ * steps too. A machine that has signed in before is past the waitlist: it
+ * reads "Frame Cloud" with a Sign in tag, whatever the server says of invites.
  */
 function entryFor(session) {
   const s = session || {};
   if (!s.state || s.state === 'unavailable') return null;
 
   if (s.state !== 'signedIn') {
+    if (s.signedInBefore === true) return cloud(NAME, early.COPY.entrySignIn, [early.COPY.entrySignIn], false);
     if (s.inviteOnly !== true) return cloud(NAME, null, [], false);
     if (!s.waitlistEmail) {
       return cloud(early.COPY.entryCall, early.COPY.entryEarly, [early.COPY.entryEarly, early.COPY.join], true);
