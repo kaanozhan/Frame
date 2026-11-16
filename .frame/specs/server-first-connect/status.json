@@ -1,0 +1,20 @@
+{
+  "slug": "server-first-connect",
+  "title": "Server first connect",
+  "phase": "tasks_generated",
+  "generated_task_ids": [
+    "task-spec-server-first-connect-T01",
+    "task-spec-server-first-connect-T02",
+    "task-spec-server-first-connect-T03",
+    "task-spec-server-first-connect-T04",
+    "task-spec-server-first-connect-T05",
+    "task-spec-server-first-connect-T06",
+    "task-spec-server-first-connect-T07",
+    "task-spec-server-first-connect-T08"
+  ],
+  "ai_tool": "claude",
+  "created_at": "2026-11-16T14:30:04Z",
+  "updated_at": "2026-11-16T14:36:23.098Z",
+  "last_phase_at": "2026-11-16T14:36:22Z",
+  "implement_mode": "guided"
+}
