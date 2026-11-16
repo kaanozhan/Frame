@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-15",
+  "lastUpdated": "2026-11-16",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -28038,6 +28038,70 @@
         }
       }
     },
+    "shared/sshErrors": {
+      "file": "src/shared/sshErrors.js",
+      "description": "sshErrors — what an ssh failure means, in words a first-time user can act",
+      "exports": [
+        "classify",
+        "needsUser",
+        "describe",
+        "setupCommand",
+        "SSH_FAILED"
+      ],
+      "depends": [],
+      "functions": {
+        "classify": {
+          "line": 33,
+          "params": [
+            "stderr",
+            "code"
+          ],
+          "purpose": "The kind of an ssh failure, or null (not ssh's own failure, or not one we know)."
+        },
+        "needsUser": {
+          "line": 43,
+          "params": [
+            "kind"
+          ],
+          "purpose": "Kinds only the user can fix: retrying them changes nothing."
+        },
+        "describe": {
+          "line": 52,
+          "params": [
+            "kind",
+            "host",
+            "fallback = ''"
+          ],
+          "purpose": "`{ message, action }` for the dialog. `action` is 'setup' (open a terminal"
+        },
+        "shellQuote": {
+          "line": 74,
+          "params": [
+            "s"
+          ]
+        },
+        "setupCommand": {
+          "line": 83,
+          "params": [
+            "host"
+          ],
+          "purpose": "The line typed (never run) in a terminal on this Mac: create a key when"
+        }
+      },
+      "sizeBytes": 4157,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "2f37b3e407198177",
+        "purposes": {
+          "classify": "a8722bf9f4926761",
+          "describe": "135c06ef29c53332",
+          "needsUser": "036a8b47aa7a4948",
+          "setupCommand": "3a27827284bcd39a"
+        }
+      }
+    },
     "shared/uiZoom": {
       "file": "src/shared/uiZoom.js",
       "description": "UI zoom ladder — the five interface sizes Frame offers (ui-zoom-steps spec).",
@@ -33095,6 +33159,25 @@
         }
       }
     },
+    "test/sshErrors.test": {
+      "file": "test/sshErrors.test.js",
+      "description": "What an ssh failure means (server-first-connect T01). The samples are",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "child_process",
+        "src/shared/sshErrors"
+      ],
+      "functions": {},
+      "sizeBytes": 4127,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "014e5893d0967b80"
+      }
+    },
     "test/structureBootstrap.test": {
       "file": "test/structureBootstrap.test.js",
       "description": "structureBootstrap tests (STR-01 T07/T08): shipping the parser's complete",
@@ -36533,7 +36616,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 402,
+        "parsed": 404,
         "unsupported": 92,
         "partial": 0
       }
@@ -36580,9 +36663,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 588,
+      "visitedEntries": 590,
       "traversedDirectories": 86,
-      "eligibleFiles": 494,
+      "eligibleFiles": 496,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -36599,7 +36682,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 494,
+      "indexedFiles": 496,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -36607,6 +36690,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "6ee608d13996ae247dbe6b1498dd761bad2db79eac5d5bbd56f0f3486034ee3f"
+    "revision": "2463468b4b312f5dc70a02967ea3df90748477a9c161c7a9b0e4a6e4685322e3"
   }
 }
