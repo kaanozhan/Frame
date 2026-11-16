@@ -105,7 +105,7 @@ test('T04: the steps follow the server from connecting to a clean check-up', () 
   assert.equal(at({ state: 'error', errorKind: null, error: 'socket closed', install: { action: 'none' } }), 'failed todo todo');
   assert.equal(at({ state: 'connected' }, null), 'done done active', 'check-up loading');
   assert.equal(at({ state: 'connected' }, { items: [{ ok: true }, { ok: true }] }), 'done done done');
-  assert.equal(at({ state: 'connected' }, { items: [{ ok: true }, { ok: false }] }), 'done done failed', 'something to fix');
+  assert.equal(at({ state: 'connected' }, { items: [{ ok: true }, { ok: false }] }), 'done done attention', 'something to set up is a warning, not a failure');
   assert.equal(at({ state: 'connected' }, { items: [{ ok: true }, { ok: false, optional: true }] }), 'done done done', 'an optional item may be missing');
   assert.equal(at({ state: 'connected' }, { error: 'Not connected.', items: [] }), 'done done failed');
 });

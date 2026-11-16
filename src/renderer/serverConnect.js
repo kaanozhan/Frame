@@ -308,7 +308,7 @@ function renderModal() {
   $('#sc-steps').replaceChildren(...model.steps(s, cur.doctorFor === s.host ? cur.doctor : null).map((step, i) => {
     const li = el('li', 'sc-step');
     li.dataset.state = step.state;
-    li.appendChild(el('span', 'sc-step-mark', step.state === 'done' ? '✓' : step.state === 'failed' ? '!' : String(i + 1)));
+    li.appendChild(el('span', 'sc-step-mark', step.state === 'done' ? '✓' : (step.state === 'failed' || step.state === 'attention') ? '!' : String(i + 1)));
     li.appendChild(el('span', 'sc-step-label', step.label));
     if (step.state === 'active') li.setAttribute('aria-current', 'step');
     return li;

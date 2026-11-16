@@ -7,7 +7,7 @@ The Servers dialog now takes a first-time user to a connected server. `src/share
 - **Waiting:** host-unknown, host-changed and auth stop the connect loop ("Needs your action") until Connect is pressed; network errors keep `BACKOFF_MS`.
 - **Setup step:** "Set up access in a terminal" opens a Mac terminal (`terminalManager.createLocalCommandTerminal`) with the command typed but not run. ssh itself shows the fingerprint and asks for the password, so Frame never sees either and writes nothing in `~/.ssh`.
 - **Changed host key:** treated as a possible attack; it gets a warning and no action.
-- **Dialog:** a "Before you start" note when no server is saved, and a Connect → Install Frame Server → Check-up indicator from the pure `serverConnectModel.steps`.
+- **Dialog:** a "Before you start" note when no server is saved, and a Connect → Install Frame Server → Check-up indicator from the pure `serverConnectModel.steps`. A check-up that lists things to set up shows as 'attention' (yellow), not failed; only a check-up that errors is red.
 - **Rejected:** `ssh-keyscan` plus a Trust button that writes `known_hosts` (Frame would write the user's ssh files); retrying every error (reran ssh every 30 s for errors only the user can fix).
 - **Rules:**
   - Recognise ssh failures only through `sshErrors`.

@@ -849,6 +849,8 @@
 .sc-step[data-state="active"] { color: var(--text-primary); }
 .sc-step[data-state="active"] .sc-step-mark { border-color: var(--accent-primary); color: var(--accent-primary); }
 .sc-step[data-state="done"] .sc-step-mark { border-color: var(--success); background: var(--success-subtle); color: var(--success); }
+.sc-step[data-state="attention"] { color: var(--warning-ink, var(--warning)); }
+.sc-step[data-state="attention"] .sc-step-mark { border-color: var(--warning); color: var(--warning-ink, var(--warning)); }
 .sc-step[data-state="failed"] { color: var(--error); }
 .sc-step[data-state="failed"] .sc-step-mark { border-color: var(--error); background: var(--error-subtle); color: var(--error); }
 .sc-empty p.sc-note-small { font-size: 11px; }

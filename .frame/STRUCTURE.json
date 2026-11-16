@@ -16018,7 +16018,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 24706,
+      "sizeBytes": 24738,
       "extraction": {
         "status": "parsed"
       },
@@ -16166,7 +16166,7 @@
           "purpose": "The server to show in the dialog: `wanted` if listed, else the first connected, else the first."
         },
         "steps": {
-          "line": 137,
+          "line": 139,
           "params": [
             "status",
             "doctor"
@@ -16174,7 +16174,7 @@
           "purpose": "Where a server stands on Connect → Install Frame Server → Check-up, each"
         }
       },
-      "sizeBytes": 6950,
+      "sizeBytes": 7117,
       "extraction": {
         "status": "parsed"
       },
@@ -18737,7 +18737,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 28602,
+      "sizeBytes": 28806,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -32146,7 +32146,7 @@
         "src/renderer/serverConnectModel"
       ],
       "functions": {},
-      "sizeBytes": 7248,
+      "sizeBytes": 7282,
       "extraction": {
         "status": "parsed"
       },
@@ -36718,6 +36718,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "2ecdd021a4282a8e446fd5e87574a7234222caa70e2d6dde00d899d1c0242ab4"
+    "revision": "dd1cc3e17c3eb360542883f63cca3c5f8973c3e46fb92ee63cbd3fb718723ee7"
   }
 }

@@ -131,7 +131,9 @@ const STEPS = [
 
 /**
  * Where a server stands on Connect → Install Frame Server → Check-up, each
- * 'done' | 'active' | 'failed' | 'todo'. `doctor` is the check-up result
+ * 'done' | 'active' | 'attention' | 'failed' | 'todo'. 'attention' is a
+ * check-up that ran and lists something to set up (a sign-in, linger) — the
+ * same warning its rows show, not a failure. `doctor` is the check-up result
  * (`{ error, items }`) or null while it loads.
  */
 function steps(status, doctor) {
@@ -144,7 +146,7 @@ function steps(status, doctor) {
   if (st === 'connected') {
     const items = (doctor && doctor.items) || [];
     // Clean as the dialog counts it: an optional item may be missing.
-    const checkup = !doctor ? 'active' : (doctor.error || items.some((i) => !i.ok && !i.optional)) ? 'failed' : 'done';
+    const checkup = !doctor ? 'active' : doctor.error ? 'failed' : items.some((i) => !i.ok && !i.optional) ? 'attention' : 'done';
     at = { connect: 'done', install: 'done', checkup };
   } else if (st === 'needs-install' || st === 'needs-update' || st === 'installing') {
     at = { connect: 'done', install: 'active', checkup: 'todo' };
