@@ -9,7 +9,7 @@ related: server-workspaces, server-install-update, server-hardening, server-onbo
 
 Adding the first server in the Servers dialog is not clear. The user and a teammate could not tell how to connect. The dialog asks for "myserver or me@host" and connects at once. It does not say what must already be true for that to work:
 
-- **An SSH key login must already work.** Frame runs `ssh` in `BatchMode`, so it never asks for a password. A server that only takes a password fails with ssh's raw last line: `ssh kaan@…: Permission denied (publickey,password).`
+- **An SSH key login must already work.** Frame runs `ssh` in `BatchMode`, so it never asks for a password. A server that only takes a password fails with ssh's raw last line: `ssh me@…: Permission denied (publickey,password).`
 - **The host key of a server never connected to before has not been accepted.** In `BatchMode`, ssh cannot ask "Are you sure you want to continue connecting?", so the first connect fails with `Host key verification failed.` This is read from the code and ssh's behaviour, not yet seen live.
 - **What goes in the box is unclear.** An IP, `user@ip` and a `~/.ssh/config` alias all work. The aliases appear only as datalist suggestions.
 - **The steps are not shown.** Connect, then install Frame Server, then the check-up: each step appears only when it is reached.
