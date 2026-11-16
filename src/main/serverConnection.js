@@ -42,7 +42,7 @@ const logger = require('./logger');
 
 const SETTING = 'servers';
 const LEGACY_SETTING = 'server';
-const OFF = { state: 'off', host: null, error: null, frameVersion: null, platform: null, install: null, serverId: null };
+const OFF = { state: 'off', host: null, error: null, errorKind: null, frameVersion: null, platform: null, install: null, serverId: null };
 
 let mainWindow = null;
 let frameVersion = '0.0.0';

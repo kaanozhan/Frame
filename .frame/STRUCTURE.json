@@ -6048,7 +6048,7 @@
           "channel"
         ]
       },
-      "sizeBytes": 11824,
+      "sizeBytes": 11841,
       "extraction": {
         "status": "parsed"
       },
@@ -6093,6 +6093,7 @@
         "http",
         "child_process",
         "shared/serverInstall",
+        "shared/sshErrors",
         "logger",
         "electron",
         "serverConnection",
@@ -6100,16 +6101,16 @@
       ],
       "functions": {
         "sshBin": {
-          "line": 37
+          "line": 38
         },
         "appRoot": {
-          "line": 41
+          "line": 42
         },
         "releaseBase": {
-          "line": 45
+          "line": 46
         },
         "ssh": {
-          "line": 53,
+          "line": 54,
           "params": [
             "host",
             "command",
@@ -6120,25 +6121,25 @@
           "purpose": "Run `command` on `host`. `input` is a string, Buffer or readable stream"
         },
         "sshFailure": {
-          "line": 89,
+          "line": 90,
           "params": [
             "host",
             "res"
           ]
         },
         "desktopVersion": {
-          "line": 99,
+          "line": 100,
           "purpose": "This desktop's version; a desktop running from source is `<v>-dev+<sha>`."
         },
         "probe": {
-          "line": 128,
+          "line": 129,
           "params": [
             "host"
           ],
           "purpose": "What is on the host: `{ error?, unameS, unameM, installed: { current, previous,"
         },
         "decide": {
-          "line": 155,
+          "line": 157,
           "params": [
             "host",
             "{ protocolOk = true } = {}"
@@ -6146,16 +6147,16 @@
           "purpose": "`{ action, reason, desktopVersion, dev, probe }` for a host."
         },
         "parseResult": {
-          "line": 165,
+          "line": 167,
           "params": [
             "stdout"
           ]
         },
         "scriptPath": {
-          "line": 171
+          "line": 173
         },
         "runInstaller": {
-          "line": 176,
+          "line": 178,
           "params": [
             "host",
             "args",
@@ -6164,7 +6165,7 @@
           "purpose": "Run the installer on the host with `args` (already shell-safe words)."
         },
         "download": {
-          "line": 188,
+          "line": 190,
           "params": [
             "url",
             "dest",
@@ -6173,7 +6174,7 @@
           "purpose": "GET with redirects into a file (GitHub release assets redirect to a CDN)."
         },
         "upload": {
-          "line": 213,
+          "line": 215,
           "params": [
             "host",
             "localFile",
@@ -6182,11 +6183,11 @@
           "purpose": "Stream a local file to `remotePath` on the host."
         },
         "sourceTarball": {
-          "line": 220,
+          "line": 222,
           "purpose": "Source tarball of this checkout (`git archive HEAD`) in a temp file."
         },
         "install": {
-          "line": 234,
+          "line": 236,
           "params": [
             "host",
             "{ onProgress = ("
@@ -6194,7 +6195,7 @@
           "purpose": "Install (or update to) this desktop's version on `host`."
         },
         "start": {
-          "line": 280,
+          "line": 282,
           "params": [
             "host",
             "{ onProgress = ("
@@ -6202,7 +6203,7 @@
           "purpose": "Start the installed current version (after a reboot, or a stopped process)."
         },
         "rollback": {
-          "line": 285,
+          "line": 287,
           "params": [
             "host",
             "{ onProgress = ("
@@ -6210,14 +6211,14 @@
           "purpose": "Back to the previous installed version."
         },
         "runningAgents": {
-          "line": 301,
+          "line": 303,
           "params": [
             "key = null"
           ],
           "purpose": "The agents running on one server (`key`; the first connected one without),"
         }
       },
-      "sizeBytes": 14758,
+      "sizeBytes": 14965,
       "extraction": {
         "status": "parsed"
       },
@@ -6255,34 +6256,35 @@
         "shared/serverProtocol",
         "shared/serverSecurity",
         "shared/serverInstall",
+        "shared/sshErrors",
         "logger",
         "serverInstaller"
       ],
       "functions": {
         "sshBin": {
-          "line": 55
+          "line": 56
         },
         "installer": {
-          "line": 59
+          "line": 60
         },
         "readConnectionInfo": {
-          "line": 63,
+          "line": 64,
           "params": [
             "host"
           ]
         },
         "freePort": {
-          "line": 89
+          "line": 90
         },
         "forwardRefused": {
-          "line": 102,
+          "line": 103,
           "params": [
             "text"
           ],
           "purpose": "The sshd refused to forward to a socket: say what to change (S8)."
         },
         "waitForPort": {
-          "line": 108,
+          "line": 109,
           "params": [
             "port",
             "child",
@@ -6290,7 +6292,7 @@
           ]
         },
         "createLink": {
-          "line": 140,
+          "line": 141,
           "params": [
             "{ key",
             "host",
@@ -6299,7 +6301,7 @@
           "purpose": "One server's link."
         }
       },
-      "sizeBytes": 20791,
+      "sizeBytes": 21150,
       "extraction": {
         "status": "parsed"
       },
@@ -30147,14 +30149,14 @@
       ],
       "functions": {
         "remoteHome": {
-          "line": 16,
+          "line": 21,
           "params": [
             "host"
           ],
           "purpose": "One remote home per host (multi-server-connections): FAKE_REMOTE_HOMES is"
         }
       },
-      "sizeBytes": 3214,
+      "sizeBytes": 4211,
       "extraction": {
         "status": "parsed"
       },
@@ -32178,7 +32180,7 @@
           ]
         }
       },
-      "sizeBytes": 15646,
+      "sizeBytes": 16496,
       "extraction": {
         "status": "parsed"
       },
@@ -36690,6 +36692,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "2463468b4b312f5dc70a02967ea3df90748477a9c161c7a9b0e4a6e4685322e3"
+    "revision": "38bbc6353e0f4ae0de322320de5f29b4de63bb0cff5848811c0e1e80e5207d8b"
   }
 }

@@ -9,7 +9,12 @@
 //                                `127.0.0.1:rp` or a socket path. With
 //                                FAKE_SSH_NO_STREAMLOCAL=1 a socket target is
 //                                refused like sshd's AllowStreamLocalForwarding no.
-// Host "nohost" fails like an unknown host.
+// Host "nohost" fails like an unknown host. Hosts that fail the way ssh does
+// on a first connect (server-first-connect), exit 255 like ssh itself:
+//   "newhost"     host key not known yet (BatchMode cannot ask)
+//   "changedhost" host key changed since the last connect
+//   "deniedhost"  no key accepted (a password-only server)
+// With FAKE_SSH_LOG set, every run appends its host to that file.
 const net = require('net');
 // One remote home per host (multi-server-connections): FAKE_REMOTE_HOMES is
 // a JSON object host → home; any other host uses FAKE_REMOTE_HOME.
@@ -54,7 +59,14 @@ if (args.includes('-N')) {
   process.on('SIGTERM', () => { server.close(); process.exit(0); });
 } else {
   const [host, ...cmd] = args.filter((a) => a !== '-T');
+  if (process.env.FAKE_SSH_LOG) require('fs').appendFileSync(process.env.FAKE_SSH_LOG, `${host}\n`);
   if (host === 'nohost') { process.stderr.write('ssh: Could not resolve hostname nohost\n'); process.exit(255); }
+  const FAILS = {
+    newhost: 'No ED25519 host key is known for newhost and you have requested strict checking.\nHost key verification failed.\n',
+    changedhost: '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\nHost key verification failed.\n',
+    deniedhost: 'me@deniedhost: Permission denied (publickey,password).\n'
+  };
+  if (FAILS[host]) { process.stderr.write(FAILS[host]); process.exit(255); }
   const home = remoteHome(host);
   const env = { ...process.env, HOME: home, PATH: `${process.env.FAKE_BIN_DIR}:${process.env.PATH}` };
   delete env.FRAME_SERVER_HOME;

@@ -6,3 +6,11 @@ Added `src/shared/sshErrors.js`: `classify(stderr, code)` maps OpenSSH's own std
 _Captured: 2026-11-16 · 2 file change(s)_
 
 ---
+
+## T02 — Carry the ssh failure kind into the link status
+
+`serverInstaller.probe`/`decide` return `sshKind` from `sshErrors.classify`; `serverLink` attaches it to the probe, connection.json read and tunnel errors and puts `errorKind` in the status (cleared on connecting, connected, needs-install, disconnect and a failed install), and `serverConnection`'s `OFF` gains `errorKind: null`. `readConnectionInfo`'s own ssh-error regex was replaced by the shared classifier (same message text). `test/fixtures/fake-ssh.js` gained `newhost`, `changedhost` and `deniedhost` failures plus an optional `FAKE_SSH_LOG`; the new test in `test/serverConnection.test.js` was red on the previous commit.
+
+_Captured: 2026-11-16 · 5 file change(s)_
+
+---

@@ -311,3 +311,23 @@ test('S8: removing a server closes only its link and forgets it', async () => {
     off();
   }
 });
+
+// ─── server-first-connect: what an ssh failure means ─────────
+
+test('T02: a first-connect ssh failure carries its kind in the status', async () => {
+  const cases = { newhost: 'host-unknown', changedhost: 'host-changed', deniedhost: 'auth', nohost: 'no-resolve' };
+  for (const [host, kind] of Object.entries(cases)) {
+    sc.add(host);
+    const key = keyOf(host);
+    try {
+      sc.connect(key);
+      await waitFor(() => sc.of(key).getStatus().errorKind === kind, 15000, `${host} → ${kind}`);
+      const s = sc.of(key).getStatus();
+      assert.equal(s.state, 'error', host);
+      assert.match(String(s.error), new RegExp(`ssh ${host}:`), 'ssh\'s own line stays as the fallback');
+    } finally {
+      sc.remove(key);
+    }
+  }
+  assert.ok(sc.of(keyOf('box')).isConnected(), 'the other server is untouched');
+});

@@ -29,6 +29,7 @@ const https = require('https');
 const http = require('http');
 const { spawn, execFile } = require('child_process');
 const I = require('../shared/serverInstall');
+const sshErrors = require('../shared/sshErrors');
 const logger = require('./logger');
 
 const SSH_OPTS = ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15'];
@@ -127,7 +128,8 @@ const PROBE = [
  */
 async function probe(host) {
   const res = await ssh(host, PROBE, { timeout: 30000 });
-  if (res.code !== 0) return { error: sshFailure(host, res) };
+  // `sshKind`: what ssh's own failure means (server-first-connect), or null.
+  if (res.code !== 0) return { error: sshFailure(host, res), sshKind: sshErrors.classify(res.stderr, res.code) };
   const lines = res.stdout.split('\n');
   const [unameS = '', unameM = ''] = (lines[0] || '').trim().split(/\s+/);
   const markerAt = lines.findIndex((l) => l.startsWith('FRAME:'));
@@ -154,7 +156,7 @@ async function probe(host) {
 /** `{ action, reason, desktopVersion, dev, probe }` for a host. */
 async function decide(host, { protocolOk = true } = {}) {
   const p = await probe(host);
-  if (p.error) return { action: 'error', reason: p.error, probe: p };
+  if (p.error) return { action: 'error', reason: p.error, sshKind: p.sshKind || null, probe: p };
   const { version, dev } = await desktopVersion();
   const d = I.installDecision({ installed: p.installed, desktopVersion: version, dev, protocolOk });
   return { ...d, desktopVersion: version, dev, probe: p };
