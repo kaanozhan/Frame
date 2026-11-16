@@ -364,6 +364,8 @@ function init() {
   frameSettingsModal.init();
   // Frame Cloud never lands over the first-run screen or the guided tour.
   cloudHub.init({ isBlocked: () => onboarding.isOpen() || guidedTour.isOpen(), tabs: cloudHubTabs });
+  // The header's Frame Cloud entry follows the session the hub publishes.
+  appHeader.bindCloudEntry(cloudHub);
   cloudProjectMark.init(cloudHub);
   cloudBriefsPanel.init(cloudHub);
   feedbackPanel.init();
@@ -444,10 +446,11 @@ function setupButtonHandlers() {
     btn.addEventListener('click', () => revealSidebarTab(btn.dataset.sidebarTab));
   });
 
-  // The foot of the sidebar rail — Plugins, Feedback, Frame Cloud, then
-  // Frame Settings: each a modal (pluginsPanel, feedbackPanel, cloudHub,
-  // frameSettingsModal), not a view — hence no .sidebar-tab-btn on the
-  // buttons. All four toggle.
+  // The foot of the sidebar rail — Add Server, Plugins, Feedback, Frame
+  // Settings, then How to Use Frame: each a modal (serverConnect,
+  // pluginsPanel, feedbackPanel, frameSettingsModal, the guide), not a view —
+  // hence no .sidebar-tab-btn on the buttons. Frame Cloud is not here: its
+  // entry is in the app header (appHeader.bindCloudEntry).
   const addServerBtn = document.getElementById('add-server-btn');
   if (addServerBtn) {
     addServerBtn.addEventListener('click', () => commandRegistry.runById('server.add'));
@@ -463,32 +466,6 @@ function setupButtonHandlers() {
     feedbackBtn.addEventListener('click', () => feedbackPanel.toggle());
     // Outboard of the rail, like the spec-driven hint anchors.
     tooltip.attach(feedbackBtn, 'Send Feedback', { placement: 'right' });
-  }
-
-  // Frame Cloud, above the gear. Hidden while no server resolves; its label
-  // names the account when signed in. The tooltip fixes its text when
-  // attached, so a changed label rebinds a fresh copy of the button.
-  let cloudBtnLabel = null;
-  const bindCloudBtn = (session) => {
-    const current = document.getElementById('cloud-btn');
-    if (!current) return;
-    const user = session.state === 'signedIn' && session.user ? session.user : null;
-    const who = user ? user.name || user.email : '';
-    const label = who ? `Frame Cloud — ${who}` : 'Frame Cloud';
-    current.hidden = session.state === 'unavailable';
-    if (label === cloudBtnLabel) return;
-    cloudBtnLabel = label;
-    const btn = current.cloneNode(true);
-    btn.setAttribute('aria-label', label);
-    current.replaceWith(btn);
-    btn.addEventListener('click', () => cloudHub.toggle());
-    tooltip.attach(btn, label, { placement: 'right' });
-  };
-  if (document.getElementById('cloud-btn')) {
-    bindCloudBtn(cloudHub.session());
-    cloudHub.onSession(bindCloudBtn);
-  } else {
-    console.error('Frame Cloud: #cloud-btn not found — the rail has no Frame Cloud entry');
   }
 
   // Frame's own settings, from the gear at the foot of the rail (where the

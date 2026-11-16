@@ -30,6 +30,11 @@ const COPY = {
   openCloud: 'Open Frame Cloud',
   settingsRowEarly: 'Frame Cloud is in early access.',
   fallbackLink: 'Join on frame.cool',
+  // The header's Frame Cloud entry (cloudEntry.js): its call before this
+  // machine has joined, and the tag beside the label before and after.
+  entryCall: 'Join Frame Cloud waitlist',
+  entryEarly: 'Early access',
+  entryJoined: 'On the list',
 };
 
 /** The joined card's body: "We'll email ada@example.com when your invite is ready." */

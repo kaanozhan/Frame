@@ -1,5 +1,6 @@
 /**
- * Frame Cloud — the modal behind the cloud icon at the foot of the rail.
+ * Frame Cloud — the modal behind the app header's Frame Cloud entry
+ * (#cloud-entry, right of the Frame mark; frame-cloud-header-entry spec).
  *
  * One home for everything project-independent about Frame Cloud: the
  * account (the sign-in panes that used to live in Settings → Account), the
@@ -24,7 +25,7 @@ const earlyAccess = require('./cloudEarlyAccess');
 const SIGNED_IN_NOTE_MS = 4000;
 const TABS = ['projects', 'device'];
 const PROMPT_DISMISSED_KEY = 'cloudConnectPromptDismissed';
-// The states drawn inside the welcome layout (pitch + sign-in card).
+// The states drawn inside the welcome layout (the tour + sign-in card).
 const WELCOME_STATES = ['signedOut', 'requestingCode', 'awaitingApproval', 'registering', 'failed'];
 
 // The ↗ after links that leave Frame, as in the Workspace row.
@@ -104,6 +105,8 @@ function init(opts = {}) {
 function onOpen() {
   // The after-sign-in notice belongs to that moment, not to later visits.
   hideDevicesPrompt();
+  // The tour's step is not remembered: every opening starts at step one.
+  cloudWelcome.reset();
   pullSession().then((state) => {
     if (!state || state.state === 'unavailable') return;
     ipcRenderer.invoke(IPC.CLOUD_REFRESH).then(renderSession).catch(() => {});
@@ -165,6 +168,8 @@ function initEarlyAccess() {
           joining = false;
           syncJoin();
           renderEarlyAccess(sessionState);
+          // Main's push can land before the flag above is cleared.
+          notifySession();
         });
     });
   }
@@ -177,6 +182,9 @@ function initEarlyAccess() {
       showWaitlistForm = true;
       renderEarlyAccess(sessionState);
       if (input) input.focus();
+      // The header entry follows the window: with the form back, it calls
+      // to the waitlist again.
+      notifySession();
     });
   }
 }
@@ -206,6 +214,22 @@ function renderEarlyAccess(s) {
   show('cloud-early-form', mode === 'form');
   show('cloud-early-joined', mode === 'joined');
   if (mode === 'joined') setText('cloud-waitlist-joined-body', earlyAccess.joinedBody(s.waitlistEmail));
+}
+
+/**
+ * The session as the window presents it. "Use another address" brings the
+ * waitlist form back without forgetting the stored address, so until the next
+ * join the listeners (the header entry) read it as not joined, like the pane.
+ */
+function presentedSession() {
+  if (!showWaitlistForm || !sessionState.waitlistEmail) return sessionState;
+  const { waitlistEmail, ...rest } = sessionState;
+  return rest;
+}
+
+function notifySession() {
+  const s = presentedSession();
+  for (const listener of sessionListeners) listener(s);
 }
 
 function pullSession() {
@@ -334,7 +358,7 @@ function renderSession(state) {
   }
   // A server address that stops resolving takes the modal with it.
   if (s.state === 'unavailable' && overlay && overlay.isOpen()) overlay.close();
-  for (const listener of sessionListeners) listener(s);
+  notifySession();
 }
 
 function land() {
@@ -633,7 +657,7 @@ const api = {
   refreshProjects,
   formatRelative,
   accountState: () => sessionState.state,
-  session: () => sessionState,
+  session: () => presentedSession(),
   projects: () => projectsState,
   activeTab: () => activeTab,
   /** Listen to session renders. Returns the unsubscribe function. */

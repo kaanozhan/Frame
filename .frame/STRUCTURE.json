@@ -106,7 +106,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 15952,
+      "sizeBytes": 15970,
       "extraction": {
         "status": "parsed"
       },
@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 128311,
+      "sizeBytes": 128871,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -13332,7 +13332,8 @@
       "file": "src/renderer/appHeader.js",
       "description": "App Header — the one row across the top of the window",
       "exports": [
-        "init"
+        "init",
+        "bindCloudEntry"
       ],
       "depends": [
         "electron",
@@ -13343,23 +13344,25 @@
         "sidebarResize",
         "dock",
         "commandRegistry",
+        "tooltip",
+        "cloudEntry",
         "aiToolSelector"
       ],
       "functions": {
         "initTheme": {
-          "line": 46,
+          "line": 53,
           "params": [
             "root"
           ]
         },
         "initUpdateBell": {
-          "line": 124,
+          "line": 131,
           "params": [
             "root"
           ]
         },
         "paintToggle": {
-          "line": 161,
+          "line": 168,
           "params": [
             "btn",
             "{ on",
@@ -13370,13 +13373,20 @@
           "purpose": "Paint one toggle: pressed state, title, icon."
         },
         "initLayoutToggles": {
-          "line": 168,
+          "line": 175,
           "params": [
             "root"
           ]
         },
+        "bindCloudEntry": {
+          "line": 209,
+          "params": [
+            "cloudHub"
+          ],
+          "purpose": "The Frame Cloud entry: hidden without a server address, otherwise the"
+        },
         "init": {
-          "line": 193
+          "line": 248
         }
       },
       "ipc": {
@@ -13386,13 +13396,14 @@
         ],
         "emits": []
       },
-      "sizeBytes": 8263,
+      "sizeBytes": 10411,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "61dfe63c11626b82",
         "purposes": {
+          "bindCloudEntry": "f5a402a9017b3330",
           "paintToggle": "72514c20ebb5eea9"
         }
       }
@@ -15489,28 +15500,28 @@
       "depends": [],
       "functions": {
         "joinedBody": {
-          "line": 36,
+          "line": 41,
           "params": [
             "email"
           ],
           "purpose": "The joined card's body: \"We'll email ada@example.com when your invite is ready.\""
         },
         "joinFailure": {
-          "line": 51,
+          "line": 56,
           "params": [
             "reason"
           ],
           "purpose": "Why a join failed, as one line, and whether to offer frame.cool instead."
         },
         "paneMode": {
-          "line": 60,
+          "line": 65,
           "params": [
             "state"
           ],
           "purpose": "Which signed-out pane to show: today's (`classic`) unless the server said"
         }
       },
-      "sizeBytes": 2620,
+      "sizeBytes": 2868,
       "extraction": {
         "status": "parsed"
       },
@@ -15523,9 +15534,58 @@
         }
       }
     },
+    "renderer/cloudEntry": {
+      "file": "src/renderer/cloudEntry.js",
+      "description": "cloudEntry — what the app header's Frame Cloud entry shows for a session",
+      "exports": [
+        "NAME",
+        "entryFor"
+      ],
+      "depends": [
+        "cloudEarlyAccess",
+        "cloudNoWorkspace",
+        "cloudRoles"
+      ],
+      "functions": {
+        "initialOf": {
+          "line": 25,
+          "params": [
+            "name"
+          ],
+          "purpose": "The name's first character, upper-cased, read by code point (\"élan\" → \"É\")."
+        },
+        "cloud": {
+          "line": 30,
+          "params": [
+            "label",
+            "tag",
+            "tooltipParts",
+            "call"
+          ]
+        },
+        "entryFor": {
+          "line": 49,
+          "params": [
+            "session"
+          ],
+          "purpose": "The header entry for a session → `null` when there is no server address"
+        }
+      },
+      "sizeBytes": 2743,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "2e01d30790508efc",
+        "purposes": {
+          "entryFor": "358cc7be8692bcc2",
+          "initialOf": "5d162924b54bcb24"
+        }
+      }
+    },
     "renderer/cloudHub": {
       "file": "src/renderer/cloudHub.js",
-      "description": "Frame Cloud — the modal behind the cloud icon at the foot of the rail.",
+      "description": "Frame Cloud — the modal behind the app header's Frame Cloud entry",
       "exports": [],
       "depends": [
         "electron",
@@ -15538,119 +15598,126 @@
       ],
       "functions": {
         "init": {
-          "line": 62,
+          "line": 63,
           "params": [
             "opts = {}"
           ],
           "purpose": "tabs: the tab renderer ({ init(hub), render(state, activeTab), onShow(tab) })."
         },
         "onOpen": {
-          "line": 104,
+          "line": 105,
           "purpose": "Opening re-reads both states and asks the server once: device.me when"
         },
         "initEarlyAccess": {
-          "line": 118,
+          "line": 121,
           "purpose": "Fill the early-access pane's static words once and wire its controls."
         },
         "showJoinFailure": {
-          "line": 185,
+          "line": 193,
           "params": [
             "reason"
           ],
           "purpose": "One line under the form for a failed join (null clears it), and frame.cool as the way out."
         },
         "renderEarlyAccess": {
-          "line": 197,
+          "line": 205,
           "params": [
             "s"
           ],
           "purpose": "Signed out: today's pane, the waitlist form, or the joined card."
         },
+        "presentedSession": {
+          "line": 224,
+          "purpose": "The session as the window presents it. \"Use another address\" brings the"
+        },
+        "notifySession": {
+          "line": 230
+        },
         "pullSession": {
-          "line": 211
+          "line": 235
         },
         "pullProjects": {
-          "line": 224
+          "line": 248
         },
         "refreshProjects": {
-          "line": 238,
+          "line": 262,
           "purpose": "Re-read the list; the candidates follow (both tabs read them)."
         },
         "onAction": {
-          "line": 254,
+          "line": 278,
           "params": [
             "action",
             "btn"
           ]
         },
         "invokeSession": {
-          "line": 289,
+          "line": 313,
           "params": [
             "channel",
             "btn"
           ]
         },
         "renderSession": {
-          "line": 302,
+          "line": 326,
           "params": [
             "state"
           ]
         },
         "land": {
-          "line": 340
+          "line": 364
         },
         "renderHeader": {
-          "line": 350,
+          "line": 374,
           "params": [
             "s"
           ]
         },
         "renderAvatar": {
-          "line": 366,
+          "line": 390,
           "params": [
             "user"
           ],
           "purpose": "The account picture when the server has one and it loads; initials"
         },
         "renderProjects": {
-          "line": 400,
+          "line": 424,
           "params": [
             "state"
           ]
         },
         "standInFor": {
-          "line": 429,
+          "line": 453,
           "params": [
             "state"
           ],
           "purpose": "Which card stands in for the tab bar and both tabs, or null for the tabs:"
         },
         "renderStandIn": {
-          "line": 443,
+          "line": 467,
           "params": [
             "state"
           ],
           "purpose": "The stand-in panel: the tab bar, both tabs and the devices notice give way"
         },
         "showDevicesPrompt": {
-          "line": 500,
+          "line": 524,
           "params": [
             "state"
           ],
           "purpose": "After a user-started sign-in with folders left to connect: switch the"
         },
         "hideDevicesPrompt": {
-          "line": 527
+          "line": 551
         },
         "setTab": {
-          "line": 532,
+          "line": 556,
           "params": [
             "tab",
             "opts = {}"
           ]
         },
         "open": {
-          "line": 562,
+          "line": 586,
           "params": [
             "{ tab",
             "folderPath",
@@ -15659,42 +15726,42 @@
           "purpose": "Open Frame Cloud. `tab` picks 'projects' or 'device'; `folderPath` asks the"
         },
         "signIn": {
-          "line": 570,
+          "line": 594,
           "purpose": "Palette \"Frame Cloud: Sign in\" and the Sign in buttons in both settings surfaces: open here and start."
         },
         "signOut": {
-          "line": 577,
+          "line": 601,
           "purpose": "Palette \"Frame Cloud: Sign out\": no modal."
         },
         "setNote": {
-          "line": 583,
+          "line": 607,
           "params": [
             "name",
             "visible"
           ]
         },
         "setText": {
-          "line": 589,
+          "line": 613,
           "params": [
             "id",
             "text"
           ]
         },
         "isWebUrl": {
-          "line": 595,
+          "line": 619,
           "params": [
             "url"
           ],
           "purpose": "\"Primary · secondary\", built from text nodes — server strings never become HTML."
         },
         "webOrigin": {
-          "line": 599,
+          "line": 623,
           "params": [
             "url"
           ]
         },
         "formatRelative": {
-          "line": 608,
+          "line": 632,
           "params": [
             "date"
           ]
@@ -15707,18 +15774,19 @@
         ],
         "emits": []
       },
-      "sizeBytes": 24159,
+      "sizeBytes": 25059,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "e430ebf4df6d0b4e",
+        "description": "7509c3abfce9d7e5",
         "purposes": {
           "init": "9a0c0e6482f0308d",
           "initEarlyAccess": "467835ef44b64a7e",
           "isWebUrl": "9967ae39bf4f9ea8",
           "onOpen": "978035945ef6025f",
           "open": "d1c1050fa815a5e7",
+          "presentedSession": "2241f0cb7d29249d",
           "refreshProjects": "00c2f19d6ac01af0",
           "renderAvatar": "4d0ff2874db3c840",
           "renderEarlyAccess": "5cb65d4f1270d32d",
@@ -16417,45 +16485,184 @@
         }
       }
     },
-    "renderer/cloudWelcome": {
-      "file": "src/renderer/cloudWelcome.js",
-      "description": "Frame Cloud — the case for it, beside the sign-in.",
+    "renderer/cloudTour": {
+      "file": "src/renderer/cloudTour.js",
+      "description": "cloudTour — the five-step tour on the left of the signed-out Frame Cloud",
       "exports": [
-        "render"
+        "EYEBROW",
+        "TRUST",
+        "TRUST_LEAD",
+        "EXAMPLE_KINDS",
+        "TONES",
+        "STEPS",
+        "clamp",
+        "next",
+        "back",
+        "canNext",
+        "canBack",
+        "counter",
+        "strings"
       ],
       "depends": [],
       "functions": {
-        "icon": {
-          "line": 34,
+        "clamp": {
+          "line": 142,
           "params": [
-            "name",
-            "size = 16"
+            "i"
+          ],
+          "purpose": "Any value → a step index that exists; anything that is not a number is step one."
+        },
+        "next": {
+          "line": 149,
+          "params": [
+            "i"
+          ],
+          "purpose": "The step after `i`; the last step stays the last."
+        },
+        "back": {
+          "line": 154,
+          "params": [
+            "i"
+          ],
+          "purpose": "The step before `i`; the first step stays the first."
+        },
+        "canNext": {
+          "line": 158,
+          "params": [
+            "i"
           ]
         },
+        "canBack": {
+          "line": 162,
+          "params": [
+            "i"
+          ]
+        },
+        "counter": {
+          "line": 167,
+          "params": [
+            "i"
+          ],
+          "purpose": "\"2 of 5 · Board\""
+        },
+        "collect": {
+          "line": 172,
+          "params": [
+            "value",
+            "out"
+          ]
+        },
+        "strings": {
+          "line": 180,
+          "purpose": "Every string the tour can show, counters included — what the copy guards read."
+        }
+      },
+      "sizeBytes": 7460,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "596ee7db71e9f4d0",
+        "purposes": {
+          "back": "7f4b413e7f96a13a",
+          "clamp": "89436bdae582260b",
+          "counter": "84e7d97d8f62be70",
+          "next": "e33b78cd15d2de6a",
+          "strings": "05f67b794004a814"
+        }
+      }
+    },
+    "renderer/cloudWelcome": {
+      "file": "src/renderer/cloudWelcome.js",
+      "description": "Frame Cloud — the tour beside the sign-in (frame-cloud-header-entry spec).",
+      "exports": [
+        "render",
+        "show",
+        "reset"
+      ],
+      "depends": [
+        "cloudTour"
+      ],
+      "functions": {
         "el": {
-          "line": 40,
+          "line": 24,
           "params": [
             "tag",
             "className",
             "text"
           ]
         },
-        "render": {
+        "toneClass": {
+          "line": 31,
+          "params": [
+            "tone"
+          ]
+        },
+        "buildFeatures": {
+          "line": 37,
+          "params": [
+            "example"
+          ]
+        },
+        "buildPartsList": {
           "line": 48,
+          "params": [
+            "parts"
+          ]
+        },
+        "buildCard": {
+          "line": 60,
+          "params": [
+            "card"
+          ]
+        },
+        "buildBoard": {
+          "line": 74,
+          "params": [
+            "example"
+          ]
+        },
+        "buildLane": {
+          "line": 104,
+          "params": [
+            "example"
+          ]
+        },
+        "buildParts": {
+          "line": 121,
+          "params": [
+            "example"
+          ]
+        },
+        "render": {
+          "line": 145,
           "params": [
             "root"
           ],
-          "purpose": "Fill the pitch once; it never changes with the session."
+          "purpose": "Build the tour once; `show` repaints it from then on."
+        },
+        "show": {
+          "line": 201,
+          "params": [
+            "i"
+          ],
+          "purpose": "Show step `i` (clamped): the words, the example, the dots and the buttons."
+        },
+        "reset": {
+          "line": 232,
+          "purpose": "Back to step one — every time the window opens."
         }
       },
-      "sizeBytes": 4219,
+      "sizeBytes": 8812,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "9a11918b6d6a6e09",
+        "description": "04d0f4282b8e0f36",
         "purposes": {
-          "render": "071b9f03ea3e2740"
+          "render": "37c94909ba1982f2",
+          "reset": "755649aa66c9e22a",
+          "show": "c20ddd9e18fad761"
         }
       }
     },
@@ -20055,34 +20262,34 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 398,
+          "line": 400,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 538,
+          "line": 515,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 669,
+          "line": 646,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 708,
+          "line": 685,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 734,
+          "line": 711,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1336,
+          "line": 1313,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1361,
+          "line": 1338,
           "params": [
             "err"
           ],
@@ -20103,7 +20310,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 51161,
+      "sizeBytes": 50218,
       "extraction": {
         "status": "parsed"
       },
@@ -24930,7 +25137,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 9955,
+      "sizeBytes": 13280,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -24978,7 +25185,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 22891,
+      "sizeBytes": 29090,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -36567,6 +36774,24 @@
         "description": "e079f4d94f05de62"
       }
     },
+    "test/cloudEntry.test": {
+      "file": "test/cloudEntry.test.js",
+      "description": "cloudEntry tests — what the app header's Frame Cloud entry shows for a",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/renderer/cloudEntry"
+      ],
+      "functions": {},
+      "sizeBytes": 5981,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "21d0473fb590995e"
+      }
+    },
     "test/cloudMoveHold.test": {
       "file": "test/cloudMoveHold.test.js",
       "description": "cloudMoveHold tests — the 5-second Undo window on a move to Done",
@@ -36803,6 +37028,24 @@
       },
       "provenance": {
         "description": "d80dde1285d8f9dd"
+      }
+    },
+    "test/cloudTour.test": {
+      "file": "test/cloudTour.test.js",
+      "description": "cloudTour tests — the signed-out Frame Cloud window's five-step tour: its",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/renderer/cloudTour"
+      ],
+      "functions": {},
+      "sizeBytes": 6985,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "96364586819dce21"
       }
     },
     "test/codexHookInstall.test": {
@@ -43034,7 +43277,7 @@
       {
         "module": "renderer/cloudHub",
         "file": "src/renderer/cloudHub.js",
-        "description": "Frame Cloud — the modal behind the cloud icon at the foot of the rail."
+        "description": "Frame Cloud — the modal behind the app header's Frame Cloud entry"
       },
       {
         "module": "renderer/cloudHubTabs",
@@ -44276,6 +44519,11 @@
     ],
     "tour": [
       {
+        "module": "renderer/cloudTour",
+        "file": "src/renderer/cloudTour.js",
+        "description": "cloudTour — the five-step tour on the left of the signed-out Frame Cloud"
+      },
+      {
         "module": "renderer/guidedTour",
         "file": "src/renderer/guidedTour.js",
         "description": "Guided tour — the DOM host (first-run-guided-tour spec)."
@@ -44404,7 +44652,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 452,
+        "parsed": 456,
         "unsupported": 94,
         "partial": 0
       }
@@ -44451,9 +44699,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 641,
+      "visitedEntries": 645,
       "traversedDirectories": 87,
-      "eligibleFiles": 546,
+      "eligibleFiles": 550,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -44470,7 +44718,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 546,
+      "indexedFiles": 550,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -44478,6 +44726,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "14a80ef3bf7d55856555846c488210721230bf69178176aad4e34231eb442cc5"
+    "revision": "fde42683dd7886f5237f7eb812f349119378e3dcd968f6894191b03598fe1103"
   }
 }

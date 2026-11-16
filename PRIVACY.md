@@ -122,7 +122,7 @@ On a crash, Frame saves a **minidump on your machine** using Electron's built-in
 
 ## Frame Cloud
 
-Signing in to Frame Cloud is optional, and nothing in Frame requires it. It lives in the **Frame Cloud** window (the cloud icon at the foot of the sidebar), which **Settings → Account**, **Project Settings** and the command palette also open. Packaged builds do not ship a server address yet, so none of this is shown and Frame makes no requests to any cloud server.
+Signing in to Frame Cloud is optional, and nothing in Frame requires it. It lives in the **Frame Cloud** window (the Frame Cloud button in the header, beside the Frame mark), which **Settings → Account**, **Project Settings** and the command palette also open. Packaged builds do not ship a server address yet, so none of this is shown and Frame makes no requests to any cloud server.
 
 ### Sign-in
 
