@@ -8333,10 +8333,25 @@
       "createdAt": "2026-11-15T13:36:34.362Z",
       "updatedAt": "2026-11-15T13:46:54.842Z",
       "completedAt": "2026-11-15T13:46:54.842Z"
+    },
+    {
+      "id": "task-tests-on-node-22",
+      "title": "Make the test suite pass on Node 22 and run it in CI",
+      "description": "On Node 21+ `test/screenMirror.test.js` fails at load: it requires `xterm-headless` directly, and xterm-headless 5.3 takes its browser path when a global `navigator` exists, touches `window` and throws. `src/server/screenMirror.js` already hides the global while it loads the package, so the test only has to load the mirror first and reuse the cached module. Then add Node 22 beside Node 20 in the `test` job matrix of `.github/workflows/ci.yml`, so both versions are checked on ubuntu and macOS. Files: `test/screenMirror.test.js`, `.github/workflows/ci.yml`.",
+      "userRequest": "User said: \"branch aç task yarat ve task'ı implement etmeye başla\" — after agreeing that the next step is to make `screenMirror.test.js` pass on Node 22 and add Node 22 to CI beside 20.",
+      "acceptanceCriteria": "- `npm test` passes on Node 22 with no failing file (today: 1 failing, `test/screenMirror.test.js`)\n- `npm test` still passes on Node 20\n- The CI `test` job runs on Node 20 and Node 22, on ubuntu-latest and macos-latest\n- No change under `src/`",
+      "notes": "Found while chasing an `npm test` hang on Node 20.5.1 (root-level `after()` never runs there while a handle is open; fine on 20.19+ and 22). A clean `npm ci`, `npm run build` and `npm test` were tried on Node 22.23.4 in a throwaway worktree: 1661 pass, this one file fails. Node 20 stays in CI on purpose; dropping it, `.nvmrc` and `engines` are a later, separate decision. `@electron/rebuild` and `node-abi` already ask for Node >=22.12 (EBADENGINE warning in CI). Adding a matrix axis renames the CI checks (`test (ubuntu-latest)` becomes `test (ubuntu-latest, 20)`), which matters if upstream marks checks as required by name.",
+      "status": "in_progress",
+      "priority": "medium",
+      "category": "fix",
+      "context": "Session 2026-11-16 — Node version check after npm test hung locally",
+      "createdAt": "2026-11-16T11:45:46.519Z",
+      "updatedAt": "2026-11-16T11:45:46.519Z",
+      "completedAt": null
     }
   ],
-  "lastUpdated": "2026-11-15T13:46:54.842Z",
+  "lastUpdated": "2026-11-16T11:45:46.519Z",
   "metadata": {
-    "totalCreated": 641
+    "totalCreated": 642
   }
 }
