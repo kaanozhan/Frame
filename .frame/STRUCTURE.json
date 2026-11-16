@@ -27667,35 +27667,42 @@
         "defaultMakeKey": {
           "line": 23
         },
+        "fromSshCommand": {
+          "line": 35,
+          "params": [
+            "words"
+          ],
+          "purpose": "A pasted ssh command (server-first-connect): `ssh me@host` gives `me@host`;"
+        },
         "normalizeHost": {
-          "line": 28,
+          "line": 68,
           "params": [
             "host"
           ],
-          "purpose": "The host as typed, trimmed; `{ error }` when it cannot be an SSH host."
+          "purpose": "The host as typed, trimmed; `{ error }` when it cannot be an SSH host. A"
         },
         "validEntry": {
-          "line": 36,
+          "line": 81,
           "params": [
             "e"
           ]
         },
         "sanitize": {
-          "line": 42,
+          "line": 87,
           "params": [
             "list"
           ],
           "purpose": "A clean copy of a stored list: malformed entries and repeated keys dropped."
         },
         "uniqueKey": {
-          "line": 58,
+          "line": 103,
           "params": [
             "list",
             "makeKey"
           ]
         },
         "addServer": {
-          "line": 71,
+          "line": 116,
           "params": [
             "list",
             "host",
@@ -27705,7 +27712,7 @@
           "purpose": "Add `host`. `{ list, entry }`, or `{ error, existing }` when the host is not"
         },
         "removeServer": {
-          "line": 82,
+          "line": 127,
           "params": [
             "list",
             "key"
@@ -27713,7 +27720,7 @@
           "purpose": "The list without `key`."
         },
         "findServer": {
-          "line": 87,
+          "line": 132,
           "params": [
             "list",
             "key"
@@ -27721,7 +27728,7 @@
           "purpose": "The entry for `key`, or null."
         },
         "findByServerId": {
-          "line": 92,
+          "line": 137,
           "params": [
             "list",
             "serverId",
@@ -27730,7 +27737,7 @@
           "purpose": "The entry (other than `exceptKey`) that holds `serverId`, or null."
         },
         "updateServer": {
-          "line": 98,
+          "line": 143,
           "params": [
             "list",
             "key",
@@ -27739,14 +27746,14 @@
           "purpose": "`list` with `fields` merged into the entry for `key` (unknown keys leave it unchanged)."
         },
         "autoConnectKeys": {
-          "line": 103,
+          "line": 148,
           "params": [
             "list"
           ],
           "purpose": "Keys of the servers to connect on launch, in list order."
         },
         "migrate": {
-          "line": 112,
+          "line": 157,
           "params": [
             "{ servers",
             "server } = {}",
@@ -27755,7 +27762,7 @@
           "purpose": "The saved list from user settings, migrating the old single `server`"
         }
       },
-      "sizeBytes": 4749,
+      "sizeBytes": 6395,
       "extraction": {
         "status": "parsed"
       },
@@ -27766,8 +27773,9 @@
           "autoConnectKeys": "5114961a9a8035b4",
           "findByServerId": "507c250e5b3965c8",
           "findServer": "9a931dcf893e3b35",
+          "fromSshCommand": "b07f0259d56617bc",
           "migrate": "3be52737b4b43433",
-          "normalizeHost": "41fe74ea0ba72242",
+          "normalizeHost": "22184eec3e6ab77a",
           "removeServer": "1df0a81d2c11cbf1",
           "sanitize": "3d4a7efa5cb1e756",
           "updateServer": "c34ac232b3ff4a2a"
@@ -32314,7 +32322,7 @@
           ]
         }
       },
-      "sizeBytes": 4719,
+      "sizeBytes": 6210,
       "extraction": {
         "status": "parsed"
       },
@@ -36718,6 +36726,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "dd1cc3e17c3eb360542883f63cca3c5f8973c3e46fb92ee63cbd3fb718723ee7"
+    "revision": "d290f1c9261559953b31d30f12c76930ca9f5b6571796e525e897f423facff2e"
   }
 }
