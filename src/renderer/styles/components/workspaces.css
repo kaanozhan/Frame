@@ -789,12 +789,71 @@
 
 .sc-detail { min-width: 0; }
 
+/* `:not([hidden])`: a display rule would override the hidden attribute the dialog toggles. */
+.sc-empty:not([hidden]) { display: grid; gap: 8px; }
+
 .sc-empty p {
   margin: 0;
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-tertiary);
 }
+
+/* "Before you start" (server-first-connect) */
+.sc-note-title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.sc-note-list {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.sc-empty code:not(#sc-note-command),
+.sc-note-list code { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.sc-note-cmd { margin-top: 0; }
+.sc-error-action { justify-self: start; margin: 2px 0 6px; }
+
+/* Connect → Install Frame Server → Check-up (server-first-connect) */
+.sc-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 6px 0 8px;
+  padding: 0;
+  list-style: none;
+}
+.sc-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+.sc-step-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  font-size: 9.5px;
+  font-weight: 600;
+}
+.sc-step[data-state="active"] { color: var(--text-primary); }
+.sc-step[data-state="active"] .sc-step-mark { border-color: var(--accent-primary); color: var(--accent-primary); }
+.sc-step[data-state="done"] .sc-step-mark { border-color: var(--success); background: var(--success-subtle); color: var(--success); }
+.sc-step[data-state="attention"] { color: var(--warning-ink, var(--warning)); }
+.sc-step[data-state="attention"] .sc-step-mark { border-color: var(--warning); color: var(--warning-ink, var(--warning)); }
+.sc-step[data-state="failed"] { color: var(--error); }
+.sc-step[data-state="failed"] .sc-step-mark { border-color: var(--error); background: var(--error-subtle); color: var(--error); }
+.sc-empty p.sc-note-small { font-size: 11px; }
 
 .sc-detail-head {
   display: flex;

@@ -24,11 +24,56 @@ function defaultMakeKey() {
   return crypto.randomBytes(4).toString('hex');
 }
 
-/** The host as typed, trimmed; `{ error }` when it cannot be an SSH host. */
+const HOST_HINT = 'Enter an SSH host such as "myserver" or "me@server.example.com".';
+const CONFIG_HINT = 'Frame cannot carry ssh options here — put them in a Host entry in ~/.ssh/config and enter that name.';
+
+/**
+ * A pasted ssh command (server-first-connect): `ssh me@host` gives `me@host`;
+ * `-p <port>` and `-l <user>` become ssh's own `ssh://user@host:port`; any
+ * other option, or a remote command after the host, is refused with a hint.
+ */
+function fromSshCommand(words) {
+  let port = null;
+  let login = null;
+  const dest = [];
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    if (dest.length) return { error: 'Enter only the host, without a command after it.' };
+    let m = /^-([pl])(.*)$/.exec(w);
+    if (m) {
+      const value = m[2] || words[++i];
+      if (!value) return { error: HOST_HINT };
+      if (m[1] === 'p') {
+        if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 65535) return { error: `"${value}" is not a port.` };
+        port = Number(value);
+      } else {
+        login = value;
+      }
+      continue;
+    }
+    if (w.startsWith('-')) return { error: CONFIG_HINT };
+    dest.push(w);
+  }
+  if (dest.length !== 1) return { error: HOST_HINT };
+  let host = dest[0];
+  if (login && !host.includes('@') && !host.startsWith('ssh://')) host = `${login}@${host}`;
+  if (port && !host.startsWith('ssh://')) host = `ssh://${host}:${port}`;
+  return { host };
+}
+
+/**
+ * The host as typed, trimmed; `{ error }` when it cannot be an SSH host. A
+ * whole `ssh …` command pasted in is reduced to its host (server-first-connect).
+ */
 function normalizeHost(host) {
   const h = String(host == null ? '' : host).trim();
+  const words = h.split(/\s+/);
+  if (words.length > 1 && words[0] === 'ssh') {
+    const r = fromSshCommand(words.slice(1));
+    return r.error ? r : normalizeHost(r.host);
+  }
   if (!h || /\s/.test(h) || h.startsWith('-')) {
-    return { error: 'Enter an SSH host such as "myserver" or "me@server.example.com".' };
+    return { error: HOST_HINT };
   }
   return { host: h };
 }

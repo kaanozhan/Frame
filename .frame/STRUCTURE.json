@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 111460,
+      "sizeBytes": 112598,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -6048,7 +6048,7 @@
           "channel"
         ]
       },
-      "sizeBytes": 11824,
+      "sizeBytes": 11841,
       "extraction": {
         "status": "parsed"
       },
@@ -6093,6 +6093,7 @@
         "http",
         "child_process",
         "shared/serverInstall",
+        "shared/sshErrors",
         "logger",
         "electron",
         "serverConnection",
@@ -6100,16 +6101,16 @@
       ],
       "functions": {
         "sshBin": {
-          "line": 37
+          "line": 38
         },
         "appRoot": {
-          "line": 41
+          "line": 42
         },
         "releaseBase": {
-          "line": 45
+          "line": 46
         },
         "ssh": {
-          "line": 53,
+          "line": 54,
           "params": [
             "host",
             "command",
@@ -6120,25 +6121,25 @@
           "purpose": "Run `command` on `host`. `input` is a string, Buffer or readable stream"
         },
         "sshFailure": {
-          "line": 89,
+          "line": 90,
           "params": [
             "host",
             "res"
           ]
         },
         "desktopVersion": {
-          "line": 99,
+          "line": 100,
           "purpose": "This desktop's version; a desktop running from source is `<v>-dev+<sha>`."
         },
         "probe": {
-          "line": 128,
+          "line": 129,
           "params": [
             "host"
           ],
           "purpose": "What is on the host: `{ error?, unameS, unameM, installed: { current, previous,"
         },
         "decide": {
-          "line": 155,
+          "line": 157,
           "params": [
             "host",
             "{ protocolOk = true } = {}"
@@ -6146,16 +6147,16 @@
           "purpose": "`{ action, reason, desktopVersion, dev, probe }` for a host."
         },
         "parseResult": {
-          "line": 165,
+          "line": 167,
           "params": [
             "stdout"
           ]
         },
         "scriptPath": {
-          "line": 171
+          "line": 173
         },
         "runInstaller": {
-          "line": 176,
+          "line": 178,
           "params": [
             "host",
             "args",
@@ -6164,7 +6165,7 @@
           "purpose": "Run the installer on the host with `args` (already shell-safe words)."
         },
         "download": {
-          "line": 188,
+          "line": 190,
           "params": [
             "url",
             "dest",
@@ -6173,7 +6174,7 @@
           "purpose": "GET with redirects into a file (GitHub release assets redirect to a CDN)."
         },
         "upload": {
-          "line": 213,
+          "line": 215,
           "params": [
             "host",
             "localFile",
@@ -6182,11 +6183,11 @@
           "purpose": "Stream a local file to `remotePath` on the host."
         },
         "sourceTarball": {
-          "line": 220,
+          "line": 222,
           "purpose": "Source tarball of this checkout (`git archive HEAD`) in a temp file."
         },
         "install": {
-          "line": 234,
+          "line": 236,
           "params": [
             "host",
             "{ onProgress = ("
@@ -6194,7 +6195,7 @@
           "purpose": "Install (or update to) this desktop's version on `host`."
         },
         "start": {
-          "line": 280,
+          "line": 282,
           "params": [
             "host",
             "{ onProgress = ("
@@ -6202,7 +6203,7 @@
           "purpose": "Start the installed current version (after a reboot, or a stopped process)."
         },
         "rollback": {
-          "line": 285,
+          "line": 287,
           "params": [
             "host",
             "{ onProgress = ("
@@ -6210,14 +6211,14 @@
           "purpose": "Back to the previous installed version."
         },
         "runningAgents": {
-          "line": 301,
+          "line": 303,
           "params": [
             "key = null"
           ],
           "purpose": "The agents running on one server (`key`; the first connected one without),"
         }
       },
-      "sizeBytes": 14758,
+      "sizeBytes": 14965,
       "extraction": {
         "status": "parsed"
       },
@@ -6255,34 +6256,35 @@
         "shared/serverProtocol",
         "shared/serverSecurity",
         "shared/serverInstall",
+        "shared/sshErrors",
         "logger",
         "serverInstaller"
       ],
       "functions": {
         "sshBin": {
-          "line": 55
+          "line": 56
         },
         "installer": {
-          "line": 59
+          "line": 60
         },
         "readConnectionInfo": {
-          "line": 63,
+          "line": 64,
           "params": [
             "host"
           ]
         },
         "freePort": {
-          "line": 89
+          "line": 90
         },
         "forwardRefused": {
-          "line": 102,
+          "line": 103,
           "params": [
             "text"
           ],
           "purpose": "The sshd refused to forward to a socket: say what to change (S8)."
         },
         "waitForPort": {
-          "line": 108,
+          "line": 109,
           "params": [
             "port",
             "child",
@@ -6290,7 +6292,7 @@
           ]
         },
         "createLink": {
-          "line": 140,
+          "line": 141,
           "params": [
             "{ key",
             "host",
@@ -6299,7 +6301,7 @@
           "purpose": "One server's link."
         }
       },
-      "sizeBytes": 20791,
+      "sizeBytes": 21445,
       "extraction": {
         "status": "parsed"
       },
@@ -15834,60 +15836,68 @@
         "shared/ipcChannels",
         "notify",
         "serverConnectModel",
+        "shared/sshErrors",
         "terminal"
       ],
       "functions": {
+        "labelOf": {
+          "line": 60,
+          "params": [
+            "s"
+          ],
+          "purpose": "A status's label: an ssh failure only the user can fix waits, it does not retry (server-first-connect)."
+        },
         "getStatus": {
-          "line": 60
+          "line": 67
         },
         "getServers": {
-          "line": 64
+          "line": 71
         },
         "getServer": {
-          "line": 68,
+          "line": 75,
           "params": [
             "key"
           ]
         },
         "onChange": {
-          "line": 72,
+          "line": 79,
           "params": [
             "cb"
           ]
         },
         "onServersChange": {
-          "line": 77,
+          "line": 84,
           "params": [
             "cb"
           ]
         },
         "statusOf": {
-          "line": 82,
+          "line": 89,
           "params": [
             "key"
           ]
         },
         "m": {
-          "line": 87,
+          "line": 94,
           "params": [
             "key = selectedKey"
           ]
         },
         "setModel": {
-          "line": 91,
+          "line": 98,
           "params": [
             "key",
             "next"
           ]
         },
         "updateAvailable": {
-          "line": 95,
+          "line": 102,
           "params": [
             "s"
           ]
         },
         "onServerStatus": {
-          "line": 100,
+          "line": 107,
           "params": [
             "key",
             "prev",
@@ -15896,40 +15906,40 @@
           "purpose": "One server's status changed: its model, toasts and check-up."
         },
         "apply": {
-          "line": 122,
+          "line": 129,
           "params": [
             "payload"
           ],
           "purpose": "A status payload from main: `{ ...default server status, servers, notice? }`."
         },
         "isOpen": {
-          "line": 152
+          "line": 159
         },
         "init": {
-          "line": 158
+          "line": 165
         },
         "select": {
-          "line": 220,
+          "line": 236,
           "params": [
             "key"
           ]
         },
         "loadDoctor": {
-          "line": 228,
+          "line": 244,
           "params": [
             "key",
             "force = false"
           ]
         },
         "finishIfClean": {
-          "line": 242,
+          "line": 258,
           "params": [
             "key"
           ],
           "purpose": "A connect started here closes the dialog once that server's check-up has nothing to fix."
         },
         "el": {
-          "line": 251,
+          "line": 267,
           "params": [
             "tag",
             "cls",
@@ -15937,13 +15947,13 @@
           ]
         },
         "renderList": {
-          "line": 258
+          "line": 274
         },
         "renderModal": {
-          "line": 278
+          "line": 294
         },
         "open": {
-          "line": 382,
+          "line": 411,
           "params": [
             "{ key = null",
             "add = false } = {}"
@@ -15951,45 +15961,49 @@
           "purpose": "Open the Servers dialog. `key` selects that server; `add` (or no saved"
         },
         "openServerTerminal": {
-          "line": 416,
+          "line": 445,
           "params": [
             "command"
           ],
           "purpose": "A terminal on the selected server, in its home folder, in the current view"
         },
+        "openSetupTerminal": {
+          "line": 466,
+          "purpose": "\"Set up access in a terminal\" (server-first-connect): a terminal on this"
+        },
         "close": {
-          "line": 431
+          "line": 480
         },
         "addServer": {
-          "line": 438,
+          "line": 487,
           "purpose": "Add the host typed in the form, select it and connect it."
         },
         "connect": {
-          "line": 455,
+          "line": 504,
           "params": [
             "key"
           ]
         },
         "disconnectOne": {
-          "line": 469,
+          "line": 518,
           "params": [
             "key"
           ],
           "purpose": "Disconnect one server; it stays in the list and off at the next launch."
         },
         "disconnect": {
-          "line": 477,
+          "line": 526,
           "purpose": "Disconnect every server (File ▸ Disconnect from Server, palette)."
         },
         "removeServer": {
-          "line": 483,
+          "line": 532,
           "params": [
             "key"
           ],
           "purpose": "Forget a server after asking; nothing on the server is touched."
         },
         "runAction": {
-          "line": 495,
+          "line": 544,
           "params": [
             "kind",
             "confirmAgents = false"
@@ -16004,7 +16018,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 22189,
+      "sizeBytes": 24738,
       "extraction": {
         "status": "parsed"
       },
@@ -16016,9 +16030,11 @@
           "disconnect": "a847ac5d29403a41",
           "disconnectOne": "4dc36968184ed11c",
           "finishIfClean": "8c1e9953e3f6ad74",
+          "labelOf": "a8e0d6429649dfad",
           "onServerStatus": "8e4a4f829083a900",
           "open": "bfad2d2dfdb45d9b",
           "openServerTerminal": "655bfd211ba4dd48",
+          "openSetupTerminal": "51354b5612a70f24",
           "removeServer": "6404b103fd555ef9",
           "runAction": "ae125f8f5b8d24c0"
         }
@@ -16028,6 +16044,7 @@
       "file": "src/renderer/serverConnectModel.js",
       "description": "serverConnectModel — the Connect dialog's state rules (server-hardening S12).",
       "exports": [
+        "steps",
         "initial",
         "onStatus",
         "startAction",
@@ -16147,9 +16164,17 @@
             "wanted"
           ],
           "purpose": "The server to show in the dialog: `wanted` if listed, else the first connected, else the first."
+        },
+        "steps": {
+          "line": 139,
+          "params": [
+            "status",
+            "doctor"
+          ],
+          "purpose": "Where a server stands on Connect → Install Frame Server → Check-up, each"
         }
       },
-      "sizeBytes": 5181,
+      "sizeBytes": 7117,
       "extraction": {
         "status": "parsed"
       },
@@ -16165,6 +16190,7 @@
           "pickSelected": "c909542fbb113c4c",
           "pruneModels": "75baef5d4f75922a",
           "startAction": "c3ff148edfeb056c",
+          "steps": "76555be9b7166280",
           "summary": "2de57637ed10d140",
           "takeRecheck": "1fb3d495fab1fea2",
           "withModel": "580980cf4604d901"
@@ -18711,7 +18737,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 26858,
+      "sizeBytes": 28806,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -19831,7 +19857,9 @@
         "shared/ipcChannels",
         "shared/serverRouting",
         "terminalInput",
-        "themes"
+        "themes",
+        "workspaceSection",
+        "os"
       ],
       "functions": {
         "getTerminalTheme": {
@@ -19874,7 +19902,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 41561,
+      "sizeBytes": 42733,
       "extraction": {
         "status": "parsed"
       },
@@ -27639,35 +27667,42 @@
         "defaultMakeKey": {
           "line": 23
         },
+        "fromSshCommand": {
+          "line": 35,
+          "params": [
+            "words"
+          ],
+          "purpose": "A pasted ssh command (server-first-connect): `ssh me@host` gives `me@host`;"
+        },
         "normalizeHost": {
-          "line": 28,
+          "line": 68,
           "params": [
             "host"
           ],
-          "purpose": "The host as typed, trimmed; `{ error }` when it cannot be an SSH host."
+          "purpose": "The host as typed, trimmed; `{ error }` when it cannot be an SSH host. A"
         },
         "validEntry": {
-          "line": 36,
+          "line": 81,
           "params": [
             "e"
           ]
         },
         "sanitize": {
-          "line": 42,
+          "line": 87,
           "params": [
             "list"
           ],
           "purpose": "A clean copy of a stored list: malformed entries and repeated keys dropped."
         },
         "uniqueKey": {
-          "line": 58,
+          "line": 103,
           "params": [
             "list",
             "makeKey"
           ]
         },
         "addServer": {
-          "line": 71,
+          "line": 116,
           "params": [
             "list",
             "host",
@@ -27677,7 +27712,7 @@
           "purpose": "Add `host`. `{ list, entry }`, or `{ error, existing }` when the host is not"
         },
         "removeServer": {
-          "line": 82,
+          "line": 127,
           "params": [
             "list",
             "key"
@@ -27685,7 +27720,7 @@
           "purpose": "The list without `key`."
         },
         "findServer": {
-          "line": 87,
+          "line": 132,
           "params": [
             "list",
             "key"
@@ -27693,7 +27728,7 @@
           "purpose": "The entry for `key`, or null."
         },
         "findByServerId": {
-          "line": 92,
+          "line": 137,
           "params": [
             "list",
             "serverId",
@@ -27702,7 +27737,7 @@
           "purpose": "The entry (other than `exceptKey`) that holds `serverId`, or null."
         },
         "updateServer": {
-          "line": 98,
+          "line": 143,
           "params": [
             "list",
             "key",
@@ -27711,14 +27746,14 @@
           "purpose": "`list` with `fields` merged into the entry for `key` (unknown keys leave it unchanged)."
         },
         "autoConnectKeys": {
-          "line": 103,
+          "line": 148,
           "params": [
             "list"
           ],
           "purpose": "Keys of the servers to connect on launch, in list order."
         },
         "migrate": {
-          "line": 112,
+          "line": 157,
           "params": [
             "{ servers",
             "server } = {}",
@@ -27727,7 +27762,7 @@
           "purpose": "The saved list from user settings, migrating the old single `server`"
         }
       },
-      "sizeBytes": 4749,
+      "sizeBytes": 6395,
       "extraction": {
         "status": "parsed"
       },
@@ -27738,8 +27773,9 @@
           "autoConnectKeys": "5114961a9a8035b4",
           "findByServerId": "507c250e5b3965c8",
           "findServer": "9a931dcf893e3b35",
+          "fromSshCommand": "b07f0259d56617bc",
           "migrate": "3be52737b4b43433",
-          "normalizeHost": "41fe74ea0ba72242",
+          "normalizeHost": "22184eec3e6ab77a",
           "removeServer": "1df0a81d2c11cbf1",
           "sanitize": "3d4a7efa5cb1e756",
           "updateServer": "c34ac232b3ff4a2a"
@@ -28035,6 +28071,70 @@
           "checkUpgrade": "43f3ff871e2cce21",
           "generateToken": "85541e44695bec62",
           "tokensEqual": "9711a2c2a5362cd8"
+        }
+      }
+    },
+    "shared/sshErrors": {
+      "file": "src/shared/sshErrors.js",
+      "description": "sshErrors — what an ssh failure means, in words a first-time user can act",
+      "exports": [
+        "classify",
+        "needsUser",
+        "describe",
+        "setupCommand",
+        "SSH_FAILED"
+      ],
+      "depends": [],
+      "functions": {
+        "classify": {
+          "line": 33,
+          "params": [
+            "stderr",
+            "code"
+          ],
+          "purpose": "The kind of an ssh failure, or null (not ssh's own failure, or not one we know)."
+        },
+        "needsUser": {
+          "line": 43,
+          "params": [
+            "kind"
+          ],
+          "purpose": "Kinds only the user can fix: retrying them changes nothing."
+        },
+        "describe": {
+          "line": 52,
+          "params": [
+            "kind",
+            "host",
+            "fallback = ''"
+          ],
+          "purpose": "`{ message, action }` for the dialog. `action` is 'setup' (open a terminal"
+        },
+        "shellQuote": {
+          "line": 74,
+          "params": [
+            "s"
+          ]
+        },
+        "setupCommand": {
+          "line": 83,
+          "params": [
+            "host"
+          ],
+          "purpose": "The line typed (never run) in a terminal on this Mac: create a key when"
+        }
+      },
+      "sizeBytes": 4157,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "2f37b3e407198177",
+        "purposes": {
+          "classify": "a8722bf9f4926761",
+          "describe": "135c06ef29c53332",
+          "needsUser": "036a8b47aa7a4948",
+          "setupCommand": "3a27827284bcd39a"
         }
       }
     },
@@ -30083,14 +30183,14 @@
       ],
       "functions": {
         "remoteHome": {
-          "line": 16,
+          "line": 21,
           "params": [
             "host"
           ],
           "purpose": "One remote home per host (multi-server-connections): FAKE_REMOTE_HOMES is"
         }
       },
-      "sizeBytes": 3214,
+      "sizeBytes": 4211,
       "extraction": {
         "status": "parsed"
       },
@@ -32054,7 +32154,7 @@
         "src/renderer/serverConnectModel"
       ],
       "functions": {},
-      "sizeBytes": 5179,
+      "sizeBytes": 7282,
       "extraction": {
         "status": "parsed"
       },
@@ -32114,7 +32214,7 @@
           ]
         }
       },
-      "sizeBytes": 15646,
+      "sizeBytes": 17697,
       "extraction": {
         "status": "parsed"
       },
@@ -32222,7 +32322,7 @@
           ]
         }
       },
-      "sizeBytes": 4719,
+      "sizeBytes": 6210,
       "extraction": {
         "status": "parsed"
       },
@@ -33093,6 +33193,25 @@
         "purposes": {
           "fixture": "3855c8c5946d83db"
         }
+      }
+    },
+    "test/sshErrors.test": {
+      "file": "test/sshErrors.test.js",
+      "description": "What an ssh failure means (server-first-connect T01). The samples are",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "child_process",
+        "src/shared/sshErrors"
+      ],
+      "functions": {},
+      "sizeBytes": 4127,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "014e5893d0967b80"
       }
     },
     "test/structureBootstrap.test": {
@@ -36533,7 +36652,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 402,
+        "parsed": 404,
         "unsupported": 92,
         "partial": 0
       }
@@ -36580,9 +36699,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 588,
+      "visitedEntries": 590,
       "traversedDirectories": 86,
-      "eligibleFiles": 494,
+      "eligibleFiles": 496,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -36599,7 +36718,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 494,
+      "indexedFiles": 496,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -36607,6 +36726,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "5f7530d8910f57e2d71127ac615bdcf7af67cbc1df3688b0da720a332e9ebbf0"
+    "revision": "bf0f3a2c7ad0e40f343b12221e16e49fa4c9d9664fc0a179a6c79cde9233a86d"
   }
 }
