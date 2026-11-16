@@ -30,3 +30,11 @@ Added `steps(status, doctor)` to `src/renderer/serverConnectModel.js`: Connect /
 _Captured: 2026-11-16 · 2 file change(s)_
 
 ---
+
+## T05 — A terminal on this Mac with a typed command
+
+Added `createLocalCommandTerminal({ command, name })` to `src/renderer/terminalManager.js`: a local terminal in the home folder, renamed when asked, with the command typed after the shell's first output and never with Enter; while a server workspace is selected it opens under main, because that workspace's terminals are routed to the server. The typing that `createServerHomeTerminal` did inline moved to a shared `_typeWhenReady`, unchanged. Live-checked in an isolated app: the command was typed in `~` and not run.
+
+_Captured: 2026-11-16 · 1 file change(s)_
+
+---

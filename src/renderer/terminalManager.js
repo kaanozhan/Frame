@@ -415,19 +415,46 @@ class TerminalManager {
     const id = await this.createTerminal({ location: 'server-home', serverKey });
     if (!id) throw new Error('Could not open a terminal on the server.');
     this.renameTerminal(id, `Server · ${this._serverOf(id).host || 'server'}`);
-    if (command) {
-      const type = () => ipcRenderer.send(IPC.TERMINAL_INPUT_ID, { terminalId: id, data: String(command) });
-      let done = false;
-      const onOutput = (event, p) => {
-        if (done || !p || p.terminalId !== id) return;
-        done = true;
-        ipcRenderer.removeListener(IPC.TERMINAL_OUTPUT_ID, onOutput);
-        setTimeout(type, 150); // let the prompt finish drawing
-      };
-      ipcRenderer.on(IPC.TERMINAL_OUTPUT_ID, onOutput);
-      setTimeout(() => { if (!done) { done = true; ipcRenderer.removeListener(IPC.TERMINAL_OUTPUT_ID, onOutput); type(); } }, 2000);
-    }
+    if (command) this._typeWhenReady(id, command);
     return id;
+  }
+
+  /**
+   * A terminal on this Mac, in the user's home folder, with `command` typed
+   * in — never with Enter: the user runs it, and answers its prompts (a
+   * host key, a password) to the program itself (server-first-connect).
+   * Shown in the current project and view; while a server workspace is
+   * selected it goes under main, since that workspace's terminals run on the
+   * server. Resolves the terminal id, or throws.
+   */
+  async createLocalCommandTerminal({ command, name = null } = {}) {
+    let onServer = false;
+    try {
+      const ws = require('./workspaceSection').selectedWorkspace();
+      onServer = !!(ws && ws.location === 'server');
+    } catch (_) { /* no workspace list yet: main */ }
+    const id = await this.createTerminal({
+      cwd: require('os').homedir(),
+      ...(onServer ? { workspaceId: 'main' } : {})
+    });
+    if (!id) throw new Error('Could not open a terminal on this Mac.');
+    if (name) this.renameTerminal(id, name);
+    if (command) this._typeWhenReady(id, command);
+    return id;
+  }
+
+  /** Type `command` (no Enter) once the shell has printed something, or after 2 s. */
+  _typeWhenReady(id, command) {
+    const type = () => ipcRenderer.send(IPC.TERMINAL_INPUT_ID, { terminalId: id, data: String(command) });
+    let done = false;
+    const onOutput = (event, p) => {
+      if (done || !p || p.terminalId !== id) return;
+      done = true;
+      ipcRenderer.removeListener(IPC.TERMINAL_OUTPUT_ID, onOutput);
+      setTimeout(type, 150); // let the prompt finish drawing
+    };
+    ipcRenderer.on(IPC.TERMINAL_OUTPUT_ID, onOutput);
+    setTimeout(() => { if (!done) { done = true; ipcRenderer.removeListener(IPC.TERMINAL_OUTPUT_ID, onOutput); type(); } }, 2000);
   }
 
   /**

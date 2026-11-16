@@ -19843,7 +19843,9 @@
         "shared/ipcChannels",
         "shared/serverRouting",
         "terminalInput",
-        "themes"
+        "themes",
+        "workspaceSection",
+        "os"
       ],
       "functions": {
         "getTerminalTheme": {
@@ -19886,7 +19888,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 41561,
+      "sizeBytes": 42733,
       "extraction": {
         "status": "parsed"
       },
@@ -36702,6 +36704,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "ad0d58f029e3e9ef2db6eb49f5ff86fa6b369f6ba85ffafed0d9537f1d406af9"
+    "revision": "4f807c36f99fb10d3d763a6b9d444615b46d5072bf62891a4d73469f3e37f317"
   }
 }
