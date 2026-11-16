@@ -789,7 +789,8 @@
 
 .sc-detail { min-width: 0; }
 
-.sc-empty { display: grid; gap: 8px; }
+/* `:not([hidden])`: a display rule would override the hidden attribute the dialog toggles. */
+.sc-empty:not([hidden]) { display: grid; gap: 8px; }
 
 .sc-empty p {
   margin: 0;
@@ -817,6 +818,7 @@
 .sc-empty code:not(#sc-note-command),
 .sc-note-list code { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
 .sc-note-cmd { margin-top: 0; }
+.sc-error-action { justify-self: start; margin: 2px 0 6px; }
 .sc-empty p.sc-note-small { font-size: 11px; }
 
 .sc-detail-head {

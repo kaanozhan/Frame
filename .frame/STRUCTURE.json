@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 112363,
+      "sizeBytes": 112520,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -15840,57 +15840,64 @@
         "terminal"
       ],
       "functions": {
+        "labelOf": {
+          "line": 60,
+          "params": [
+            "s"
+          ],
+          "purpose": "A status's label: an ssh failure only the user can fix waits, it does not retry (server-first-connect)."
+        },
         "getStatus": {
-          "line": 61
+          "line": 67
         },
         "getServers": {
-          "line": 65
+          "line": 71
         },
         "getServer": {
-          "line": 69,
+          "line": 75,
           "params": [
             "key"
           ]
         },
         "onChange": {
-          "line": 73,
+          "line": 79,
           "params": [
             "cb"
           ]
         },
         "onServersChange": {
-          "line": 78,
+          "line": 84,
           "params": [
             "cb"
           ]
         },
         "statusOf": {
-          "line": 83,
+          "line": 89,
           "params": [
             "key"
           ]
         },
         "m": {
-          "line": 88,
+          "line": 94,
           "params": [
             "key = selectedKey"
           ]
         },
         "setModel": {
-          "line": 92,
+          "line": 98,
           "params": [
             "key",
             "next"
           ]
         },
         "updateAvailable": {
-          "line": 96,
+          "line": 102,
           "params": [
             "s"
           ]
         },
         "onServerStatus": {
-          "line": 101,
+          "line": 107,
           "params": [
             "key",
             "prev",
@@ -15899,40 +15906,40 @@
           "purpose": "One server's status changed: its model, toasts and check-up."
         },
         "apply": {
-          "line": 123,
+          "line": 129,
           "params": [
             "payload"
           ],
           "purpose": "A status payload from main: `{ ...default server status, servers, notice? }`."
         },
         "isOpen": {
-          "line": 153
-        },
-        "init": {
           "line": 159
         },
+        "init": {
+          "line": 165
+        },
         "select": {
-          "line": 229,
+          "line": 236,
           "params": [
             "key"
           ]
         },
         "loadDoctor": {
-          "line": 237,
+          "line": 244,
           "params": [
             "key",
             "force = false"
           ]
         },
         "finishIfClean": {
-          "line": 251,
+          "line": 258,
           "params": [
             "key"
           ],
           "purpose": "A connect started here closes the dialog once that server's check-up has nothing to fix."
         },
         "el": {
-          "line": 260,
+          "line": 267,
           "params": [
             "tag",
             "cls",
@@ -15940,13 +15947,13 @@
           ]
         },
         "renderList": {
-          "line": 267
+          "line": 274
         },
         "renderModal": {
-          "line": 287
+          "line": 294
         },
         "open": {
-          "line": 391,
+          "line": 402,
           "params": [
             "{ key = null",
             "add = false } = {}"
@@ -15954,45 +15961,49 @@
           "purpose": "Open the Servers dialog. `key` selects that server; `add` (or no saved"
         },
         "openServerTerminal": {
-          "line": 425,
+          "line": 436,
           "params": [
             "command"
           ],
           "purpose": "A terminal on the selected server, in its home folder, in the current view"
         },
+        "openSetupTerminal": {
+          "line": 457,
+          "purpose": "\"Set up access in a terminal\" (server-first-connect): a terminal on this"
+        },
         "close": {
-          "line": 440
+          "line": 471
         },
         "addServer": {
-          "line": 447,
+          "line": 478,
           "purpose": "Add the host typed in the form, select it and connect it."
         },
         "connect": {
-          "line": 464,
+          "line": 495,
           "params": [
             "key"
           ]
         },
         "disconnectOne": {
-          "line": 478,
+          "line": 509,
           "params": [
             "key"
           ],
           "purpose": "Disconnect one server; it stays in the list and off at the next launch."
         },
         "disconnect": {
-          "line": 486,
+          "line": 517,
           "purpose": "Disconnect every server (File ▸ Disconnect from Server, palette)."
         },
         "removeServer": {
-          "line": 492,
+          "line": 523,
           "params": [
             "key"
           ],
           "purpose": "Forget a server after asking; nothing on the server is touched."
         },
         "runAction": {
-          "line": 504,
+          "line": 535,
           "params": [
             "kind",
             "confirmAgents = false"
@@ -16007,7 +16018,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 22723,
+      "sizeBytes": 24160,
       "extraction": {
         "status": "parsed"
       },
@@ -16019,9 +16030,11 @@
           "disconnect": "a847ac5d29403a41",
           "disconnectOne": "4dc36968184ed11c",
           "finishIfClean": "8c1e9953e3f6ad74",
+          "labelOf": "a8e0d6429649dfad",
           "onServerStatus": "8e4a4f829083a900",
           "open": "bfad2d2dfdb45d9b",
           "openServerTerminal": "655bfd211ba4dd48",
+          "openSetupTerminal": "51354b5612a70f24",
           "removeServer": "6404b103fd555ef9",
           "runAction": "ae125f8f5b8d24c0"
         }
@@ -18724,7 +18737,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 27421,
+      "sizeBytes": 27591,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -36705,6 +36718,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "cdfcc19db771e486e75fb1587b492d800e92dd7667ca7d822ab7a3a71aa32198"
+    "revision": "4ef30abafb95a4f17d303e11a7f86566bc6e7c0883f5b7271f2bf55f5a392b9f"
   }
 }

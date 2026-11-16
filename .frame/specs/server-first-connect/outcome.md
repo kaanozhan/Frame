@@ -46,3 +46,11 @@ Turned the Servers dialog's empty state (`#sc-empty` in `index.html`) into "Befo
 _Captured: 2026-11-16 · 3 file change(s)_
 
 ---
+
+## T07 — Plain ssh errors and the setup step in the Servers dialog
+
+The Servers dialog now shows `sshErrors.describe`'s sentence instead of ssh's last line, labels a needs-user error "Needs your action" (detail and list rows, via `labelOf`), and shows `#sc-error-action` "Set up access in a terminal" for host-unknown and auth: it closes the dialog, opens `createLocalCommandTerminal` with `setupCommand(host)` and a toast saying to press Enter and Connect again. Also fixed a T06 regression found in this live check: `.sc-empty { display: grid }` overrode the `hidden` attribute, so the note stayed under a selected server; the rule is now `.sc-empty:not([hidden])`. Live-checked `newhost`, `deniedhost`, `changedhost` (no action) and `nohost` (still retrying) with the fake ssh.
+
+_Captured: 2026-11-16 · 3 file change(s)_
+
+---
