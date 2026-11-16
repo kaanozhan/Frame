@@ -143,7 +143,8 @@ function steps(status, doctor) {
   let at;
   if (st === 'connected') {
     const items = (doctor && doctor.items) || [];
-    const checkup = !doctor ? 'active' : (doctor.error || items.some((i) => !i.ok)) ? 'failed' : 'done';
+    // Clean as the dialog counts it: an optional item may be missing.
+    const checkup = !doctor ? 'active' : (doctor.error || items.some((i) => !i.ok && !i.optional)) ? 'failed' : 'done';
     at = { connect: 'done', install: 'done', checkup };
   } else if (st === 'needs-install' || st === 'needs-update' || st === 'installing') {
     at = { connect: 'done', install: 'active', checkup: 'todo' };

@@ -304,6 +304,15 @@ function renderModal() {
   const s = statusOf(selectedKey);
   const cur = m(selectedKey);
   $('#sc-detail-host').textContent = s.host;
+  // Connect → Install Frame Server → Check-up (server-first-connect).
+  $('#sc-steps').replaceChildren(...model.steps(s, cur.doctorFor === s.host ? cur.doctor : null).map((step, i) => {
+    const li = el('li', 'sc-step');
+    li.dataset.state = step.state;
+    li.appendChild(el('span', 'sc-step-mark', step.state === 'done' ? '✓' : step.state === 'failed' ? '!' : String(i + 1)));
+    li.appendChild(el('span', 'sc-step-label', step.label));
+    if (step.state === 'active') li.setAttribute('aria-current', 'step');
+    return li;
+  }));
   const line = $('#sc-status');
   line.textContent = `${labelOf(s)}${s.state === 'connected' && s.frameVersion ? ` · Frame Server ${s.frameVersion}${s.platform ? ` (${s.platform})` : ''}` : ''}`;
   line.dataset.state = s.state;

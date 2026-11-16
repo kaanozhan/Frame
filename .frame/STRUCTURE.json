@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 112520,
+      "sizeBytes": 112598,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -15953,7 +15953,7 @@
           "line": 294
         },
         "open": {
-          "line": 402,
+          "line": 411,
           "params": [
             "{ key = null",
             "add = false } = {}"
@@ -15961,49 +15961,49 @@
           "purpose": "Open the Servers dialog. `key` selects that server; `add` (or no saved"
         },
         "openServerTerminal": {
-          "line": 436,
+          "line": 445,
           "params": [
             "command"
           ],
           "purpose": "A terminal on the selected server, in its home folder, in the current view"
         },
         "openSetupTerminal": {
-          "line": 457,
+          "line": 466,
           "purpose": "\"Set up access in a terminal\" (server-first-connect): a terminal on this"
         },
         "close": {
-          "line": 471
+          "line": 480
         },
         "addServer": {
-          "line": 478,
+          "line": 487,
           "purpose": "Add the host typed in the form, select it and connect it."
         },
         "connect": {
-          "line": 495,
+          "line": 504,
           "params": [
             "key"
           ]
         },
         "disconnectOne": {
-          "line": 509,
+          "line": 518,
           "params": [
             "key"
           ],
           "purpose": "Disconnect one server; it stays in the list and off at the next launch."
         },
         "disconnect": {
-          "line": 517,
+          "line": 526,
           "purpose": "Disconnect every server (File ▸ Disconnect from Server, palette)."
         },
         "removeServer": {
-          "line": 523,
+          "line": 532,
           "params": [
             "key"
           ],
           "purpose": "Forget a server after asking; nothing on the server is touched."
         },
         "runAction": {
-          "line": 535,
+          "line": 544,
           "params": [
             "kind",
             "confirmAgents = false"
@@ -16018,7 +16018,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 24160,
+      "sizeBytes": 24706,
       "extraction": {
         "status": "parsed"
       },
@@ -16174,7 +16174,7 @@
           "purpose": "Where a server stands on Connect → Install Frame Server → Check-up, each"
         }
       },
-      "sizeBytes": 6864,
+      "sizeBytes": 6950,
       "extraction": {
         "status": "parsed"
       },
@@ -18737,7 +18737,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 27591,
+      "sizeBytes": 28602,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -32146,7 +32146,7 @@
         "src/renderer/serverConnectModel"
       ],
       "functions": {},
-      "sizeBytes": 7093,
+      "sizeBytes": 7248,
       "extraction": {
         "status": "parsed"
       },
@@ -36718,6 +36718,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "4ef30abafb95a4f17d303e11a7f86566bc6e7c0883f5b7271f2bf55f5a392b9f"
+    "revision": "2ecdd021a4282a8e446fd5e87574a7234222caa70e2d6dde00d899d1c0242ab4"
   }
 }

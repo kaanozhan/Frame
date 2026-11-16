@@ -54,3 +54,11 @@ The Servers dialog now shows `sshErrors.describe`'s sentence instead of ssh's la
 _Captured: 2026-11-16 · 3 file change(s)_
 
 ---
+
+## T08 — The step indicator in the Servers dialog
+
+Added `#sc-steps` to the Servers dialog (`index.html`), drawn in `serverConnect.renderModal` from `model.steps` with the check-up only when it belongs to the shown host, plus styles in `workspaces.css` (numbered, ✓ done, ! failed, accent while active). Deviation: `steps` now treats a missing optional check-up item as clean, matching the dialog's own `finishIfClean` rule; a case was added to `test/serverConnectModel.test.js` (red on the previous commit). Live-checked through a server without Frame Server (Connect done, Install active) and, after installing it, connected with sign-ins missing (Check-up failed).
+
+_Captured: 2026-11-16 · 5 file change(s)_
+
+---
