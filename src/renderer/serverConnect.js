@@ -30,6 +30,7 @@ const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const notify = require('./notify');
 const model = require('./serverConnectModel');
+const sshErrors = require('../shared/sshErrors');
 
 const OFF = { state: 'off', host: null, error: null, frameVersion: null, platform: null, saved: null, install: null };
 
@@ -185,6 +186,14 @@ function init() {
     else renderModal();
   });
   $('#sc-recheck').addEventListener('click', () => loadDoctor(selectedKey, true));
+  // "Before you start" (server-first-connect): the key setup, for any host.
+  const noteCommand = sshErrors.setupCommand('user@host');
+  $('#sc-note-command').textContent = noteCommand;
+  $('#sc-note-copy').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    try { await navigator.clipboard.writeText(noteCommand); btn.textContent = 'Copied'; } catch (_) { btn.textContent = 'Copy failed'; }
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+  });
   $('#sc-open-terminal').addEventListener('click', () => openServerTerminal(null));
   $('#sc-doctor-list').addEventListener('click', async (e) => {
     const term = e.target.closest('button[data-terminal-fix]');

@@ -789,12 +789,35 @@
 
 .sc-detail { min-width: 0; }
 
+.sc-empty { display: grid; gap: 8px; }
+
 .sc-empty p {
   margin: 0;
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-tertiary);
 }
+
+/* "Before you start" (server-first-connect) */
+.sc-note-title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.sc-note-list {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.sc-empty code:not(#sc-note-command),
+.sc-note-list code { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.sc-note-cmd { margin-top: 0; }
+.sc-empty p.sc-note-small { font-size: 11px; }
 
 .sc-detail-head {
   display: flex;

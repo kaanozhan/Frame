@@ -38,3 +38,11 @@ Added `createLocalCommandTerminal({ command, name })` to `src/renderer/terminalM
 _Captured: 2026-11-16 · 1 file change(s)_
 
 ---
+
+## T06 — Before you start note in the Servers dialog
+
+Turned the Servers dialog's empty state (`#sc-empty` in `index.html`) into "Before you start": what Frame needs (a machine reachable with ssh, key login, never a password), what to type (a `~/.ssh/config` Host or `user@address`), the setup command from `sshErrors.setupCommand('user@host')` with Copy (wired in `serverConnect.js`), and the passphrase note (`ssh-add --apple-use-keychain`); styles in `workspaces.css` reuse the check-up's `.sc-fix` code row. The note is shown only while no server is saved, as the old empty state was. Live-checked in an isolated app.
+
+_Captured: 2026-11-16 · 3 file change(s)_
+
+---

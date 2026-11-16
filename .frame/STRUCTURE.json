@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 111460,
+      "sizeBytes": 112363,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -15836,60 +15836,61 @@
         "shared/ipcChannels",
         "notify",
         "serverConnectModel",
+        "shared/sshErrors",
         "terminal"
       ],
       "functions": {
         "getStatus": {
-          "line": 60
+          "line": 61
         },
         "getServers": {
-          "line": 64
+          "line": 65
         },
         "getServer": {
-          "line": 68,
+          "line": 69,
           "params": [
             "key"
           ]
         },
         "onChange": {
-          "line": 72,
+          "line": 73,
           "params": [
             "cb"
           ]
         },
         "onServersChange": {
-          "line": 77,
+          "line": 78,
           "params": [
             "cb"
           ]
         },
         "statusOf": {
-          "line": 82,
+          "line": 83,
           "params": [
             "key"
           ]
         },
         "m": {
-          "line": 87,
+          "line": 88,
           "params": [
             "key = selectedKey"
           ]
         },
         "setModel": {
-          "line": 91,
+          "line": 92,
           "params": [
             "key",
             "next"
           ]
         },
         "updateAvailable": {
-          "line": 95,
+          "line": 96,
           "params": [
             "s"
           ]
         },
         "onServerStatus": {
-          "line": 100,
+          "line": 101,
           "params": [
             "key",
             "prev",
@@ -15898,40 +15899,40 @@
           "purpose": "One server's status changed: its model, toasts and check-up."
         },
         "apply": {
-          "line": 122,
+          "line": 123,
           "params": [
             "payload"
           ],
           "purpose": "A status payload from main: `{ ...default server status, servers, notice? }`."
         },
         "isOpen": {
-          "line": 152
+          "line": 153
         },
         "init": {
-          "line": 158
+          "line": 159
         },
         "select": {
-          "line": 220,
+          "line": 229,
           "params": [
             "key"
           ]
         },
         "loadDoctor": {
-          "line": 228,
+          "line": 237,
           "params": [
             "key",
             "force = false"
           ]
         },
         "finishIfClean": {
-          "line": 242,
+          "line": 251,
           "params": [
             "key"
           ],
           "purpose": "A connect started here closes the dialog once that server's check-up has nothing to fix."
         },
         "el": {
-          "line": 251,
+          "line": 260,
           "params": [
             "tag",
             "cls",
@@ -15939,13 +15940,13 @@
           ]
         },
         "renderList": {
-          "line": 258
+          "line": 267
         },
         "renderModal": {
-          "line": 278
+          "line": 287
         },
         "open": {
-          "line": 382,
+          "line": 391,
           "params": [
             "{ key = null",
             "add = false } = {}"
@@ -15953,45 +15954,45 @@
           "purpose": "Open the Servers dialog. `key` selects that server; `add` (or no saved"
         },
         "openServerTerminal": {
-          "line": 416,
+          "line": 425,
           "params": [
             "command"
           ],
           "purpose": "A terminal on the selected server, in its home folder, in the current view"
         },
         "close": {
-          "line": 431
+          "line": 440
         },
         "addServer": {
-          "line": 438,
+          "line": 447,
           "purpose": "Add the host typed in the form, select it and connect it."
         },
         "connect": {
-          "line": 455,
+          "line": 464,
           "params": [
             "key"
           ]
         },
         "disconnectOne": {
-          "line": 469,
+          "line": 478,
           "params": [
             "key"
           ],
           "purpose": "Disconnect one server; it stays in the list and off at the next launch."
         },
         "disconnect": {
-          "line": 477,
+          "line": 486,
           "purpose": "Disconnect every server (File ▸ Disconnect from Server, palette)."
         },
         "removeServer": {
-          "line": 483,
+          "line": 492,
           "params": [
             "key"
           ],
           "purpose": "Forget a server after asking; nothing on the server is touched."
         },
         "runAction": {
-          "line": 495,
+          "line": 504,
           "params": [
             "kind",
             "confirmAgents = false"
@@ -16006,7 +16007,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 22189,
+      "sizeBytes": 22723,
       "extraction": {
         "status": "parsed"
       },
@@ -18723,7 +18724,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 26858,
+      "sizeBytes": 27421,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -36704,6 +36705,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "4f807c36f99fb10d3d763a6b9d444615b46d5072bf62891a4d73469f3e37f317"
+    "revision": "cdfcc19db771e486e75fb1587b492d800e92dd7667ca7d822ab7a3a71aa32198"
   }
 }
