@@ -8,8 +8,11 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { Terminal } = require('xterm-headless');
+// The mirror first: it hides Node 21+'s global `navigator` while it loads
+// xterm-headless, which otherwise takes its browser path and throws. The
+// require below then gets that already-loaded module.
 const { createMirror } = require('../src/server/screenMirror');
+const { Terminal } = require('xterm-headless');
 
 function visible(term) {
   const b = term.buffer.active;

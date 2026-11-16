@@ -34,7 +34,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 2456,
+      "sizeBytes": 2495,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -31919,24 +31919,24 @@
       "depends": [
         "node:test",
         "node:assert/strict",
-        "xterm-headless",
-        "src/server/screenMirror"
+        "src/server/screenMirror",
+        "xterm-headless"
       ],
       "functions": {
         "visible": {
-          "line": 14,
+          "line": 17,
           "params": [
             "term"
           ]
         },
         "replay": {
-          "line": 21,
+          "line": 24,
           "params": [
             "snap"
           ]
         },
         "mirrorAndReference": {
-          "line": 27,
+          "line": 30,
           "params": [
             "chunks",
             "{ cols = 40",
@@ -31944,7 +31944,7 @@
           ]
         }
       },
-      "sizeBytes": 2790,
+      "sizeBytes": 2994,
       "extraction": {
         "status": "parsed"
       },
@@ -36726,6 +36726,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "d290f1c9261559953b31d30f12c76930ca9f5b6571796e525e897f423facff2e"
+    "revision": "bf0f3a2c7ad0e40f343b12221e16e49fa4c9d9664fc0a179a6c79cde9233a86d"
   }
 }
