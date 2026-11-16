@@ -121,7 +121,46 @@ function pickSelected(list, wanted) {
   return (up || servers[0] || {}).key || null;
 }
 
+// ─── The first-connect steps (server-first-connect) ──────────
+
+const STEPS = [
+  ['connect', 'Connect'],
+  ['install', 'Install Frame Server'],
+  ['checkup', 'Check-up']
+];
+
+/**
+ * Where a server stands on Connect → Install Frame Server → Check-up, each
+ * 'done' | 'active' | 'failed' | 'todo'. `doctor` is the check-up result
+ * (`{ error, items }`) or null while it loads.
+ */
+function steps(status, doctor) {
+  const st = (status && status.state) || 'off';
+  const install = status && status.install;
+  // A failed install leaves `error` with the install the probe asked for;
+  // an ssh failure carries its kind and never reached the install step.
+  const installFailed = st === 'error' && !(status && status.errorKind) && !!install && install.action !== 'none';
+  let at;
+  if (st === 'connected') {
+    const items = (doctor && doctor.items) || [];
+    const checkup = !doctor ? 'active' : (doctor.error || items.some((i) => !i.ok)) ? 'failed' : 'done';
+    at = { connect: 'done', install: 'done', checkup };
+  } else if (st === 'needs-install' || st === 'needs-update' || st === 'installing') {
+    at = { connect: 'done', install: 'active', checkup: 'todo' };
+  } else if (installFailed) {
+    at = { connect: 'done', install: 'failed', checkup: 'todo' };
+  } else if (st === 'error') {
+    at = { connect: 'failed', install: 'todo', checkup: 'todo' };
+  } else if (st === 'connecting' || st === 'reconnecting') {
+    at = { connect: 'active', install: 'todo', checkup: 'todo' };
+  } else {
+    at = { connect: 'todo', install: 'todo', checkup: 'todo' };
+  }
+  return STEPS.map(([id, label]) => ({ id, label, state: at[id] }));
+}
+
 module.exports = {
+  steps,
   initial, onStatus, startAction, endAction, actionsDisabled, consentText, fixTerminalFor, noteFixOpened, takeRecheck,
   modelFor, withModel, pruneModels, summary, pickSelected
 };

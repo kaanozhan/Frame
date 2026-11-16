@@ -22,3 +22,11 @@ In `serverLink`'s loop, an error whose kind `sshErrors.needsUser` accepts (host-
 _Captured: 2026-11-16 · 2 file change(s)_
 
 ---
+
+## T04 — The step indicator rule
+
+Added `steps(status, doctor)` to `src/renderer/serverConnectModel.js`: Connect / Install Frame Server / Check-up, each done / active / failed / todo. A failed install is told apart from a failed connect by an `error` without `errorKind` whose probe asked for an install (`install.action !== 'none'`); a connected server's check-up is active while loading and failed when it errors or any item is not ok. The cases in `test/serverConnectModel.test.js` were red on the previous commit.
+
+_Captured: 2026-11-16 · 2 file change(s)_
+
+---

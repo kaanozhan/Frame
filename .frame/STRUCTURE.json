@@ -16030,6 +16030,7 @@
       "file": "src/renderer/serverConnectModel.js",
       "description": "serverConnectModel — the Connect dialog's state rules (server-hardening S12).",
       "exports": [
+        "steps",
         "initial",
         "onStatus",
         "startAction",
@@ -16149,9 +16150,17 @@
             "wanted"
           ],
           "purpose": "The server to show in the dialog: `wanted` if listed, else the first connected, else the first."
+        },
+        "steps": {
+          "line": 137,
+          "params": [
+            "status",
+            "doctor"
+          ],
+          "purpose": "Where a server stands on Connect → Install Frame Server → Check-up, each"
         }
       },
-      "sizeBytes": 5181,
+      "sizeBytes": 6864,
       "extraction": {
         "status": "parsed"
       },
@@ -16167,6 +16176,7 @@
           "pickSelected": "c909542fbb113c4c",
           "pruneModels": "75baef5d4f75922a",
           "startAction": "c3ff148edfeb056c",
+          "steps": "76555be9b7166280",
           "summary": "2de57637ed10d140",
           "takeRecheck": "1fb3d495fab1fea2",
           "withModel": "580980cf4604d901"
@@ -32120,7 +32130,7 @@
         "src/renderer/serverConnectModel"
       ],
       "functions": {},
-      "sizeBytes": 5179,
+      "sizeBytes": 7093,
       "extraction": {
         "status": "parsed"
       },
@@ -36692,6 +36702,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "2e7a624f550b2f9f65bed8792b2fb44ba03f14384bb841c7df0cddb1a70da1d7"
+    "revision": "ad0d58f029e3e9ef2db6eb49f5ff86fa6b369f6ba85ffafed0d9537f1d406af9"
   }
 }
