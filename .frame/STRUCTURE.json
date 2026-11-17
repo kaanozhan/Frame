@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-16",
+  "lastUpdated": "2026-11-17",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -25598,7 +25598,8 @@
       "description": "Server check-up — what this server can do for Frame and what is missing",
       "exports": [
         "setup",
-        "measure"
+        "measure",
+        "NPM_GLOBAL_PROBE"
       ],
       "depends": [
         "fs",
@@ -25610,35 +25611,35 @@
       ],
       "functions": {
         "shell": {
-          "line": 24,
+          "line": 31,
           "params": [
             "command"
           ],
           "purpose": "Run a command in the user's login shell (PATH from their profile); resolves { ok, stdout }."
         },
         "exists": {
-          "line": 33,
+          "line": 40,
           "params": [
             "p"
           ]
         },
         "claudeSignedIn": {
-          "line": 37,
+          "line": 44,
           "params": [
             "home"
           ]
         },
         "measure": {
-          "line": 47
+          "line": 54
         },
         "setup": {
-          "line": 70,
+          "line": 80,
           "params": [
             "{ registerMethods }"
           ]
         }
       },
-      "sizeBytes": 3133,
+      "sizeBytes": 3761,
       "extraction": {
         "status": "parsed"
       },
@@ -27546,7 +27547,8 @@
         "installDecision",
         "parseChecksum",
         "systemdUnit",
-        "doctorItems"
+        "doctorItems",
+        "userNpmInstall"
       ],
       "depends": [],
       "functions": {
@@ -27604,21 +27606,28 @@
           "purpose": "The systemd user unit that runs the current version."
         },
         "doctorItems": {
-          "line": 144,
+          "line": 146,
           "params": [
             "raw = {}"
           ],
           "purpose": "The check-up as items for the Connect dialog. `raw` is what server.doctor"
         },
+        "userNpmInstall": {
+          "line": 208,
+          "params": [
+            "pkg"
+          ],
+          "purpose": "One line that installs an npm package for this user only: npm's prefix"
+        },
         "agentTerminals": {
-          "line": 200,
+          "line": 225,
           "params": [
             "list"
           ],
           "purpose": "The server terminals running an agent, from `terminals.list` (each with its"
         },
         "consentNeeded": {
-          "line": 217,
+          "line": 242,
           "params": [
             "{ connected",
             "agents",
@@ -27627,7 +27636,7 @@
           "purpose": "Whether an update or rollback must ask first (server-hardening S9): when"
         }
       },
-      "sizeBytes": 9491,
+      "sizeBytes": 10697,
       "extraction": {
         "status": "parsed"
       },
@@ -27642,7 +27651,8 @@
           "installDecision": "e84479a8fb5b69bd",
           "parseChecksum": "691d502f346e91f0",
           "releaseUrl": "57ede9ed46f442ef",
-          "systemdUnit": "4c73100446c0ebe3"
+          "systemdUnit": "4c73100446c0ebe3",
+          "userNpmInstall": "05aa30b53dabc87f"
         }
       }
     },
@@ -32294,15 +32304,30 @@
         "node:assert/strict",
         "src/shared/serverInstall",
         "fs",
-        "path"
+        "path",
+        "child_process",
+        "os",
+        "src/renderer/serverConnectModel",
+        "src/server/doctor"
       ],
-      "functions": {},
-      "sizeBytes": 7579,
+      "functions": {
+        "sandbox": {
+          "line": 130,
+          "params": [
+            "prefix = ''"
+          ],
+          "purpose": "A temp HOME and a fake `npm` that logs its arguments and prints `prefix` for `config get prefix`."
+        }
+      },
+      "sizeBytes": 11638,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "760904a1f755fc32"
+        "description": "760904a1f755fc32",
+        "purposes": {
+          "sandbox": "d52b0b6e0ea621d3"
+        }
       }
     },
     "test/serverList.test": {
@@ -36726,6 +36751,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "bf0f3a2c7ad0e40f343b12221e16e49fa4c9d9664fc0a179a6c79cde9233a86d"
+    "revision": "2f7799bf45999c06311f0f6cde342bbe5840e9a1af6b1bbf587523f1817fbc0f"
   }
 }
