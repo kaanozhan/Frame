@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 112624,
+      "sizeBytes": 112874,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -745,26 +745,27 @@
         "electron",
         "userSettings",
         "analyticsEvents",
+        "shared/analyticsUi",
         "pollGate"
       ],
       "functions": {
         "init": {
-          "line": 88,
+          "line": 91,
           "purpose": "Initialize Aptabase and build the PostHog client."
         },
         "initAptabase": {
-          "line": 112
+          "line": 115
         },
         "distinctId": {
-          "line": 129,
+          "line": 132,
           "purpose": "This install's distinct id, resolved on first use and cached for the run."
         },
         "personProperties": {
-          "line": 148,
+          "line": 151,
           "purpose": "Person properties, sent once per run alongside the first event."
         },
         "track": {
-          "line": 161,
+          "line": 164,
           "params": [
             "name",
             "props"
@@ -772,57 +773,57 @@
           "purpose": "Send a registered anonymous event. No-op if disabled or not initialized."
         },
         "isErrorReportingEnabled": {
-          "line": 197,
+          "line": 200,
           "purpose": "Whether exception detail may be sent."
         },
         "captureException": {
-          "line": 214,
+          "line": 217,
           "params": [
             "err"
           ],
           "purpose": "Send one exception, sanitized. No-op unless error reporting is explicitly on."
         },
         "noticeState": {
-          "line": 241,
+          "line": 244,
           "purpose": "Whether the disclosure notice is due, and the version to store when it is"
         },
         "startActiveTimer": {
-          "line": 262,
+          "line": 266,
           "purpose": "Start counting active time."
         },
         "trackAppStarted": {
-          "line": 275,
+          "line": 279,
           "purpose": "Anonymous event marking this launch."
         },
         "trackOptOut": {
-          "line": 290,
+          "line": 294,
           "purpose": "The one event an opt-out sends: that it happened, and nothing else."
         },
         "setEnabled": {
-          "line": 326,
+          "line": 330,
           "params": [
             "enabled"
           ],
           "purpose": "Toggle analytics from Settings. Persists the new state, then re-resolves"
         },
         "migrateLegacySettings": {
-          "line": 346,
+          "line": 350,
           "purpose": "Copy settings forward from the names this feature used when it was called"
         },
         "enforceFailClosed": {
-          "line": 370,
+          "line": 374,
           "purpose": "Make a failed settings load's fail-closed state stick. Called right after"
         },
         "isEnabled": {
-          "line": 381,
+          "line": 385,
           "purpose": "Effective enabled state. Default ON when the setting has never been"
         },
         "shutdown": {
-          "line": 397,
+          "line": 401,
           "purpose": "Flush the batcher and close the client, for the quit path."
         }
       },
-      "sizeBytes": 16206,
+      "sizeBytes": 16478,
       "extraction": {
         "status": "parsed"
       },
@@ -11477,23 +11478,24 @@
         "shared/ipcChannels",
         "settingsOverlay",
         "shared/uiZoom",
+        "shared/analyticsUi",
         "../package.json"
       ],
       "functions": {
         "init": {
-          "line": 53
+          "line": 54
         },
         "initAboutSection": {
-          "line": 141
+          "line": 145
         },
         "runCheck": {
-          "line": 234,
+          "line": 238,
           "params": [
             "userInitiated"
           ]
         },
         "renderUpdateState": {
-          "line": 274,
+          "line": 278,
           "params": [
             "{ checked",
             "found",
@@ -11505,39 +11507,42 @@
           ]
         },
         "showUpdateBanner": {
-          "line": 308,
+          "line": 312,
           "params": [
             "info"
           ]
         },
         "hideUpdateBanner": {
-          "line": 325
-        },
-        "hideSidebarDot": {
           "line": 329
         },
+        "hideSidebarDot": {
+          "line": 333
+        },
         "formatRelative": {
-          "line": 335,
+          "line": 339,
           "params": [
             "date"
           ]
         },
         "initZoomSelect": {
-          "line": 351,
+          "line": 355,
           "purpose": "Fill the Interface size select from the shared ladder — one option per"
         },
         "syncZoomFromMain": {
-          "line": 374
+          "line": 378
+        },
+        "hideAnalyticsRows": {
+          "line": 395,
+          "purpose": "Hidden analytics UI: hide its switch and the error-report switch that rides on it."
         },
         "syncErrorReportingAvailability": {
-          "line": 390,
+          "line": 404,
           "params": [
             "analyticsOn"
-          ],
-          "purpose": "Error reporting is gated on analytics in main (analytics.captureException"
+          ]
         },
         "syncToggleFromSettings": {
-          "line": 397
+          "line": 411
         }
       },
       "ipc": {
@@ -11554,15 +11559,15 @@
           "ANALYTICS_TRACK"
         ]
       },
-      "sizeBytes": 15877,
+      "sizeBytes": 16528,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "1dffdbc6d50a7e19",
         "purposes": {
-          "initZoomSelect": "cbe76526d4d65826",
-          "syncErrorReportingAvailability": "f99d7b4f4c5c647a"
+          "hideAnalyticsRows": "2580c3061bdd6e9a",
+          "initZoomSelect": "cbe76526d4d65826"
         }
       }
     },
@@ -26196,6 +26201,22 @@
         }
       }
     },
+    "shared/analyticsUi": {
+      "file": "src/shared/analyticsUi.js",
+      "description": "Analytics UI — one switch that hides the analytics UI for now, to be",
+      "exports": [
+        "ANALYTICS_UI_HIDDEN"
+      ],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 688,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "145f8d8c7f064495"
+      }
+    },
     "shared/copyFilesMatch": {
       "file": "src/shared/copyFilesMatch.js",
       "description": "copyFilesMatch — which gitignored files a new workspace copies from the",
@@ -29394,6 +29415,26 @@
       },
       "provenance": {
         "description": "9d61943b8b213ee4"
+      }
+    },
+    "test/analyticsUi.test": {
+      "file": "test/analyticsUi.test.js",
+      "description": "Analytics UI hidden (src/shared/analyticsUi.js): the notice is never due,",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "module",
+        "src/shared/analyticsUi",
+        "src/main/analytics"
+      ],
+      "functions": {},
+      "sizeBytes": 1603,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "bb07dba2307f2d02"
       }
     },
     "test/branchOptions.test": {
@@ -36688,7 +36729,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 404,
+        "parsed": 406,
         "unsupported": 92,
         "partial": 0
       }
@@ -36735,9 +36776,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 590,
+      "visitedEntries": 592,
       "traversedDirectories": 86,
-      "eligibleFiles": 496,
+      "eligibleFiles": 498,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -36754,7 +36795,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 496,
+      "indexedFiles": 498,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -36762,6 +36803,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "499fbd0538edbd4a4ea2ab016985021ab9acd8a991dec50688885ed60ead89e8"
+    "revision": "fabf43a8d7432cc9910a680fc038d2fd1aa1dd8bef35063b8d0c1704d8dd9f5c"
   }
 }

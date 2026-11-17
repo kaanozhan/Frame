@@ -29,6 +29,9 @@ const { randomUUID } = require('node:crypto');
 const { app } = require('electron');
 const userSettings = require('./userSettings');
 const analyticsEvents = require('./analyticsEvents');
+// While the analytics UI is hidden the notice is never due; sending is
+// unchanged (src/shared/analyticsUi.js).
+const { ANALYTICS_UI_HIDDEN } = require('../shared/analyticsUi');
 
 // PostHog project token (Settings → Project token & ID, project 280352, EU
 // Cloud). Write-only and safe in a public app — it can send events and
@@ -239,6 +242,7 @@ function captureException(err) {
  * analytics call.
  */
 function noticeState() {
+  if (ANALYTICS_UI_HIDDEN) return { show: false, version: analyticsEvents.NOTICE_VERSION };
   return {
     show: analyticsEvents.shouldShowNotice({
       storedVersion: userSettings.get(NOTICE_VERSION_KEY),
