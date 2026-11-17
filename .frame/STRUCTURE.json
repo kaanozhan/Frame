@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 112598,
+      "sizeBytes": 112606,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -18737,7 +18737,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 28806,
+      "sizeBytes": 29515,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -20469,42 +20469,42 @@
       ],
       "functions": {
         "setActions": {
-          "line": 62,
+          "line": 67,
           "params": [
             "next"
           ],
           "purpose": "Let the dialogs plug in without this module requiring them."
         },
         "init": {
-          "line": 66
+          "line": 71
         },
         "load": {
-          "line": 138,
+          "line": 134,
           "params": [
             "{ reselect = false } = {}"
           ],
           "purpose": "Re-read the project's workspaces; with `reselect`, restore the remembered selection."
         },
         "select": {
-          "line": 185,
+          "line": 181,
           "params": [
             "ws"
           ]
         },
         "scheduleRender": {
-          "line": 201
+          "line": 197
         },
         "summaries": {
-          "line": 211
+          "line": 207
         },
         "dotHtml": {
-          "line": 228,
+          "line": 224,
           "params": [
             "summary"
           ]
         },
         "rowHtml": {
-          "line": 233,
+          "line": 229,
           "params": [
             "ws",
             "{ selectedId",
@@ -20512,18 +20512,18 @@
           ]
         },
         "linkView": {
-          "line": 272,
+          "line": 268,
           "params": [
             "srv"
           ],
           "purpose": "A saved server as the Remote group reads it: `{ key, host, phase, state }`."
         },
         "serverViews": {
-          "line": 282,
+          "line": 278,
           "purpose": "Every saved server, in list order (multi-server-connections)."
         },
         "serverHeadHtml": {
-          "line": 292,
+          "line": 288,
           "params": [
             "link",
             "{ collapsed",
@@ -20533,46 +20533,46 @@
           "purpose": "One server's sub-header in Remote, drawn as a labelled sub-separator: the"
         },
         "isServerOpen": {
-          "line": 324,
+          "line": 320,
           "params": [
             "key",
             "count"
           ]
         },
         "setServerOpen": {
-          "line": 328,
+          "line": 324,
           "params": [
             "key",
             "open"
           ]
         },
         "toggleServer": {
-          "line": 333,
+          "line": 329,
           "params": [
             "key"
           ]
         },
         "serverCounts": {
-          "line": 344,
+          "line": 340,
           "params": [
             "list"
           ]
         },
         "openServersThatGrew": {
-          "line": 350,
+          "line": 346,
           "params": [
             "list"
           ]
         },
         "serverEmptyHtml": {
-          "line": 359,
+          "line": 355,
           "params": [
             "link"
           ],
           "purpose": "What a server with no workspaces of this project offers: the next step for its link."
         },
         "remoteGroupHtml": {
-          "line": 377,
+          "line": 373,
           "params": [
             "remote",
             "{ canCreate",
@@ -20582,11 +20582,11 @@
           "purpose": "The Remote group: one sub-header per saved server with its own rows or its"
         },
         "mainLabel": {
-          "line": 405,
+          "line": 401,
           "purpose": "The main row's label: the branch the project's own checkout is on, like"
         },
         "triggerHtml": {
-          "line": 410,
+          "line": 406,
           "params": [
             "{ selectedId",
             "sums }"
@@ -20594,23 +20594,33 @@
           "purpose": "The trigger's face: the selected workspace and its status dot."
         },
         "render": {
-          "line": 425
+          "line": 421
         },
-        "openDropdown": {
-          "line": 496
+        "readListOpen": {
+          "line": 491
         },
-        "closeDropdown": {
-          "line": 506,
+        "setListOpen": {
+          "line": 495,
           "params": [
-            "{ focusTrigger = false } = {}"
+            "open"
           ]
+        },
+        "openList": {
+          "line": 501,
+          "params": [
+            "{ focus = false } = {}"
+          ],
+          "purpose": "Expand the list; `focus` lands on the selected row so arrows and Enter work straight away."
+        },
+        "closeList": {
+          "line": 513
         },
         "moveFocus": {
           "line": 522,
           "params": [
             "step"
           ],
-          "purpose": "Arrow keys walk the dropdown's rows and buttons, top to bottom."
+          "purpose": "Arrow keys walk the list's rows and buttons, top to bottom."
         },
         "findWs": {
           "line": 530,
@@ -20751,7 +20761,7 @@
           "purpose": "Active workspaces of the current project, as last loaded."
         },
         "serverOpen": {
-          "line": 320,
+          "line": 316,
           "params": [
             "("
           ]
@@ -20764,7 +20774,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 42218,
+      "sizeBytes": 42190,
       "extraction": {
         "status": "parsed"
       },
@@ -20779,7 +20789,8 @@
           "linkView": "aeb38c4ced639f63",
           "load": "e807754c516c9be1",
           "mainLabel": "edac7efb729dd2d6",
-          "moveFocus": "e1d5336f87eacefc",
+          "moveFocus": "95c1b6649ae48ff8",
+          "openList": "9beebe76e5da95f3",
           "remoteGroupHtml": "adc0ab63d3466cbd",
           "rescueBranchName": "9535b434ca8c9ced",
           "selectSpecWorkspace": "7d88cec82ca928f9",
