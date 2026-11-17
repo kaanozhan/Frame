@@ -1,8 +1,10 @@
 /**
  * Workspace Section — the sidebar's workspace switcher (workspaces spec, T07).
  *
- * The second level under the project switcher: a trigger showing the
- * selected workspace, and a dropdown grouped in two, split by a hairline:
+ * The second level under the project switcher: a header showing the
+ * selected workspace, and under it — in the sidebar itself, not a floating
+ * dropdown — the list, which the header collapses and expands (the choice is
+ * remembered in this browser). The list is grouped in two, split by a hairline:
  *   - "New workspace…" first, the way the project menu leads with "Add a
  *     project…"; the dialog picks where it runs.
  *   - Local: the main row (the project's own checkout, labelled with the
@@ -14,8 +16,8 @@
  * Each row: the branch as the primary label, the color name as the
  * secondary one, and a status dot folded from the workspace's terminals
  * (workspaces/rollup.js). Clicking a row selects it (state.setWorkspace),
- * which re-points terminals, file tree, git and sessions at that folder, and
- * closes the dropdown.
+ * which re-points terminals, file tree, git and sessions at that folder; the
+ * list stays as it is.
  *
  * Records come from main (WORKSPACES_LIST) and are re-read on
  * WORKSPACES_UPDATED and project changes. A workspace whose folder vanished
@@ -49,7 +51,10 @@ let pendingReselect = null; // projectPath whose remembered workspace a load sti
 let showArchived = false;
 let renaming = null;           // { id, field: 'name'|'branch' } while an inline editor is open
 let renderScheduled = false;
-let menuOpen = false;          // the dropdown under the trigger
+// The list under the header: open unless the user collapsed it. Kept in this
+// browser (localStorage `frame-ws-list-open`), the same for every project.
+const LIST_OPEN_KEY = 'frame-ws-list-open';
+let menuOpen = readListOpen();
 let loadSeq = 0;
 
 const actions = {
@@ -82,18 +87,10 @@ function init() {
     if (menuEl.classList.contains('visible') && !menuEl.contains(e.target)) hideMenu();
   });
   window.addEventListener('blur', hideMenu);
-  // The dropdown closes on a click anywhere else — the row menu it opens
-  // counts as inside — and on Escape, unless something inside used it first
-  // (the row menu, an inline rename).
-  document.addEventListener('mousedown', (e) => {
-    if (!menuOpen || rootEl.contains(e.target) || menuEl.contains(e.target)) return;
-    closeDropdown();
-  }, true);
+  // Escape closes the row menu; the list itself stays — it is part of the sidebar.
   document.addEventListener('keydown', (e) => {
-    if (!menuOpen || e.key !== 'Escape' || e.defaultPrevented) return;
-    if (menuEl.classList.contains('visible')) { hideMenu(); return; }
-    e.preventDefault();
-    closeDropdown({ focusTrigger: true });
+    if (e.key !== 'Escape' || e.defaultPrevented || !menuEl.classList.contains('visible')) return;
+    hideMenu();
   });
   // Remote's sub-headers and empty states follow every server's link.
   require('./serverConnect').onServersChange((next, prev) => {
@@ -102,7 +99,6 @@ function init() {
   });
 
   state.onProjectChange(() => {
-    menuOpen = false;
     lastServerCounts = null; // counts are per project
     workspaces = [];
     archived = [];
@@ -184,12 +180,12 @@ async function load({ reselect = false } = {}) {
 
 function select(ws) {
   if (!ws) {
-    closeDropdown();
+    hideMenu();
     state.setWorkspace(null);
     return;
   }
   if (ws.missing) return;
-  closeDropdown();
+  hideMenu();
   state.setWorkspace({ id: ws.id, root: ws.path, name: ws.name, branch: ws.branch });
   if (ws.location === 'server') return; // its tooling lives on the server
   // Refresh Frame's tooling in the worktree (hooks, staged templates, spec
@@ -414,7 +410,7 @@ function triggerHtml({ selectedId, sums }) {
     ? `<span class="ws-switch-tag${rec.offline ? ' offline' : ''}" title="Runs on ${escapeHtml(rec.host || 'the server')}${rec.offline ? ' — offline' : ''}">${rec.offline ? 'offline' : 'remote'}</span>`
     : '';
   return `
-    <button class="sidebar-current-project ws-switch" data-act="toggle" type="button" tabindex="-1" aria-haspopup="menu" aria-expanded="${menuOpen}" title="Switch workspace">
+    <button class="sidebar-current-project ws-switch" data-act="toggle" type="button" tabindex="-1" aria-controls="ws-list" aria-expanded="${menuOpen}" title="${menuOpen ? 'Hide workspaces' : 'Show workspaces'}">
       <span class="sidebar-current-project-label">Workspace</span>
       ${dotHtml(rollup.summaryFor(sums, selectedId))}
       <span class="sidebar-current-project-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
@@ -427,7 +423,6 @@ function render() {
   const projectPath = state.getProjectPath();
   rootEl.hidden = !projectPath;
   if (!projectPath) {
-    menuOpen = false;
     rootEl.innerHTML = '';
     return;
   }
@@ -459,7 +454,7 @@ function render() {
 
   rootEl.innerHTML = `
     ${triggerHtml({ selectedId, sums })}
-    <div class="sidebar-project-menu ws-menu" role="menu" aria-label="Workspaces"${menuOpen ? '' : ' hidden'}>
+    <div class="ws-menu ws-list" id="ws-list" role="menu" aria-label="Workspaces"${menuOpen ? '' : ' hidden'}>
       <button class="sidebar-project-menu-item sidebar-project-menu-add ws-new" data-act="new" type="button" role="menuitem" ${canCreate ? '' : 'disabled'} title="${escapeHtml(addTitle)}">
         <span class="sidebar-project-menu-item-name">+ New workspace</span>
         <span class="ws-new-key" aria-hidden="true">⌘⇧N</span>
@@ -491,34 +486,39 @@ function render() {
   }
 }
 
-// ─── Dropdown ────────────────────────────────────────────────
+// ─── Collapsible list ────────────────────────────────────────
 
-function openDropdown() {
-  if (menuOpen || !rootEl || rootEl.hidden) return;
-  menuOpen = true;
-  render();
-  // Land on the selected row so arrows and Enter work straight away.
+function readListOpen() {
+  try { return localStorage.getItem(LIST_OPEN_KEY) !== 'false'; } catch (_) { return true; }
+}
+
+function setListOpen(open) {
+  menuOpen = !!open;
+  try { localStorage.setItem(LIST_OPEN_KEY, String(menuOpen)); } catch (_) { /* the default (open) applies next time */ }
+}
+
+/** Expand the list; `focus` lands on the selected row so arrows and Enter work straight away. */
+function openList({ focus = false } = {}) {
+  if (!rootEl || rootEl.hidden) return;
+  if (!menuOpen) {
+    setListOpen(true);
+    render();
+    if (state.getProjectPath()) load();
+  }
+  if (!focus) return;
   const on = rootEl.querySelector('.ws-menu .ws-row.on') || rootEl.querySelector('.ws-menu .ws-row');
   if (on) on.focus({ preventScroll: true });
-  if (state.getProjectPath()) load();
 }
 
-function closeDropdown({ focusTrigger = false } = {}) {
+function closeList() {
   if (!menuOpen) return;
-  menuOpen = false;
-  // An open rename is not dropped: hiding the menu blurs its field, which commits it.
+  setListOpen(false);
+  // An open rename is not dropped: hiding the list blurs its field, which commits it.
   hideMenu();
-  if (!rootEl) return;
-  const menu = rootEl.querySelector('.ws-menu');
-  if (menu) menu.hidden = true;
-  const trigger = rootEl.querySelector('.ws-switch');
-  if (trigger) {
-    trigger.setAttribute('aria-expanded', 'false');
-    if (focusTrigger) trigger.focus();
-  }
+  render();
 }
 
-/** Arrow keys walk the dropdown's rows and buttons, top to bottom. */
+/** Arrow keys walk the list's rows and buttons, top to bottom. */
 function moveFocus(step) {
   const items = [...rootEl.querySelectorAll('.ws-menu .ws-row[tabindex="0"], .ws-menu .ws-new:not(:disabled), .ws-menu .ws-server-head[tabindex="0"], .ws-menu .ws-cta:not(:disabled), .ws-menu .ws-add-server, .ws-menu .ws-archived-toggle')];
   if (!items.length) return;
@@ -539,12 +539,12 @@ function onClick(e) {
     e.stopPropagation();
     const act = actEl.dataset.act;
     const ws = row ? findWs(row.dataset.id) : null;
-    if (act === 'toggle') return menuOpen ? closeDropdown() : openDropdown();
+    if (act === 'toggle') return menuOpen ? closeList() : openList();
     // The one "New workspace…" at the top: the location is chosen in the
     // dialog (this project's last one by default).
-    if (act === 'new') { closeDropdown(); return openNew(); }
-    if (act === 'connect') { closeDropdown(); return require('./serverConnect').open({ key: actEl.dataset.key || null }); }
-    if (act === 'add-server') { closeDropdown(); return require('./serverConnect').open({ add: true }); }
+    if (act === 'new') return openNew();
+    if (act === 'connect') return require('./serverConnect').open({ key: actEl.dataset.key || null });
+    if (act === 'add-server') return require('./serverConnect').open({ add: true });
     if (act === 'toggle-server') return toggleServer(actEl.dataset.key);
     if (act === 'toggle-archived') { showArchived = !showArchived; return render(); }
     if (act === 'menu' && ws) {
@@ -584,7 +584,7 @@ function onKeyDown(e) {
   const onTrigger = e.target.closest && e.target.closest('.ws-switch');
   if (onTrigger && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
     e.preventDefault();
-    openDropdown();
+    openList({ focus: true });
     return;
   }
   if (menuOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && e.target.closest && e.target.closest('.ws-menu')) {
@@ -669,8 +669,8 @@ function openNew(opts) {
 
 function startRename(ws, field) {
   renaming = { id: ws.id, field };
-  // The row lives in the dropdown: open it (palette / command path) first.
-  menuOpen = true;
+  // The row lives in the list: expand it (palette / command path) first.
+  if (!menuOpen) setListOpen(true);
   render();
 }
 
