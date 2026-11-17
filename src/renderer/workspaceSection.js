@@ -254,13 +254,10 @@ function rowHtml(ws, { selectedId, sums }) {
     <div class="ws-row${on}${missing}${where}" data-id="${escapeHtml(ws.id)}" tabindex="0" role="menuitemradio" aria-checked="${!!on}">
       ${dotHtml(rollup.summaryFor(sums, ws.id))}
       <span class="ws-labels">${primary}${secondary}</span>
-      ${on ? CHECK : ''}
       ${trailing}
     </div>`;
 }
 
-const CHECK = '<svg class="ws-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
-const CARET = '<svg class="sidebar-current-project-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
 const PLUS = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
 const SERVER = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><line x1="7" y1="7.5" x2="7.01" y2="7.5"/><line x1="7" y1="16.5" x2="7.01" y2="16.5"/></svg>';
 
@@ -402,20 +399,28 @@ function mainLabel() {
   return mainBranch || 'main';
 }
 
-/** The trigger's face: the selected workspace and its status dot. */
+/**
+ * The header: the same section title as the nav's Work and Context — a
+ * chevron and "Workspace". Collapsed, it names the selected workspace (and
+ * its status dot) so "where am I" stays in sight without the rows.
+ */
 function triggerHtml({ selectedId, sums }) {
   const rec = selectedId === state.MAIN_WORKSPACE_ID ? null : workspaces.find((w) => w.id === selectedId);
   const name = rec ? rec.branch : mainLabel();
   const remote = rec && rec.location === 'server'
     ? `<span class="ws-switch-tag${rec.offline ? ' offline' : ''}" title="Runs on ${escapeHtml(rec.host || 'the server')}${rec.offline ? ' — offline' : ''}">${rec.offline ? 'offline' : 'remote'}</span>`
     : '';
+  const current = menuOpen ? '' : `
+      <span class="ws-head-current">
+        ${dotHtml(rollup.summaryFor(sums, selectedId))}
+        <span class="ws-head-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+        ${remote}
+      </span>`;
   return `
-    <button class="sidebar-current-project ws-switch" data-act="toggle" type="button" tabindex="-1" aria-controls="ws-list" aria-expanded="${menuOpen}" title="${menuOpen ? 'Hide workspaces' : 'Show workspaces'}">
-      <span class="sidebar-current-project-label">Workspace</span>
-      ${dotHtml(rollup.summaryFor(sums, selectedId))}
-      <span class="sidebar-current-project-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
-      ${remote}${CARET}
-    </button>`;
+    <div class="project-nav-group-header ws-switch" data-act="toggle" tabindex="0" role="button" aria-controls="ws-list" aria-expanded="${menuOpen}" title="${menuOpen ? 'Hide workspaces' : 'Show workspaces'}">
+      <span class="project-nav-group-chevron" aria-hidden="true"></span>
+      <span class="project-nav-group-label">Workspace</span>${current}
+    </div>`;
 }
 
 function render() {
@@ -452,9 +457,11 @@ function render() {
          </div>`).join('')}</div>` : ''}`
     : '';
 
+  rootEl.classList.toggle('collapsed', !menuOpen);
   rootEl.innerHTML = `
     ${triggerHtml({ selectedId, sums })}
-    <div class="ws-menu ws-list" id="ws-list" role="menu" aria-label="Workspaces"${menuOpen ? '' : ' hidden'}>
+    <div class="project-nav-group-items">
+    <div class="project-nav-group-rows ws-menu ws-list" id="ws-list" role="menu" aria-label="Workspaces">
       <button class="sidebar-project-menu-item sidebar-project-menu-add ws-new" data-act="new" type="button" role="menuitem" ${canCreate ? '' : 'disabled'} title="${escapeHtml(addTitle)}">
         <span class="sidebar-project-menu-item-name">+ New workspace</span>
         <span class="ws-new-key" aria-hidden="true">⌘⇧N</span>
@@ -465,7 +472,6 @@ function render() {
         <div class="ws-row main${mainOn}" data-id="main" tabindex="0" role="menuitemradio" aria-checked="${!!mainOn}">
           ${dotHtml(rollup.summaryFor(sums, state.MAIN_WORKSPACE_ID))}
           <span class="ws-labels"><span class="ws-primary" title="${escapeHtml(mainLabel())}">${escapeHtml(mainLabel())}</span><span class="ws-secondary">project checkout</span></span>
-          ${mainOn ? CHECK : ''}
         </div>
         ${local.map((ws) => rowHtml(ws, { selectedId, sums })).join('')}
       </div>
@@ -474,6 +480,7 @@ function render() {
         ${remoteGroupHtml(remote, { canCreate, selectedId, sums })}
       </div>
       ${archivedHtml}
+    </div>
     </div>`;
 
   const menu = rootEl.querySelector('.ws-menu');
@@ -580,6 +587,10 @@ function onKeyDown(e) {
     e.preventDefault();
     e.target.click();
     return;
+  }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('ws-switch')) {
+    e.preventDefault();
+    return menuOpen ? closeList() : openList();
   }
   const onTrigger = e.target.closest && e.target.closest('.ws-switch');
   if (onTrigger && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {

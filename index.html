@@ -297,7 +297,7 @@
              Local / Remote. Sits on every rail view, like the project
              switcher, because the selection re-points files, git and
              terminals everywhere. workspaceSection.js renders it. -->
-        <div id="workspace-section" class="workspace-section" hidden></div>
+        <div id="workspace-section" class="workspace-section project-nav-group" hidden></div>
         <!-- Projects view (default) — the project panel for the selected
              project (project-dropdown spec): selection lives in the
              current-project switcher above, which also carries "+ Add a
@@ -1870,8 +1870,10 @@
         </div>
 
         <div class="settings-section">
-          <h4 class="settings-section-title">Privacy &amp; Analytics</h4>
-          <div class="settings-row">
+          <!-- While the analytics UI is hidden (src/shared/analyticsUi.js) the
+               two analytics rows are hidden and the title reads "Privacy". -->
+          <h4 class="settings-section-title" id="settings-privacy-title">Privacy &amp; Analytics</h4>
+          <div class="settings-row" id="settings-analytics-row">
             <div class="settings-row-text">
               <label class="settings-row-label" for="settings-analytics-toggle">Send anonymous usage stats</label>
               <p class="settings-row-desc">
@@ -1885,7 +1887,7 @@
               <span class="settings-switch-slider"></span>
             </label>
           </div>
-          <div class="settings-row">
+          <div class="settings-row" id="settings-error-reporting-row">
             <div class="settings-row-text">
               <label class="settings-row-label" for="settings-error-reporting-toggle">Send error reports</label>
               <p class="settings-row-desc">
