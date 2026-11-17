@@ -2,8 +2,8 @@
 /* The workspace switcher: the second level under the project switcher.
    The trigger is the project switcher's box (same classes, so the two pair
    up), set in by a small elbow that ties it to the project above. The
-   dropdown is the project menu's elevated surface, grouped Local / Remote
-   with a hairline between. */
+   list sits in the sidebar under it and collapses from it, grouped
+   Local / Remote with a hairline between. */
 
 .workspace-section {
   position: relative;
@@ -50,16 +50,26 @@
 }
 .ws-switch-tag.offline { color: var(--warning); }
 
-/* The dropdown: the project menu's surface, full width of the trigger. */
+/* The list: in the sidebar under the header, not a floating menu. The header
+   collapses it; a long list scrolls on its own so Work below stays in reach. */
 .ws-menu {
-  left: 14px;
-  right: 0;
-  min-width: 0;
-  width: auto;
-  max-width: none;
-  max-height: min(420px, 60vh);
+  display: flex;
+  flex-direction: column;
   gap: 1px;
+  min-width: 0;
+  margin-top: 4px;
+  padding: 2px 0 2px 4px;
+  max-height: min(420px, 45vh);
+  overflow-y: auto;
 }
+.ws-menu[hidden] { display: none; }
+
+/* An expanded list is the resting state, so the header keeps its plain edge
+   (the project switcher's accent edge means "a menu is open"). */
+.workspace-section .ws-switch[aria-expanded="true"] { border-color: var(--border-strong); }
+/* The caret reads like a tree's: down while open, right while collapsed. */
+.workspace-section .ws-switch[aria-expanded="true"] .sidebar-current-project-caret { transform: none; }
+.workspace-section .ws-switch[aria-expanded="false"] .sidebar-current-project-caret { transform: rotate(-90deg); }
 
 .ws-group {
   display: flex;
