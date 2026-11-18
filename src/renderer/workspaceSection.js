@@ -12,8 +12,9 @@
  * wait labels, under it (workspace-list-agent-alerts T13). The rows:
  *   - the main row (the project's own checkout, labelled with the branch it
  *     is on), then this Mac's workspaces;
- *   - one sub-header per saved Frame Server (host, Connect while it is down)
- *     with that server's workspaces (multi-server-connections). With no
+ *   - one sub-header per saved Frame Server that holds workspaces of this
+ *     project (host, Connect while it is down), with those workspaces; it
+ *     does not fold, and a server without any is not listed (T18). With no
  *     server saved: one "Connect a server…" row. Adding another server is
  *     the rail's Add Server button, ⌘⌥N or the File menu.
  * Each row: the branch as the primary label, the color name as the
@@ -115,7 +116,6 @@ function init() {
 
   state.onProjectChange(() => {
     dropdownOpen = false;
-    lastServerCounts = null; // counts are per project
     workspaces = [];
     archived = [];
     mainBranch = null;
@@ -164,7 +164,6 @@ async function load({ reselect = false } = {}) {
   loadedFor = projectPath;
   isRepo = !!(result && result.isRepo);
   workspaces = (result && result.workspaces) || [];
-  if (!(result && result.error)) openServersThatGrew(workspaces);
   archived = (result && result.archived) || [];
   if (archivedOpen()) renderArchivedList();
   mainBranch = (result && result.mainBranch) || null;
@@ -417,112 +416,51 @@ function serverViews() {
 
 /**
  * One server's sub-header in Remote, drawn as a labelled sub-separator: the
- * host, a hairline, and Connect / Set up while it is down (a down host reads
- * muted). Creating goes through the header's one "+" (the server is chosen
- * in the dialog), not a "+" per server.
+ * server icon, the host and a hairline. It does not fold (T18). While the
+ * link is down it offers Connect / Set up; while it is coming up it names
+ * that state, muted. Creating goes through the header's one "+" (the server
+ * is chosen in the dialog), not a "+" per server.
  */
-function serverHeadHtml(link, { collapsed, count, locked }) {
+function serverHeadHtml(link) {
   const label = require('./serverConnect').LABELS[link.state] || link.state;
-  let action = '';
-  if (link.phase !== 'up' && link.phase !== 'busy') {
-    action = `<button class="ws-group-link" data-act="connect" data-key="${escapeHtml(link.key)}" type="button">${link.phase === 'setup' ? 'Set up' : 'Connect'}</button>`;
+  let tail = '';
+  if (link.phase === 'busy') {
+    tail = `<span class="ws-server-state">${escapeHtml(label)}</span>`;
+  } else if (link.phase !== 'up') {
+    tail = `<button class="ws-group-link" data-act="connect" data-key="${escapeHtml(link.key)}" type="button">${link.phase === 'setup' ? 'Set up' : 'Connect'}</button>`;
   }
   const { Server } = require('lucide');
   const icon = require('./dock').lucideIcon(Server, 12);
-  // The selected workspace's server stays open: its row must not disappear.
-  const toggle = locked
-    ? ''
-    : ` data-act="toggle-server" data-key="${escapeHtml(link.key)}" tabindex="0" role="button" aria-expanded="${!collapsed}"`;
-  return `<div class="ws-server-head ${link.phase}${collapsed ? ' collapsed' : ''}${locked ? ' locked' : ''}"${toggle} title="${escapeHtml(link.host)} · ${escapeHtml(label)}${locked ? '' : collapsed ? ' — show workspaces' : ' — hide workspaces'}">
-      <span class="ws-server-caret" aria-hidden="true"></span>
+  return `<div class="ws-server-head ${link.phase}" title="${escapeHtml(link.host)} · ${escapeHtml(label)}">
       <span class="ws-server-icon" aria-hidden="true">${icon}</span>
       <span class="ws-server-name">${escapeHtml(link.host)}</span>
       <span class="ws-server-rule" aria-hidden="true"></span>
-      ${collapsed && count ? `<span class="ws-server-count" title="${count} workspace${count === 1 ? '' : 's'}">${count}</span>` : ''}
-      ${action}
-    </div>`;
-}
-
-// Open / closed server sections (multi-server-connections), a view
-// preference kept in this browser: localStorage `frame-ws-server-open` =
-// { [serverKey]: true | false } — only servers the user toggled (or that just
-// got a new workspace) have an entry. Without one, a server with no
-// workspaces of the project starts closed and one with workspaces open.
-const OPEN_KEY = 'frame-ws-server-open';
-let serverOpen = (() => {
-  try { return JSON.parse(localStorage.getItem(OPEN_KEY) || '{}') || {}; } catch (_) { return {}; }
-})();
-
-function isServerOpen(key, count) {
-  return typeof serverOpen[key] === 'boolean' ? serverOpen[key] : count > 0;
-}
-
-function setServerOpen(key, open) {
-  serverOpen = { ...serverOpen, [key]: !!open };
-  try { localStorage.setItem(OPEN_KEY, JSON.stringify(serverOpen)); } catch (_) { /* preference only */ }
-}
-
-function toggleServer(key) {
-  const count = workspaces.filter((w) => w.location === 'server' && w.serverKey === key).length;
-  setServerOpen(key, !isServerOpen(key, count));
-  render();
-}
-
-// Workspaces per server at the last load of this project: a server whose
-// count grew (a workspace was just created there, from any path) opens, so
-// the new row is in sight instead of hidden behind a closed header.
-let lastServerCounts = null;
-
-function serverCounts(list) {
-  const out = {};
-  for (const w of list) if (w.location === 'server' && w.serverKey) out[w.serverKey] = (out[w.serverKey] || 0) + 1;
-  return out;
-}
-
-function openServersThatGrew(list) {
-  const now = serverCounts(list);
-  if (lastServerCounts) {
-    for (const [key, n] of Object.entries(now)) if (n > (lastServerCounts[key] || 0)) setServerOpen(key, true);
-  }
-  lastServerCounts = now;
-}
-
-/** What a server with no workspaces of this project offers: the next step for its link. */
-function serverEmptyHtml(link) {
-  if (link.phase === 'up') {
-    return '<div class="ws-empty ws-empty-compact"><p class="ws-empty-text">No workspaces yet</p></div>';
-  }
-  if (link.phase === 'busy') {
-    return `<div class="ws-empty ws-empty-compact"><p class="ws-empty-text">${escapeHtml(require('./serverConnect').LABELS[link.state] || 'Connecting…')}</p></div>`;
-  }
-  const label = link.phase === 'setup' ? `Finish setup on ${escapeHtml(link.host)}` : `Reconnect ${escapeHtml(link.host)}`;
-  return `<div class="ws-empty ws-empty-compact">
-      <button class="ws-cta" data-act="connect" data-key="${escapeHtml(link.key)}" type="button">${SERVER}<span>${label}</span></button>
+      ${tail}
     </div>`;
 }
 
 /**
- * The Remote group: one sub-header per saved server with its own rows or its
- * own empty state. With no server saved yet, one "Connect a server…" row
- * that opens the Servers dialog on its add field — the why is its tooltip.
- * The sub-headers name the hosts, so the group carries no label of its own.
+ * The Remote group: one block per saved server that holds workspaces of
+ * this project — its sub-header, then its rows. A server with none is not
+ * listed, so the list shows no empty states (T18); "+ Add New" creates on
+ * any server. With no server saved yet, one "Connect a server…" row that
+ * opens the Servers dialog on its add field — the why is its tooltip. The
+ * sub-headers name the hosts, so the group carries no label of its own.
+ * Empty string when there is nothing to show.
  */
-function remoteGroupHtml(remote, { canCreate, selectedId, sums, queue, plain }) {
+function remoteGroupHtml(remote, { selectedId, sums, queue, plain }) {
   const links = serverViews();
   if (!links.length) {
     return `<button class="ws-cta" data-act="add-server" type="button" title="Run workspaces on your own machines over SSH — agents keep running while this Mac is away.">${SERVER}<span>Connect a server…</span></button>`;
   }
-  const blocks = links.map((link) => {
+  return links.map((link) => {
     const rows = remote.filter((w) => w.serverKey === link.key);
-    const locked = rows.some((w) => w.id === selectedId);
-    const collapsed = !locked && !isServerOpen(link.key, rows.length);
-    const body = collapsed ? '' : (rows.length ? rows.map((ws) => rowHtml(ws, { selectedId, sums, queue, plain })).join('') : serverEmptyHtml(link));
+    if (!rows.length) return '';
     return `<div class="ws-server" role="group" aria-label="${escapeHtml(link.host)}">
-        ${serverHeadHtml(link, { collapsed, count: rows.length, locked })}
-        ${body}
+        ${serverHeadHtml(link)}
+        ${rows.map((ws) => rowHtml(ws, { selectedId, sums, queue, plain })).join('')}
       </div>`;
   }).join('');
-  return blocks;
 }
 
 /**
@@ -659,6 +597,9 @@ function render() {
   const mainOn = selectedId === state.MAIN_WORKSPACE_ID;
   const local = workspaces.filter((w) => w.location !== 'server');
   const remote = workspaces.filter((w) => w.location === 'server');
+  // Servers without this project's workspaces are left out; with none to
+  // show, the hairline before Remote goes too.
+  const remoteHtml = remoteGroupHtml(remote, { selectedId, sums, queue, plain });
 
   // The archive costs one row however large it gets; it opens a dialog.
   const archivedHtml = archived.length
@@ -682,8 +623,7 @@ function render() {
         ${plain ? '' : waitHtml(queue, state.MAIN_WORKSPACE_ID)}
       </div>
       ${local.map((ws) => rowHtml(ws, { selectedId, sums, queue, plain })).join('')}
-      <div class="ws-sep" role="separator"></div>
-      ${remoteGroupHtml(remote, { canCreate, selectedId, sums, queue, plain })}
+      ${remoteHtml.trim() ? `<div class="ws-sep" role="separator"></div>${remoteHtml}` : ''}
       ${archivedHtml}
     </div>` : ''}`;
 
@@ -721,7 +661,7 @@ function revealRow(list, row) {
 
 /** Arrow keys walk the list's rows and buttons, top to bottom. */
 function moveFocus(step) {
-  const items = [...rootEl.querySelectorAll('.ws-list .ws-row[tabindex="0"], .ws-list .ws-server-head[tabindex="0"], .ws-list .ws-cta:not(:disabled), .ws-list .ws-archived-row')];
+  const items = [...rootEl.querySelectorAll('.ws-list .ws-row[tabindex="0"], .ws-list .ws-cta:not(:disabled), .ws-list .ws-archived-row')];
   if (!items.length) return;
   const at = items.indexOf(document.activeElement);
   const next = items[(at + step + items.length) % items.length] || items[0];
@@ -749,7 +689,6 @@ function onClick(e) {
     if (act === 'new') return openNew();
     if (act === 'connect') return require('./serverConnect').open({ key: actEl.dataset.key || null });
     if (act === 'add-server') return require('./serverConnect').open({ add: true });
-    if (act === 'toggle-server') return toggleServer(actEl.dataset.key);
     if (act === 'open-archived') return openArchived();
     if (act === 'menu' && ws) {
       const rect = actEl.getBoundingClientRect();
@@ -774,11 +713,6 @@ function onKeyDown(e) {
   if (e.target.classList && e.target.classList.contains('ws-rename')) {
     if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
     if (e.key === 'Escape') { e.preventDefault(); renaming = null; render(); }
-    return;
-  }
-  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('ws-server-head') && e.target.dataset.key) {
-    e.preventDefault();
-    toggleServer(e.target.dataset.key);
     return;
   }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('ws-row')) {

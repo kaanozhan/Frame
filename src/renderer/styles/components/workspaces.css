@@ -264,22 +264,6 @@
   cursor: pointer;
 }
 
-/* A server with no workspaces: one quiet line, or one button for the next step. */
-.ws-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  padding: 2px 8px 8px;
-}
-
-.ws-empty-text {
-  margin: 0;
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--text-tertiary);
-}
-
 .ws-cta {
   display: flex;
   align-items: center;
@@ -1022,13 +1006,11 @@
 .ws-server + .ws-server { margin-top: 4px; }
 
 /* A server's workspaces sit a step in under its host, so the host reads as
-   their parent: each row's dot lines up with the server icon (head: 4px
-   padding + 8px caret + 6px gap = 18px; row: 8px padding). */
+   their parent. */
 .ws-server > .ws-row { margin-left: 10px; }
-.ws-server > .ws-empty { padding-left: 18px; }
 
 /* A labelled sub-separator: host, then a hairline to the edge (and Connect
-   while the server is down). Quieter than the Local / Remote labels. */
+   while the server is down). A label, not a control: it does not fold (T18). */
 .ws-server-head {
   display: flex;
   align-items: center;
@@ -1036,42 +1018,6 @@
   min-height: 22px;
   padding: 4px 2px 2px 4px;
   border-radius: var(--radius-sm);
-  outline: none;
-}
-
-/* Collapsible (multi-server-connections): the whole sub-header toggles; the
-   selected workspace's server is locked open, so it has no caret. */
-.ws-server-head[data-act="toggle-server"] { cursor: pointer; }
-.ws-server-head[data-act="toggle-server"]:hover .ws-server-name,
-.ws-server-head[data-act="toggle-server"]:hover .ws-server-icon,
-.ws-server-head[data-act="toggle-server"]:hover .ws-server-caret { color: var(--text-secondary); }
-.ws-server-head:focus-visible { box-shadow: inset 0 0 0 1px var(--accent-primary); }
-
-.ws-server-caret {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-}
-
-.ws-server-caret::before {
-  content: '';
-  width: 4px;
-  height: 4px;
-  border-right: 1.25px solid currentColor;
-  border-bottom: 1.25px solid currentColor;
-  transform: translateY(-1px) rotate(45deg);
-  transition: transform 150ms ease;
-}
-
-.ws-server-head.collapsed .ws-server-caret::before { transform: rotate(-45deg); }
-.ws-server-head.locked .ws-server-caret::before { visibility: hidden; }
-
-@media (prefers-reduced-motion: reduce) {
-  .ws-server-caret::before { transition: none; }
 }
 
 /* The status bar's server mark, smaller. */
@@ -1082,16 +1028,6 @@
 }
 
 .ws-server-head:not(.up) .ws-server-icon { color: var(--text-muted); }
-
-.ws-server-count {
-  flex: none;
-  min-width: 14px;
-  padding-right: 4px;
-  text-align: right;
-  font-size: 10px;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
 
 .ws-server-name {
   flex: 0 1 auto;
@@ -1114,7 +1050,15 @@
   background: var(--border-subtle);
 }
 
-.ws-empty-compact { padding: 2px 8px 6px; }
+/* While the link comes up: its state, muted, where Connect would be. */
+.ws-server-state {
+  flex: none;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 20px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
 
 /* ─── New Workspace: Frame's own controls (multi-server-connections) ─── */
 /* Selects are drawn as the switchers' box (bg-tertiary, border, radius-md,

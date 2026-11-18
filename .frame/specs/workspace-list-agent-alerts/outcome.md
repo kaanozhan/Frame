@@ -119,3 +119,10 @@ Having seen #196's nav-group look (T15) the user preferred the branch's own, so 
 _Captured: 2026-11-18 · 3 file change(s)_
 
 ---
+## T18 — Follow-up: server blocks list only servers in use, and do not fold
+
+The user found folding server sections and a server's "No workspaces yet" line pointless. Of the two proposals (A: fixed sub-headers, only servers that hold this project's workspaces; B: no sub-headers, host on each row's second line) they chose A. `serverHeadHtml` is a label now — icon, host, hairline, and Connect / Set up while the link is down or its state ("Connecting…") muted while it comes up; the caret, the count, the locked-open rule and the per-server memory (`frame-ws-server-open`, `toggleServer`, `openServersThatGrew`) are gone. `remoteGroupHtml` skips a server without workspaces of the project, so `serverEmptyHtml` and its "No workspaces yet" / "Connecting…" / Reconnect / Finish setup lines go, and `render` drops the hairline before Remote when nothing follows it. "+ Add New" still creates on any server (the dialog picks it); the "Connect a server…" row while no server is saved stays (B7), as the user did not ask to drop it. This overturns multi-server-connections' collapsible sections (`ca742d0`) and T06's choice to keep the server empty states. A stored `frame-ws-server-open` is left in place, unread. Not seen running; tests not run.
+
+_Captured: 2026-11-18 · 2 file change(s)_
+
+---
