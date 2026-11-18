@@ -101,6 +101,13 @@ interruptions.
 
 **The branch.** No file records a spec↔branch mapping; judge by convention:
 
+- In a linked git worktree — `git rev-parse --show-toplevel` is not the
+  path on the first `worktree` line of `git worktree list --porcelain` (that
+  line is always the main checkout); every Frame workspace is one → pass,
+  whatever the branch is called (Frame names them `ws/<name>`). The
+  worktree's branch belongs to the workspace: Frame pushes and opens the
+  pull request from it, so never switch, create or rename a branch here,
+  and do not offer to.
 - On `main`/`master` → always ask. Offer to create and switch to
   `feat/{slug}` — the shared core forbids touching main, so a run that starts
   there has nowhere to commit.
