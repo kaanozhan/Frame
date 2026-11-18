@@ -281,7 +281,7 @@ const CHAPTERS = [
         blocks: [
           { p: 'A workspace is a branch with its own folder — a git worktree outside the repo — and its own terminals. Several agents can work on the same project at once, each on its branch, without touching each other\'s files.' },
           { list: [
-            'The workspace switcher sits under the project. `main` is the project\'s own checkout; every other row is a workspace.',
+            'The workspace list sits under the project, open in the sidebar. `main` is the project\'s own checkout; every other row is a workspace.',
             'Picking one points the terminals, the file tree, Changes and sessions at that workspace\'s folder.',
             'Local workspaces live on this Mac; Remote ones run on your own servers. The dot beside a row tells you when an agent there needs you.'
           ] },
@@ -296,7 +296,7 @@ const CHAPTERS = [
         title: 'New workspace',
         sketch: { kind: 'workspaces', focus: 'new' },
         blocks: [
-          { p: 'Open the workspace switcher and choose New workspace at the top, or press {kbd:workspace.new}.' },
+          { p: 'Click + beside Workspaces, at the top of the workspace list, or press {kbd:workspace.new}.' },
           { list: [
             'Location: this Mac, or one of your connected servers. Frame remembers the last one you used for the project.',
             'New branch: Frame names it for you and creates it from the branch in Branch from, after a fetch.',
@@ -312,11 +312,11 @@ const CHAPTERS = [
       {
         id: 'workspaces.servers',
         title: 'Add a server',
-        sketch: { kind: 'workspaces', focus: 'add-server,servers' },
+        sketch: { kind: 'workspaces', focus: 'servers' },
         blocks: [
           { p: 'A server is a machine of yours — a Linux box, a second dev machine — that runs Frame Server. Workspaces there keep their terminals and agents running while this Mac sleeps or is away.' },
           { list: [
-            'Add server: the server button at the foot of the left rail, Add server… at the bottom of the workspace switcher, or {kbd:server.add}. Type the SSH host as you would for `ssh`.',
+            'Add server: the server button at the foot of the left rail, or {kbd:server.add}. Until you have one, the workspace list also offers Connect a server…. Type the SSH host as you would for `ssh`.',
             'Frame connects with your own `ssh`, so your keys, agent and `~/.ssh/config` apply. A host that asks for a typed password cannot be used.',
             'If Frame Server is missing or out of date there, the Servers dialog offers to install or update it, then runs a check-up of the agent CLIs, git and gh on that machine.',
             'Add as many servers as you like. Each one connects on its own; one going down never affects the others.'
@@ -332,7 +332,7 @@ const CHAPTERS = [
         title: 'Remote workspaces',
         sketch: { kind: 'workspaces', focus: 'remote,server' },
         blocks: [
-          { p: 'Under Remote, every server has its own section with its workspaces. A section opens and closes with a click; Frame remembers your choice per server.' },
+          { p: 'In the workspace list, every server has its own section with its workspaces. A section opens and closes with a click; Frame remembers your choice per server.' },
           { list: [
             'Create one with New workspace and pick the server as its Location. If the server does not have the project yet, Frame sends its committed history there; uncommitted changes stay on this Mac.',
             'Terminals, the file tree, Changes and pull requests of a remote workspace work through its own server.',

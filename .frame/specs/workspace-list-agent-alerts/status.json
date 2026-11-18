@@ -1,7 +1,7 @@
 {
   "slug": "workspace-list-agent-alerts",
   "title": "Workspace list in the sidebar with agent alerts",
-  "phase": "implementing",
+  "phase": "done",
   "generated_task_ids": [
     "task-spec-workspace-list-agent-alerts-T01",
     "task-spec-workspace-list-agent-alerts-T02",
@@ -17,7 +17,7 @@
   ],
   "ai_tool": "claude",
   "created_at": "2026-11-18T08:57:07Z",
-  "updated_at": "2026-11-18T09:58:33.692Z",
-  "last_phase_at": "2026-11-18T09:34:18.295Z",
+  "updated_at": "2026-11-18T10:00:51.285Z",
+  "last_phase_at": "2026-11-18T10:00:51.285Z",
   "implement_mode": "guided"
 }

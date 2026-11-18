@@ -70,3 +70,10 @@ Grouped the status bar popover in `statusBar.js` by project, workspace, then age
 _Captured: 2026-11-18 · 4 file change(s)_
 
 ---
+## T11 — Guide: the workspace list instead of the dropdown
+
+Rewrote the three sentences in `guide/guideContent.js` for the open list (the `+` beside Workspaces, the "Connect a server…" row) and redrew the workspaces sketch in `guide/guideSketches.js` as the open list with a wait label and an "Archived 3" row. Beyond the three sentences: the Add a server page focuses the `servers` region only (the sketch lost `add-server`), and "Under Remote, every server…" became "In the workspace list, …" because T02 dropped the Local / Remote labels. The sketch reuses existing guide classes (`guide.css` is outside the plan); its layout was not seen running.
+
+_Captured: 2026-11-18 · 2 file change(s)_
+
+---
