@@ -190,6 +190,66 @@ function select(ws) {
     .catch(() => { /* best effort — the next spec command provisions again */ });
 }
 
+/** Select a workspace by id ('main' for the project checkout). False when it is not in the list, or its folder is gone. */
+function selectById(id) {
+  if (!id || id === state.MAIN_WORKSPACE_ID) {
+    select(null);
+    return true;
+  }
+  const ws = workspaces.find((w) => w.id === id && !w.missing);
+  if (!ws) return false;
+  select(ws);
+  return true;
+}
+
+/**
+ * What "Switch Workspace…" lists: main and every workspace whose folder is
+ * there, most urgent first (a workspace with a waiting agent, in the
+ * attention queue's order), the rest in the list's order. `detail` is the
+ * wait label, else "current" on the selected one.
+ */
+function switchItems() {
+  const queue = waitingQueue();
+  const urgency = [...new Set(queue.map((entry) => entry.workspaceId))];
+  const rank = (id) => (urgency.includes(id) ? urgency.indexOf(id) : urgency.length);
+  const selected = state.getWorkspace();
+  const selectedId = selected ? selected.id : state.MAIN_WORKSPACE_ID;
+  const rows = [
+    { id: state.MAIN_WORKSPACE_ID, title: mainLabel() },
+    ...workspaces.filter((w) => !w.missing).map((w) => ({ id: w.id, title: w.branch || w.name }))
+  ];
+  return rows
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => rank(a.row.id) - rank(b.row.id) || a.index - b.index)
+    .map(({ row }) => {
+      const wait = attention.workspaceWait(queue, row.id);
+      return {
+        id: row.id,
+        title: row.title,
+        detail: wait ? attention.waitLabel(wait.kind, wait.since) : (row.id === selectedId ? 'current' : '')
+      };
+    });
+}
+
+/**
+ * Show the most urgent waiting agent that is not already on screen:
+ * approval before input, then the longest wait. Selects its workspace, then
+ * its terminal. When none waits, a notice says so and nothing changes.
+ */
+function goToNextWaiting() {
+  let ui = null;
+  try { ui = require('./terminal').getMultiTerminalUI(); } catch (_) { /* terminal system not ready yet */ }
+  const onScreen = ui && ui.isViewingFrame() ? ui.getManager().activeTerminalId : null;
+  const next = attention.nextWaiting(waitingQueue(), onScreen);
+  if (!next || !ui) {
+    notify.info(onScreen && waitingQueue().length ? 'No other agent is waiting.' : 'No agent is waiting.');
+    return false;
+  }
+  if (!selectById(next.workspaceId)) return false;
+  ui.enterLane(next.terminalId);
+  return true;
+}
+
 function scheduleRender() {
   // A live re-render would replace an open rename field and lose what was typed.
   if (renderScheduled || renaming) return;
@@ -1049,6 +1109,9 @@ module.exports = {
   render,
   setView,
   select,
+  selectById,
+  switchItems,
+  goToNextWaiting,
   setActions,
   getWorkspaces,
   selectedWorkspace,

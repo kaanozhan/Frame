@@ -49,3 +49,10 @@ Replaced the unfolding Archived section in `workspaceSection.js` with one "Archi
 _Captured: 2026-11-18 · 2 file change(s)_
 
 ---
+## T08 — Palette picker and the two workspace commands
+
+Added `pick({ placeholder, items })` to `commandPalette.js`, `selectById`, `goToNextWaiting` and `switchItems` to `workspaceSection.js`, and registered `workspace.switch` and `workspace.nextWaiting` in `index.js` without shortcuts. Deviations: the picker reimplements the registry's subsequence match locally (it is not exported and `commandRegistry.js` is outside the plan), and `switchItems()` is a fifth entry point that keeps the urgency ordering beside the attention queue. Not seen running.
+
+_Captured: 2026-11-18 · 3 file change(s)_
+
+---

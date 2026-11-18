@@ -993,6 +993,32 @@ function registerCommands() {
     when: () => !!state.getProjectPath(),
     run: () => require('./newWorkspaceModal').open()
   });
+  // Switching and "what waits on me" (workspace-list-agent-alerts): palette
+  // only, no shortcuts.
+  r({
+    id: 'workspace.switch',
+    title: 'Switch Workspace…',
+    category: 'Workspace',
+    when: () => !!state.getProjectPath(),
+    run: () => {
+      const section = require('./workspaceSection');
+      commandPalette.pick({
+        placeholder: 'Switch to workspace…',
+        items: section.switchItems().map((item) => ({
+          title: item.title,
+          detail: item.detail,
+          run: () => section.selectById(item.id)
+        }))
+      });
+    }
+  });
+  r({
+    id: 'workspace.nextWaiting',
+    title: 'Go to Next Waiting Agent',
+    category: 'Workspace',
+    when: () => !!state.getProjectPath(),
+    run: () => require('./workspaceSection').goToNextWaiting()
+  });
   r({
     id: 'workspace.review',
     title: 'Review Changes…',
