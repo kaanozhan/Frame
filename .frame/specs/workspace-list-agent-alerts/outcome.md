@@ -112,3 +112,10 @@ The user found the "Workspaces" group title out of place in Files, Changes and G
 _Captured: 2026-11-18 · 2 file change(s)_
 
 ---
+## T17 — Follow-up: back to this branch's own look
+
+Having seen #196's nav-group look (T15) the user preferred the branch's own, so T15 is reversed: `index.html`, `workspaceSection.js` and `workspaces.css` are back to the merge commit's look — the small-caps "Workspaces" fold header with its own chevron, the elbow and the section's inset, the selected row's accent label, the list without the guide line. The decision for the PR: this branch's look replaces #196's. T16 stays: in Files, Changes and GitHub the selected workspace sits in the project switcher's box, and in this look the elbow ties it to the project box above, as the switcher was first drawn; the header row drops its inset there (`.ws-head.dropdown { padding: 0 }`) and the dropdown opens under the box (`left: 14px`, 4px below). #205's `headBranch` label, carried over in the merge, is unaffected. Not seen running.
+
+_Captured: 2026-11-18 · 3 file change(s)_
+
+---

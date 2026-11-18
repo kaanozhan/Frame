@@ -588,15 +588,12 @@ function selectedFace(selectedId) {
   return { name, remote };
 }
 
-/** The header's title: the nav's group header, as Work and Context draw it (T15). */
-const HEAD_TITLE = '<span class="project-nav-group-chevron" aria-hidden="true"></span><span class="project-nav-group-label">Workspaces</span>';
-
 const CARET = '<svg class="sidebar-current-project-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
 
 /**
  * The header outside Projects: the selected workspace itself, in the
  * project switcher's box right above it ("Workspace" label, branch, caret),
- * opening the dropdown — no group title, no status dot, no "N waiting" (T16).
+ * opening the dropdown — no list title, no status dot, no "N waiting" (T16).
  */
 function triggerHtml({ selectedId, open }) {
   const { name, remote } = selectedFace(selectedId);
@@ -615,20 +612,21 @@ function triggerHtml({ selectedId, open }) {
  */
 function foldHtml({ open, selectedId, sums, queue }) {
   if (open) {
-    return `<button class="ws-fold project-nav-group-header" data-act="fold" type="button" aria-expanded="true" title="Hide the workspace list">${HEAD_TITLE}</button>`;
+    return `<button class="ws-fold" data-act="fold" type="button" aria-expanded="true" title="Hide the workspace list">
+        <span class="ws-fold-chevron" aria-hidden="true"></span>
+        <span class="ws-head-title">Workspaces</span>
+      </button>`;
   }
   const { name, remote } = selectedFace(selectedId);
   const others = attention.othersWaiting(queue, selectedId);
   const waiting = others.count
     ? `<span class="ws-fold-waiting ${others.kind}" title="${others.count} agent${others.count === 1 ? '' : 's'} waiting in other workspaces">${others.count} waiting</span>`
     : '';
-  return `<button class="ws-fold project-nav-group-header" data-act="fold" type="button" aria-expanded="false" title="Show the workspace list">
-      ${HEAD_TITLE}
-      <span class="ws-head-current">
-        ${dotHtml(rollup.summaryFor(sums, selectedId))}
-        <span class="ws-head-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
-        ${remote}${waiting}
-      </span>
+  return `<button class="ws-fold" data-act="fold" type="button" aria-expanded="false" title="Show the workspace list">
+      <span class="ws-fold-chevron" aria-hidden="true"></span>
+      ${dotHtml(rollup.summaryFor(sums, selectedId))}
+      <span class="ws-fold-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+      ${remote}${waiting}
     </button>`;
 }
 
@@ -670,16 +668,14 @@ function render() {
        </button>`
     : '';
 
-  // The nav group's fold mark: the chevron points right while the rows are hidden.
-  rootEl.classList.toggle('collapsed', !open);
   // `ws-switch` is kept on the header as a stable hook: the tour's Workspaces
   // step points at it.
   rootEl.innerHTML = `
-    <div class="ws-head ws-switch${asDropdown ? ' dropdown' : ''}">
+    <div class="ws-head ws-switch${asDropdown ? ` dropdown${open ? ' open' : ''}` : (open ? '' : ' folded')}">
       ${asDropdown ? triggerHtml({ selectedId, open }) : foldHtml({ open, selectedId, sums, queue })}
       ${asDropdown ? '' : `<button class="ws-group-add" data-act="new" type="button" aria-label="New workspace" ${canCreate ? '' : 'disabled'} title="${escapeHtml(addTitle)}">${PLUS}<span class="ws-group-add-label">Add New</span></button>`}
     </div>
-    ${open ? `<div class="ws-list ${asDropdown ? 'ws-dropdown' : 'project-nav-group-rows'}" role="group" aria-label="Workspaces">
+    ${open ? `<div class="ws-list${asDropdown ? ' ws-dropdown' : ''}" role="group" aria-label="Workspaces">
       <div class="ws-row main${mainOn ? ' on' : ''}" data-id="main" tabindex="0" role="button"${mainOn ? ' aria-current="true"' : ''}>
         ${plain ? '' : dotHtml(rollup.summaryFor(sums, state.MAIN_WORKSPACE_ID))}
         <span class="ws-labels"><span class="ws-primary" title="${escapeHtml(mainLabel())}">${escapeHtml(mainLabel())}</span><span class="ws-secondary">project checkout</span></span>
