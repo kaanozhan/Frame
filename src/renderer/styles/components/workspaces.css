@@ -141,13 +141,24 @@
 }
 .ws-switch-tag.offline { color: var(--warning); }
 
-/* The list itself, in the sidebar's own flow. */
+/* The list itself, in the sidebar's own flow. Past eight rows it scrolls
+   inside itself, so the nav below never moves. Positioned: the rows'
+   offsets are measured from it when the selected one is scrolled into view. */
 .ws-list {
+  --ws-row-height: 30px;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+  max-height: calc(8 * var(--ws-row-height) + 7px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
+
+.ws-list > *,
+.ws-server > * { flex: none; }
 
 .ws-sep {
   flex: none;
@@ -275,7 +286,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 30px;
+  min-height: var(--ws-row-height, 30px);
   padding: 4px 4px 4px 8px;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);

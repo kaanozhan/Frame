@@ -52,6 +52,7 @@ let showArchived = false;
 let renaming = null;           // { id, field: 'name'|'branch' } while an inline editor is open
 let renderScheduled = false;
 let loadSeq = 0;
+let shownSelectedId = null;    // the selection the list last drew: a new one is scrolled into view
 let view = 'projects';         // the sidebar view on screen (index.js's revealSidebarTab)
 // Open or folded, per view: localStorage `frame-ws-list-open` (workspaces/listPrefs.js).
 let openPrefs = (() => {
@@ -538,8 +539,15 @@ function render() {
       ${archivedHtml}
     </div>` : ''}`;
 
+  // Past eight rows the list scrolls inside itself: it keeps its place
+  // across redraws, and a newly selected (or newly unfolded) row is brought
+  // into view — by the list's own scroll only, so the sidebar never moves.
   const list = rootEl.querySelector('.ws-list');
-  if (list && scrollTop) list.scrollTop = scrollTop;
+  if (list) {
+    if (scrollTop) list.scrollTop = scrollTop;
+    if (!prevList || selectedId !== shownSelectedId) revealRow(list, list.querySelector('.ws-row.on'));
+  }
+  shownSelectedId = selectedId;
   const input = rootEl.querySelector('.ws-rename');
   if (input) {
     input.focus();
@@ -553,6 +561,16 @@ function render() {
 }
 
 // ─── List ────────────────────────────────────────────────────
+
+/** Scroll `list` just far enough that `row` is fully in view. */
+function revealRow(list, row) {
+  if (!list || !row || list.scrollHeight <= list.clientHeight) return;
+  // offsetTop is measured from the list: it is the rows' positioned ancestor.
+  const top = row.offsetTop;
+  const bottom = top + row.offsetHeight;
+  if (top < list.scrollTop) list.scrollTop = top;
+  else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight;
+}
 
 /** Arrow keys walk the list's rows and buttons, top to bottom. */
 function moveFocus(step) {

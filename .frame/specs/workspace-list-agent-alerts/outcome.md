@@ -28,3 +28,10 @@ Added `workspaces/listPrefs.js` with `test/workspaceListPrefs.test.js`, `workspa
 _Captured: 2026-11-18 · 5 file change(s)_
 
 ---
+## T05 — Eight-row cap: the list scrolls inside itself
+
+Capped `.ws-list` at eight rows with its own scroll in `workspaces.css` (one `--ws-row-height` variable drives the cap and the rows' height) and, in `workspaceSection.js`, kept the scroll position across redraws and added `revealRow`, which brings the selected row into view when the selection changes or the list unfolds. `revealRow` sets the list's own `scrollTop` rather than calling `scrollIntoView`, so the sidebar around it never moves. Rows with a second line are taller, so such a list scrolls a little before eight; not seen running.
+
+_Captured: 2026-11-18 · 2 file change(s)_
+
+---
