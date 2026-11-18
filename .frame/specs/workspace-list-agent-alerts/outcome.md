@@ -42,3 +42,10 @@ Removed the "Add server…" row from the list in `workspaceSection.js` and repla
 _Captured: 2026-11-18 · 2 file change(s)_
 
 ---
+## T07 — Archive dialog: one Archived N row instead of an archive that unfolds in place
+
+Replaced the unfolding Archived section in `workspaceSection.js` with one "Archived N" row that opens a dialog (records in the order main returns them, a filter over branch, name and host, a self-scrolling list, Restore per row via `restoreWorkspace`), and styled both in `workspaces.css`. Deviations: the dialog's markup is built in JS on first use because the plan limits `index.html` to its comment, a successful restore closes the dialog, and `restoreWorkspace` now returns whether it succeeded. Not seen running.
+
+_Captured: 2026-11-18 · 2 file change(s)_
+
+---

@@ -20,8 +20,8 @@
  *
  * Records come from main (WORKSPACES_LIST) and are re-read on
  * WORKSPACES_UPDATED and project changes. A workspace whose folder vanished
- * shows as missing with Restore / Remove record; archived ones sit behind a
- * toggle with Restore.
+ * shows as missing with Restore / Remove record; archived ones cost one
+ * "Archived N" row, which opens a dialog (filter, Restore per row).
  *
  * The new-workspace dialog (T08) and the archive dialog (T09) plug in
  * through setActions() so this module does not depend on them.
@@ -49,7 +49,6 @@ let workspaces = [];           // active records (some may be `missing`)
 let archived = [];
 let mainBranch = null;         // the branch the project's own checkout is on (null: unknown / not git)
 let pendingReselect = null; // projectPath whose remembered workspace a load still has to select (R10)
-let showArchived = false;
 let renaming = null;           // { id, field: 'name'|'branch' } while an inline editor is open
 let renderScheduled = false;
 let loadSeq = 0;
@@ -101,7 +100,7 @@ function init() {
     workspaces = [];
     archived = [];
     mainBranch = null;
-    showArchived = false;
+    closeArchived();
     loadedFor = null;
     render();
     load({ reselect: true });
@@ -148,6 +147,7 @@ async function load({ reselect = false } = {}) {
   workspaces = (result && result.workspaces) || [];
   if (!(result && result.error)) openServersThatGrew(workspaces);
   archived = (result && result.archived) || [];
+  if (archivedOpen()) renderArchivedList();
   mainBranch = (result && result.mainBranch) || null;
   // Saved terminal sessions of workspaces that are gone free their slots (R14).
   if (result && !result.error && result.isRepo) {
@@ -504,17 +504,12 @@ function render() {
   const local = workspaces.filter((w) => w.location !== 'server');
   const remote = workspaces.filter((w) => w.location === 'server');
 
+  // The archive costs one row however large it gets; it opens a dialog.
   const archivedHtml = archived.length
     ? `<div class="ws-sep" role="separator"></div>
-       <button class="ws-archived-toggle${showArchived ? ' open' : ''}" data-act="toggle-archived" type="button">
+       <button class="ws-archived-row" data-act="open-archived" type="button" aria-haspopup="dialog" title="Show archived workspaces">
          Archived <span class="ws-count">${archived.length}</span>
-       </button>
-       ${showArchived ? `<div class="ws-archived">${archived.map((ws) => `
-         <div class="ws-row archived" data-id="${escapeHtml(ws.id)}">
-           <span class="ws-dot" aria-hidden="true"></span>
-           <span class="ws-labels"><span class="ws-primary" title="${escapeHtml(ws.branch)}">${escapeHtml(ws.branch)}</span><span class="ws-secondary">${escapeHtml(ws.name)}${ws.location === 'server' ? ` · ${escapeHtml(ws.host || 'server')}` : ''}</span></span>
-           <button class="ws-act" data-act="restore" type="button">Restore</button>
-         </div>`).join('')}</div>` : ''}`
+       </button>`
     : '';
 
   // `ws-switch` is kept on the header as a stable hook: the tour's Workspaces
@@ -571,7 +566,7 @@ function revealRow(list, row) {
 
 /** Arrow keys walk the list's rows and buttons, top to bottom. */
 function moveFocus(step) {
-  const items = [...rootEl.querySelectorAll('.ws-list .ws-row[tabindex="0"], .ws-list .ws-server-head[tabindex="0"], .ws-list .ws-cta:not(:disabled), .ws-list .ws-archived-toggle')];
+  const items = [...rootEl.querySelectorAll('.ws-list .ws-row[tabindex="0"], .ws-list .ws-server-head[tabindex="0"], .ws-list .ws-cta:not(:disabled), .ws-list .ws-archived-row')];
   if (!items.length) return;
   const at = items.indexOf(document.activeElement);
   const next = items[(at + step + items.length) % items.length] || items[0];
@@ -597,16 +592,16 @@ function onClick(e) {
     if (act === 'connect') return require('./serverConnect').open({ key: actEl.dataset.key || null });
     if (act === 'add-server') return require('./serverConnect').open({ add: true });
     if (act === 'toggle-server') return toggleServer(actEl.dataset.key);
-    if (act === 'toggle-archived') { showArchived = !showArchived; return render(); }
+    if (act === 'open-archived') return openArchived();
     if (act === 'menu' && ws) {
       const rect = actEl.getBoundingClientRect();
       return showMenu(ws, rect.left, rect.bottom + 2);
     }
-    if ((act === 'restore' || act === 'restore-missing') && ws) return restoreWorkspace(ws);
+    if (act === 'restore-missing' && ws) return restoreWorkspace(ws);
     if (act === 'remove-record' && ws) return removeRecord(ws);
     return;
   }
-  if (!row || row.classList.contains('archived')) return;
+  if (!row) return;
   if (row.dataset.id === state.MAIN_WORKSPACE_ID) return select(null);
   const ws = findWs(row.dataset.id);
   if (ws && ws.missing) {
@@ -640,7 +635,7 @@ function onKeyDown(e) {
 
 function onContextMenu(e) {
   const row = e.target.closest('.ws-row');
-  if (!row || row.classList.contains('main') || row.classList.contains('archived')) return;
+  if (!row || row.classList.contains('main')) return;
   const ws = findWs(row.dataset.id);
   if (!ws || ws.missing) return;
   e.preventDefault();
@@ -903,12 +898,109 @@ async function restoreWorkspace(ws) {
   const result = await ipcRenderer.invoke(IPC.WORKSPACE_RESTORE, { projectPath, id: ws.id });
   if (result && result.error) {
     notify.error(result.error);
-    return;
+    return false;
   }
   await load();
   const restored = workspaces.find((w) => w.id === ws.id);
   if (restored) select(restored);
   if (typeof actions.onRestored === 'function') actions.onRestored(restored || ws, result);
+  return true;
+}
+
+// ─── Archived workspaces dialog ──────────────────────────────
+//
+// The list's "Archived N" row opens it: the archived records in the order
+// main returns them (workspaceRegistry: newest first), a filter, a list that
+// scrolls inside itself, Restore per row. Built here, on first use.
+
+let archivedModal = null;
+
+function archivedOpen() {
+  return !!(archivedModal && archivedModal.classList.contains('visible'));
+}
+
+/** Archived records whose branch, name or host contains `text`; all of them for an empty filter. */
+function matchArchived(records, text) {
+  const needle = String(text || '').trim().toLowerCase();
+  if (!needle) return records.slice();
+  return records.filter((ws) => [ws.branch, ws.name, ws.host]
+    .some((field) => String(field || '').toLowerCase().includes(needle)));
+}
+
+function ensureArchivedModal() {
+  if (archivedModal) return archivedModal;
+  const modal = document.createElement('div');
+  modal.id = 'archived-workspaces-modal';
+  modal.className = 'task-run-modal ws-archive-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'wa-title');
+  modal.innerHTML = `
+    <div class="task-run-modal-container">
+      <div class="task-run-modal-header">
+        <h3 id="wa-title">Archived workspaces</h3>
+        <p>Their branches are kept. Restore puts a workspace back in the list.</p>
+      </div>
+      <div class="task-run-modal-body">
+        <input class="task-run-input wa-filter" type="search" placeholder="Filter by branch or name" spellcheck="false" aria-label="Filter archived workspaces">
+        <div class="wa-list" role="list"></div>
+      </div>
+      <div class="task-run-modal-footer">
+        <button type="button" class="task-run-btn task-run-btn-cancel wa-close">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('.wa-filter').addEventListener('input', renderArchivedList);
+  modal.querySelector('.wa-close').addEventListener('click', () => closeArchived({ refocus: true }));
+  modal.addEventListener('mousedown', (e) => { if (e.target === modal) closeArchived({ refocus: true }); });
+  modal.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeArchived({ refocus: true }); }
+  });
+  modal.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-act="restore"]');
+    const row = btn && btn.closest('.ws-row');
+    const ws = row && archived.find((w) => w.id === row.dataset.id);
+    if (!ws || btn.disabled) return;
+    btn.disabled = true;
+    // Restored: it is back in the list and selected, so the dialog is done.
+    if (await restoreWorkspace(ws)) closeArchived();
+    else btn.disabled = false;
+  });
+  archivedModal = modal;
+  return modal;
+}
+
+function renderArchivedList() {
+  if (!archivedModal) return;
+  const listEl = archivedModal.querySelector('.wa-list');
+  const shown = matchArchived(archived, archivedModal.querySelector('.wa-filter').value);
+  if (!shown.length) {
+    listEl.innerHTML = `<p class="wa-empty">${archived.length ? 'No archived workspace matches.' : 'No archived workspaces.'}</p>`;
+    return;
+  }
+  listEl.innerHTML = shown.map((ws) => `
+    <div class="ws-row archived" data-id="${escapeHtml(ws.id)}" role="listitem">
+      <span class="ws-dot" aria-hidden="true"></span>
+      <span class="ws-labels"><span class="ws-primary" title="${escapeHtml(ws.branch)}">${escapeHtml(ws.branch)}</span><span class="ws-secondary">${escapeHtml(ws.name)}${ws.location === 'server' ? ` · ${escapeHtml(ws.host || 'server')}` : ''}</span></span>
+      <button class="ws-act" data-act="restore" type="button">Restore</button>
+    </div>`).join('');
+}
+
+function openArchived() {
+  if (!archived.length) return;
+  const modal = ensureArchivedModal();
+  const filter = modal.querySelector('.wa-filter');
+  filter.value = '';
+  renderArchivedList();
+  modal.classList.add('visible');
+  filter.focus();
+}
+
+function closeArchived({ refocus = false } = {}) {
+  if (!archivedOpen()) return;
+  archivedModal.classList.remove('visible');
+  const row = refocus && rootEl ? rootEl.querySelector('.ws-archived-row') : null;
+  if (row) row.focus({ preventScroll: true });
 }
 
 async function removeRecord(ws) {

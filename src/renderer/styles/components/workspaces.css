@@ -277,12 +277,6 @@
 /* No server saved yet: the one "Connect a server…" row of the list. */
 .ws-list > .ws-cta { margin: 2px 0 4px; }
 
-.ws-archived {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
 /* Rows: the project menu's item rhythm, with a second line for the color
    name. The selected row is filled and its label takes the accent. */
 .ws-row {
@@ -415,7 +409,8 @@
   font: inherit;
 }
 
-.ws-archived-toggle {
+/* The archive: one row at the foot of the list, whatever it holds. */
+.ws-archived-row {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -431,21 +426,35 @@
   outline: none;
 }
 
-.ws-archived-toggle::before {
-  content: '';
-  width: 5px;
-  height: 5px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(-45deg);
-  transition: transform 150ms ease;
-}
-
-.ws-archived-toggle.open::before { transform: translateY(-2px) rotate(45deg); }
-.ws-archived-toggle:hover,
-.ws-archived-toggle:focus-visible { color: var(--text-primary); background: var(--bg-hover); }
+.ws-archived-row:hover,
+.ws-archived-row:focus-visible { color: var(--text-primary); background: var(--bg-hover); }
 
 .ws-count { color: var(--text-muted); }
+
+/* ---------- Archived workspaces dialog (reuses the task-run modal shell) ---------- */
+.ws-archive-modal { --modal-width: 460px; }
+.ws-archive-modal .task-run-input { width: 100%; box-sizing: border-box; margin: 0; }
+
+/* The dialog's list scrolls inside itself, so the dialog keeps its size. */
+.wa-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: min(320px, 50vh);
+  margin-top: 8px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.wa-list > * { flex: none; }
+
+.wa-empty {
+  margin: 0;
+  padding: 12px 8px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
 
 /* ---------- New workspace dialog (reuses the task-run modal shell) ---------- */
 
