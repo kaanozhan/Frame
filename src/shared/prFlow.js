@@ -138,6 +138,24 @@ function fixChecksPrompt({ branch, number, failingNames = [] }) {
   ].join('\n');
 }
 
+// git's own lines when it could not reach the remote over SSH: no host key
+// for it, or no key it accepts (server-github-setup G3).
+const SSH_PUSH_FAILURE = /Host key verification failed|Permission denied \(publickey|No .* host key is known for/i;
+
+/**
+ * A push error with the user's options appended when git could not reach the
+ * remote over SSH — typical on a Frame Server, which gets the Mac's
+ * git@github.com: remote and has no SSH key GitHub knows. git's own text is
+ * kept first. Options only: Frame changes nothing on that machine.
+ */
+function explainPushError(error) {
+  const text = String(error || '');
+  if (!SSH_PUSH_FAILURE.test(text)) return text;
+  return `${text.trim()}\n\ngit could not reach the remote over SSH from the machine this workspace runs on — it does not know the remote's host key, or has no SSH key the remote accepts. `
+    + 'Either add an SSH key from that machine to your GitHub account, or point this project\'s remote at HTTPS in the workspace\'s terminal '
+    + '(git remote set-url origin https://github.com/<owner>/<repo>.git) — with gh signed in there, git uses gh\'s login.';
+}
+
 /** A workspace branch may be pushed unless it is (or names) its own base. */
 function isPushable({ branch, base }) {
   if (!branch) return false;
@@ -265,6 +283,7 @@ module.exports = {
   pickMergeMethod,
   fixChecksPrompt,
   isPushable,
+  explainPushError,
   pushArgs,
   mergeLanded,
   baseForBranch,
