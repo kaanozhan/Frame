@@ -1,21 +1,19 @@
 /**
- * Workspace Section — the sidebar's workspace switcher (workspaces spec, T07).
+ * Workspace Section — the sidebar's workspace list (workspaces spec, T07;
+ * opened in place by workspace-list-agent-alerts).
  *
- * The second level under the project switcher: a trigger showing the
- * selected workspace, and a dropdown grouped in two, split by a hairline:
- *   - "New workspace…" first, the way the project menu leads with "Add a
- *     project…"; the dialog picks where it runs.
- *   - Local: the main row (the project's own checkout, labelled with the
- *     branch it is on), then this Mac's
- *     workspaces.
- *   - Remote: one sub-header per saved Frame Server (host, Connect while it
- *     is down) with that server's workspaces, then "Add server…"
+ * The second level under the project switcher: a "Workspaces" header with
+ * "+" (New workspace; the dialog picks where it runs), and under it the list
+ * itself, always in sight:
+ *   - the main row (the project's own checkout, labelled with the branch it
+ *     is on), then this Mac's workspaces;
+ *   - one sub-header per saved Frame Server (host, Connect while it is down)
+ *     with that server's workspaces, then "Add server…"
  *     (multi-server-connections). With no server saved: "Connect a server".
  * Each row: the branch as the primary label, the color name as the
  * secondary one, and a status dot folded from the workspace's terminals
  * (workspaces/rollup.js). Clicking a row selects it (state.setWorkspace),
- * which re-points terminals, file tree, git and sessions at that folder, and
- * closes the dropdown.
+ * which re-points terminals, file tree, git and sessions at that folder.
  *
  * Records come from main (WORKSPACES_LIST) and are re-read on
  * WORKSPACES_UPDATED and project changes. A workspace whose folder vanished
@@ -49,7 +47,6 @@ let pendingReselect = null; // projectPath whose remembered workspace a load sti
 let showArchived = false;
 let renaming = null;           // { id, field: 'name'|'branch' } while an inline editor is open
 let renderScheduled = false;
-let menuOpen = false;          // the dropdown under the trigger
 let loadSeq = 0;
 
 const actions = {
@@ -82,19 +79,6 @@ function init() {
     if (menuEl.classList.contains('visible') && !menuEl.contains(e.target)) hideMenu();
   });
   window.addEventListener('blur', hideMenu);
-  // The dropdown closes on a click anywhere else — the row menu it opens
-  // counts as inside — and on Escape, unless something inside used it first
-  // (the row menu, an inline rename).
-  document.addEventListener('mousedown', (e) => {
-    if (!menuOpen || rootEl.contains(e.target) || menuEl.contains(e.target)) return;
-    closeDropdown();
-  }, true);
-  document.addEventListener('keydown', (e) => {
-    if (!menuOpen || e.key !== 'Escape' || e.defaultPrevented) return;
-    if (menuEl.classList.contains('visible')) { hideMenu(); return; }
-    e.preventDefault();
-    closeDropdown({ focusTrigger: true });
-  });
   // Remote's sub-headers and empty states follow every server's link.
   require('./serverConnect').onServersChange((next, prev) => {
     const sig = (list) => (list || []).map((s) => `${s.key}:${s.host}:${s.status && s.status.state}`).join('|');
@@ -102,7 +86,6 @@ function init() {
   });
 
   state.onProjectChange(() => {
-    menuOpen = false;
     lastServerCounts = null; // counts are per project
     workspaces = [];
     archived = [];
@@ -184,12 +167,10 @@ async function load({ reselect = false } = {}) {
 
 function select(ws) {
   if (!ws) {
-    closeDropdown();
     state.setWorkspace(null);
     return;
   }
   if (ws.missing) return;
-  closeDropdown();
   state.setWorkspace({ id: ws.id, root: ws.path, name: ws.name, branch: ws.branch });
   if (ws.location === 'server') return; // its tooling lives on the server
   // Refresh Frame's tooling in the worktree (hooks, staged templates, spec
@@ -255,16 +236,13 @@ function rowHtml(ws, { selectedId, sums }) {
        <button class="ws-act" data-act="remove-record" type="button" title="Forget this workspace">Remove</button>`
     : `<button class="ws-more" data-act="menu" type="button" aria-label="Workspace actions" title="Workspace actions">⋯</button>`;
   return `
-    <div class="ws-row${on}${missing}${where}" data-id="${escapeHtml(ws.id)}" tabindex="0" role="menuitemradio" aria-checked="${!!on}">
+    <div class="ws-row${on}${missing}${where}" data-id="${escapeHtml(ws.id)}" tabindex="0" role="button"${on ? ' aria-current="true"' : ''}>
       ${dotHtml(rollup.summaryFor(sums, ws.id))}
       <span class="ws-labels">${primary}${secondary}</span>
-      ${on ? CHECK : ''}
       ${trailing}
     </div>`;
 }
 
-const CHECK = '<svg class="ws-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
-const CARET = '<svg class="sidebar-current-project-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
 const PLUS = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
 const SERVER = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><line x1="7" y1="7.5" x2="7.01" y2="7.5"/><line x1="7" y1="16.5" x2="7.01" y2="16.5"/></svg>';
 
@@ -286,8 +264,8 @@ function serverViews() {
 /**
  * One server's sub-header in Remote, drawn as a labelled sub-separator: the
  * host, a hairline, and Connect / Set up while it is down (a down host reads
- * muted). Creating goes through the menu's one "New workspace…" (the server
- * is chosen in the dialog), not a "+" per server.
+ * muted). Creating goes through the header's one "+" (the server is chosen
+ * in the dialog), not a "+" per server.
  */
 function serverHeadHtml(link, { collapsed, count, locked }) {
   const label = require('./serverConnect').LABELS[link.state] || link.state;
@@ -372,13 +350,13 @@ function serverEmptyHtml(link) {
 /**
  * The Remote group: one sub-header per saved server with its own rows or its
  * own empty state, then "Add server…". With no server saved yet, the one
- * "Connect a server" offer.
+ * "Connect a server" offer. The sub-headers name the hosts, so the group
+ * carries no label of its own.
  */
 function remoteGroupHtml(remote, { canCreate, selectedId, sums }) {
   const links = serverViews();
   if (!links.length) {
-    return `<div class="ws-group-head"><span class="ws-group-label">Remote</span></div>
-      <div class="ws-empty">
+    return `<div class="ws-empty">
         <p class="ws-empty-text">Run workspaces on your own machines over SSH — agents keep running while this Mac is away.</p>
         <button class="ws-cta" data-act="add-server" type="button">${SERVER}<span>Connect a server</span></button>
       </div>`;
@@ -393,8 +371,7 @@ function remoteGroupHtml(remote, { canCreate, selectedId, sums }) {
         ${body}
       </div>`;
   }).join('');
-  return `<div class="ws-group-head"><span class="ws-group-label">Remote</span></div>
-    ${blocks}
+  return `${blocks}
     <button class="ws-add-server" data-act="add-server" type="button" title="Add server (⌘⌥N)">${PLUS}<span>Add server…</span><span class="ws-new-key" aria-hidden="true">⌘⌥N</span></button>`;
 }
 
@@ -406,33 +383,19 @@ function mainLabel() {
   return mainBranch || 'main';
 }
 
-/** The trigger's face: the selected workspace and its status dot. */
-function triggerHtml({ selectedId, sums }) {
-  const rec = selectedId === state.MAIN_WORKSPACE_ID ? null : workspaces.find((w) => w.id === selectedId);
-  const name = rec ? rec.branch : mainLabel();
-  const remote = rec && rec.location === 'server'
-    ? `<span class="ws-switch-tag${rec.offline ? ' offline' : ''}" title="Runs on ${escapeHtml(rec.host || 'the server')}${rec.offline ? ' — offline' : ''}">${rec.offline ? 'offline' : 'remote'}</span>`
-    : '';
-  return `
-    <button class="sidebar-current-project ws-switch" data-act="toggle" type="button" tabindex="-1" aria-haspopup="menu" aria-expanded="${menuOpen}" title="Switch workspace">
-      <span class="sidebar-current-project-label">Workspace</span>
-      ${dotHtml(rollup.summaryFor(sums, selectedId))}
-      <span class="sidebar-current-project-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
-      ${remote}${CARET}
-    </button>`;
-}
-
 function render() {
   if (!rootEl) return;
   const projectPath = state.getProjectPath();
   rootEl.hidden = !projectPath;
   if (!projectPath) {
-    menuOpen = false;
     rootEl.innerHTML = '';
     return;
   }
-  const prevMenu = rootEl.querySelector('.ws-menu');
-  const scrollTop = prevMenu ? prevMenu.scrollTop : 0;
+  const prevList = rootEl.querySelector('.ws-list');
+  const scrollTop = prevList ? prevList.scrollTop : 0;
+  // The list is redrawn whole: a row that held the keyboard focus gets it back.
+  const active = document.activeElement;
+  const focusedId = active && active.classList && active.classList.contains('ws-row') && rootEl.contains(active) ? active.dataset.id : null;
   const selected = state.getWorkspace();
   const selectedId = selected ? selected.id : state.MAIN_WORKSPACE_ID;
   const sums = summaries();
@@ -440,12 +403,12 @@ function render() {
   const addTitle = canCreate
     ? 'New workspace — on this Mac or a server (⌘⇧N)'
     : (loadedFor === projectPath ? 'Workspaces need a git repository' : 'Loading…');
-  const mainOn = selectedId === state.MAIN_WORKSPACE_ID ? ' on' : '';
+  const mainOn = selectedId === state.MAIN_WORKSPACE_ID;
   const local = workspaces.filter((w) => w.location !== 'server');
   const remote = workspaces.filter((w) => w.location === 'server');
 
   const archivedHtml = archived.length
-    ? `<div class="sidebar-project-menu-sep" role="separator"></div>
+    ? `<div class="ws-sep" role="separator"></div>
        <button class="ws-archived-toggle${showArchived ? ' open' : ''}" data-act="toggle-archived" type="button">
          Archived <span class="ws-count">${archived.length}</span>
        </button>
@@ -457,70 +420,42 @@ function render() {
          </div>`).join('')}</div>` : ''}`
     : '';
 
+  // `ws-switch` is kept on the header as a stable hook: the tour's Workspaces
+  // step points at it.
   rootEl.innerHTML = `
-    ${triggerHtml({ selectedId, sums })}
-    <div class="sidebar-project-menu ws-menu" role="menu" aria-label="Workspaces"${menuOpen ? '' : ' hidden'}>
-      <button class="sidebar-project-menu-item sidebar-project-menu-add ws-new" data-act="new" type="button" role="menuitem" ${canCreate ? '' : 'disabled'} title="${escapeHtml(addTitle)}">
-        <span class="sidebar-project-menu-item-name">+ New workspace</span>
-        <span class="ws-new-key" aria-hidden="true">⌘⇧N</span>
-      </button>
-      <div class="sidebar-project-menu-sep" role="separator"></div>
-      <div class="ws-group" role="group" aria-label="Local">
-        <div class="ws-group-head"><span class="ws-group-label">Local</span></div>
-        <div class="ws-row main${mainOn}" data-id="main" tabindex="0" role="menuitemradio" aria-checked="${!!mainOn}">
-          ${dotHtml(rollup.summaryFor(sums, state.MAIN_WORKSPACE_ID))}
-          <span class="ws-labels"><span class="ws-primary" title="${escapeHtml(mainLabel())}">${escapeHtml(mainLabel())}</span><span class="ws-secondary">project checkout</span></span>
-          ${mainOn ? CHECK : ''}
-        </div>
-        ${local.map((ws) => rowHtml(ws, { selectedId, sums })).join('')}
+    <div class="ws-head ws-switch">
+      <span class="ws-head-title">Workspaces</span>
+      <button class="ws-group-add" data-act="new" type="button" aria-label="New workspace" ${canCreate ? '' : 'disabled'} title="${escapeHtml(addTitle)}">${PLUS}</button>
+    </div>
+    <div class="ws-list" role="group" aria-label="Workspaces">
+      <div class="ws-row main${mainOn ? ' on' : ''}" data-id="main" tabindex="0" role="button"${mainOn ? ' aria-current="true"' : ''}>
+        ${dotHtml(rollup.summaryFor(sums, state.MAIN_WORKSPACE_ID))}
+        <span class="ws-labels"><span class="ws-primary" title="${escapeHtml(mainLabel())}">${escapeHtml(mainLabel())}</span><span class="ws-secondary">project checkout</span></span>
       </div>
-      <div class="sidebar-project-menu-sep" role="separator"></div>
-      <div class="ws-group" role="group" aria-label="Remote">
-        ${remoteGroupHtml(remote, { canCreate, selectedId, sums })}
-      </div>
+      ${local.map((ws) => rowHtml(ws, { selectedId, sums })).join('')}
+      <div class="ws-sep" role="separator"></div>
+      ${remoteGroupHtml(remote, { canCreate, selectedId, sums })}
       ${archivedHtml}
     </div>`;
 
-  const menu = rootEl.querySelector('.ws-menu');
-  if (menu && scrollTop) menu.scrollTop = scrollTop;
+  const list = rootEl.querySelector('.ws-list');
+  if (list && scrollTop) list.scrollTop = scrollTop;
   const input = rootEl.querySelector('.ws-rename');
   if (input) {
     input.focus();
     input.select();
     input.addEventListener('blur', () => commitRename(input));
+  } else if (focusedId) {
+    const row = [...rootEl.querySelectorAll('.ws-list .ws-row[tabindex="0"]')].find((el) => el.dataset.id === focusedId);
+    if (row) row.focus({ preventScroll: true });
   }
 }
 
-// ─── Dropdown ────────────────────────────────────────────────
+// ─── List ────────────────────────────────────────────────────
 
-function openDropdown() {
-  if (menuOpen || !rootEl || rootEl.hidden) return;
-  menuOpen = true;
-  render();
-  // Land on the selected row so arrows and Enter work straight away.
-  const on = rootEl.querySelector('.ws-menu .ws-row.on') || rootEl.querySelector('.ws-menu .ws-row');
-  if (on) on.focus({ preventScroll: true });
-  if (state.getProjectPath()) load();
-}
-
-function closeDropdown({ focusTrigger = false } = {}) {
-  if (!menuOpen) return;
-  menuOpen = false;
-  // An open rename is not dropped: hiding the menu blurs its field, which commits it.
-  hideMenu();
-  if (!rootEl) return;
-  const menu = rootEl.querySelector('.ws-menu');
-  if (menu) menu.hidden = true;
-  const trigger = rootEl.querySelector('.ws-switch');
-  if (trigger) {
-    trigger.setAttribute('aria-expanded', 'false');
-    if (focusTrigger) trigger.focus();
-  }
-}
-
-/** Arrow keys walk the dropdown's rows and buttons, top to bottom. */
+/** Arrow keys walk the list's rows and buttons, top to bottom. */
 function moveFocus(step) {
-  const items = [...rootEl.querySelectorAll('.ws-menu .ws-row[tabindex="0"], .ws-menu .ws-new:not(:disabled), .ws-menu .ws-server-head[tabindex="0"], .ws-menu .ws-cta:not(:disabled), .ws-menu .ws-add-server, .ws-menu .ws-archived-toggle')];
+  const items = [...rootEl.querySelectorAll('.ws-list .ws-row[tabindex="0"], .ws-list .ws-server-head[tabindex="0"], .ws-list .ws-cta:not(:disabled), .ws-list .ws-add-server, .ws-list .ws-archived-toggle')];
   if (!items.length) return;
   const at = items.indexOf(document.activeElement);
   const next = items[(at + step + items.length) % items.length] || items[0];
@@ -539,12 +474,11 @@ function onClick(e) {
     e.stopPropagation();
     const act = actEl.dataset.act;
     const ws = row ? findWs(row.dataset.id) : null;
-    if (act === 'toggle') return menuOpen ? closeDropdown() : openDropdown();
-    // The one "New workspace…" at the top: the location is chosen in the
-    // dialog (this project's last one by default).
-    if (act === 'new') { closeDropdown(); return openNew(); }
-    if (act === 'connect') { closeDropdown(); return require('./serverConnect').open({ key: actEl.dataset.key || null }); }
-    if (act === 'add-server') { closeDropdown(); return require('./serverConnect').open({ add: true }); }
+    // The header's one "+": the location is chosen in the dialog (this
+    // project's last one by default).
+    if (act === 'new') return openNew();
+    if (act === 'connect') return require('./serverConnect').open({ key: actEl.dataset.key || null });
+    if (act === 'add-server') return require('./serverConnect').open({ add: true });
     if (act === 'toggle-server') return toggleServer(actEl.dataset.key);
     if (act === 'toggle-archived') { showArchived = !showArchived; return render(); }
     if (act === 'menu' && ws) {
@@ -581,13 +515,7 @@ function onKeyDown(e) {
     e.target.click();
     return;
   }
-  const onTrigger = e.target.closest && e.target.closest('.ws-switch');
-  if (onTrigger && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-    e.preventDefault();
-    openDropdown();
-    return;
-  }
-  if (menuOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && e.target.closest && e.target.closest('.ws-menu')) {
+  if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && e.target.closest && e.target.closest('.ws-list')) {
     e.preventDefault();
     moveFocus(e.key === 'ArrowDown' ? 1 : -1);
   }
@@ -669,8 +597,6 @@ function openNew(opts) {
 
 function startRename(ws, field) {
   renaming = { id: ws.id, field };
-  // The row lives in the dropdown: open it (palette / command path) first.
-  menuOpen = true;
   render();
 }
 

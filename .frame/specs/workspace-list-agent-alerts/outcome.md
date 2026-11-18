@@ -6,3 +6,11 @@ Followup: `test/structureRead.test.js:107` is flaky on the server host (same-tic
 _Captured: 2026-11-18 · 3 file change(s)_
 
 ---
+## T02 — The open list: a Workspaces header and inline rows replace the trigger and dropdown
+
+Replaced the trigger and floating menu in `workspaceSection.js` with a "Workspaces" header carrying `+` and an inline `.ws-list`; removed `triggerHtml`, `openDropdown`, `closeDropdown`, the outside-click and Escape handlers and `menuOpen`, and updated `workspaces.css` and the comment in `index.html`. Deviations: the selected row is filled with an accent label instead of a check mark (the trailing slot is T03's), the "Local" / "Remote" labels are gone as in the plan's Shape, the header keeps the `ws-switch` class because `tour/tourSteps.js` targets it, and a focused row keeps focus across redraws. Not seen running: no DOM harness, no display on this host.
+Followup: the tour's Workspaces step still says "New workspace at the top of this list" (`src/renderer/tour/tourSteps.js`, outside this spec's footprint).
+
+_Captured: 2026-11-18 · 3 file change(s)_
+
+---

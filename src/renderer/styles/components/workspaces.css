@@ -1,9 +1,8 @@
 /* ==================== WORKSPACES (workspaces spec) ==================== */
-/* The workspace switcher: the second level under the project switcher.
-   The trigger is the project switcher's box (same classes, so the two pair
-   up), set in by a small elbow that ties it to the project above. The
-   dropdown is the project menu's elevated surface, grouped Local / Remote
-   with a hairline between. */
+/* The workspace list: the second level under the project switcher, open in
+   the sidebar (workspace-list-agent-alerts). A small-caps "Workspaces"
+   header with "+", set in by an elbow that ties it to the project above,
+   then the rows: main, this Mac's workspaces, one block per server. */
 
 .workspace-section {
   position: relative;
@@ -18,7 +17,7 @@
 
 .workspace-section[hidden] { display: none; }
 
-/* Elbow: from under the project box down to the trigger's middle. */
+/* Elbow: from under the project box down to the header's middle. */
 .workspace-section::before {
   content: '';
   position: absolute;
@@ -32,8 +31,27 @@
   pointer-events: none;
 }
 
-.ws-switch { margin-top: 4px; }
-.ws-switch .ws-dot { margin-right: -2px; }
+/* The header: the list's name, and "+" for a new workspace. */
+.ws-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  margin-top: 4px;
+  padding: 0 2px 0 8px;
+}
+
+/* Same small caps as the project switcher's "Project" label. */
+.ws-head-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  user-select: none;
+}
 
 /* "remote" / "offline" beside the selected workspace's name. */
 .ws-switch-tag {
@@ -50,40 +68,19 @@
 }
 .ws-switch-tag.offline { color: var(--warning); }
 
-/* The dropdown: the project menu's surface, full width of the trigger. */
-.ws-menu {
-  left: 14px;
-  right: 0;
-  min-width: 0;
-  width: auto;
-  max-width: none;
-  max-height: min(420px, 60vh);
-  gap: 1px;
-}
-
-.ws-group {
+/* The list itself, in the sidebar's own flow. */
+.ws-list {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  min-width: 0;
 }
 
-.ws-group-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 22px;
-  padding: 2px 2px 2px 8px;
-}
-
-/* Same small caps as the switchers' "Project" / "Workspace" labels. */
-.ws-group-label {
-  flex: 1;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  user-select: none;
+.ws-sep {
+  flex: none;
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border-subtle);
 }
 
 /* The host the Remote group lives on, with the link's state as a dot. */
@@ -200,8 +197,7 @@
 }
 
 /* Rows: the project menu's item rhythm, with a second line for the color
-   name and the badges. The selected row reads like the project menu's
-   active item: accent label and a check. */
+   name. The selected row is filled and its label takes the accent. */
 .ws-row {
   display: flex;
   align-items: center;
@@ -218,13 +214,9 @@
 .ws-row:hover { background: var(--bg-hover); color: var(--text-primary); }
 .ws-row:focus-visible { box-shadow: inset 0 0 0 1px var(--accent-primary); }
 
-.ws-row.on { color: var(--text-primary); }
+.ws-row.on { background: var(--bg-tertiary); color: var(--text-primary); }
+.ws-row.on:hover { background: var(--bg-hover); }
 .ws-row.on .ws-primary { color: var(--accent-primary); }
-
-.ws-check {
-  flex: none;
-  color: var(--accent-primary);
-}
 
 .ws-row.missing { opacity: 0.7; cursor: default; }
 .ws-row.archived { cursor: default; }
@@ -1101,7 +1093,7 @@
   color: var(--text-primary);
 }
 
-/* "New workspace…" leads the menu, like the project menu's "Add a project…". */
+/* The shortcut beside "Add server…". */
 .ws-new-key {
   flex: none;
   margin-left: 6px;
@@ -1109,10 +1101,3 @@
   color: var(--text-muted);
   letter-spacing: 0.3px;
 }
-
-/* Scoped under .ws-menu: menu.css (imported after this file) sets every
-   .sidebar-project-menu-item to 13px, which beat a bare .ws-new. Same size
-   and height as "Add server…". */
-.ws-menu .ws-new { height: 28px; padding: 0 8px; line-height: 28px; font-size: 11px; font-weight: 400; }
-.ws-new:disabled { opacity: 0.45; cursor: default; }
-.ws-new:disabled:hover { background: transparent; color: var(--text-tertiary); }
