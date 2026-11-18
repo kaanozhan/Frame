@@ -35,3 +35,10 @@ Capped `.ws-list` at eight rows with its own scroll in `workspaces.css` (one `--
 _Captured: 2026-11-18 · 2 file change(s)_
 
 ---
+## T06 — Server foot rows: no Add server row, one Connect row while no server is saved
+
+Removed the "Add server…" row from the list in `workspaceSection.js` and replaced the three-line no-server offer with one "Connect a server…" row that opens the Servers dialog on its add field; the explanation line became that row's tooltip. Server sub-headers, their Connect / Set up action and their empty states are untouched. Dropped `.ws-add-server` and its last companion `.ws-new-key` from `workspaces.css`; not seen running.
+
+_Captured: 2026-11-18 · 2 file change(s)_
+
+---

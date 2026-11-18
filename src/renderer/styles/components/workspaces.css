@@ -229,7 +229,7 @@
   cursor: pointer;
 }
 
-/* Empty Remote: one line of why, one button for the next step. */
+/* A server with no workspaces: one quiet line, or one button for the next step. */
 .ws-empty {
   display: flex;
   flex-direction: column;
@@ -273,6 +273,9 @@
 }
 
 .ws-cta:disabled { opacity: 0.45; cursor: default; }
+
+/* No server saved yet: the one "Connect a server…" row of the list. */
+.ws-list > .ws-cta { margin: 2px 0 4px; }
 
 .ws-archived {
   display: flex;
@@ -1069,28 +1072,6 @@
 
 .ws-empty-compact { padding: 2px 8px 6px; }
 
-.ws-add-server {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  padding: 5px 8px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-tertiary);
-  font: inherit;
-  font-size: 11px;
-  text-align: left;
-  cursor: pointer;
-  outline: none;
-}
-
-.ws-add-server > span:not(.ws-new-key) { flex: 1; }
-
-.ws-add-server:hover,
-.ws-add-server:focus-visible { background: var(--bg-hover); color: var(--text-primary); }
-
 /* ─── New Workspace: Frame's own controls (multi-server-connections) ─── */
 /* Selects are drawn as the switchers' box (bg-tertiary, border, radius-md,
    a chevron), branch fields list in the project menu's surface. */
@@ -1188,13 +1169,4 @@
 .nw-combo-item.highlight {
   background: var(--bg-hover);
   color: var(--text-primary);
-}
-
-/* The shortcut beside "Add server…". */
-.ws-new-key {
-  flex: none;
-  margin-left: 6px;
-  font-size: 10px;
-  color: var(--text-muted);
-  letter-spacing: 0.3px;
 }

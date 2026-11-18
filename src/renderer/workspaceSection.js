@@ -10,8 +10,9 @@
  *   - the main row (the project's own checkout, labelled with the branch it
  *     is on), then this Mac's workspaces;
  *   - one sub-header per saved Frame Server (host, Connect while it is down)
- *     with that server's workspaces, then "Add server…"
- *     (multi-server-connections). With no server saved: "Connect a server".
+ *     with that server's workspaces (multi-server-connections). With no
+ *     server saved: one "Connect a server…" row. Adding another server is
+ *     the rail's Add Server button, ⌘⌥N or the File menu.
  * Each row: the branch as the primary label, the color name as the
  * secondary one, and a status dot folded from the workspace's terminals
  * (workspaces/rollup.js). Clicking a row selects it (state.setWorkspace),
@@ -399,17 +400,14 @@ function serverEmptyHtml(link) {
 
 /**
  * The Remote group: one sub-header per saved server with its own rows or its
- * own empty state, then "Add server…". With no server saved yet, the one
- * "Connect a server" offer. The sub-headers name the hosts, so the group
- * carries no label of its own.
+ * own empty state. With no server saved yet, one "Connect a server…" row
+ * that opens the Servers dialog on its add field — the why is its tooltip.
+ * The sub-headers name the hosts, so the group carries no label of its own.
  */
 function remoteGroupHtml(remote, { canCreate, selectedId, sums, queue }) {
   const links = serverViews();
   if (!links.length) {
-    return `<div class="ws-empty">
-        <p class="ws-empty-text">Run workspaces on your own machines over SSH — agents keep running while this Mac is away.</p>
-        <button class="ws-cta" data-act="add-server" type="button">${SERVER}<span>Connect a server</span></button>
-      </div>`;
+    return `<button class="ws-cta" data-act="add-server" type="button" title="Run workspaces on your own machines over SSH — agents keep running while this Mac is away.">${SERVER}<span>Connect a server…</span></button>`;
   }
   const blocks = links.map((link) => {
     const rows = remote.filter((w) => w.serverKey === link.key);
@@ -421,8 +419,7 @@ function remoteGroupHtml(remote, { canCreate, selectedId, sums, queue }) {
         ${body}
       </div>`;
   }).join('');
-  return `${blocks}
-    <button class="ws-add-server" data-act="add-server" type="button" title="Add server (⌘⌥N)">${PLUS}<span>Add server…</span><span class="ws-new-key" aria-hidden="true">⌘⌥N</span></button>`;
+  return blocks;
 }
 
 /**
@@ -574,7 +571,7 @@ function revealRow(list, row) {
 
 /** Arrow keys walk the list's rows and buttons, top to bottom. */
 function moveFocus(step) {
-  const items = [...rootEl.querySelectorAll('.ws-list .ws-row[tabindex="0"], .ws-list .ws-server-head[tabindex="0"], .ws-list .ws-cta:not(:disabled), .ws-list .ws-add-server, .ws-list .ws-archived-toggle')];
+  const items = [...rootEl.querySelectorAll('.ws-list .ws-row[tabindex="0"], .ws-list .ws-server-head[tabindex="0"], .ws-list .ws-cta:not(:disabled), .ws-list .ws-archived-toggle')];
   if (!items.length) return;
   const at = items.indexOf(document.activeElement);
   const next = items[(at + step + items.length) % items.length] || items[0];
