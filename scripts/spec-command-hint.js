@@ -327,9 +327,11 @@ function promptMode(input) {
 
   if (command === 'spec.new') {
     note(root, 'hint.injected', { reason: undefined });
+    // {tool_id} is named with its value: left out, the agent guessed `claude`,
+    // which status.json validation rejects (only claude-code, codex, gemini).
     return emit(`\`spec.new\` was asked for. Its flow lives in \`${tplRel}\` — read that file and ` +
-      `follow it exactly, interpolating {project_path}, {slug}, {title}, {description} and ` +
-      `{spec_catalog}. Do not write spec.md from memory; the template is the flow.`);
+      `follow it exactly, interpolating {project_path}, {slug}, {title}, {description}, ` +
+      `{spec_catalog} and {tool_id} (= \`${tool}\`). Do not write spec.md from memory; the template is the flow.`);
   }
 
   const named = namedSlug(root, input.prompt);

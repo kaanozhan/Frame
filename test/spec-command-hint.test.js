@@ -156,6 +156,15 @@ test('spec.new gets the template path — it has no target spec yet', () => {
   assert.match(ctx, /the template is the flow/);
 });
 
+test('spec.new names {tool_id} with its value — unnamed, the agent guessed "claude", which status.json rejects', () => {
+  const root = mkProject();
+  const ctx = ctxOf(ask(root, '/spec.new terminal colours'));
+  assert.match(ctx, /\{tool_id\} \(= `claude-code`\)/);
+  const template = fs.readFileSync(path.join(__dirname, '..', 'src', 'templates', 'commands', 'claude-code', 'spec.new.md'), 'utf8');
+  const tokens = [...new Set(template.match(/\{[a-z_]+\}/g))];
+  for (const t of tokens) assert.ok(ctx.includes(t), `the hook names every token spec.new uses: ${t}`);
+});
+
 // ─── the drift guard ──────────────────────────────────────
 
 test('the staged prompt is byte-identical to the one the button builds', () => {
