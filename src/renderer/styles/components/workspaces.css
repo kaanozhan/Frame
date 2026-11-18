@@ -18,8 +18,9 @@
 
 .workspace-section[hidden] { display: none; }
 
-/* The header: the group header as a fold control (Projects) or a dropdown
-   trigger (Files, Changes, GitHub), and, in Projects only, "+ Add New". */
+/* The header: in Projects the group header as a fold control and "+ Add
+   New"; in Files, Changes and GitHub the selected workspace in the project
+   switcher's box, opening the dropdown (T16). */
 .ws-head {
   /* Sized by the sidebar: "+ Add New" folds to "+" below 190px (.ws-group-add). */
   container: ws-head / inline-size;
@@ -43,8 +44,10 @@
 
 .ws-switch .project-nav-group-label { flex: none; }
 
-/* Folded, or as the dropdown trigger, the header names the selected
-   workspace on its right. */
+/* The trigger box takes the row; the name gives way first. */
+.ws-trigger { flex: 1; min-width: 0; }
+
+/* Folded (Projects), the header names the selected workspace on its right. */
 .ws-head-current {
   display: flex;
   align-items: center;
@@ -109,11 +112,11 @@
 }
 
 /* Outside Projects the same rows open as a dropdown over the view below,
-   in the project switcher's menu surface. */
+   in the project switcher's menu surface, under the trigger box. */
 .ws-list.ws-dropdown {
   position: absolute;
-  top: calc(100% + 2px);
-  left: 12px;
+  top: calc(100% + 4px);
+  left: 0;
   right: 0;
   z-index: 50;
   max-height: calc(8 * var(--ws-row-height) + 15px);

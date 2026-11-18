@@ -18790,7 +18790,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 30690,
+      "sizeBytes": 30841,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -20726,15 +20726,15 @@
           "purpose": "The selected workspace's branch, and a \"remote\" / \"offline\" tag for a server one."
         },
         "triggerHtml": {
-          "line": 598,
+          "line": 601,
           "params": [
             "{ selectedId",
             "open }"
           ],
-          "purpose": "The header outside Projects: a dropdown trigger showing only the selected"
+          "purpose": "The header outside Projects: the selected workspace itself, in the"
         },
         "foldHtml": {
-          "line": 615,
+          "line": 616,
           "params": [
             "{ open",
             "selectedId",
@@ -20744,10 +20744,10 @@
           "purpose": "The header's fold control (Projects). Open: the list's name. Folded: the selected"
         },
         "render": {
-          "line": 634
+          "line": 635
         },
         "revealRow": {
-          "line": 716,
+          "line": 717,
           "params": [
             "list",
             "row"
@@ -20755,38 +20755,38 @@
           "purpose": "Scroll `list` just far enough that `row` is fully in view."
         },
         "moveFocus": {
-          "line": 726,
+          "line": 727,
           "params": [
             "step"
           ],
           "purpose": "Arrow keys walk the list's rows and buttons, top to bottom."
         },
         "findWs": {
-          "line": 734,
+          "line": 735,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 738,
+          "line": 739,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 776,
+          "line": 777,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 798,
+          "line": 799,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 811,
+          "line": 812,
           "params": [
             "ws",
             "x",
@@ -20794,48 +20794,48 @@
           ]
         },
         "hideMenu": {
-          "line": 838
+          "line": 839
         },
         "onMenuClick": {
-          "line": 842,
+          "line": 843,
           "params": [
             "e"
           ]
         },
         "sendFilesTo": {
-          "line": 854,
+          "line": 855,
           "params": [
             "ws"
           ]
         },
         "openNew": {
-          "line": 864,
+          "line": 865,
           "params": [
             "opts"
           ]
         },
         "startRename": {
-          "line": 872,
+          "line": 873,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 877,
+          "line": 878,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 897,
+          "line": 898,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "rescueBranchName": {
-          "line": 938,
+          "line": 939,
           "params": [
             "ws",
             "head"
@@ -20843,7 +20843,7 @@
           "purpose": "The branch name archive's rescue creates; the sha may be unknown before a commit is made."
         },
         "askRescue": {
-          "line": 944,
+          "line": 945,
           "params": [
             "ws",
             "head"
@@ -20851,14 +20851,14 @@
           "purpose": "The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false."
         },
         "closeWorkspaceTerminals": {
-          "line": 981,
+          "line": 982,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 994,
+          "line": 995,
           "params": [
             "ws",
             "count"
@@ -20866,20 +20866,20 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 1052,
+          "line": 1053,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 1058,
+          "line": 1059,
           "params": [
             "ws"
           ]
         },
         "archivedOpen": {
-          "line": 1080
+          "line": 1081
         },
         "matchArchived": {
-          "line": 1085,
+          "line": 1086,
           "params": [
             "records",
             "text"
@@ -20887,42 +20887,42 @@
           "purpose": "Archived records whose branch, name or host contains `text`; all of them for an empty filter."
         },
         "ensureArchivedModal": {
-          "line": 1092
+          "line": 1093
         },
         "renderArchivedList": {
-          "line": 1135
+          "line": 1136
         },
         "openArchived": {
-          "line": 1151
+          "line": 1152
         },
         "closeArchived": {
-          "line": 1161,
+          "line": 1162,
           "params": [
             "{ refocus = false } = {}"
           ]
         },
         "removeRecord": {
-          "line": 1168,
+          "line": 1169,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 1177,
+          "line": 1178,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 1190,
+          "line": 1191,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 1204,
+          "line": 1205,
           "purpose": "Active workspaces of the current project, as last loaded."
         },
         "openPrefs": {
@@ -20946,7 +20946,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 55041,
+      "sizeBytes": 55417,
       "extraction": {
         "status": "parsed"
       },
@@ -20983,7 +20983,7 @@
           "setView": "69f05f9abeccd77a",
           "switchItems": "ebd26b981527e46a",
           "terminalStates": "1feed58999511090",
-          "triggerHtml": "5f2a20606a675b43",
+          "triggerHtml": "9826bfddbadb09a4",
           "waitHtml": "6dc6211953e71f93",
           "waitingQueue": "afc75a7979615542",
           "whenLoaded": "85a84d83889dcf9f",
@@ -37264,6 +37264,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "725f560b1b5a906790b3fcd8904fe98ba24c0a7fa69f836b62c978f4a3986dff"
+    "revision": "1333f6f5d0d1b3e2876439e97b8155e375ff044657417961d5dcdf9518ba7123"
   }
 }

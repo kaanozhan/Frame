@@ -566,7 +566,7 @@ function closeDropdown({ focusTrigger = false } = {}) {
   // An open rename keeps the rows on screen (render) until its field blurs and commits.
   hideMenu();
   render();
-  const trigger = focusTrigger && rootEl && rootEl.querySelector('.ws-fold');
+  const trigger = focusTrigger && rootEl && rootEl.querySelector('.ws-trigger');
   if (trigger) trigger.focus({ preventScroll: true });
 }
 
@@ -591,18 +591,19 @@ function selectedFace(selectedId) {
 /** The header's title: the nav's group header, as Work and Context draw it (T15). */
 const HEAD_TITLE = '<span class="project-nav-group-chevron" aria-hidden="true"></span><span class="project-nav-group-label">Workspaces</span>';
 
+const CARET = '<svg class="sidebar-current-project-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+
 /**
- * The header outside Projects: a dropdown trigger showing only the selected
- * workspace — no status dot, no "N waiting".
+ * The header outside Projects: the selected workspace itself, in the
+ * project switcher's box right above it ("Workspace" label, branch, caret),
+ * opening the dropdown — no group title, no status dot, no "N waiting" (T16).
  */
 function triggerHtml({ selectedId, open }) {
   const { name, remote } = selectedFace(selectedId);
-  return `<button class="ws-fold ws-trigger project-nav-group-header" data-act="dropdown" type="button" aria-haspopup="true" aria-expanded="${open}" title="Switch workspace">
-      ${HEAD_TITLE}
-      <span class="ws-head-current">
-        <span class="ws-head-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
-        ${remote}
-      </span>
+  return `<button class="sidebar-current-project ws-trigger" data-act="dropdown" type="button" aria-haspopup="true" aria-expanded="${open}" title="Switch workspace">
+      <span class="sidebar-current-project-label">Workspace</span>
+      <span class="sidebar-current-project-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+      ${remote}${CARET}
     </button>`;
 }
 

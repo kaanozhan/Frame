@@ -105,3 +105,10 @@ While syncing with upstream/main the user chose to take #196's look (the workspa
 _Captured: 2026-11-18 · 3 file change(s)_
 
 ---
+## T16 — Follow-up: outside Projects the header is the selected workspace, in the project switcher's box
+
+The user found the "Workspaces" group title out of place in Files, Changes and GitHub: there the header should be the selected workspace, changeable from a dropdown, with a hint that it is a workspace. `triggerHtml` now draws the project switcher's own box (`.sidebar-current-project`): a small-caps "Workspace" label — the hint, and the pair of "Project" right above — then the branch, the remote / offline tag and the caret, which turns while the dropdown is open. The dropdown sits under the box at full width (`left: 0`, 4px below, as the project menu does). The trigger is found by `.ws-trigger` now that it no longer carries `.ws-fold`, whose button reset would have stripped the box. Projects is unchanged (T15's group header). Not seen running; tests not run.
+
+_Captured: 2026-11-18 · 2 file change(s)_
+
+---
