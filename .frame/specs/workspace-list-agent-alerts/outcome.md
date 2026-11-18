@@ -98,3 +98,10 @@ At the user's request the header's "+" in Projects now reads "+ Add New". "If th
 _Captured: 2026-11-18 · 2 file change(s)_
 
 ---
+## T15 — Follow-up: upstream's nav-group look on this branch's list
+
+While syncing with upstream/main the user chose to take #196's look (the workspace section drawn as one more nav group, like Work and Context) over this branch's own, keeping this branch's behaviour. `index.html` gives `#workspace-section` the `project-nav-group` class and `render()` toggles `collapsed` while the rows are hidden, so the nav's chevron points right when folded or when the dropdown is closed. The header is a `<button class="ws-fold project-nav-group-header">` with the chevron and a semibold "Workspaces"; folded (Projects) or as the dropdown trigger (Files, Changes, GitHub) it names the selected workspace on its right in `.ws-head-current`, with the dot and "N waiting" only in Projects. The Projects list carries `project-nav-group-rows`, so it hangs off the guide line, still capped at eight rows; the dropdown keeps its elevated surface. Rows take #196's selection: the active background, an inset accent edge and a primary-coloured label (with a combined rule so a focused selected row keeps its focus ring). Removed: the small-caps title, the elbow and the module's own chevron. Deviations from #196: the title reads "Workspaces" (this branch's word, which the guide and tour use) rather than "Workspace", "+ Add New" sits at the header's right, and the rows are drawn only while open, so the fold snaps instead of sliding. Not seen running; tests not run.
+
+_Captured: 2026-11-18 · 3 file change(s)_
+
+---
