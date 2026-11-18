@@ -18776,7 +18776,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 31277,
+      "sizeBytes": 31724,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -20515,66 +20515,66 @@
       ],
       "functions": {
         "setActions": {
-          "line": 73,
+          "line": 74,
           "params": [
             "next"
           ],
           "purpose": "Let the dialogs plug in without this module requiring them."
         },
         "init": {
-          "line": 77
+          "line": 78
         },
         "load": {
-          "line": 149,
+          "line": 150,
           "params": [
             "{ reselect = false } = {}"
           ],
           "purpose": "Re-read the project's workspaces; with `reselect`, restore the remembered selection."
         },
         "whenLoaded": {
-          "line": 209,
+          "line": 210,
           "params": [
             "projectPath"
           ],
           "purpose": "Resolves once `projectPath`'s workspace list has loaded and its remembered"
         },
         "select": {
-          "line": 224,
+          "line": 225,
           "params": [
             "ws"
           ]
         },
         "selectById": {
-          "line": 239,
+          "line": 240,
           "params": [
             "id"
           ],
           "purpose": "Select a workspace by id ('main' for the project checkout). False when it is not in the list, or its folder is gone."
         },
         "switchItems": {
-          "line": 256,
+          "line": 257,
           "purpose": "What \"Switch Workspace…\" lists: main and every workspace whose folder is"
         },
         "goToNextWaiting": {
-          "line": 284,
+          "line": 285,
           "purpose": "Show the most urgent waiting agent that is not already on screen:"
         },
         "scheduleRender": {
-          "line": 298
+          "line": 299
         },
         "terminalStates": {
-          "line": 309,
+          "line": 310,
           "purpose": "Every terminal's state, across projects and workspaces."
         },
         "summaries": {
-          "line": 317
+          "line": 318
         },
         "waitingQueue": {
-          "line": 322,
+          "line": 323,
           "purpose": "This project's agents that wait on the user, most urgent first (workspaces/attention.js)."
         },
         "waitHtml": {
-          "line": 336,
+          "line": 337,
           "params": [
             "queue",
             "workspaceId"
@@ -20582,13 +20582,13 @@
           "purpose": "A row's trailing label while an agent in that workspace waits:"
         },
         "dotHtml": {
-          "line": 350,
+          "line": 351,
           "params": [
             "summary"
           ]
         },
         "rowHtml": {
-          "line": 356,
+          "line": 357,
           "params": [
             "ws",
             "{ selectedId",
@@ -20599,18 +20599,18 @@
           "purpose": "`plain` (the dropdown outside Projects): no status dot, no wait label."
         },
         "linkView": {
-          "line": 393,
+          "line": 394,
           "params": [
             "srv"
           ],
           "purpose": "A saved server as the Remote group reads it: `{ key, host, phase, state }`."
         },
         "serverViews": {
-          "line": 403,
+          "line": 404,
           "purpose": "Every saved server, in list order (multi-server-connections)."
         },
         "serverHeadHtml": {
-          "line": 413,
+          "line": 414,
           "params": [
             "link",
             "{ collapsed",
@@ -20620,46 +20620,46 @@
           "purpose": "One server's sub-header in Remote, drawn as a labelled sub-separator: the"
         },
         "isServerOpen": {
-          "line": 445,
+          "line": 446,
           "params": [
             "key",
             "count"
           ]
         },
         "setServerOpen": {
-          "line": 449,
+          "line": 450,
           "params": [
             "key",
             "open"
           ]
         },
         "toggleServer": {
-          "line": 454,
+          "line": 455,
           "params": [
             "key"
           ]
         },
         "serverCounts": {
-          "line": 465,
+          "line": 466,
           "params": [
             "list"
           ]
         },
         "openServersThatGrew": {
-          "line": 471,
+          "line": 472,
           "params": [
             "list"
           ]
         },
         "serverEmptyHtml": {
-          "line": 480,
+          "line": 481,
           "params": [
             "link"
           ],
           "purpose": "What a server with no workspaces of this project offers: the next step for its link."
         },
         "remoteGroupHtml": {
-          "line": 499,
+          "line": 500,
           "params": [
             "remote",
             "{ canCreate",
@@ -20671,41 +20671,41 @@
           "purpose": "The Remote group: one sub-header per saved server with its own rows or its"
         },
         "mainLabel": {
-          "line": 521,
+          "line": 522,
           "purpose": "The main row's label: the branch the project's own checkout is on, like"
         },
         "isDropdownView": {
-          "line": 530,
+          "line": 531,
           "purpose": "Projects shows the list in the sidebar, open or folded; Files, Changes and"
         },
         "setView": {
-          "line": 535,
+          "line": 536,
           "params": [
             "next"
           ],
           "purpose": "The sidebar switched views: the list follows that view's own open / folded state."
         },
         "openDropdown": {
-          "line": 543
+          "line": 544
         },
         "closeDropdown": {
-          "line": 552,
+          "line": 553,
           "params": [
             "{ focusTrigger = false } = {}"
           ]
         },
         "toggleList": {
-          "line": 562
+          "line": 563
         },
         "selectedFace": {
-          "line": 571,
+          "line": 572,
           "params": [
             "selectedId"
           ],
           "purpose": "The selected workspace's branch, and a \"remote\" / \"offline\" tag for a server one."
         },
         "triggerHtml": {
-          "line": 584,
+          "line": 585,
           "params": [
             "{ selectedId",
             "open }"
@@ -20713,7 +20713,7 @@
           "purpose": "The header outside Projects: a dropdown trigger showing only the selected"
         },
         "foldHtml": {
-          "line": 599,
+          "line": 600,
           "params": [
             "{ open",
             "selectedId",
@@ -20723,10 +20723,10 @@
           "purpose": "The header's fold control (Projects). Open: the list's name. Folded: the selected"
         },
         "render": {
-          "line": 619
+          "line": 620
         },
         "revealRow": {
-          "line": 699,
+          "line": 700,
           "params": [
             "list",
             "row"
@@ -20734,38 +20734,38 @@
           "purpose": "Scroll `list` just far enough that `row` is fully in view."
         },
         "moveFocus": {
-          "line": 709,
+          "line": 710,
           "params": [
             "step"
           ],
           "purpose": "Arrow keys walk the list's rows and buttons, top to bottom."
         },
         "findWs": {
-          "line": 717,
+          "line": 718,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 721,
+          "line": 722,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 759,
+          "line": 760,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 781,
+          "line": 782,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 794,
+          "line": 795,
           "params": [
             "ws",
             "x",
@@ -20773,48 +20773,48 @@
           ]
         },
         "hideMenu": {
-          "line": 821
+          "line": 822
         },
         "onMenuClick": {
-          "line": 825,
+          "line": 826,
           "params": [
             "e"
           ]
         },
         "sendFilesTo": {
-          "line": 837,
+          "line": 838,
           "params": [
             "ws"
           ]
         },
         "openNew": {
-          "line": 847,
+          "line": 848,
           "params": [
             "opts"
           ]
         },
         "startRename": {
-          "line": 855,
+          "line": 856,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 860,
+          "line": 861,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 880,
+          "line": 881,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "rescueBranchName": {
-          "line": 921,
+          "line": 922,
           "params": [
             "ws",
             "head"
@@ -20822,7 +20822,7 @@
           "purpose": "The branch name archive's rescue creates; the sha may be unknown before a commit is made."
         },
         "askRescue": {
-          "line": 927,
+          "line": 928,
           "params": [
             "ws",
             "head"
@@ -20830,14 +20830,14 @@
           "purpose": "The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false."
         },
         "closeWorkspaceTerminals": {
-          "line": 964,
+          "line": 965,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 977,
+          "line": 978,
           "params": [
             "ws",
             "count"
@@ -20845,20 +20845,20 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 1035,
+          "line": 1036,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 1041,
+          "line": 1042,
           "params": [
             "ws"
           ]
         },
         "archivedOpen": {
-          "line": 1063
+          "line": 1064
         },
         "matchArchived": {
-          "line": 1068,
+          "line": 1069,
           "params": [
             "records",
             "text"
@@ -20866,53 +20866,53 @@
           "purpose": "Archived records whose branch, name or host contains `text`; all of them for an empty filter."
         },
         "ensureArchivedModal": {
-          "line": 1075
+          "line": 1076
         },
         "renderArchivedList": {
-          "line": 1118
+          "line": 1119
         },
         "openArchived": {
-          "line": 1134
+          "line": 1135
         },
         "closeArchived": {
-          "line": 1144,
+          "line": 1145,
           "params": [
             "{ refocus = false } = {}"
           ]
         },
         "removeRecord": {
-          "line": 1151,
+          "line": 1152,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 1160,
+          "line": 1161,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 1173,
+          "line": 1174,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 1187,
+          "line": 1188,
           "purpose": "Active workspaces of the current project, as last loaded."
         },
         "openPrefs": {
-          "line": 62,
+          "line": 63,
           "params": [
             "("
           ],
           "purpose": "Open or folded, per view: localStorage `frame-ws-list-open` (workspaces/listPrefs.js)."
         },
         "serverOpen": {
-          "line": 441,
+          "line": 442,
           "params": [
             "("
           ]
@@ -20925,7 +20925,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 54222,
+      "sizeBytes": 54348,
       "extraction": {
         "status": "parsed"
       },
@@ -37181,6 +37181,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "1687a9ebcb5f1d86cf843446572881d3b6031d2af824259c9e41186503e347f5"
+    "revision": "2d9bbed348b496e06c3b5721d9dc0e52d57250ff001e69c23384b311c2071fe4"
   }
 }

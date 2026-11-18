@@ -32,8 +32,10 @@
 }
 
 /* The header: a fold control (the list's name; folded, the selected
-   workspace) and "+" for a new workspace. */
+   workspace) and, in Projects only, "+ Add New" for a new workspace. */
 .ws-head {
+  /* Sized by the sidebar: "+ Add New" folds to "+" below 190px (.ws-group-add). */
+  container: ws-head / inline-size;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -213,19 +215,30 @@
 .ws-group-host.busy .ws-link-dot { background: var(--warning); animation: ws-pulse 1.6s ease-in-out infinite; }
 .ws-group-host.setup .ws-link-dot { background: var(--warning); }
 
+/* "+ Add New" (Projects only); the label drops when the header is narrow. */
 .ws-group-add {
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
+  gap: 4px;
+  min-width: 20px;
   height: 20px;
-  padding: 0;
+  padding: 0 6px 0 4px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-tertiary);
+  font: inherit;
+  font-size: 11px;
+  line-height: 20px;
+  white-space: nowrap;
   cursor: pointer;
+}
+
+@container ws-head (max-width: 190px) {
+  .ws-group-add { padding: 0; }
+  .ws-group-add-label { display: none; }
 }
 
 .ws-group-add:hover:not(:disabled),

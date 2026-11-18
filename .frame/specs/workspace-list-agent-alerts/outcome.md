@@ -91,3 +91,10 @@ At the user's request, in Files, Changes and GitHub the header no longer folds a
 _Captured: 2026-11-18 · 2 file change(s)_
 
 ---
+## T14 — Follow-up: "+ Add New" in Projects, no new-workspace button elsewhere
+
+At the user's request the header's "+" in Projects now reads "+ Add New". "If the space is not too small" became a container query: `.ws-head` is an inline-size container and below 190px the label drops and the bare "+" remains (the sidebar runs 231–500px; at the default 300px the header is about 214px wide, so the label shows, and it drops once the sidebar is narrower than about 276px). In Files, Changes and GitHub the header draws no new-workspace button at all, so the dropdown trigger takes the whole row; ⌘⇧N, the File menu's "New Workspace…" and the palette still create one there. Not done: the guide's switcher sketch still draws a bare "+". Not seen running; tests not run.
+
+_Captured: 2026-11-18 · 2 file change(s)_
+
+---

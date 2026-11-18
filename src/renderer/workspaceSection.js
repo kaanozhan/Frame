@@ -3,7 +3,8 @@
  * opened in place by workspace-list-agent-alerts).
  *
  * The second level under the project switcher: a "Workspaces" header with
- * "+" (New workspace; the dialog picks where it runs), and under it the list
+ * "+ Add New" in Projects (New workspace; the dialog picks where it runs;
+ * none in the other views — T14), and under it the list
  * itself. In Projects the header folds the list (open by default); folded,
  * it shows the selected workspace and how many agents wait elsewhere. In
  * Files, Changes and GitHub the header is a dropdown instead: it shows only
@@ -659,7 +660,7 @@ function render() {
   rootEl.innerHTML = `
     <div class="ws-head ws-switch${asDropdown ? ` dropdown${open ? ' open' : ''}` : (open ? '' : ' folded')}">
       ${asDropdown ? triggerHtml({ selectedId, open }) : foldHtml({ open, selectedId, sums, queue })}
-      <button class="ws-group-add" data-act="new" type="button" aria-label="New workspace" ${canCreate ? '' : 'disabled'} title="${escapeHtml(addTitle)}">${PLUS}</button>
+      ${asDropdown ? '' : `<button class="ws-group-add" data-act="new" type="button" aria-label="New workspace" ${canCreate ? '' : 'disabled'} title="${escapeHtml(addTitle)}">${PLUS}<span class="ws-group-add-label">Add New</span></button>`}
     </div>
     ${open ? `<div class="ws-list${asDropdown ? ' ws-dropdown' : ''}" role="group" aria-label="Workspaces">
       <div class="ws-row main${mainOn ? ' on' : ''}" data-id="main" tabindex="0" role="button"${mainOn ? ' aria-current="true"' : ''}>
