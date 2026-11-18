@@ -87,6 +87,10 @@
 
 .ws-head.folded .ws-fold-chevron::before { transform: rotate(-45deg); }
 
+/* Outside Projects the header is a dropdown trigger: the chevron sits after
+   the name, pointing down, and up while the dropdown is open. */
+.ws-head.dropdown.open .ws-fold-chevron::before { transform: translateY(1px) rotate(225deg); }
+
 @media (prefers-reduced-motion: reduce) {
   .ws-fold-chevron::before { transition: none; }
 }
@@ -155,6 +159,22 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
+}
+
+/* Outside Projects the same rows open as a dropdown over the view below,
+   in the project switcher's menu surface. */
+.ws-list.ws-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 10px;
+  right: 0;
+  z-index: 50;
+  max-height: calc(8 * var(--ws-row-height) + 15px);
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .ws-list > *,

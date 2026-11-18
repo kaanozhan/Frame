@@ -4,9 +4,11 @@
  *
  * The second level under the project switcher: a "Workspaces" header with
  * "+" (New workspace; the dialog picks where it runs), and under it the list
- * itself. The header folds the list, per sidebar view (open in Projects,
- * folded in Files, Changes and GitHub until the user says otherwise); folded,
- * it shows the selected workspace and how many agents wait elsewhere. Open:
+ * itself. In Projects the header folds the list (open by default); folded,
+ * it shows the selected workspace and how many agents wait elsewhere. In
+ * Files, Changes and GitHub the header is a dropdown instead: it shows only
+ * the selected workspace and opens the same rows, without status dots or
+ * wait labels, under it (workspace-list-agent-alerts T13). The rows:
  *   - the main row (the project's own checkout, labelled with the branch it
  *     is on), then this Mac's workspaces;
  *   - one sub-header per saved Frame Server (host, Connect while it is down)
@@ -55,6 +57,7 @@ let loadSeq = 0;
 let loadWaiters = [];          // whenLoaded() callers: { projectPath, resolve }
 let shownSelectedId = null;    // the selection the list last drew: a new one is scrolled into view
 let view = 'projects';         // the sidebar view on screen (index.js's revealSidebarTab)
+let dropdownOpen = false;      // outside Projects: the rows open as a dropdown under the header
 // Open or folded, per view: localStorage `frame-ws-list-open` (workspaces/listPrefs.js).
 let openPrefs = (() => {
   try { return listPrefs.parse(localStorage.getItem(listPrefs.STORAGE_KEY)); } catch (_) { return {}; }
@@ -90,6 +93,19 @@ function init() {
     if (menuEl.classList.contains('visible') && !menuEl.contains(e.target)) hideMenu();
   });
   window.addEventListener('blur', hideMenu);
+  // The dropdown (outside Projects) closes on a click anywhere else — the
+  // row menu it opens counts as inside — and on Escape, unless something
+  // inside used it first (the row menu, an inline rename).
+  document.addEventListener('mousedown', (e) => {
+    if (!dropdownOpen || rootEl.contains(e.target) || menuEl.contains(e.target)) return;
+    closeDropdown();
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (!dropdownOpen || e.key !== 'Escape' || e.defaultPrevented) return;
+    if (menuEl.classList.contains('visible')) { hideMenu(); return; }
+    e.preventDefault();
+    closeDropdown({ focusTrigger: true });
+  });
   // Remote's sub-headers and empty states follow every server's link.
   require('./serverConnect').onServersChange((next, prev) => {
     const sig = (list) => (list || []).map((s) => `${s.key}:${s.host}:${s.status && s.status.state}`).join('|');
@@ -97,6 +113,7 @@ function init() {
   });
 
   state.onProjectChange(() => {
+    dropdownOpen = false;
     lastServerCounts = null; // counts are per project
     workspaces = [];
     archived = [];
@@ -335,7 +352,8 @@ function dotHtml(summary) {
   return `<span class="ws-dot ${summary.dot}" title="${DOT_TITLES[summary.dot]}"></span>`;
 }
 
-function rowHtml(ws, { selectedId, sums, queue }) {
+/** `plain` (the dropdown outside Projects): no status dot, no wait label. */
+function rowHtml(ws, { selectedId, sums, queue, plain }) {
   const on = ws.id === selectedId ? ' on' : '';
   const missing = ws.missing ? ' missing' : '';
   const where = ws.location === 'server' ? ` server${ws.offline ? ' offline' : ''}` : '';
@@ -361,9 +379,9 @@ function rowHtml(ws, { selectedId, sums, queue }) {
     : `<button class="ws-more" data-act="menu" type="button" aria-label="Workspace actions" title="Workspace actions">⋯</button>`;
   return `
     <div class="ws-row${on}${missing}${where}" data-id="${escapeHtml(ws.id)}" tabindex="0" role="button"${on ? ' aria-current="true"' : ''}>
-      ${dotHtml(rollup.summaryFor(sums, ws.id))}
+      ${plain ? '' : dotHtml(rollup.summaryFor(sums, ws.id))}
       <span class="ws-labels">${primary}${secondary}</span>
-      ${waitHtml(queue, ws.id)}
+      ${plain ? '' : waitHtml(queue, ws.id)}
       ${trailing}
     </div>`;
 }
@@ -478,7 +496,7 @@ function serverEmptyHtml(link) {
  * that opens the Servers dialog on its add field — the why is its tooltip.
  * The sub-headers name the hosts, so the group carries no label of its own.
  */
-function remoteGroupHtml(remote, { canCreate, selectedId, sums, queue }) {
+function remoteGroupHtml(remote, { canCreate, selectedId, sums, queue, plain }) {
   const links = serverViews();
   if (!links.length) {
     return `<button class="ws-cta" data-act="add-server" type="button" title="Run workspaces on your own machines over SSH — agents keep running while this Mac is away.">${SERVER}<span>Connect a server…</span></button>`;
@@ -487,7 +505,7 @@ function remoteGroupHtml(remote, { canCreate, selectedId, sums, queue }) {
     const rows = remote.filter((w) => w.serverKey === link.key);
     const locked = rows.some((w) => w.id === selectedId);
     const collapsed = !locked && !isServerOpen(link.key, rows.length);
-    const body = collapsed ? '' : (rows.length ? rows.map((ws) => rowHtml(ws, { selectedId, sums, queue })).join('') : serverEmptyHtml(link));
+    const body = collapsed ? '' : (rows.length ? rows.map((ws) => rowHtml(ws, { selectedId, sums, queue, plain })).join('') : serverEmptyHtml(link));
     return `<div class="ws-server" role="group" aria-label="${escapeHtml(link.host)}">
         ${serverHeadHtml(link, { collapsed, count: rows.length, locked })}
         ${body}
@@ -504,12 +522,41 @@ function mainLabel() {
   return mainBranch || 'main';
 }
 
+/**
+ * Projects shows the list in the sidebar, open or folded; Files, Changes and
+ * GitHub need the height, so there the header is a dropdown showing only
+ * the selected workspace.
+ */
+function isDropdownView() {
+  return view !== 'projects';
+}
+
 /** The sidebar switched views: the list follows that view's own open / folded state. */
 function setView(next) {
   const name = next || 'projects';
   if (name === view) return;
   view = name;
+  dropdownOpen = false;
   render();
+}
+
+function openDropdown() {
+  if (dropdownOpen || !rootEl || rootEl.hidden) return;
+  dropdownOpen = true;
+  render();
+  // Land on the selected row so arrows and Enter work straight away.
+  const on = rootEl.querySelector('.ws-dropdown .ws-row.on') || rootEl.querySelector('.ws-dropdown .ws-row');
+  if (on) on.focus({ preventScroll: true });
+}
+
+function closeDropdown({ focusTrigger = false } = {}) {
+  if (!dropdownOpen) return;
+  dropdownOpen = false;
+  // An open rename keeps the rows on screen (render) until its field blurs and commits.
+  hideMenu();
+  render();
+  const trigger = focusTrigger && rootEl && rootEl.querySelector('.ws-fold');
+  if (trigger) trigger.focus({ preventScroll: true });
 }
 
 function toggleList() {
@@ -520,8 +567,31 @@ function toggleList() {
   if (fold) fold.focus({ preventScroll: true });
 }
 
+/** The selected workspace's branch, and a "remote" / "offline" tag for a server one. */
+function selectedFace(selectedId) {
+  const rec = selectedId === state.MAIN_WORKSPACE_ID ? null : workspaces.find((w) => w.id === selectedId);
+  const name = rec ? rec.branch : mainLabel();
+  const remote = rec && rec.location === 'server'
+    ? `<span class="ws-switch-tag${rec.offline ? ' offline' : ''}" title="Runs on ${escapeHtml(rec.host || 'the server')}${rec.offline ? ' — offline' : ''}">${rec.offline ? 'offline' : 'remote'}</span>`
+    : '';
+  return { name, remote };
+}
+
 /**
- * The header's fold control. Open: the list's name. Folded: the selected
+ * The header outside Projects: a dropdown trigger showing only the selected
+ * workspace — no status dot, no "N waiting".
+ */
+function triggerHtml({ selectedId, open }) {
+  const { name, remote } = selectedFace(selectedId);
+  return `<button class="ws-fold ws-trigger" data-act="dropdown" type="button" aria-haspopup="true" aria-expanded="${open}" title="Switch workspace">
+      <span class="ws-fold-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+      ${remote}
+      <span class="ws-fold-chevron" aria-hidden="true"></span>
+    </button>`;
+}
+
+/**
+ * The header's fold control (Projects). Open: the list's name. Folded: the selected
  * workspace's dot and branch — the face the dropdown's trigger had — and
  * "N waiting" when agents wait in this project's other workspaces, in the
  * colour of the most urgent one.
@@ -533,11 +603,7 @@ function foldHtml({ open, selectedId, sums, queue }) {
         <span class="ws-head-title">Workspaces</span>
       </button>`;
   }
-  const rec = selectedId === state.MAIN_WORKSPACE_ID ? null : workspaces.find((w) => w.id === selectedId);
-  const name = rec ? rec.branch : mainLabel();
-  const remote = rec && rec.location === 'server'
-    ? `<span class="ws-switch-tag${rec.offline ? ' offline' : ''}" title="Runs on ${escapeHtml(rec.host || 'the server')}${rec.offline ? ' — offline' : ''}">${rec.offline ? 'offline' : 'remote'}</span>`
-    : '';
+  const { name, remote } = selectedFace(selectedId);
   const others = attention.othersWaiting(queue, selectedId);
   const waiting = others.count
     ? `<span class="ws-fold-waiting ${others.kind}" title="${others.count} agent${others.count === 1 ? '' : 's'} waiting in other workspaces">${others.count} waiting</span>`
@@ -567,8 +633,11 @@ function render() {
   const selectedId = selected ? selected.id : state.MAIN_WORKSPACE_ID;
   const sums = summaries();
   const queue = waitingQueue();
+  // Outside Projects the rows are a dropdown without statuses.
+  const asDropdown = isDropdownView();
+  const plain = asDropdown;
   // An inline rename lives in a row: the list is shown while one is open.
-  const open = listPrefs.isOpen(openPrefs, view) || !!renaming;
+  const open = (asDropdown ? dropdownOpen : listPrefs.isOpen(openPrefs, view)) || !!renaming;
   const canCreate = isRepo && loadedFor === projectPath;
   const addTitle = canCreate
     ? 'New workspace — on this Mac or a server (⌘⇧N)'
@@ -588,19 +657,19 @@ function render() {
   // `ws-switch` is kept on the header as a stable hook: the tour's Workspaces
   // step points at it.
   rootEl.innerHTML = `
-    <div class="ws-head ws-switch${open ? '' : ' folded'}">
-      ${foldHtml({ open, selectedId, sums, queue })}
+    <div class="ws-head ws-switch${asDropdown ? ` dropdown${open ? ' open' : ''}` : (open ? '' : ' folded')}">
+      ${asDropdown ? triggerHtml({ selectedId, open }) : foldHtml({ open, selectedId, sums, queue })}
       <button class="ws-group-add" data-act="new" type="button" aria-label="New workspace" ${canCreate ? '' : 'disabled'} title="${escapeHtml(addTitle)}">${PLUS}</button>
     </div>
-    ${open ? `<div class="ws-list" role="group" aria-label="Workspaces">
+    ${open ? `<div class="ws-list${asDropdown ? ' ws-dropdown' : ''}" role="group" aria-label="Workspaces">
       <div class="ws-row main${mainOn ? ' on' : ''}" data-id="main" tabindex="0" role="button"${mainOn ? ' aria-current="true"' : ''}>
-        ${dotHtml(rollup.summaryFor(sums, state.MAIN_WORKSPACE_ID))}
+        ${plain ? '' : dotHtml(rollup.summaryFor(sums, state.MAIN_WORKSPACE_ID))}
         <span class="ws-labels"><span class="ws-primary" title="${escapeHtml(mainLabel())}">${escapeHtml(mainLabel())}</span><span class="ws-secondary">project checkout</span></span>
-        ${waitHtml(queue, state.MAIN_WORKSPACE_ID)}
+        ${plain ? '' : waitHtml(queue, state.MAIN_WORKSPACE_ID)}
       </div>
-      ${local.map((ws) => rowHtml(ws, { selectedId, sums, queue })).join('')}
+      ${local.map((ws) => rowHtml(ws, { selectedId, sums, queue, plain })).join('')}
       <div class="ws-sep" role="separator"></div>
-      ${remoteGroupHtml(remote, { canCreate, selectedId, sums, queue })}
+      ${remoteGroupHtml(remote, { canCreate, selectedId, sums, queue, plain })}
       ${archivedHtml}
     </div>` : ''}`;
 
@@ -658,6 +727,9 @@ function onClick(e) {
     const act = actEl.dataset.act;
     const ws = row ? findWs(row.dataset.id) : null;
     if (act === 'fold') return toggleList();
+    if (act === 'dropdown') return dropdownOpen ? closeDropdown() : openDropdown();
+    // What opens a dialog closes the dropdown first.
+    if (['new', 'connect', 'add-server', 'open-archived'].includes(act)) closeDropdown();
     // The header's one "+": the location is chosen in the dialog (this
     // project's last one by default).
     if (act === 'new') return openNew();
@@ -674,12 +746,13 @@ function onClick(e) {
     return;
   }
   if (!row) return;
-  if (row.dataset.id === state.MAIN_WORKSPACE_ID) return select(null);
-  const ws = findWs(row.dataset.id);
+  const ws = row.dataset.id === state.MAIN_WORKSPACE_ID ? null : findWs(row.dataset.id);
   if (ws && ws.missing) {
     notify.info(`The folder for "${ws.name}" is gone. Restore it from its branch, or remove the record.`);
     return;
   }
+  // A pick closes the dropdown; the header then shows the new selection.
+  closeDropdown({ focusTrigger: true });
   select(ws);
 }
 

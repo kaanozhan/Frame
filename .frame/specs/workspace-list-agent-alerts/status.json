@@ -14,7 +14,8 @@
     "task-spec-workspace-list-agent-alerts-T09",
     "task-spec-workspace-list-agent-alerts-T10",
     "task-spec-workspace-list-agent-alerts-T11",
-    "task-spec-workspace-list-agent-alerts-T12"
+    "task-spec-workspace-list-agent-alerts-T12",
+    "task-spec-workspace-list-agent-alerts-T13"
   ],
   "ai_tool": "claude",
   "created_at": "2026-11-18T08:57:07Z",

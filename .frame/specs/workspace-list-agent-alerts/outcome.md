@@ -84,3 +84,10 @@ At the user's request the row label no longer shows time: `waitLabel` in `worksp
 _Captured: 2026-11-18 · 4 file change(s)_
 
 ---
+## T13 — Follow-up: outside Projects the workspace header is a dropdown with only the selected workspace
+
+At the user's request, in Files, Changes and GitHub the header no longer folds and unfolds the list in place: `workspaceSection.js` draws a trigger with the selected workspace's branch, its remote / offline tag and a chevron (`triggerHtml`, sharing `selectedFace` with the folded header), and opens the same rows as a dropdown under it (`.ws-list.ws-dropdown` in `workspaces.css`, the project switcher's menu surface). A pick closes it and the trigger shows the new workspace; a click outside (the row menu counts as inside) or Escape closes it too, and anything that opens a dialog closes it first. There the rows carry no status dot and no wait label (`plain`), and the header has no "N waiting". Projects is unchanged: the open list with its fold, dots, wait labels and "N waiting". This overturns plan B11 and T7 for those three views (the folded header is a menu trigger again there, though the rows come from the one render path, not a second copy); `listPrefs` still stores per-view state, but only Projects reads it now. Server sub-headers keep their link-state styling. Not seen running; tests not run (the user set them aside after the full suite hung).
+
+_Captured: 2026-11-18 · 2 file change(s)_
+
+---
