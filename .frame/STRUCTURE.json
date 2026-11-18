@@ -8473,7 +8473,7 @@
           ]
         },
         "heldSpec": {
-          "line": 306,
+          "line": 314,
           "params": [
             "projectPath",
             "id"
@@ -8481,7 +8481,7 @@
           "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
         },
         "prDraft": {
-          "line": 320,
+          "line": 328,
           "params": [
             "projectPath",
             "id"
@@ -8489,7 +8489,7 @@
           "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
         },
         "prCreate": {
-          "line": 331,
+          "line": 339,
           "params": [
             "projectPath",
             "id",
@@ -8500,7 +8500,7 @@
           "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
         },
         "merge": {
-          "line": 359,
+          "line": 367,
           "params": [
             "projectPath",
             "id"
@@ -8508,14 +8508,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 409,
+          "line": 417,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 446,
+          "line": 454,
           "params": [
             "projectPath",
             "id"
@@ -8523,7 +8523,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 464,
+          "line": 472,
           "params": [
             "ipcMain"
           ]
@@ -8543,7 +8543,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 21919,
+      "sizeBytes": 22429,
       "extraction": {
         "status": "parsed"
       },
@@ -27131,6 +27131,7 @@
         "pickMergeMethod",
         "fixChecksPrompt",
         "isPushable",
+        "offBranchError",
         "pushArgs",
         "mergeLanded",
         "baseForBranch",
@@ -27195,8 +27196,17 @@
           ],
           "purpose": "The prompt \"Fix failing checks\" hands the workspace's agent. It names the"
         },
+        "offBranchError": {
+          "line": 150,
+          "params": [
+            "{ branch",
+            "headRef",
+            "branchExists }"
+          ],
+          "purpose": "Why a push must not run because the workspace's folder left its branch, or"
+        },
         "isPushable": {
-          "line": 142,
+          "line": 159,
           "params": [
             "{ branch",
             "base }"
@@ -27204,7 +27214,7 @@
           "purpose": "A workspace branch may be pushed unless it is (or names) its own base."
         },
         "pushArgs": {
-          "line": 157,
+          "line": 174,
           "params": [
             "{ branch",
             "base",
@@ -27213,14 +27223,14 @@
           "purpose": "The argv for pushing a workspace branch (workspace-hardening L1). The push"
         },
         "parseConflicts": {
-          "line": 170,
+          "line": 187,
           "params": [
             "stdout"
           ],
           "purpose": "`git diff --name-only --diff-filter=U -z` → conflicted paths, in order, no duplicates."
         },
         "updateMenuState": {
-          "line": 185,
+          "line": 202,
           "params": [
             "{ behind = 0",
             "merging = false",
@@ -27230,7 +27240,7 @@
           "purpose": "The update items a workspace row offers: `[{ id, label }]`."
         },
         "conflictPrompt": {
-          "line": 198,
+          "line": 215,
           "params": [
             "{ branch",
             "base = 'main'",
@@ -27239,21 +27249,21 @@
           "purpose": "The prompt that hands an update's conflicts to an agent in the workspace."
         },
         "updateMessage": {
-          "line": 211,
+          "line": 228,
           "params": [
             "result"
           ],
           "purpose": "One sentence for the user about an update's result."
         },
         "mergeLanded": {
-          "line": 236,
+          "line": 253,
           "params": [
             "pr"
           ],
           "purpose": "Whether a PR read back after `gh pr merge` has actually merged. On a"
         },
         "baseForBranch": {
-          "line": 246,
+          "line": 263,
           "params": [
             "{ branch",
             "upstream",
@@ -27262,7 +27272,7 @@
           "purpose": "The base a workspace opened from an existing branch should record"
         }
       },
-      "sizeBytes": 11335,
+      "sizeBytes": 12494,
       "extraction": {
         "status": "parsed"
       },
@@ -27277,6 +27287,7 @@
           "isPushable": "20e43c7377899394",
           "mapPrView": "886ffc419a78fdac",
           "mergeLanded": "875702301f11b53c",
+          "offBranchError": "36bf1ad27d582d4f",
           "parseConflicts": "35eac48b8bf0d2d4",
           "parseCount": "e0e6116d342409ca",
           "pickMergeMethod": "b92b46d28d104dd3",
@@ -31773,7 +31784,7 @@
         "src/shared/prFlow"
       ],
       "functions": {},
-      "sizeBytes": 10169,
+      "sizeBytes": 11571,
       "extraction": {
         "status": "parsed"
       },
@@ -34105,7 +34116,8 @@
         "src/main/userSettings",
         "src/main/frameProject",
         "src/main/specManager",
-        "src/main/gitStatusManager"
+        "src/main/gitStatusManager",
+        "src/main/githubManager"
       ],
       "functions": {
         "withGh": {
@@ -34147,9 +34159,19 @@
         "detachedWithCommit": {
           "line": 193,
           "purpose": "A workspace whose worktree has one commit on a detached HEAD that no branch holds."
+        },
+        "workspaceWithCommit": {
+          "line": 574
+        },
+        "commitIn": {
+          "line": 580,
+          "params": [
+            "wt",
+            "file"
+          ]
         }
       },
-      "sizeBytes": 30788,
+      "sizeBytes": 34673,
       "extraction": {
         "status": "parsed"
       },
@@ -36820,6 +36842,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "65a109a4b8d913f599771b015652e018a204cd1ca3db3bf45fb33a5593a7fc6a"
+    "revision": "5cb0275f003844599b9be93658e3ce76271ddf07c91081fd7ea803938ade4161"
   }
 }
