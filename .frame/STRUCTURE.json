@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 112667,
+      "sizeBytes": 112917,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -745,26 +745,27 @@
         "electron",
         "userSettings",
         "analyticsEvents",
+        "shared/analyticsUi",
         "pollGate"
       ],
       "functions": {
         "init": {
-          "line": 88,
+          "line": 91,
           "purpose": "Initialize Aptabase and build the PostHog client."
         },
         "initAptabase": {
-          "line": 112
+          "line": 115
         },
         "distinctId": {
-          "line": 129,
+          "line": 132,
           "purpose": "This install's distinct id, resolved on first use and cached for the run."
         },
         "personProperties": {
-          "line": 148,
+          "line": 151,
           "purpose": "Person properties, sent once per run alongside the first event."
         },
         "track": {
-          "line": 161,
+          "line": 164,
           "params": [
             "name",
             "props"
@@ -772,57 +773,57 @@
           "purpose": "Send a registered anonymous event. No-op if disabled or not initialized."
         },
         "isErrorReportingEnabled": {
-          "line": 197,
+          "line": 200,
           "purpose": "Whether exception detail may be sent."
         },
         "captureException": {
-          "line": 214,
+          "line": 217,
           "params": [
             "err"
           ],
           "purpose": "Send one exception, sanitized. No-op unless error reporting is explicitly on."
         },
         "noticeState": {
-          "line": 241,
+          "line": 244,
           "purpose": "Whether the disclosure notice is due, and the version to store when it is"
         },
         "startActiveTimer": {
-          "line": 262,
+          "line": 266,
           "purpose": "Start counting active time."
         },
         "trackAppStarted": {
-          "line": 275,
+          "line": 279,
           "purpose": "Anonymous event marking this launch."
         },
         "trackOptOut": {
-          "line": 290,
+          "line": 294,
           "purpose": "The one event an opt-out sends: that it happened, and nothing else."
         },
         "setEnabled": {
-          "line": 326,
+          "line": 330,
           "params": [
             "enabled"
           ],
           "purpose": "Toggle analytics from Settings. Persists the new state, then re-resolves"
         },
         "migrateLegacySettings": {
-          "line": 346,
+          "line": 350,
           "purpose": "Copy settings forward from the names this feature used when it was called"
         },
         "enforceFailClosed": {
-          "line": 370,
+          "line": 374,
           "purpose": "Make a failed settings load's fail-closed state stick. Called right after"
         },
         "isEnabled": {
-          "line": 381,
+          "line": 385,
           "purpose": "Effective enabled state. Default ON when the setting has never been"
         },
         "shutdown": {
-          "line": 397,
+          "line": 401,
           "purpose": "Flush the batcher and close the client, for the quit path."
         }
       },
-      "sizeBytes": 16206,
+      "sizeBytes": 16478,
       "extraction": {
         "status": "parsed"
       },
@@ -8835,8 +8836,16 @@
             "projectPath"
           ]
         },
+        "withHeadBranch": {
+          "line": 443,
+          "params": [
+            "rows",
+            "worktrees"
+          ],
+          "purpose": "Display only: each row's `headBranch` is the branch git reports for its"
+        },
         "withBase": {
-          "line": 440,
+          "line": 453,
           "params": [
             "projectPath",
             "rows"
@@ -8844,7 +8853,7 @@
           "purpose": "Records stored before workspaces knew their base (`base: null`) read as the"
         },
         "baseForBranch": {
-          "line": 447,
+          "line": 460,
           "params": [
             "projectPath",
             "branch"
@@ -8852,14 +8861,14 @@
           "purpose": "The base to prefill for a workspace opened from `branch` (decision B2)."
         },
         "status": {
-          "line": 456,
+          "line": 469,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "create": {
-          "line": 475,
+          "line": 488,
           "params": [
             "projectPath",
             "{ from = 'new'",
@@ -8872,14 +8881,14 @@
           "purpose": "Create a workspace."
         },
         "refExists": {
-          "line": 580,
+          "line": 593,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "archive": {
-          "line": 596,
+          "line": 609,
           "params": [
             "projectPath",
             "id",
@@ -8890,7 +8899,7 @@
           "purpose": "Archive. With uncommitted changes and no `action`, nothing happens and"
         },
         "restore": {
-          "line": 651,
+          "line": 664,
           "params": [
             "projectPath",
             "id"
@@ -8898,7 +8907,7 @@
           "purpose": "Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere."
         },
         "rename": {
-          "line": 679,
+          "line": 692,
           "params": [
             "projectPath",
             "id",
@@ -8908,7 +8917,7 @@
           "purpose": "Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`)."
         },
         "removeRecord": {
-          "line": 713,
+          "line": 726,
           "params": [
             "projectPath",
             "id"
@@ -8916,13 +8925,13 @@
           "purpose": "Forget a record whose worktree is gone (missing) or that is archived."
         },
         "setupIPC": {
-          "line": 729,
+          "line": 742,
           "params": [
             "ipcMain"
           ]
         },
         "archiveQueued": {
-          "line": 756,
+          "line": 769,
           "params": [
             "projectPath",
             "id",
@@ -8949,7 +8958,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 34517,
+      "sizeBytes": 35186,
       "extraction": {
         "status": "parsed"
       },
@@ -8980,6 +8989,7 @@
           "serverProjectFor": "16b973c83496d03e",
           "serverRoots": "a6296ff018796775",
           "withBase": "5fcc74b573fe69cf",
+          "withHeadBranch": "171e5a862b98fc02",
           "workspacesRoot": "c775b00e7f51ade2"
         }
       }
@@ -11513,23 +11523,24 @@
         "shared/ipcChannels",
         "settingsOverlay",
         "shared/uiZoom",
+        "shared/analyticsUi",
         "../package.json"
       ],
       "functions": {
         "init": {
-          "line": 53
+          "line": 54
         },
         "initAboutSection": {
-          "line": 141
+          "line": 145
         },
         "runCheck": {
-          "line": 234,
+          "line": 238,
           "params": [
             "userInitiated"
           ]
         },
         "renderUpdateState": {
-          "line": 274,
+          "line": 278,
           "params": [
             "{ checked",
             "found",
@@ -11541,39 +11552,42 @@
           ]
         },
         "showUpdateBanner": {
-          "line": 308,
+          "line": 312,
           "params": [
             "info"
           ]
         },
         "hideUpdateBanner": {
-          "line": 325
-        },
-        "hideSidebarDot": {
           "line": 329
         },
+        "hideSidebarDot": {
+          "line": 333
+        },
         "formatRelative": {
-          "line": 335,
+          "line": 339,
           "params": [
             "date"
           ]
         },
         "initZoomSelect": {
-          "line": 351,
+          "line": 355,
           "purpose": "Fill the Interface size select from the shared ladder — one option per"
         },
         "syncZoomFromMain": {
-          "line": 374
+          "line": 378
+        },
+        "hideAnalyticsRows": {
+          "line": 395,
+          "purpose": "Hidden analytics UI: hide its switch and the error-report switch that rides on it."
         },
         "syncErrorReportingAvailability": {
-          "line": 390,
+          "line": 404,
           "params": [
             "analyticsOn"
-          ],
-          "purpose": "Error reporting is gated on analytics in main (analytics.captureException"
+          ]
         },
         "syncToggleFromSettings": {
-          "line": 397
+          "line": 411
         }
       },
       "ipc": {
@@ -11590,15 +11604,15 @@
           "ANALYTICS_TRACK"
         ]
       },
-      "sizeBytes": 15877,
+      "sizeBytes": 16528,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "1dffdbc6d50a7e19",
         "purposes": {
-          "initZoomSelect": "cbe76526d4d65826",
-          "syncErrorReportingAvailability": "f99d7b4f4c5c647a"
+          "hideAnalyticsRows": "2580c3061bdd6e9a",
+          "initZoomSelect": "cbe76526d4d65826"
         }
       }
     },
@@ -20587,8 +20601,15 @@
             "summary"
           ]
         },
+        "branchLabel": {
+          "line": 362,
+          "params": [
+            "ws"
+          ],
+          "purpose": "The branch a row is labelled with: the one git reports for its folder now"
+        },
         "rowHtml": {
-          "line": 357,
+          "line": 367,
           "params": [
             "ws",
             "{ selectedId",
@@ -20599,18 +20620,18 @@
           "purpose": "`plain` (the dropdown outside Projects): no status dot, no wait label."
         },
         "linkView": {
-          "line": 394,
+          "line": 404,
           "params": [
             "srv"
           ],
           "purpose": "A saved server as the Remote group reads it: `{ key, host, phase, state }`."
         },
         "serverViews": {
-          "line": 404,
+          "line": 414,
           "purpose": "Every saved server, in list order (multi-server-connections)."
         },
         "serverHeadHtml": {
-          "line": 414,
+          "line": 424,
           "params": [
             "link",
             "{ collapsed",
@@ -20620,46 +20641,46 @@
           "purpose": "One server's sub-header in Remote, drawn as a labelled sub-separator: the"
         },
         "isServerOpen": {
-          "line": 446,
+          "line": 456,
           "params": [
             "key",
             "count"
           ]
         },
         "setServerOpen": {
-          "line": 450,
+          "line": 460,
           "params": [
             "key",
             "open"
           ]
         },
         "toggleServer": {
-          "line": 455,
+          "line": 465,
           "params": [
             "key"
           ]
         },
         "serverCounts": {
-          "line": 466,
+          "line": 476,
           "params": [
             "list"
           ]
         },
         "openServersThatGrew": {
-          "line": 472,
+          "line": 482,
           "params": [
             "list"
           ]
         },
         "serverEmptyHtml": {
-          "line": 481,
+          "line": 491,
           "params": [
             "link"
           ],
           "purpose": "What a server with no workspaces of this project offers: the next step for its link."
         },
         "remoteGroupHtml": {
-          "line": 500,
+          "line": 510,
           "params": [
             "remote",
             "{ canCreate",
@@ -20671,41 +20692,41 @@
           "purpose": "The Remote group: one sub-header per saved server with its own rows or its"
         },
         "mainLabel": {
-          "line": 522,
+          "line": 532,
           "purpose": "The main row's label: the branch the project's own checkout is on, like"
         },
         "isDropdownView": {
-          "line": 531,
+          "line": 541,
           "purpose": "Projects shows the list in the sidebar, open or folded; Files, Changes and"
         },
         "setView": {
-          "line": 536,
+          "line": 546,
           "params": [
             "next"
           ],
           "purpose": "The sidebar switched views: the list follows that view's own open / folded state."
         },
         "openDropdown": {
-          "line": 544
+          "line": 554
         },
         "closeDropdown": {
-          "line": 553,
+          "line": 563,
           "params": [
             "{ focusTrigger = false } = {}"
           ]
         },
         "toggleList": {
-          "line": 563
+          "line": 573
         },
         "selectedFace": {
-          "line": 572,
+          "line": 582,
           "params": [
             "selectedId"
           ],
           "purpose": "The selected workspace's branch, and a \"remote\" / \"offline\" tag for a server one."
         },
         "triggerHtml": {
-          "line": 585,
+          "line": 595,
           "params": [
             "{ selectedId",
             "open }"
@@ -20713,7 +20734,7 @@
           "purpose": "The header outside Projects: a dropdown trigger showing only the selected"
         },
         "foldHtml": {
-          "line": 600,
+          "line": 610,
           "params": [
             "{ open",
             "selectedId",
@@ -20723,10 +20744,10 @@
           "purpose": "The header's fold control (Projects). Open: the list's name. Folded: the selected"
         },
         "render": {
-          "line": 620
+          "line": 630
         },
         "revealRow": {
-          "line": 700,
+          "line": 710,
           "params": [
             "list",
             "row"
@@ -20734,38 +20755,38 @@
           "purpose": "Scroll `list` just far enough that `row` is fully in view."
         },
         "moveFocus": {
-          "line": 710,
+          "line": 720,
           "params": [
             "step"
           ],
           "purpose": "Arrow keys walk the list's rows and buttons, top to bottom."
         },
         "findWs": {
-          "line": 718,
+          "line": 728,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 722,
+          "line": 732,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 760,
+          "line": 770,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 782,
+          "line": 792,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 795,
+          "line": 805,
           "params": [
             "ws",
             "x",
@@ -20773,48 +20794,48 @@
           ]
         },
         "hideMenu": {
-          "line": 822
+          "line": 832
         },
         "onMenuClick": {
-          "line": 826,
+          "line": 836,
           "params": [
             "e"
           ]
         },
         "sendFilesTo": {
-          "line": 838,
+          "line": 848,
           "params": [
             "ws"
           ]
         },
         "openNew": {
-          "line": 848,
+          "line": 858,
           "params": [
             "opts"
           ]
         },
         "startRename": {
-          "line": 856,
+          "line": 866,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 861,
+          "line": 871,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 881,
+          "line": 891,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "rescueBranchName": {
-          "line": 922,
+          "line": 932,
           "params": [
             "ws",
             "head"
@@ -20822,7 +20843,7 @@
           "purpose": "The branch name archive's rescue creates; the sha may be unknown before a commit is made."
         },
         "askRescue": {
-          "line": 928,
+          "line": 938,
           "params": [
             "ws",
             "head"
@@ -20830,14 +20851,14 @@
           "purpose": "The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false."
         },
         "closeWorkspaceTerminals": {
-          "line": 965,
+          "line": 975,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 978,
+          "line": 988,
           "params": [
             "ws",
             "count"
@@ -20845,20 +20866,20 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 1036,
+          "line": 1046,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 1042,
+          "line": 1052,
           "params": [
             "ws"
           ]
         },
         "archivedOpen": {
-          "line": 1064
+          "line": 1074
         },
         "matchArchived": {
-          "line": 1069,
+          "line": 1079,
           "params": [
             "records",
             "text"
@@ -20866,42 +20887,42 @@
           "purpose": "Archived records whose branch, name or host contains `text`; all of them for an empty filter."
         },
         "ensureArchivedModal": {
-          "line": 1076
+          "line": 1086
         },
         "renderArchivedList": {
-          "line": 1119
+          "line": 1129
         },
         "openArchived": {
-          "line": 1135
+          "line": 1145
         },
         "closeArchived": {
-          "line": 1145,
+          "line": 1155,
           "params": [
             "{ refocus = false } = {}"
           ]
         },
         "removeRecord": {
-          "line": 1152,
+          "line": 1162,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 1161,
+          "line": 1171,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 1174,
+          "line": 1184,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 1188,
+          "line": 1198,
           "purpose": "Active workspaces of the current project, as last loaded."
         },
         "openPrefs": {
@@ -20912,7 +20933,7 @@
           "purpose": "Open or folded, per view: localStorage `frame-ws-list-open` (workspaces/listPrefs.js)."
         },
         "serverOpen": {
-          "line": 442,
+          "line": 452,
           "params": [
             "("
           ]
@@ -20925,7 +20946,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 54348,
+      "sizeBytes": 54712,
       "extraction": {
         "status": "parsed"
       },
@@ -20935,6 +20956,7 @@
           "archiveWorkspace": "4363218bb753fb2e",
           "askArchiveChoice": "2981894ae593cf4b",
           "askRescue": "24458e85717df59f",
+          "branchLabel": "0bfbf12599febeee",
           "closeWorkspaceTerminals": "22a7c42ea098a240",
           "foldHtml": "1be50ebe9661295d",
           "getWorkspaces": "0eab879c07f7a326",
@@ -25970,7 +25992,8 @@
       "description": "Server check-up — what this server can do for Frame and what is missing",
       "exports": [
         "setup",
-        "measure"
+        "measure",
+        "NPM_GLOBAL_PROBE"
       ],
       "depends": [
         "fs",
@@ -25982,35 +26005,35 @@
       ],
       "functions": {
         "shell": {
-          "line": 24,
+          "line": 31,
           "params": [
             "command"
           ],
           "purpose": "Run a command in the user's login shell (PATH from their profile); resolves { ok, stdout }."
         },
         "exists": {
-          "line": 33,
+          "line": 40,
           "params": [
             "p"
           ]
         },
         "claudeSignedIn": {
-          "line": 37,
+          "line": 44,
           "params": [
             "home"
           ]
         },
         "measure": {
-          "line": 47
+          "line": 54
         },
         "setup": {
-          "line": 70,
+          "line": 80,
           "params": [
             "{ registerMethods }"
           ]
         }
       },
-      "sizeBytes": 3133,
+      "sizeBytes": 3761,
       "extraction": {
         "status": "parsed"
       },
@@ -26554,6 +26577,22 @@
           "formatLabel": "a461593a6caf854b",
           "validateEvent": "d1d14b24d13d08ec"
         }
+      }
+    },
+    "shared/analyticsUi": {
+      "file": "src/shared/analyticsUi.js",
+      "description": "Analytics UI — one switch that hides the analytics UI for now, to be",
+      "exports": [
+        "ANALYTICS_UI_HIDDEN"
+      ],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 688,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "145f8d8c7f064495"
       }
     },
     "shared/copyFilesMatch": {
@@ -27918,7 +27957,8 @@
         "installDecision",
         "parseChecksum",
         "systemdUnit",
-        "doctorItems"
+        "doctorItems",
+        "userNpmInstall"
       ],
       "depends": [],
       "functions": {
@@ -27976,21 +28016,28 @@
           "purpose": "The systemd user unit that runs the current version."
         },
         "doctorItems": {
-          "line": 144,
+          "line": 146,
           "params": [
             "raw = {}"
           ],
           "purpose": "The check-up as items for the Connect dialog. `raw` is what server.doctor"
         },
+        "userNpmInstall": {
+          "line": 208,
+          "params": [
+            "pkg"
+          ],
+          "purpose": "One line that installs an npm package for this user only: npm's prefix"
+        },
         "agentTerminals": {
-          "line": 200,
+          "line": 225,
           "params": [
             "list"
           ],
           "purpose": "The server terminals running an agent, from `terminals.list` (each with its"
         },
         "consentNeeded": {
-          "line": 217,
+          "line": 242,
           "params": [
             "{ connected",
             "agents",
@@ -27999,7 +28046,7 @@
           "purpose": "Whether an update or rollback must ask first (server-hardening S9): when"
         }
       },
-      "sizeBytes": 9491,
+      "sizeBytes": 10697,
       "extraction": {
         "status": "parsed"
       },
@@ -28014,7 +28061,8 @@
           "installDecision": "e84479a8fb5b69bd",
           "parseChecksum": "691d502f346e91f0",
           "releaseUrl": "57ede9ed46f442ef",
-          "systemdUnit": "4c73100446c0ebe3"
+          "systemdUnit": "4c73100446c0ebe3",
+          "userNpmInstall": "05aa30b53dabc87f"
         }
       }
     },
@@ -29745,6 +29793,26 @@
       },
       "provenance": {
         "description": "9d61943b8b213ee4"
+      }
+    },
+    "test/analyticsUi.test": {
+      "file": "test/analyticsUi.test.js",
+      "description": "Analytics UI hidden (src/shared/analyticsUi.js): the notice is never due,",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "module",
+        "src/shared/analyticsUi",
+        "src/main/analytics"
+      ],
+      "functions": {},
+      "sizeBytes": 1603,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "bb07dba2307f2d02"
       }
     },
     "test/branchOptions.test": {
@@ -32684,15 +32752,30 @@
         "node:assert/strict",
         "src/shared/serverInstall",
         "fs",
-        "path"
+        "path",
+        "child_process",
+        "os",
+        "src/renderer/serverConnectModel",
+        "src/server/doctor"
       ],
-      "functions": {},
-      "sizeBytes": 7579,
+      "functions": {
+        "sandbox": {
+          "line": 130,
+          "params": [
+            "prefix = ''"
+          ],
+          "purpose": "A temp HOME and a fake `npm` that logs its arguments and prints `prefix` for `config get prefix`."
+        }
+      },
+      "sizeBytes": 11638,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "760904a1f755fc32"
+        "description": "760904a1f755fc32",
+        "purposes": {
+          "sandbox": "d52b0b6e0ea621d3"
+        }
       }
     },
     "test/serverList.test": {
@@ -34463,7 +34546,7 @@
           "purpose": "A workspace whose worktree has one commit on a detached HEAD that no branch holds."
         }
       },
-      "sizeBytes": 29350,
+      "sizeBytes": 30788,
       "extraction": {
         "status": "parsed"
       },
@@ -37107,7 +37190,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 410,
+        "parsed": 412,
         "unsupported": 92,
         "partial": 0
       }
@@ -37154,9 +37237,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 596,
+      "visitedEntries": 598,
       "traversedDirectories": 86,
-      "eligibleFiles": 502,
+      "eligibleFiles": 504,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -37173,7 +37256,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 502,
+      "indexedFiles": 504,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -37181,6 +37264,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "2d9bbed348b496e06c3b5721d9dc0e52d57250ff001e69c23384b311c2071fe4"
+    "revision": "c761889f75184483239e3e2debe876a7ceaa1168f2e33d6d6ef02dbc5de95506"
   }
 }

@@ -262,7 +262,7 @@ function switchItems() {
   const selectedId = selected ? selected.id : state.MAIN_WORKSPACE_ID;
   const rows = [
     { id: state.MAIN_WORKSPACE_ID, title: mainLabel() },
-    ...workspaces.filter((w) => !w.missing).map((w) => ({ id: w.id, title: w.branch || w.name }))
+    ...workspaces.filter((w) => !w.missing).map((w) => ({ id: w.id, title: branchLabel(w) || w.name }))
   ];
   return rows
     .map((row, index) => ({ row, index }))
@@ -353,6 +353,16 @@ function dotHtml(summary) {
   return `<span class="ws-dot ${summary.dot}" title="${DOT_TITLES[summary.dot]}"></span>`;
 }
 
+/**
+ * The branch a row is labelled with: the one git reports for its folder now
+ * (`headBranch`, from main's list), else the recorded one — so a branch
+ * renamed inside the worktree shows as the status bar shows it. Label only:
+ * actions keep using the record.
+ */
+function branchLabel(ws) {
+  return (ws && (ws.headBranch || ws.branch)) || '';
+}
+
 /** `plain` (the dropdown outside Projects): no status dot, no wait label. */
 function rowHtml(ws, { selectedId, sums, queue, plain }) {
   const on = ws.id === selectedId ? ' on' : '';
@@ -361,11 +371,11 @@ function rowHtml(ws, { selectedId, sums, queue, plain }) {
   const editing = renaming && renaming.id === ws.id;
   const primary = editing && renaming.field === 'branch'
     ? `<input class="ws-rename" data-field="branch" value="${escapeHtml(ws.branch)}" spellcheck="false">`
-    : `<span class="ws-primary">${escapeHtml(ws.branch)}</span>`;
+    : `<span class="ws-primary">${escapeHtml(branchLabel(ws))}</span>`;
   // A second line only when it adds something: the name when it is not
   // just the branch's last segment (ws/violet → violet), a missing folder,
   // an offline server. The Remote group's head already names the host.
-  const tail = String(ws.branch || '').split('/').pop();
+  const tail = branchLabel(ws).split('/').pop();
   const notes = [
     ws.name && ws.name !== tail ? escapeHtml(ws.name) : '',
     ws.missing ? 'missing' : '',
@@ -571,7 +581,7 @@ function toggleList() {
 /** The selected workspace's branch, and a "remote" / "offline" tag for a server one. */
 function selectedFace(selectedId) {
   const rec = selectedId === state.MAIN_WORKSPACE_ID ? null : workspaces.find((w) => w.id === selectedId);
-  const name = rec ? rec.branch : mainLabel();
+  const name = rec ? branchLabel(rec) : mainLabel();
   const remote = rec && rec.location === 'server'
     ? `<span class="ws-switch-tag${rec.offline ? ' offline' : ''}" title="Runs on ${escapeHtml(rec.host || 'the server')}${rec.offline ? ' — offline' : ''}">${rec.offline ? 'offline' : 'remote'}</span>`
     : '';

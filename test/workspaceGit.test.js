@@ -543,3 +543,28 @@ test('the list names the branch the main checkout is on, not "main"', async () =
   git(['checkout', '-q', '--detach'], project);
   assert.equal((await workspaceManager.list(project)).mainBranch, 'detached HEAD');
 });
+
+// ─── A branch renamed inside the worktree (label only) ────────
+
+test('a branch renamed in the worktree shows in the list as headBranch; the record is left as it was', async () => {
+  const { project } = makeProject();
+  const created = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.equal(created.error, null, created.error);
+  const { id, path: wt, branch: recorded } = created.workspace;
+
+  let row = (await workspaceManager.list(project)).workspaces.find((w) => w.id === id);
+  assert.equal(row.headBranch, recorded, 'before: git and the record agree');
+
+  // What an agent does when asked for a better branch name.
+  git(['branch', '-m', 'feat/better-name'], wt);
+
+  row = (await workspaceManager.list(project)).workspaces.find((w) => w.id === id);
+  assert.equal(row.headBranch, 'feat/better-name', 'the label follows git');
+  assert.equal(row.branch, recorded, 'the record keeps its branch');
+  assert.equal(projectRegistry.getWorkspaceRecords(project).find((r) => r.id === id).branch, recorded, 'nothing is stored');
+  assert.equal('headBranch' in projectRegistry.getWorkspaceRecords(project).find((r) => r.id === id), false);
+
+  git(['checkout', '-q', '--detach'], wt);
+  row = (await workspaceManager.list(project)).workspaces.find((w) => w.id === id);
+  assert.equal(row.headBranch, null, 'a detached HEAD has no branch to show; the row falls back to the record');
+});
