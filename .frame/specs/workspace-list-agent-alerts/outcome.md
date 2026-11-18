@@ -63,3 +63,10 @@ Added `workspaces/otherProjects.js` (`group`, `slotFace`) with `test/otherProjec
 _Captured: 2026-11-18 · 4 file change(s)_
 
 ---
+## T10 — Popover by workspace, and landing on the agent's workspace
+
+Grouped the status bar popover in `statusBar.js` by project, workspace, then agents (ids at once, names from `WORKSPACES_LIST` on open, cached while open), exported `rememberWorkspace` from `state.js`, added `workspaceSection.whenLoaded(projectPath)` (resolves on load, or after 2 seconds), and made `_focus` remember the agent's workspace, switch project, await the load, select the workspace and then `enterLane`. `_focus` also gives up when the user changes project while it waits, and a project that starts running agents while the popover is open shows ids until it is reopened. Not seen running: the cross-project landing is the least exercised path of this spec.
+
+_Captured: 2026-11-18 · 4 file change(s)_
+
+---

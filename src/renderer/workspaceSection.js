@@ -52,6 +52,7 @@ let pendingReselect = null; // projectPath whose remembered workspace a load sti
 let renaming = null;           // { id, field: 'name'|'branch' } while an inline editor is open
 let renderScheduled = false;
 let loadSeq = 0;
+let loadWaiters = [];          // whenLoaded() callers: { projectPath, resolve }
 let shownSelectedId = null;    // the selection the list last drew: a new one is scrolled into view
 let view = 'projects';         // the sidebar view on screen (index.js's revealSidebarTab)
 // Open or folded, per view: localStorage `frame-ws-list-open` (workspaces/listPrefs.js).
@@ -174,6 +175,33 @@ async function load({ reselect = false } = {}) {
     }
   }
   render();
+  // The list is in and the remembered selection applied: whoever waited may go on.
+  const ready = loadWaiters.filter((w) => w.projectPath === projectPath);
+  loadWaiters = loadWaiters.filter((w) => w.projectPath !== projectPath);
+  ready.forEach((w) => w.resolve(true));
+}
+
+const LOAD_WAIT_MS = 2000;
+
+/**
+ * Resolves once `projectPath`'s workspace list has loaded and its remembered
+ * workspace is selected — true — or after a short wait — false — so a caller
+ * that just switched project (the status bar's agent popover) can land on a
+ * workspace of it without hanging on a slow or failed read.
+ */
+function whenLoaded(projectPath) {
+  if (!projectPath) return Promise.resolve(false);
+  if (loadedFor === projectPath && state.getProjectPath() === projectPath && pendingReselect !== projectPath) {
+    return Promise.resolve(true);
+  }
+  return new Promise((resolve) => {
+    const waiter = { projectPath, resolve: (value) => { clearTimeout(timer); resolve(value); } };
+    const timer = setTimeout(() => {
+      loadWaiters = loadWaiters.filter((w) => w !== waiter);
+      resolve(false);
+    }, LOAD_WAIT_MS);
+    loadWaiters.push(waiter);
+  });
 }
 
 function select(ws) {
@@ -1112,6 +1140,7 @@ module.exports = {
   selectById,
   switchItems,
   goToNextWaiting,
+  whenLoaded,
   setActions,
   getWorkspaces,
   selectedWorkspace,
