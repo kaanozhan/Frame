@@ -50,6 +50,7 @@ const { GitBranch, Bot, Server } = require('lucide');
 const branchPicker = require('./statusBar/branchPicker');
 const noticeTray = require('./statusBar/noticeTray');
 const githubPanel = require('./githubPanel');
+const otherProjects = require('./workspaces/otherProjects');
 
 // One button per dock tab, in dockState.TABS' canonical order — not the
 // strip's, which the user can drag around: the bar is a fixed row of
@@ -388,45 +389,21 @@ function _buildAgentSlot() {
  * @param {Map<string, {approval: number, input: number}>} counts
  */
 function updateAgents(states, counts) {
-  const here = state.getProjectPath();
-  const byProject = new Map();
-
-  for (const s of states || []) {
-    const path = s.projectPath;
-    if (!path || path === here) continue; // this project speaks for itself
-    const st = laneStatus.getStatus(s.id);
-    if (!st.agentName) continue;
-    if (!byProject.has(path)) {
-      const c = (counts && counts.get(path)) || { approval: 0, input: 0 };
-      byProject.set(path, { path, name: _projectName(path), approval: c.approval, input: c.input, agents: [] });
-    }
-    byProject.get(path).agents.push({
-      id: s.id,
-      agentName: st.agentName,
-      status: st.status,
-      terminalName: s.customName || s.name
-    });
-  }
-
-  // Projects with something waiting first, then by how many agents they run.
-  lastProjects = [...byProject.values()].sort((a, b) => {
-    const wa = a.approval * 2 + a.input;
-    const wb = b.approval * 2 + b.input;
-    if (wa !== wb) return wb - wa;
-    return b.agents.length - a.agents.length;
+  // Grouped by project, then workspace; this project speaks for itself
+  // (workspaces/otherProjects.js).
+  lastProjects = otherProjects.group(states, {
+    currentProject: state.getProjectPath(),
+    counts,
+    getStatus: (id) => laneStatus.getStatus(id)
   });
 
   _renderAgents();
 }
 
-function _projectName(path) {
-  return path.split(/[\\/]/).filter(Boolean).pop() || path;
-}
-
 function _renderAgents() {
   if (!indicatorEl) return;
 
-  const total = lastProjects.reduce((n, p) => n + p.agents.length, 0);
+  const total = lastProjects.reduce((n, p) => n + p.agentCount, 0);
   const approval = lastProjects.reduce((n, p) => n + p.approval, 0);
   const input = lastProjects.reduce((n, p) => n + p.input, 0);
   const waiting = approval + input;
@@ -442,14 +419,13 @@ function _renderAgents() {
     return;
   }
 
-  // The scope ("in 2 other projects") lives in the tooltip and the popover's
-  // header; the bar itself shows the glyph, the count and — only when
-  // something is actually waiting — a pill in that status's colour.
+  // The face names its scope: "Other projects · 3 agents · 1 waiting". With
+  // nothing waiting it is a quiet outlined chip; while an agent waits the
+  // whole slot is filled in that status's colour (approval before input).
   const attention = approval ? 'agent-approval' : input ? 'agent-input' : null;
-  indicatorEl.className = `sb-agents${attention ? ` ${attention}` : ''}`;
+  indicatorEl.className = `sb-agents named${attention ? ` ${attention}` : ''}`;
   const scope = `in ${lastProjects.length} other project${lastProjects.length === 1 ? '' : 's'}`;
-  indicatorEl.innerHTML = `${icon}<span class="sb-agents-count">${total}</span>`
-    + (waiting ? `<span class="sb-agents-wait">${waiting} waiting</span>` : '');
+  indicatorEl.innerHTML = `${icon}<span class="sb-agents-face">${escapeHtml(otherProjects.slotFace(total, waiting))}</span>`;
   indicatorEl.title = [
     `${total} agent${total === 1 ? '' : 's'} ${scope} — not this one`,
     approval ? `${approval} needs approval` : null,
@@ -461,7 +437,7 @@ function _renderAgents() {
 }
 
 function _renderMenu() {
-  const total = lastProjects.reduce((n, p) => n + p.agents.length, 0);
+  const total = lastProjects.reduce((n, p) => n + p.agentCount, 0);
   const waiting = lastProjects.reduce((n, p) => n + p.approval + p.input, 0);
   const meta = [`${total} agent${total === 1 ? '' : 's'}`, waiting ? `${waiting} waiting` : null].filter(Boolean).join(' · ');
   menuEl.innerHTML = `
@@ -471,8 +447,8 @@ function _renderMenu() {
     </div>
     <div class="sb-agents-list" role="listbox">
       ${lastProjects.map(p => `
-        <div class="sb-agents-group">${escapeHtml(p.name)}<span class="sb-agents-group-count">${p.agents.length}</span></div>
-        ${p.agents.map(a => `
+        <div class="sb-agents-group">${escapeHtml(p.name)}<span class="sb-agents-group-count">${p.agentCount}</span></div>
+        ${p.workspaces.flatMap(w => w.agents).map(a => `
           <button type="button" class="sb-agents-row ${a.status}" role="option" data-id="${escapeHtml(a.id)}" data-path="${escapeHtml(p.path)}">
             <span class="lane-status-dot ${a.status}"></span>
             <span class="sb-agents-row-name">${escapeHtml(a.terminalName)}</span>

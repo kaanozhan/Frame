@@ -56,3 +56,10 @@ Added `pick({ placeholder, items })` to `commandPalette.js`, `selectById`, `goTo
 _Captured: 2026-11-18 · 3 file change(s)_
 
 ---
+## T09 — Status bar slot face: named scope, filled while an agent waits
+
+Added `workspaces/otherProjects.js` (`group`, `slotFace`) with `test/otherProjectsAgents.test.js`, made `statusBar.updateAgents` use it, and rendered the slot as "Other projects · N agents[ · M waiting]": an outlined chip that fills with `--error` for approval or `--warning-ink` for input in `status-bar.css`. `group` already accepts a names map for T10 and gives each project an `agentCount`; the old count and pill rules were removed. Not seen running, so the chip's look per theme is unchecked.
+
+_Captured: 2026-11-18 · 4 file change(s)_
+
+---
