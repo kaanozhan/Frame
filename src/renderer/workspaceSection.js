@@ -254,7 +254,7 @@ function switchItems() {
       return {
         id: row.id,
         title: row.title,
-        detail: wait ? attention.waitLabel(wait.kind, wait.since) : (row.id === selectedId ? 'current' : '')
+        detail: wait ? attention.waitLabel(wait.kind) : (row.id === selectedId ? 'current' : '')
       };
     });
 }
@@ -313,28 +313,14 @@ const WAIT_TITLES = {
 
 /**
  * A row's trailing label while an agent in that workspace waits:
- * `approval · 2m`, the agent's name in the tooltip. Nothing otherwise, so
- * rows keep one height whether or not an agent waits.
+ * `approval` or `waiting`, the agent's name in the tooltip. Nothing
+ * otherwise, so rows keep one height whether or not an agent waits.
  */
 function waitHtml(queue, workspaceId) {
   const wait = attention.workspaceWait(queue, workspaceId);
   if (!wait) return '';
   const who = wait.agentName || 'An agent';
-  return `<span class="ws-wait ${wait.kind}" title="${escapeHtml(`${who} ${WAIT_TITLES[wait.kind]}`)}">${escapeHtml(attention.waitLabel(wait.kind, wait.since))}</span>`;
-}
-
-// Labels count minutes: the list is redrawn every 30 seconds, and only
-// while a label is on screen.
-const WAIT_TICK_MS = 30 * 1000;
-let waitTimer = null;
-
-function syncWaitTimer() {
-  const shown = !!(rootEl && !rootEl.hidden && rootEl.querySelector('.ws-wait'));
-  if (shown && !waitTimer) waitTimer = setInterval(scheduleRender, WAIT_TICK_MS);
-  else if (!shown && waitTimer) {
-    clearInterval(waitTimer);
-    waitTimer = null;
-  }
+  return `<span class="ws-wait ${wait.kind}" title="${escapeHtml(`${who} ${WAIT_TITLES[wait.kind]}`)}">${escapeHtml(attention.waitLabel(wait.kind))}</span>`;
 }
 
 const DOT_TITLES = {
@@ -570,7 +556,6 @@ function render() {
   rootEl.hidden = !projectPath;
   if (!projectPath) {
     rootEl.innerHTML = '';
-    syncWaitTimer();
     return;
   }
   const prevList = rootEl.querySelector('.ws-list');
@@ -637,7 +622,6 @@ function render() {
     const row = [...rootEl.querySelectorAll('.ws-list .ws-row[tabindex="0"]')].find((el) => el.dataset.id === focusedId);
     if (row) row.focus({ preventScroll: true });
   }
-  syncWaitTimer();
 }
 
 // ─── List ────────────────────────────────────────────────────

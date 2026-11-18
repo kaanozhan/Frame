@@ -69,13 +69,11 @@ function nextWaiting(queue, onScreenTerminalId) {
   return (queue || []).find((entry) => entry.terminalId !== onScreenTerminalId) || null;
 }
 
-/** `approval · 2m` — the kind and how long, in whole minutes, then hours. No start known: the kind alone. */
-function waitLabel(kind, since, now = Date.now()) {
-  if (!Number.isFinite(since)) return kind;
-  const minutes = Math.max(0, Math.floor((now - since) / 60000));
-  if (minutes < 1) return `${kind} · <1m`;
-  if (minutes < 60) return `${kind} · ${minutes}m`;
-  return `${kind} · ${Math.floor(minutes / 60)}h`;
+const WAIT_LABELS = { approval: 'approval', input: 'waiting' };
+
+/** What a wait is called on screen, without how long it has lasted: `approval` or `waiting`. */
+function waitLabel(kind) {
+  return WAIT_LABELS[kind] || kind;
 }
 
 module.exports = { waitingQueue, workspaceWait, othersWaiting, nextWaiting, waitLabel };

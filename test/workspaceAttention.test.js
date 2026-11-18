@@ -75,13 +75,10 @@ test('nextWaiting: the most urgent agent that is not on screen', () => {
   assert.equal(nextWaiting([], 't4'), null);
 });
 
-test('waitLabel: the kind and how long it has waited', () => {
-  assert.equal(waitLabel('approval', NOW - 2 * MIN, NOW), 'approval · 2m');
-  assert.equal(waitLabel('input', NOW - 9 * MIN - 59_000, NOW), 'input · 9m');
-  assert.equal(waitLabel('approval', NOW - 20_000, NOW), 'approval · <1m');
-  assert.equal(waitLabel('input', NOW - 59 * MIN, NOW), 'input · 59m');
-  assert.equal(waitLabel('input', NOW - 125 * MIN, NOW), 'input · 2h');
-  assert.equal(waitLabel('approval', null, NOW), 'approval');
-  // A clock that ran backwards never shows a negative wait.
-  assert.equal(waitLabel('approval', NOW + 5 * MIN, NOW), 'approval · <1m');
+test('waitLabel: the wait by name, never how long it has lasted', () => {
+  assert.equal(waitLabel('approval'), 'approval');
+  assert.equal(waitLabel('input'), 'waiting');
+  // Extra arguments (an old caller passing `since`) change nothing.
+  assert.equal(waitLabel('input', NOW - 9 * MIN, NOW), 'waiting');
+  assert.doesNotMatch(waitLabel('approval', NOW - 125 * MIN, NOW), /·|\dm|\dh/);
 });

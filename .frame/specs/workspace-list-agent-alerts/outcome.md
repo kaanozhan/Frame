@@ -77,3 +77,10 @@ Rewrote the three sentences in `guide/guideContent.js` for the open list (the `+
 _Captured: 2026-11-18 · 2 file change(s)_
 
 ---
+## T12 — Follow-up: the wait label names the wait, not how long it has lasted
+
+At the user's request the row label no longer shows time: `waitLabel` in `workspaces/attention.js` now takes only the kind and returns `waiting` for an input wait and `approval` for an approval wait (`input · 9m` and `approval · 2m` are gone). With no minutes on screen, the 30-second redraw in `workspaceSection.js` (`WAIT_TICK_MS`, `waitTimer`, `syncWaitTimer`) had nothing to refresh and was removed. The guide sketch shows `approval`, and `test/workspaceAttention.test.js` asserts the new labels. The internal kind stays `input` (and the `.ws-wait.input` class with it); `since` stays in the queue because it still orders waits. This overturns the time part of T01/T03 and spec.md's `approval · 2m` / `input · 9m` wording; those texts are left as the record. The user only named "input": approval keeping its own word is an assumption. Not seen running; `test/workspaceAttention.test.js` passes, and the full `npm test` was not finished (`specManagerServer.test.js` and `serverConnection.test.js` hung on this host, unrelated to this change; the user said to set tests aside).
+
+_Captured: 2026-11-18 · 4 file change(s)_
+
+---

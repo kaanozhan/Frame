@@ -528,7 +528,7 @@ const KINDS = {
             ${row('ws/violet', { dot: 'accent' })}`)}
           <div class="gs-ws-sep"></div>
           ${region('remote', focused, 'gs-ws-group', `
-            ${region('server', focused, 'gs-ws-group', `${serverHead('devbox')}${row('ws/teal', { dot: 'err', wait: 'approval · 2m' })}`)}
+            ${region('server', focused, 'gs-ws-group', `${serverHead('devbox')}${row('ws/teal', { dot: 'err', wait: 'approval' })}`)}
             ${serverHead('gpu-box')}`)}
           <div class="gs-ws-sep"></div>
           <div class="gs-ws-add">${label('Archived 3', 'gs-dim')}</div>
