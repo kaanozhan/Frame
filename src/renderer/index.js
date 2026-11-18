@@ -685,6 +685,8 @@ function revealSidebarTab(tabName) {
   // (project-dropdown spec) — the list/rail it used to defer to is gone.
   const cp = document.getElementById('sidebar-current-project-wrap');
   if (cp) cp.style.display = '';
+  // The workspace list is open or folded per view (workspace-list-agent-alerts).
+  require('./workspaceSection').setView(tabName);
   if (tabName === 'changes') ipcRenderer.send(IPC.REFRESH_GIT_STATUS);
   // GitHub loads on reveal the way Changes refreshes on reveal (D8); the
   // panel's own show() owns the data and the .visible flag.

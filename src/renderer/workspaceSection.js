@@ -4,7 +4,9 @@
  *
  * The second level under the project switcher: a "Workspaces" header with
  * "+" (New workspace; the dialog picks where it runs), and under it the list
- * itself, always in sight:
+ * itself. The header folds the list, per sidebar view (open in Projects,
+ * folded in Files, Changes and GitHub until the user says otherwise); folded,
+ * it shows the selected workspace and how many agents wait elsewhere. Open:
  *   - the main row (the project's own checkout, labelled with the branch it
  *     is on), then this Mac's workspaces;
  *   - one sub-header per saved Frame Server (host, Connect while it is down)
@@ -35,6 +37,7 @@ const notify = require('./notify');
 const { escapeHtml } = require('./htmlUtils');
 const rollup = require('./workspaces/rollup');
 const attention = require('./workspaces/attention');
+const listPrefs = require('./workspaces/listPrefs');
 const workspacePr = require('./workspacePr');
 
 let rootEl = null;
@@ -49,6 +52,11 @@ let showArchived = false;
 let renaming = null;           // { id, field: 'name'|'branch' } while an inline editor is open
 let renderScheduled = false;
 let loadSeq = 0;
+let view = 'projects';         // the sidebar view on screen (index.js's revealSidebarTab)
+// Open or folded, per view: localStorage `frame-ws-list-open` (workspaces/listPrefs.js).
+let openPrefs = (() => {
+  try { return listPrefs.parse(localStorage.getItem(listPrefs.STORAGE_KEY)); } catch (_) { return {}; }
+})();
 
 const actions = {
   onNew: null,                 // () => void — opens the new-workspace dialog (T08)
@@ -424,6 +432,52 @@ function mainLabel() {
   return mainBranch || 'main';
 }
 
+/** The sidebar switched views: the list follows that view's own open / folded state. */
+function setView(next) {
+  const name = next || 'projects';
+  if (name === view) return;
+  view = name;
+  render();
+}
+
+function toggleList() {
+  openPrefs = listPrefs.withOpen(openPrefs, view, !listPrefs.isOpen(openPrefs, view));
+  try { localStorage.setItem(listPrefs.STORAGE_KEY, JSON.stringify(openPrefs)); } catch (_) { /* preference only */ }
+  render();
+  const fold = rootEl && rootEl.querySelector('.ws-fold');
+  if (fold) fold.focus({ preventScroll: true });
+}
+
+/**
+ * The header's fold control. Open: the list's name. Folded: the selected
+ * workspace's dot and branch — the face the dropdown's trigger had — and
+ * "N waiting" when agents wait in this project's other workspaces, in the
+ * colour of the most urgent one.
+ */
+function foldHtml({ open, selectedId, sums, queue }) {
+  if (open) {
+    return `<button class="ws-fold" data-act="fold" type="button" aria-expanded="true" title="Hide the workspace list">
+        <span class="ws-fold-chevron" aria-hidden="true"></span>
+        <span class="ws-head-title">Workspaces</span>
+      </button>`;
+  }
+  const rec = selectedId === state.MAIN_WORKSPACE_ID ? null : workspaces.find((w) => w.id === selectedId);
+  const name = rec ? rec.branch : mainLabel();
+  const remote = rec && rec.location === 'server'
+    ? `<span class="ws-switch-tag${rec.offline ? ' offline' : ''}" title="Runs on ${escapeHtml(rec.host || 'the server')}${rec.offline ? ' — offline' : ''}">${rec.offline ? 'offline' : 'remote'}</span>`
+    : '';
+  const others = attention.othersWaiting(queue, selectedId);
+  const waiting = others.count
+    ? `<span class="ws-fold-waiting ${others.kind}" title="${others.count} agent${others.count === 1 ? '' : 's'} waiting in other workspaces">${others.count} waiting</span>`
+    : '';
+  return `<button class="ws-fold" data-act="fold" type="button" aria-expanded="false" title="Show the workspace list">
+      <span class="ws-fold-chevron" aria-hidden="true"></span>
+      ${dotHtml(rollup.summaryFor(sums, selectedId))}
+      <span class="ws-fold-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+      ${remote}${waiting}
+    </button>`;
+}
+
 function render() {
   if (!rootEl) return;
   const projectPath = state.getProjectPath();
@@ -442,6 +496,8 @@ function render() {
   const selectedId = selected ? selected.id : state.MAIN_WORKSPACE_ID;
   const sums = summaries();
   const queue = waitingQueue();
+  // An inline rename lives in a row: the list is shown while one is open.
+  const open = listPrefs.isOpen(openPrefs, view) || !!renaming;
   const canCreate = isRepo && loadedFor === projectPath;
   const addTitle = canCreate
     ? 'New workspace — on this Mac or a server (⌘⇧N)'
@@ -466,11 +522,11 @@ function render() {
   // `ws-switch` is kept on the header as a stable hook: the tour's Workspaces
   // step points at it.
   rootEl.innerHTML = `
-    <div class="ws-head ws-switch">
-      <span class="ws-head-title">Workspaces</span>
+    <div class="ws-head ws-switch${open ? '' : ' folded'}">
+      ${foldHtml({ open, selectedId, sums, queue })}
       <button class="ws-group-add" data-act="new" type="button" aria-label="New workspace" ${canCreate ? '' : 'disabled'} title="${escapeHtml(addTitle)}">${PLUS}</button>
     </div>
-    <div class="ws-list" role="group" aria-label="Workspaces">
+    ${open ? `<div class="ws-list" role="group" aria-label="Workspaces">
       <div class="ws-row main${mainOn ? ' on' : ''}" data-id="main" tabindex="0" role="button"${mainOn ? ' aria-current="true"' : ''}>
         ${dotHtml(rollup.summaryFor(sums, state.MAIN_WORKSPACE_ID))}
         <span class="ws-labels"><span class="ws-primary" title="${escapeHtml(mainLabel())}">${escapeHtml(mainLabel())}</span><span class="ws-secondary">project checkout</span></span>
@@ -480,7 +536,7 @@ function render() {
       <div class="ws-sep" role="separator"></div>
       ${remoteGroupHtml(remote, { canCreate, selectedId, sums, queue })}
       ${archivedHtml}
-    </div>`;
+    </div>` : ''}`;
 
   const list = rootEl.querySelector('.ws-list');
   if (list && scrollTop) list.scrollTop = scrollTop;
@@ -519,6 +575,7 @@ function onClick(e) {
     e.stopPropagation();
     const act = actEl.dataset.act;
     const ws = row ? findWs(row.dataset.id) : null;
+    if (act === 'fold') return toggleList();
     // The header's one "+": the location is chosen in the dialog (this
     // project's last one by default).
     if (act === 'new') return openNew();
@@ -883,6 +940,7 @@ module.exports = {
   init,
   load,
   render,
+  setView,
   select,
   setActions,
   getWorkspaces,

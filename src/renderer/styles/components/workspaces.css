@@ -31,15 +31,88 @@
   pointer-events: none;
 }
 
-/* The header: the list's name, and "+" for a new workspace. */
+/* The header: a fold control (the list's name; folded, the selected
+   workspace) and "+" for a new workspace. */
 .ws-head {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   min-height: 24px;
   margin-top: 4px;
-  padding: 0 2px 0 8px;
+  padding: 0 2px 0 4px;
 }
+
+.ws-fold {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.ws-fold:hover { background: var(--bg-hover); color: var(--text-primary); }
+.ws-fold:hover .ws-head-title { color: var(--text-secondary); }
+.ws-fold:focus-visible { box-shadow: inset 0 0 0 1px var(--accent-primary); }
+
+/* A small drawn chevron: down while the list is open, right when folded. */
+.ws-fold-chevron {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.ws-fold-chevron::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-right: 1.25px solid currentColor;
+  border-bottom: 1.25px solid currentColor;
+  transform: translateY(-1px) rotate(45deg);
+  transition: transform 150ms ease;
+}
+
+.ws-head.folded .ws-fold-chevron::before { transform: rotate(-45deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-fold-chevron::before { transition: none; }
+}
+
+/* Folded: the selected workspace's branch, like the old trigger's name. */
+.ws-fold-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Folded: agents waiting in the other workspaces, most urgent colour. */
+.ws-fold-waiting {
+  flex: none;
+  font-size: 10px;
+  line-height: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ws-fold-waiting.approval { color: var(--error); }
+.ws-fold-waiting.input { color: var(--warning-ink); }
 
 /* Same small caps as the project switcher's "Project" label. */
 .ws-head-title {

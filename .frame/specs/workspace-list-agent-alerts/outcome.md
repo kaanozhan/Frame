@@ -21,3 +21,10 @@ Added the trailing wait label (`approval · 2m`, agent name in the tooltip, befo
 _Captured: 2026-11-18 · 2 file change(s)_
 
 ---
+## T04 — Fold per view: open in Projects, folded elsewhere, each view remembers
+
+Added `workspaces/listPrefs.js` with `test/workspaceListPrefs.test.js`, `workspaceSection.setView(view)` called from `revealSidebarTab` in `index.js`, and a fold button in the header that saves each view's state to localStorage `frame-ws-list-open`; folded, the header shows the selected workspace's dot and branch and "N waiting" in the most urgent colour. Beyond the task text: `listPrefs.parse` does the tolerant read, and the list is shown while an inline rename is open even in a folded view. Not seen running.
+
+_Captured: 2026-11-18 · 5 file change(s)_
+
+---
