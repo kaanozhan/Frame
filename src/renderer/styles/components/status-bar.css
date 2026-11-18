@@ -364,27 +364,42 @@
   background: none;
 }
 
-.sb-agents-count {
+/* Agents run elsewhere: a quiet outlined chip that names its scope —
+   "Other projects · 3 agents" (workspace-list-agent-alerts). */
+.sb-agents.named {
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.sb-agents-face {
   font-variant-numeric: tabular-nums;
 }
 
-.sb-agents-wait {
-  padding: 0 8px;
-  border-radius: 999px;
-  font-size: 10px;
+/* An agent waits: the whole slot is filled, in the theme's own colours —
+   error for approval, warning for input only. */
+.sb-agents.named.agent-approval,
+.sb-agents.named.agent-approval:hover,
+.sb-agents.named.agent-approval[aria-expanded="true"] {
+  border-color: var(--error);
+  background: var(--error);
+  color: var(--bg-primary);
   font-weight: 600;
-  line-height: 15px;
 }
 
-.sb-agents.agent-approval .sb-agents-wait {
-  color: var(--error, #d45555);
-  background: var(--error-subtle, rgba(212, 85, 85, 0.16));
+.sb-agents.named.agent-input,
+.sb-agents.named.agent-input:hover,
+.sb-agents.named.agent-input[aria-expanded="true"] {
+  border-color: var(--warning-ink);
+  background: var(--warning-ink);
+  color: var(--bg-primary);
+  font-weight: 600;
 }
 
-.sb-agents.agent-input .sb-agents-wait {
-  color: var(--warning-ink, var(--warning, #e5a50a));
-  background: var(--warning-subtle, rgba(229, 205, 142, 0.16));
-}
+.sb-agents.named.agent-approval:hover,
+.sb-agents.named.agent-input:hover { filter: brightness(1.08); }
 
 /* A hairline between the dock's icons and the agents button. The dock
    carries it, so the button's hover wash stays its own rounded box. */
@@ -457,6 +472,17 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* A workspace inside a project: a quieter sub-header over its agents. */
+.sb-agents-ws {
+  padding: 4px 8px 2px 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
 }
 
 .sb-agents-group-count {

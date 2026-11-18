@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 112874,
+      "sizeBytes": 112917,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -9967,7 +9967,8 @@
         "init",
         "open",
         "close",
-        "toggle"
+        "toggle",
+        "pick"
       ],
       "depends": [
         "platform",
@@ -9976,45 +9977,80 @@
       ],
       "functions": {
         "init": {
-          "line": 19
+          "line": 26
         },
         "open": {
-          "line": 36
+          "line": 44
+        },
+        "pick": {
+          "line": 55,
+          "params": [
+            "{ placeholder",
+            "items } = {}"
+          ],
+          "purpose": "Open the palette as a picker over the caller's own items, in the caller's"
+        },
+        "show": {
+          "line": 60,
+          "params": [
+            "nextPicker",
+            "placeholder"
+          ]
         },
         "close": {
-          "line": 46
+          "line": 71
         },
         "toggle": {
-          "line": 55
+          "line": 82
+        },
+        "matches": {
+          "line": 88,
+          "params": [
+            "query",
+            "text"
+          ],
+          "purpose": "The registry's match, without its scoring: every character of `query`, in order."
+        },
+        "pickerResults": {
+          "line": 100,
+          "params": [
+            "query"
+          ],
+          "purpose": "The picker's items that match the filter, in the caller's order."
         },
         "render": {
-          "line": 60
+          "line": 106
         },
         "updateSelection": {
-          "line": 107
+          "line": 152
         },
         "scrollSelectedIntoView": {
-          "line": 115
+          "line": 160
         },
         "onInputKeydown": {
-          "line": 120,
+          "line": 165,
           "params": [
             "e"
           ]
         },
         "runAt": {
-          "line": 140,
+          "line": 185,
           "params": [
             "idx"
           ]
         }
       },
-      "sizeBytes": 4123,
+      "sizeBytes": 6144,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "56d80c4bb94de359"
+        "description": "56d80c4bb94de359",
+        "purposes": {
+          "matches": "c998cef0eb51943f",
+          "pick": "784a230779f89b38",
+          "pickerResults": "7626c5468a26e023"
+        }
       }
     },
     "renderer/commandRegistry": {
@@ -12395,7 +12431,7 @@
           "purpose": "Check the content against every rule the host relies on."
         }
       },
-      "sizeBytes": 39483,
+      "sizeBytes": 39511,
       "extraction": {
         "status": "parsed"
       },
@@ -12473,14 +12509,14 @@
           "purpose": "The sketch's outer frame."
         },
         "render": {
-          "line": 671,
+          "line": 666,
           "params": [
             "kind",
             "focus"
           ]
         }
       },
-      "sizeBytes": 37612,
+      "sizeBytes": 37438,
       "extraction": {
         "status": "parsed"
       },
@@ -13506,15 +13542,15 @@
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 699,
+          "line": 701,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1254,
+          "line": 1282,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1279,
+          "line": 1307,
           "params": [
             "err"
           ],
@@ -13535,7 +13571,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 47630,
+      "sizeBytes": 48559,
       "extraction": {
         "status": "parsed"
       },
@@ -17297,6 +17333,7 @@
         "updateWorkspaceMeta",
         "currentScope",
         "onWorkspaceChange",
+        "rememberWorkspace",
         "getRememberedWorkspaceId",
         "setMultiTerminalUI",
         "onProjectChange",
@@ -17523,7 +17560,7 @@
           "OPEN_SAMPLE_PROJECT"
         ]
       },
-      "sizeBytes": 18471,
+      "sizeBytes": 18492,
       "extraction": {
         "status": "parsed"
       },
@@ -17590,106 +17627,107 @@
         "statusBar/branchPicker",
         "statusBar/noticeTray",
         "githubPanel",
+        "workspaces/otherProjects",
         "serverConnect",
         "serverConnectModel",
+        "workspaceSection",
         "terminal"
       ],
       "functions": {
         "init": {
-          "line": 77
+          "line": 84
         },
         "_buildZoom": {
-          "line": 112
+          "line": 119
         },
         "_buildNoticeTray": {
-          "line": 153
+          "line": 160
         },
         "_buildServer": {
-          "line": 178
+          "line": 185
         },
         "_buildBranch": {
-          "line": 213
+          "line": 220
         },
         "_manageBranches": {
-          "line": 268,
+          "line": 275,
           "purpose": "\"Manage branches…\" — the GitHub view's Branches section, where delete,"
         },
         "_renderBranch": {
-          "line": 275,
+          "line": 282,
           "params": [
             "branch"
           ]
         },
         "_buildDockIcons": {
-          "line": 290
+          "line": 297
         },
         "_buildAgentSlot": {
-          "line": 340
+          "line": 347
         },
         "updateAgents": {
-          "line": 390,
+          "line": 397,
           "params": [
             "states",
             "counts"
           ],
           "purpose": "Fed by projectStatusBadges on every recompute — one traversal for every"
         },
-        "_projectName": {
-          "line": 422,
-          "params": [
-            "path"
-          ]
-        },
         "_renderAgents": {
-          "line": 426
+          "line": 410
         },
         "_renderMenu": {
-          "line": 463
+          "line": 446
         },
         "_paintMenuHighlight": {
-          "line": 490
+          "line": 476
         },
         "_activateRow": {
-          "line": 499,
+          "line": 485,
           "params": [
             "row"
           ]
         },
         "_onMenuKeydown": {
-          "line": 504,
+          "line": 490,
           "params": [
             "e"
           ]
         },
+        "_loadWorkspaceNames": {
+          "line": 515,
+          "purpose": "Fill the other projects' workspace names (WORKSPACES_LIST, one read per"
+        },
         "_focus": {
-          "line": 526,
+          "line": 543,
           "params": [
             "projectPath",
-            "terminalId"
+            "terminalId",
+            "workspaceId"
           ],
-          "purpose": "A click switches project when the agent lives elsewhere, then opens its"
+          "purpose": "A click lands on the agent: its project, its workspace, then its terminal."
         },
         "_toggleMenu": {
-          "line": 536
+          "line": 560
         },
         "_openMenu": {
-          "line": 540
+          "line": 564
         },
         "_closeMenu": {
-          "line": 556,
+          "line": 581,
           "params": [
             "{ refocus = false } = {}"
           ]
         },
         "updateUsage": {
-          "line": 568,
+          "line": 596,
           "params": [
             "data"
           ],
           "purpose": "Paint both meters from a usage push."
         },
         "updateItem": {
-          "line": 597,
+          "line": 625,
           "params": [
             "item",
             "usage",
@@ -17698,7 +17736,7 @@
           ]
         },
         "formatResetTime": {
-          "line": 620,
+          "line": 648,
           "params": [
             "isoString"
           ],
@@ -17716,14 +17754,15 @@
           "LOAD_CLAUDE_USAGE"
         ]
       },
-      "sizeBytes": 24383,
+      "sizeBytes": 25979,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "ad21fb563238cb7d",
         "purposes": {
-          "_focus": "e80c78b2838425f1",
+          "_focus": "417aa91b8884871b",
+          "_loadWorkspaceNames": "3aa3685129a4ecd1",
           "_manageBranches": "b8708c9792b2ff2f",
           "formatResetTime": "c9d0eb78342a91df",
           "updateAgents": "d463d4a64f6fc11c",
@@ -18643,7 +18682,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 18503,
+      "sizeBytes": 19338,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -18751,7 +18790,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 29353,
+      "sizeBytes": 30148,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -20449,12 +20488,17 @@
     },
     "renderer/workspaceSection": {
       "file": "src/renderer/workspaceSection.js",
-      "description": "Workspace Section — the sidebar's workspace switcher (workspaces spec, T07).",
+      "description": "Workspace Section — the sidebar's workspace list (workspaces spec, T07;",
       "exports": [
         "init",
         "load",
         "render",
+        "setView",
         "select",
+        "selectById",
+        "switchItems",
+        "goToNextWaiting",
+        "whenLoaded",
         "setActions",
         "getWorkspaces",
         "selectedWorkspace",
@@ -20474,6 +20518,8 @@
         "notify",
         "htmlUtils",
         "workspaces/rollup",
+        "workspaces/attention",
+        "workspaces/listPrefs",
         "workspacePr",
         "serverConnect",
         "terminal",
@@ -20483,192 +20529,221 @@
       ],
       "functions": {
         "setActions": {
-          "line": 67,
+          "line": 75,
           "params": [
             "next"
           ],
           "purpose": "Let the dialogs plug in without this module requiring them."
         },
         "init": {
-          "line": 71
+          "line": 79
         },
         "load": {
-          "line": 134,
+          "line": 150,
           "params": [
             "{ reselect = false } = {}"
           ],
           "purpose": "Re-read the project's workspaces; with `reselect`, restore the remembered selection."
         },
+        "whenLoaded": {
+          "line": 209,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Resolves once `projectPath`'s workspace list has loaded and its remembered"
+        },
         "select": {
-          "line": 181,
+          "line": 224,
           "params": [
             "ws"
           ]
         },
+        "selectById": {
+          "line": 239,
+          "params": [
+            "id"
+          ],
+          "purpose": "Select a workspace by id ('main' for the project checkout). False when it is not in the list, or its folder is gone."
+        },
+        "switchItems": {
+          "line": 256,
+          "purpose": "What \"Switch Workspace…\" lists: main and every workspace whose folder is"
+        },
+        "goToNextWaiting": {
+          "line": 284,
+          "purpose": "Show the most urgent waiting agent that is not already on screen:"
+        },
         "scheduleRender": {
-          "line": 197
+          "line": 298
+        },
+        "terminalStates": {
+          "line": 309,
+          "purpose": "Every terminal's state, across projects and workspaces."
         },
         "summaries": {
-          "line": 207
+          "line": 317
+        },
+        "waitingQueue": {
+          "line": 322,
+          "purpose": "This project's agents that wait on the user, most urgent first (workspaces/attention.js)."
+        },
+        "waitHtml": {
+          "line": 336,
+          "params": [
+            "queue",
+            "workspaceId"
+          ],
+          "purpose": "A row's trailing label while an agent in that workspace waits:"
         },
         "dotHtml": {
-          "line": 224,
+          "line": 350,
           "params": [
             "summary"
           ]
         },
         "branchLabel": {
-          "line": 235,
+          "line": 361,
           "params": [
             "ws"
           ],
           "purpose": "The branch a row is labelled with: the one git reports for its folder now"
         },
         "rowHtml": {
-          "line": 239,
+          "line": 366,
           "params": [
             "ws",
             "{ selectedId",
-            "sums }"
-          ]
+            "sums",
+            "queue",
+            "plain }"
+          ],
+          "purpose": "`plain` (the dropdown outside Projects): no status dot, no wait label."
         },
         "linkView": {
-          "line": 275,
+          "line": 403,
           "params": [
             "srv"
           ],
           "purpose": "A saved server as the Remote group reads it: `{ key, host, phase, state }`."
         },
         "serverViews": {
-          "line": 285,
+          "line": 413,
           "purpose": "Every saved server, in list order (multi-server-connections)."
         },
         "serverHeadHtml": {
-          "line": 295,
-          "params": [
-            "link",
-            "{ collapsed",
-            "count",
-            "locked }"
-          ],
-          "purpose": "One server's sub-header in Remote, drawn as a labelled sub-separator: the"
-        },
-        "isServerOpen": {
-          "line": 327,
-          "params": [
-            "key",
-            "count"
-          ]
-        },
-        "setServerOpen": {
-          "line": 331,
-          "params": [
-            "key",
-            "open"
-          ]
-        },
-        "toggleServer": {
-          "line": 336,
-          "params": [
-            "key"
-          ]
-        },
-        "serverCounts": {
-          "line": 347,
-          "params": [
-            "list"
-          ]
-        },
-        "openServersThatGrew": {
-          "line": 353,
-          "params": [
-            "list"
-          ]
-        },
-        "serverEmptyHtml": {
-          "line": 362,
+          "line": 424,
           "params": [
             "link"
           ],
-          "purpose": "What a server with no workspaces of this project offers: the next step for its link."
+          "purpose": "One server's sub-header in Remote, drawn as a labelled sub-separator: the"
         },
         "remoteGroupHtml": {
-          "line": 380,
+          "line": 451,
           "params": [
             "remote",
-            "{ canCreate",
-            "selectedId",
-            "sums }"
+            "{ selectedId",
+            "sums",
+            "queue",
+            "plain }"
           ],
-          "purpose": "The Remote group: one sub-header per saved server with its own rows or its"
+          "purpose": "The Remote group: one block per saved server that holds workspaces of"
         },
         "mainLabel": {
-          "line": 408,
+          "line": 470,
           "purpose": "The main row's label: the branch the project's own checkout is on, like"
         },
-        "triggerHtml": {
-          "line": 417,
+        "isDropdownView": {
+          "line": 479,
+          "purpose": "Projects shows the list in the sidebar, open or folded; Files, Changes and"
+        },
+        "setView": {
+          "line": 484,
           "params": [
-            "{ selectedId",
-            "sums }"
+            "next"
           ],
-          "purpose": "The header: the same section title as the nav's Work and Context — a"
+          "purpose": "The sidebar switched views: the list follows that view's own open / folded state."
         },
-        "render": {
-          "line": 436
+        "openDropdown": {
+          "line": 492
         },
-        "readListOpen": {
-          "line": 508
-        },
-        "setListOpen": {
-          "line": 512,
+        "closeDropdown": {
+          "line": 501,
           "params": [
-            "open"
+            "{ focusTrigger = false } = {}"
           ]
         },
-        "openList": {
-          "line": 518,
-          "params": [
-            "{ focus = false } = {}"
-          ],
-          "purpose": "Expand the list; `focus` lands on the selected row so arrows and Enter work straight away."
+        "toggleList": {
+          "line": 511
         },
-        "closeList": {
-          "line": 530
+        "selectedFace": {
+          "line": 520,
+          "params": [
+            "selectedId"
+          ],
+          "purpose": "The selected workspace's branch, and a \"remote\" / \"offline\" tag for a server one."
+        },
+        "triggerHtml": {
+          "line": 536,
+          "params": [
+            "{ selectedId",
+            "open }"
+          ],
+          "purpose": "The header outside Projects: the selected workspace itself, in the"
+        },
+        "foldHtml": {
+          "line": 551,
+          "params": [
+            "{ open",
+            "selectedId",
+            "sums",
+            "queue }"
+          ],
+          "purpose": "The header's fold control (Projects). Open: the list's name. Folded: the selected"
+        },
+        "render": {
+          "line": 571
+        },
+        "revealRow": {
+          "line": 653,
+          "params": [
+            "list",
+            "row"
+          ],
+          "purpose": "Scroll `list` just far enough that `row` is fully in view."
         },
         "moveFocus": {
-          "line": 539,
+          "line": 663,
           "params": [
             "step"
           ],
           "purpose": "Arrow keys walk the list's rows and buttons, top to bottom."
         },
         "findWs": {
-          "line": 547,
+          "line": 671,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 551,
+          "line": 675,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 585,
+          "line": 712,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 617,
+          "line": 729,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 630,
+          "line": 742,
           "params": [
             "ws",
             "x",
@@ -20676,48 +20751,48 @@
           ]
         },
         "hideMenu": {
-          "line": 657
+          "line": 769
         },
         "onMenuClick": {
-          "line": 661,
+          "line": 773,
           "params": [
             "e"
           ]
         },
         "sendFilesTo": {
-          "line": 673,
+          "line": 785,
           "params": [
             "ws"
           ]
         },
         "openNew": {
-          "line": 683,
+          "line": 795,
           "params": [
             "opts"
           ]
         },
         "startRename": {
-          "line": 691,
+          "line": 803,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 698,
+          "line": 808,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 718,
+          "line": 828,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "rescueBranchName": {
-          "line": 759,
+          "line": 869,
           "params": [
             "ws",
             "head"
@@ -20725,7 +20800,7 @@
           "purpose": "The branch name archive's rescue creates; the sha may be unknown before a commit is made."
         },
         "askRescue": {
-          "line": 765,
+          "line": 875,
           "params": [
             "ws",
             "head"
@@ -20733,14 +20808,14 @@
           "purpose": "The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false."
         },
         "closeWorkspaceTerminals": {
-          "line": 802,
+          "line": 912,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 815,
+          "line": 925,
           "params": [
             "ws",
             "count"
@@ -20748,44 +20823,71 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 873,
+          "line": 983,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 879,
+          "line": 989,
           "params": [
             "ws"
           ]
         },
+        "archivedOpen": {
+          "line": 1011
+        },
+        "matchArchived": {
+          "line": 1016,
+          "params": [
+            "records",
+            "text"
+          ],
+          "purpose": "Archived records whose branch, name or host contains `text`; all of them for an empty filter."
+        },
+        "ensureArchivedModal": {
+          "line": 1023
+        },
+        "renderArchivedList": {
+          "line": 1066
+        },
+        "openArchived": {
+          "line": 1082
+        },
+        "closeArchived": {
+          "line": 1092,
+          "params": [
+            "{ refocus = false } = {}"
+          ]
+        },
         "removeRecord": {
-          "line": 892,
+          "line": 1099,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 901,
+          "line": 1108,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 914,
+          "line": 1121,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 928,
+          "line": 1135,
           "purpose": "Active workspaces of the current project, as last loaded."
         },
-        "serverOpen": {
-          "line": 323,
+        "openPrefs": {
+          "line": 64,
           "params": [
             "("
-          ]
+          ],
+          "purpose": "Open or folded, per view: localStorage `frame-ws-list-open` (workspaces/listPrefs.js)."
         }
       },
       "ipc": {
@@ -20795,34 +20897,117 @@
         ],
         "emits": []
       },
-      "sizeBytes": 42570,
+      "sizeBytes": 51894,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "46b54cbdec6cbdf8",
+        "description": "6b059a21a46794ee",
         "purposes": {
           "archiveWorkspace": "4363218bb753fb2e",
           "askArchiveChoice": "2981894ae593cf4b",
           "askRescue": "24458e85717df59f",
           "branchLabel": "0bfbf12599febeee",
           "closeWorkspaceTerminals": "22a7c42ea098a240",
+          "foldHtml": "1be50ebe9661295d",
           "getWorkspaces": "0eab879c07f7a326",
+          "goToNextWaiting": "cca0a2aabe0ef8b1",
+          "isDropdownView": "dbf9254566f4d715",
           "linkView": "aeb38c4ced639f63",
           "load": "e807754c516c9be1",
           "mainLabel": "edac7efb729dd2d6",
+          "matchArchived": "d86ec2fe8c746350",
           "moveFocus": "95c1b6649ae48ff8",
-          "openList": "9beebe76e5da95f3",
-          "remoteGroupHtml": "adc0ab63d3466cbd",
+          "openPrefs": "4c1dce82d3037780",
+          "remoteGroupHtml": "ce9afad0b92e6ccb",
           "rescueBranchName": "9535b434ca8c9ced",
+          "revealRow": "78c3918cf7f468da",
+          "rowHtml": "38cafe4b3c35f2aa",
+          "selectById": "1fe4518dc88fdb5d",
           "selectSpecWorkspace": "7d88cec82ca928f9",
+          "selectedFace": "8e3ee7dc487eab7e",
           "selectedWorkspace": "fa1da8f5f604bd70",
-          "serverEmptyHtml": "792b282cf5cdd142",
           "serverHeadHtml": "c62e3fcf5eb6fe11",
           "serverViews": "7373d424d7bdc9e3",
           "setActions": "4f2a1450120dc24f",
-          "triggerHtml": "4f84e2300fec82be",
+          "setView": "69f05f9abeccd77a",
+          "switchItems": "ebd26b981527e46a",
+          "terminalStates": "1feed58999511090",
+          "triggerHtml": "9826bfddbadb09a4",
+          "waitHtml": "6dc6211953e71f93",
+          "waitingQueue": "afc75a7979615542",
+          "whenLoaded": "85a84d83889dcf9f",
           "workspaceChipHtml": "f678cae99043073b"
+        }
+      }
+    },
+    "renderer/workspaces/attention": {
+      "file": "src/renderer/workspaces/attention.js",
+      "description": "Workspace attention — pure (workspace-list-agent-alerts spec, T01).",
+      "exports": [
+        "waitingQueue",
+        "workspaceWait",
+        "othersWaiting",
+        "nextWaiting",
+        "waitLabel"
+      ],
+      "depends": [
+        "rollup"
+      ],
+      "functions": {
+        "waitingQueue": {
+          "line": 29,
+          "params": [
+            "states",
+            "projectPath",
+            "getStatus"
+          ],
+          "purpose": "approval first, then the oldest `since`; a wait with no known start"
+        },
+        "workspaceWait": {
+          "line": 55,
+          "params": [
+            "queue",
+            "workspaceId"
+          ],
+          "purpose": "The most urgent wait in one workspace (what its row's label shows), or null."
+        },
+        "othersWaiting": {
+          "line": 61,
+          "params": [
+            "queue",
+            "selectedId"
+          ],
+          "purpose": "Waits outside the selected workspace: how many, and the most urgent kind (null when none)."
+        },
+        "nextWaiting": {
+          "line": 68,
+          "params": [
+            "queue",
+            "onScreenTerminalId"
+          ],
+          "purpose": "The most urgent waiting agent that is not the terminal on screen, or null."
+        },
+        "waitLabel": {
+          "line": 75,
+          "params": [
+            "kind"
+          ],
+          "purpose": "What a wait is called on screen, without how long it has lasted: `approval` or `waiting`."
+        }
+      },
+      "sizeBytes": 3337,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "5f80a4d564c698cd",
+        "purposes": {
+          "nextWaiting": "431c078eca2024eb",
+          "othersWaiting": "02a24c7ee18c9899",
+          "waitLabel": "2377d83727c8882f",
+          "waitingQueue": "fd786950d6fea175",
+          "workspaceWait": "d697cd9a745aa992"
         }
       }
     },
@@ -20884,12 +21069,138 @@
         }
       }
     },
+    "renderer/workspaces/listPrefs": {
+      "file": "src/renderer/workspaces/listPrefs.js",
+      "description": "Workspace list prefs — pure (workspace-list-agent-alerts spec, T04).",
+      "exports": [
+        "STORAGE_KEY",
+        "defaultOpen",
+        "parse",
+        "isOpen",
+        "withOpen"
+      ],
+      "depends": [],
+      "functions": {
+        "defaultOpen": {
+          "line": 18,
+          "params": [
+            "view"
+          ],
+          "purpose": "Open in the Projects view, folded in every other one."
+        },
+        "clean": {
+          "line": 23,
+          "params": [
+            "prefs"
+          ],
+          "purpose": "The stored choices that are usable: a plain object's boolean entries."
+        },
+        "parse": {
+          "line": 33,
+          "params": [
+            "raw"
+          ],
+          "purpose": "The stored string as prefs; `{}` when it is missing or unreadable."
+        },
+        "isOpen": {
+          "line": 38,
+          "params": [
+            "prefs",
+            "view"
+          ],
+          "purpose": "Is the list open in `view`? The user's choice for it, else the view's default."
+        },
+        "withOpen": {
+          "line": 44,
+          "params": [
+            "prefs",
+            "view",
+            "open"
+          ],
+          "purpose": "The prefs with `view` set open or folded; the other views are untouched."
+        }
+      },
+      "sizeBytes": 1770,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "9e6d1ee39bfa19f3",
+        "purposes": {
+          "clean": "43d13bd921a54f88",
+          "defaultOpen": "15300ceb7b01d93f",
+          "isOpen": "411773a250abe151",
+          "parse": "771db8d0fe6b1a2a",
+          "withOpen": "67940c9f211aa90a"
+        }
+      }
+    },
+    "renderer/workspaces/otherProjects": {
+      "file": "src/renderer/workspaces/otherProjects.js",
+      "description": "Other projects' agents — pure (workspace-list-agent-alerts spec, T09).",
+      "exports": [
+        "group",
+        "slotFace"
+      ],
+      "depends": [
+        "rollup"
+      ],
+      "functions": {
+        "projectName": {
+          "line": 20,
+          "params": [
+            "path"
+          ]
+        },
+        "workspaceLabel": {
+          "line": 25,
+          "params": [
+            "names",
+            "path",
+            "id"
+          ],
+          "purpose": "The label of one workspace: its known name, else its id."
+        },
+        "group": {
+          "line": 42,
+          "params": [
+            "states",
+            "{ currentProject = null",
+            "counts = null",
+            "getStatus = null",
+            "names = null } = {}"
+          ],
+          "purpose": "projects with something waiting first, then by how many agents they run;"
+        },
+        "slotFace": {
+          "line": 73,
+          "params": [
+            "total",
+            "waiting"
+          ],
+          "purpose": "The slot's face: `Other projects · 3 agents`, and `· 1 waiting` when any wait."
+        }
+      },
+      "sizeBytes": 3709,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "a235807e03830b6a",
+        "purposes": {
+          "group": "62bb869118c3534f",
+          "slotFace": "21c9ef4309ae44b5",
+          "workspaceLabel": "c425381b274d7171"
+        }
+      }
+    },
     "renderer/workspaces/rollup": {
       "file": "src/renderer/workspaces/rollup.js",
       "description": "Workspace rollup — pure (workspaces spec, T07 / G2 / S5).",
       "exports": [
         "MAIN_ID",
         "PRIORITY",
+        "bucketOf",
         "summarize",
         "summaryFor"
       ],
@@ -20922,7 +21233,7 @@
           "purpose": "The summary for one workspace, idle when it has no terminals."
         }
       },
-      "sizeBytes": 2296,
+      "sizeBytes": 2306,
       "extraction": {
         "status": "parsed"
       },
@@ -31763,6 +32074,24 @@
         "description": "07a1b690e2e82a79"
       }
     },
+    "test/otherProjectsAgents.test": {
+      "file": "test/otherProjectsAgents.test.js",
+      "description": "Other projects' agents — the status bar slot's grouping and face",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/renderer/workspaces/otherProjects"
+      ],
+      "functions": {},
+      "sizeBytes": 4832,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "f28670f917635209"
+      }
+    },
     "test/prFlow.test": {
       "file": "test/prFlow.test.js",
       "description": "prFlow — push, PR, checks and merge rules (workspace-pr-flow spec, T01).",
@@ -34083,6 +34412,24 @@
         "description": "8d14ca0750c74e20"
       }
     },
+    "test/workspaceAttention.test": {
+      "file": "test/workspaceAttention.test.js",
+      "description": "Workspace attention — who waits on the user, and in what order",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/renderer/workspaces/attention"
+      ],
+      "functions": {},
+      "sizeBytes": 4595,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "ca18942fce5bc18b"
+      }
+    },
     "test/workspaceGit.test": {
       "file": "test/workspaceGit.test.js",
       "description": "Workspace git behaviour against real repositories (workspace-hardening spec).",
@@ -34160,6 +34507,24 @@
           "gitWrite": "e08d17cebb278718",
           "makeProject": "7f672baea984bab4"
         }
+      }
+    },
+    "test/workspaceListPrefs.test": {
+      "file": "test/workspaceListPrefs.test.js",
+      "description": "Workspace list prefs — open or folded, per sidebar view",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/renderer/workspaces/listPrefs"
+      ],
+      "functions": {},
+      "sizeBytes": 2266,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "e2766b5709c1fa4f"
       }
     },
     "test/workspaceNames.test": {
@@ -35898,6 +36263,11 @@
         "description": "Tasks screen list model — what the grid lists for a given scope, status,"
       },
       {
+        "module": "renderer/workspaces/listPrefs",
+        "file": "src/renderer/workspaces/listPrefs.js",
+        "description": "Workspace list prefs — pure (workspace-list-agent-alerts spec, T04)."
+      },
+      {
         "module": "shared/serverList",
         "file": "src/shared/serverList.js",
         "description": "serverList — the rules over the desktop's saved Frame Servers"
@@ -36079,6 +36449,18 @@
         "description": "Orchestrator (renderer) — a section viewport"
       }
     ],
+    "other": [
+      {
+        "module": "renderer/otherTerminalsRail",
+        "file": "src/renderer/otherTerminalsRail.js",
+        "description": "Other Terminals Rail Module"
+      },
+      {
+        "module": "renderer/workspaces/otherProjects",
+        "file": "src/renderer/workspaces/otherProjects.js",
+        "description": "Other projects' agents — pure (workspace-list-agent-alerts spec, T09)."
+      }
+    ],
     "panel": [
       {
         "module": "renderer/activityPanel",
@@ -36172,6 +36554,18 @@
         "module": "renderer/projectStatusBadges",
         "file": "src/renderer/projectStatusBadges.js",
         "description": "Project Status Badges"
+      }
+    ],
+    "projects": [
+      {
+        "module": "renderer/workspaces/otherProjects",
+        "file": "src/renderer/workspaces/otherProjects.js",
+        "description": "Other projects' agents — pure (workspace-list-agent-alerts spec, T09)."
+      },
+      {
+        "module": "server/projects",
+        "file": "src/server/projects.js",
+        "description": "Server projects and workspaces (server-workspaces spec, T5)."
       }
     ],
     "rail": [
@@ -36290,7 +36684,7 @@
       {
         "module": "renderer/workspaceSection",
         "file": "src/renderer/workspaceSection.js",
-        "description": "Workspace Section — the sidebar's workspace switcher (workspaces spec, T07)."
+        "description": "Workspace Section — the sidebar's workspace list (workspaces spec, T07;"
       }
     ],
     "send": [
@@ -36698,7 +37092,7 @@
       {
         "module": "renderer/workspaceSection",
         "file": "src/renderer/workspaceSection.js",
-        "description": "Workspace Section — the sidebar's workspace switcher (workspaces spec, T07)."
+        "description": "Workspace Section — the sidebar's workspace list (workspaces spec, T07;"
       },
       {
         "module": "shared/workspaceNames",
@@ -36746,7 +37140,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 406,
+        "parsed": 412,
         "unsupported": 92,
         "partial": 0
       }
@@ -36793,9 +37187,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 592,
+      "visitedEntries": 598,
       "traversedDirectories": 86,
-      "eligibleFiles": 498,
+      "eligibleFiles": 504,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -36812,7 +37206,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 498,
+      "indexedFiles": 504,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -36820,6 +37214,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "65a109a4b8d913f599771b015652e018a204cd1ca3db3bf45fb33a5593a7fc6a"
+    "revision": "02f51762ee46cfedc05177aadd32a67984c8fbcc98ebd9284892fd230a4281a9"
   }
 }

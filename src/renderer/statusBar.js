@@ -50,6 +50,7 @@ const { GitBranch, Bot, Server } = require('lucide');
 const branchPicker = require('./statusBar/branchPicker');
 const noticeTray = require('./statusBar/noticeTray');
 const githubPanel = require('./githubPanel');
+const otherProjects = require('./workspaces/otherProjects');
 
 // One button per dock tab, in dockState.TABS' canonical order — not the
 // strip's, which the user can drag around: the bar is a fixed row of
@@ -73,6 +74,12 @@ let menuOpen = false;
 let menuRows = [];        // the popover's rows, in DOM order, for the keyboard
 let menuHighlight = -1;
 let lastProjects = [];
+// Workspace names of the other projects (path → Map<workspace id, label>):
+// read when the popover opens, kept while it is open. A terminal state
+// carries only a workspace id, so until a project's names arrive — or when
+// the read fails — its workspaces are labelled by id.
+let workspaceNames = new Map();
+let namesSeq = 0;
 
 function init() {
   barEl = document.getElementById('status-bar');
@@ -388,45 +395,22 @@ function _buildAgentSlot() {
  * @param {Map<string, {approval: number, input: number}>} counts
  */
 function updateAgents(states, counts) {
-  const here = state.getProjectPath();
-  const byProject = new Map();
-
-  for (const s of states || []) {
-    const path = s.projectPath;
-    if (!path || path === here) continue; // this project speaks for itself
-    const st = laneStatus.getStatus(s.id);
-    if (!st.agentName) continue;
-    if (!byProject.has(path)) {
-      const c = (counts && counts.get(path)) || { approval: 0, input: 0 };
-      byProject.set(path, { path, name: _projectName(path), approval: c.approval, input: c.input, agents: [] });
-    }
-    byProject.get(path).agents.push({
-      id: s.id,
-      agentName: st.agentName,
-      status: st.status,
-      terminalName: s.customName || s.name
-    });
-  }
-
-  // Projects with something waiting first, then by how many agents they run.
-  lastProjects = [...byProject.values()].sort((a, b) => {
-    const wa = a.approval * 2 + a.input;
-    const wb = b.approval * 2 + b.input;
-    if (wa !== wb) return wb - wa;
-    return b.agents.length - a.agents.length;
+  // Grouped by project, then workspace; this project speaks for itself
+  // (workspaces/otherProjects.js).
+  lastProjects = otherProjects.group(states, {
+    currentProject: state.getProjectPath(),
+    counts,
+    getStatus: (id) => laneStatus.getStatus(id),
+    names: workspaceNames
   });
 
   _renderAgents();
 }
 
-function _projectName(path) {
-  return path.split(/[\\/]/).filter(Boolean).pop() || path;
-}
-
 function _renderAgents() {
   if (!indicatorEl) return;
 
-  const total = lastProjects.reduce((n, p) => n + p.agents.length, 0);
+  const total = lastProjects.reduce((n, p) => n + p.agentCount, 0);
   const approval = lastProjects.reduce((n, p) => n + p.approval, 0);
   const input = lastProjects.reduce((n, p) => n + p.input, 0);
   const waiting = approval + input;
@@ -442,14 +426,13 @@ function _renderAgents() {
     return;
   }
 
-  // The scope ("in 2 other projects") lives in the tooltip and the popover's
-  // header; the bar itself shows the glyph, the count and — only when
-  // something is actually waiting — a pill in that status's colour.
+  // The face names its scope: "Other projects · 3 agents · 1 waiting". With
+  // nothing waiting it is a quiet outlined chip; while an agent waits the
+  // whole slot is filled in that status's colour (approval before input).
   const attention = approval ? 'agent-approval' : input ? 'agent-input' : null;
-  indicatorEl.className = `sb-agents${attention ? ` ${attention}` : ''}`;
+  indicatorEl.className = `sb-agents named${attention ? ` ${attention}` : ''}`;
   const scope = `in ${lastProjects.length} other project${lastProjects.length === 1 ? '' : 's'}`;
-  indicatorEl.innerHTML = `${icon}<span class="sb-agents-count">${total}</span>`
-    + (waiting ? `<span class="sb-agents-wait">${waiting} waiting</span>` : '');
+  indicatorEl.innerHTML = `${icon}<span class="sb-agents-face">${escapeHtml(otherProjects.slotFace(total, waiting))}</span>`;
   indicatorEl.title = [
     `${total} agent${total === 1 ? '' : 's'} ${scope} — not this one`,
     approval ? `${approval} needs approval` : null,
@@ -461,7 +444,7 @@ function _renderAgents() {
 }
 
 function _renderMenu() {
-  const total = lastProjects.reduce((n, p) => n + p.agents.length, 0);
+  const total = lastProjects.reduce((n, p) => n + p.agentCount, 0);
   const waiting = lastProjects.reduce((n, p) => n + p.approval + p.input, 0);
   const meta = [`${total} agent${total === 1 ? '' : 's'}`, waiting ? `${waiting} waiting` : null].filter(Boolean).join(' · ');
   menuEl.innerHTML = `
@@ -471,13 +454,16 @@ function _renderMenu() {
     </div>
     <div class="sb-agents-list" role="listbox">
       ${lastProjects.map(p => `
-        <div class="sb-agents-group">${escapeHtml(p.name)}<span class="sb-agents-group-count">${p.agents.length}</span></div>
-        ${p.agents.map(a => `
-          <button type="button" class="sb-agents-row ${a.status}" role="option" data-id="${escapeHtml(a.id)}" data-path="${escapeHtml(p.path)}">
-            <span class="lane-status-dot ${a.status}"></span>
-            <span class="sb-agents-row-name">${escapeHtml(a.terminalName)}</span>
-            <span class="sb-agents-row-status">${escapeHtml(laneStatus.statusLabel(a.status, { agentName: a.agentName, short: true }))}</span>
-          </button>
+        <div class="sb-agents-group">${escapeHtml(p.name)}<span class="sb-agents-group-count">${p.agentCount}</span></div>
+        ${p.workspaces.map(w => `
+          <div class="sb-agents-ws" title="Workspace ${escapeHtml(w.label)}">${escapeHtml(w.label)}</div>
+          ${w.agents.map(a => `
+            <button type="button" class="sb-agents-row ${a.status}" role="option" data-id="${escapeHtml(a.id)}" data-path="${escapeHtml(p.path)}" data-ws="${escapeHtml(w.id)}">
+              <span class="lane-status-dot ${a.status}"></span>
+              <span class="sb-agents-row-name">${escapeHtml(a.terminalName)}</span>
+              <span class="sb-agents-row-status">${escapeHtml(laneStatus.statusLabel(a.status, { agentName: a.agentName, short: true }))}</span>
+            </button>
+          `).join('')}
         `).join('')}
       `).join('')}
     </div>`;
@@ -498,7 +484,7 @@ function _paintMenuHighlight() {
 
 function _activateRow(row) {
   _closeMenu();
-  _focus(row.dataset.path, row.dataset.id);
+  _focus(row.dataset.path, row.dataset.id, row.dataset.ws);
 }
 
 function _onMenuKeydown(e) {
@@ -521,12 +507,50 @@ function _onMenuKeydown(e) {
   }
 }
 
-// A click switches project when the agent lives elsewhere, then opens its
-// terminal's tab — the navigation presenceBar carried before it merged here.
-function _focus(projectPath, terminalId) {
-  if (projectPath && projectPath !== state.getProjectPath()) {
-    state.setProjectPath(projectPath);
+/**
+ * Fill the other projects' workspace names (WORKSPACES_LIST, one read per
+ * project per opening) and redraw the popover with them. The popover is
+ * already on screen with ids; a failed read leaves that project's ids.
+ */
+async function _loadWorkspaceNames() {
+  const seq = namesSeq;
+  await Promise.all(lastProjects.filter((p) => !workspaceNames.has(p.path)).map(async (p) => {
+    let result = null;
+    try { result = await ipcRenderer.invoke(IPC.WORKSPACES_LIST, p.path); } catch (_) { result = null; }
+    if (!result || result.error || seq !== namesSeq) return;
+    const labels = new Map();
+    if (result.mainBranch) labels.set(state.MAIN_WORKSPACE_ID, result.mainBranch);
+    for (const w of result.workspaces || []) {
+      if (w && w.id && (w.branch || w.name)) labels.set(w.id, w.branch || w.name);
+    }
+    workspaceNames.set(p.path, labels);
+  }));
+  if (seq !== namesSeq || !menuOpen) return;
+  for (const p of lastProjects) {
+    const labels = workspaceNames.get(p.path);
+    for (const w of p.workspaces) w.label = (labels && labels.get(w.id)) || w.id;
   }
+  _renderMenu();
+}
+
+/**
+ * A click lands on the agent: its project, its workspace, then its terminal.
+ * enterLane never changes the workspace scope, so the workspace comes first:
+ * it is recorded as that project's remembered one, the project switch makes
+ * the workspace list load and re-select it, and only then is the terminal
+ * entered.
+ */
+async function _focus(projectPath, terminalId, workspaceId) {
+  const section = require('./workspaceSection');
+  const wsId = workspaceId || state.MAIN_WORKSPACE_ID;
+  if (projectPath && projectPath !== state.getProjectPath()) {
+    state.rememberWorkspace(projectPath, wsId);
+    state.setProjectPath(projectPath);
+    await section.whenLoaded(projectPath);
+  }
+  // The user may have moved on while the list loaded.
+  if (projectPath && state.getProjectPath() !== projectPath) return;
+  section.selectById(wsId);
   try {
     const ui = require('./terminal').getMultiTerminalUI();
     if (ui) ui.enterLane(terminalId);
@@ -551,6 +575,7 @@ function _openMenu() {
   menuEl.hidden = false;
   indicatorEl.setAttribute('aria-expanded', 'true');
   menuEl.focus();
+  _loadWorkspaceNames();
 }
 
 function _closeMenu({ refocus = false } = {}) {
@@ -558,6 +583,9 @@ function _closeMenu({ refocus = false } = {}) {
   menuOpen = false;
   menuRows = [];
   menuHighlight = -1;
+  // Names are cached only while the popover is open: the next opening reads again.
+  workspaceNames = new Map();
+  namesSeq += 1;
   menuEl.hidden = true;
   menuEl.innerHTML = '';
   indicatorEl.setAttribute('aria-expanded', 'false');

@@ -576,6 +576,7 @@ module.exports = {
   updateWorkspaceMeta,
   currentScope,
   onWorkspaceChange,
+  rememberWorkspace,
   getRememberedWorkspaceId,
   setMultiTerminalUI,
   onProjectChange,

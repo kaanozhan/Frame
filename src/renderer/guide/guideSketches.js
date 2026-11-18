@@ -511,32 +511,27 @@ const KINDS = {
       </div>`);
   },
   /**
-   * The workspace switcher open under the project, and the Servers dialog
-   * beside it (multi-server-connections). Regions: new, local, remote,
-   * server, add-server, servers.
+   * The workspace list, open under the project, and the Servers dialog
+   * beside it (multi-server-connections; workspace-list-agent-alerts).
+   * Regions: new, local, remote, server, servers.
    */
   workspaces(focused) {
-    const row = (name, { current, dot } = {}) => `<div class="gs-proj-row${current ? ' gs-proj-current' : ''}"><span class="gs-dot gs-dot-${dot || 'idle'}"></span>${label(name)}${current ? icon(Check, 10) : ''}</div>`;
+    const row = (name, { current, dot, wait } = {}) => `<div class="gs-proj-row${current ? ' gs-proj-current' : ''}"><span class="gs-dot gs-dot-${dot || 'idle'}"></span>${label(name)}${wait ? label(wait, 'gs-dim gs-ws-state') : ''}</div>`;
     const serverHead = (host) => `<div class="gs-ws-server">${icon(Server, 9)}${label(host, 'gs-dim')}<span class="gs-ws-rule"></span></div>`;
     const serverRow = (host, state, dot) => `<div class="gs-proj-row"><span class="gs-dot gs-dot-${dot}"></span>${label(host)}${label(state, 'gs-dim gs-ws-state')}</div>`;
     return frame('workspaces', focused, `
       <div class="gs-multi">
         <div class="gs-multi-switcher">
-          <div class="gs-switcher gs-switcher-open">${label('Workspace', 'gs-dim')}${label('main')}${icon(ChevronDown, 10)}</div>
-          <div class="gs-proj-menu">
-            ${region('new', focused, 'gs-ws-new', label('+ New workspace'))}
-            <div class="gs-ws-sep"></div>
-            ${region('local', focused, 'gs-ws-group', `
-              ${label('LOCAL', 'gs-eyebrow')}
-              ${row('main', { current: true })}
-              ${row('ws/violet', { dot: 'accent' })}`)}
-            <div class="gs-ws-sep"></div>
-            ${region('remote', focused, 'gs-ws-group', `
-              ${label('REMOTE', 'gs-eyebrow')}
-              ${region('server', focused, 'gs-ws-group', `${serverHead('devbox')}${row('ws/teal', { dot: 'err' })}`)}
-              ${serverHead('gpu-box')}`)}
-            ${region('add-server', focused, 'gs-ws-add', label('+ Add server…', 'gs-dim'))}
-          </div>
+          <div class="gs-ws-server">${label('WORKSPACES', 'gs-eyebrow')}<span class="gs-ws-rule"></span>${region('new', focused, 'gs-ws-new', icon(Plus, 10))}</div>
+          ${region('local', focused, 'gs-ws-group', `
+            ${row('main', { current: true })}
+            ${row('ws/violet', { dot: 'accent' })}`)}
+          <div class="gs-ws-sep"></div>
+          ${region('remote', focused, 'gs-ws-group', `
+            ${region('server', focused, 'gs-ws-group', `${serverHead('devbox')}${row('ws/teal', { dot: 'err', wait: 'approval' })}`)}
+            ${serverHead('gpu-box')}`)}
+          <div class="gs-ws-sep"></div>
+          <div class="gs-ws-add">${label('Archived 3', 'gs-dim')}</div>
         </div>
         ${region('servers', focused, 'gs-multi-others', `
           <div class="gs-proj-pop">

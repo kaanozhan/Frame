@@ -292,12 +292,13 @@
           </button>
           <div id="sidebar-project-menu" class="sidebar-project-menu" role="menu" hidden></div>
         </div>
-        <!-- Workspace switcher (workspaces spec): the second level under the
-             project — main + this project's workspaces as a collapsible list, grouped
-             Local / Remote. Sits on every rail view, like the project
-             switcher, because the selection re-points files, git and
-             terminals everywhere. workspaceSection.js renders it. -->
-        <div id="workspace-section" class="workspace-section project-nav-group" hidden></div>
+        <!-- Workspace list (workspaces spec; workspace-list-agent-alerts): the
+             second level under the project — a "Workspaces" header and, open
+             under it, main + this project's workspaces, then one block per
+             server. Sits on every rail view, like the project switcher,
+             because the selection re-points files, git and terminals
+             everywhere. workspaceSection.js renders it. -->
+        <div id="workspace-section" class="workspace-section" hidden></div>
         <!-- Projects view (default) — the project panel for the selected
              project (project-dropdown spec): selection lives in the
              current-project switcher above, which also carries "+ Add a

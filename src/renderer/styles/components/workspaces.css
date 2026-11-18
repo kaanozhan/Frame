@@ -1,41 +1,138 @@
 /* ==================== WORKSPACES (workspaces spec) ==================== */
-/* The workspace switcher: the second level under the project switcher,
-   drawn as one more nav group — the same header as Work and Context (a
-   chevron and a semibold title, from terminals-view.css's
-   .project-nav-group-*), with the rows hanging off the same guide line and
-   folding the same way. Inside, the rows keep their own shape: Local /
-   Remote groups, a second line for the color name, badges. */
+/* The workspace list: the second level under the project switcher, open in
+   the sidebar (workspace-list-agent-alerts). A small-caps "Workspaces"
+   header with "+", set in by an elbow that ties it to the project above,
+   then the rows: main, this Mac's workspaces, one block per server. */
 
 .workspace-section {
   position: relative;
   flex: 0 0 auto;
   min-width: 0;
-  margin: 4px 0 4px;
+  margin: -4px 0 8px;
+  padding-left: 14px;
   font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .workspace-section[hidden] { display: none; }
 
-/* Collapsed, the header names the selected workspace on its right. */
-.ws-head-current {
+/* Elbow: from under the project box down to the header's middle. */
+.workspace-section::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 0;
+  width: 6px;
+  height: 18px;
+  border-left: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
+  border-bottom-left-radius: 4px;
+  pointer-events: none;
+}
+
+/* The header: in Projects a fold control (the list's name; folded, the
+   selected workspace) and "+ Add New"; in Files, Changes and GitHub the
+   selected workspace in the project switcher's box, opening the dropdown
+   (T16) — the elbow ties it to the project box above, as the two pair up. */
+.ws-head {
+  /* Sized by the sidebar: "+ Add New" folds to "+" below 190px (.ws-group-add). */
+  container: ws-head / inline-size;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  margin-top: 4px;
+  padding: 0 2px 0 4px;
+}
+
+.ws-fold {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 0;
-  margin-left: auto;
-  color: var(--text-tertiary);
-  font-weight: 400;
-  font-size: 12px;
+  height: 22px;
+  padding: 0 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
 }
-.ws-head-name {
+
+.ws-fold:hover { background: var(--bg-hover); color: var(--text-primary); }
+.ws-fold:hover .ws-head-title { color: var(--text-secondary); }
+.ws-fold:focus-visible { box-shadow: inset 0 0 0 1px var(--accent-primary); }
+
+/* A small drawn chevron: down while the list is open, right when folded. */
+.ws-fold-chevron {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.ws-fold-chevron::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-right: 1.25px solid currentColor;
+  border-bottom: 1.25px solid currentColor;
+  transform: translateY(-1px) rotate(45deg);
+  transition: transform 150ms ease;
+}
+
+.ws-head.folded .ws-fold-chevron::before { transform: rotate(-45deg); }
+
+/* Outside Projects: the trigger box takes the row from the section's inset. */
+.ws-head.dropdown { padding: 0; }
+.ws-trigger { flex: 1; min-width: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-fold-chevron::before { transition: none; }
+}
+
+/* Folded: the selected workspace's branch, like the old trigger's name. */
+.ws-fold-name {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
+  color: var(--text-primary);
 }
-.ws-switch .project-nav-group-label { flex: none; }
+
+/* Folded: agents waiting in the other workspaces, most urgent colour. */
+.ws-fold-waiting {
+  flex: none;
+  font-size: 10px;
+  line-height: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ws-fold-waiting.approval { color: var(--error); }
+.ws-fold-waiting.input { color: var(--warning-ink); }
+
+/* Same small caps as the project switcher's "Project" label. */
+.ws-head-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  user-select: none;
+}
 
 /* "remote" / "offline" beside the selected workspace's name. */
 .ws-switch-tag {
@@ -52,51 +149,46 @@
 }
 .ws-switch-tag.offline { color: var(--warning); }
 
-/* The rows: the nav group's guide line and fold; a long list scrolls on its
-   own so Work below stays in reach. */
-.workspace-section .ws-menu {
-  gap: 1px;
-  font-size: 12px;
-  line-height: 18px;
-  max-height: min(420px, 45vh);
-  overflow-y: auto;
-}
-
-/* Rows hang off the guide line like Work's: the selected one gets the
-   active background and an accent edge against the line (drawn inside the
-   row — the list scrolls, so anything outside it would be clipped). */
-.workspace-section .ws-row {
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
-.workspace-section .ws-row.on {
-  background: var(--bg-tertiary);
-  box-shadow: inset 2px 0 0 var(--accent-primary);
-}
-.workspace-section .ws-row.on .ws-primary { color: var(--text-primary); }
-
-.ws-group {
+/* The list itself, in the sidebar's own flow. Past eight rows it scrolls
+   inside itself, so the nav below never moves. Positioned: the rows'
+   offsets are measured from it when the selected one is scrolled into view. */
+.ws-list {
+  --ws-row-height: 30px;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1px;
+  min-width: 0;
+  max-height: calc(8 * var(--ws-row-height) + 7px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 
-.ws-group-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 22px;
-  padding: 2px 2px 2px 8px;
+/* Outside Projects the same rows open as a dropdown over the view below,
+   in the project switcher's menu surface, under the trigger box. */
+.ws-list.ws-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 14px;
+  right: 0;
+  z-index: 50;
+  max-height: calc(8 * var(--ws-row-height) + 15px);
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-/* Same small caps as the switchers' "Project" / "Workspace" labels. */
-.ws-group-label {
-  flex: 1;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  user-select: none;
+.ws-list > *,
+.ws-server > * { flex: none; }
+
+.ws-sep {
+  flex: none;
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border-subtle);
 }
 
 /* The host the Remote group lives on, with the link's state as a dot. */
@@ -125,19 +217,30 @@
 .ws-group-host.busy .ws-link-dot { background: var(--warning); animation: ws-pulse 1.6s ease-in-out infinite; }
 .ws-group-host.setup .ws-link-dot { background: var(--warning); }
 
+/* "+ Add New" (Projects only); the label drops when the header is narrow. */
 .ws-group-add {
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
+  gap: 4px;
+  min-width: 20px;
   height: 20px;
-  padding: 0;
+  padding: 0 6px 0 4px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-tertiary);
+  font: inherit;
+  font-size: 11px;
+  line-height: 20px;
+  white-space: nowrap;
   cursor: pointer;
+}
+
+@container ws-head (max-width: 190px) {
+  .ws-group-add { padding: 0; }
+  .ws-group-add-label { display: none; }
 }
 
 .ws-group-add:hover:not(:disabled),
@@ -159,22 +262,6 @@
   font-size: 11px;
   line-height: 20px;
   cursor: pointer;
-}
-
-/* Empty Remote: one line of why, one button for the next step. */
-.ws-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  padding: 2px 8px 8px;
-}
-
-.ws-empty-text {
-  margin: 0;
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--text-tertiary);
 }
 
 .ws-cta {
@@ -206,20 +293,16 @@
 
 .ws-cta:disabled { opacity: 0.45; cursor: default; }
 
-.ws-archived {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
+/* No server saved yet: the one "Connect a server…" row of the list. */
+.ws-list > .ws-cta { margin: 2px 0 4px; }
 
 /* Rows: the project menu's item rhythm, with a second line for the color
-   name and the badges. The selected row is marked like Work's active row
-   (see .workspace-section .ws-row.on above). */
+   name. The selected row is filled and its label takes the accent. */
 .ws-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 30px;
+  min-height: var(--ws-row-height, 30px);
   padding: 4px 4px 4px 8px;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
@@ -231,9 +314,9 @@
 .ws-row:hover { background: var(--bg-hover); color: var(--text-primary); }
 .ws-row:focus-visible { box-shadow: inset 0 0 0 1px var(--accent-primary); }
 
-.ws-row.on { color: var(--text-primary); }
+.ws-row.on { background: var(--bg-tertiary); color: var(--text-primary); }
+.ws-row.on:hover { background: var(--bg-hover); }
 .ws-row.on .ws-primary { color: var(--accent-primary); }
-
 
 .ws-row.missing { opacity: 0.7; cursor: default; }
 .ws-row.archived { cursor: default; }
@@ -277,6 +360,19 @@
   background: var(--accent-primary);
   animation: ws-pulse 1.6s ease-in-out infinite;
 }
+
+/* The trailing wait label: which kind of wait, and for how long. Each
+   theme colours it with its own error and warning tokens. */
+.ws-wait {
+  flex: none;
+  font-size: 10px;
+  line-height: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ws-wait.approval { color: var(--error); }
+.ws-wait.input { color: var(--warning-ink); }
 
 @keyframes ws-pulse {
   0%, 100% { opacity: 1; }
@@ -332,7 +428,8 @@
   font: inherit;
 }
 
-.ws-archived-toggle {
+/* The archive: one row at the foot of the list, whatever it holds. */
+.ws-archived-row {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -348,21 +445,35 @@
   outline: none;
 }
 
-.ws-archived-toggle::before {
-  content: '';
-  width: 5px;
-  height: 5px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(-45deg);
-  transition: transform 150ms ease;
-}
-
-.ws-archived-toggle.open::before { transform: translateY(-2px) rotate(45deg); }
-.ws-archived-toggle:hover,
-.ws-archived-toggle:focus-visible { color: var(--text-primary); background: var(--bg-hover); }
+.ws-archived-row:hover,
+.ws-archived-row:focus-visible { color: var(--text-primary); background: var(--bg-hover); }
 
 .ws-count { color: var(--text-muted); }
+
+/* ---------- Archived workspaces dialog (reuses the task-run modal shell) ---------- */
+.ws-archive-modal { --modal-width: 460px; }
+.ws-archive-modal .task-run-input { width: 100%; box-sizing: border-box; margin: 0; }
+
+/* The dialog's list scrolls inside itself, so the dialog keeps its size. */
+.wa-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: min(320px, 50vh);
+  margin-top: 8px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.wa-list > * { flex: none; }
+
+.wa-empty {
+  margin: 0;
+  padding: 12px 8px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
 
 /* ---------- New workspace dialog (reuses the task-run modal shell) ---------- */
 
@@ -895,13 +1006,11 @@
 .ws-server + .ws-server { margin-top: 4px; }
 
 /* A server's workspaces sit a step in under its host, so the host reads as
-   their parent: each row's dot lines up with the server icon (head: 4px
-   padding + 8px caret + 6px gap = 18px; row: 8px padding). */
+   their parent. */
 .ws-server > .ws-row { margin-left: 10px; }
-.ws-server > .ws-empty { padding-left: 18px; }
 
 /* A labelled sub-separator: host, then a hairline to the edge (and Connect
-   while the server is down). Quieter than the Local / Remote labels. */
+   while the server is down). A label, not a control: it does not fold (T18). */
 .ws-server-head {
   display: flex;
   align-items: center;
@@ -909,42 +1018,6 @@
   min-height: 22px;
   padding: 4px 2px 2px 4px;
   border-radius: var(--radius-sm);
-  outline: none;
-}
-
-/* Collapsible (multi-server-connections): the whole sub-header toggles; the
-   selected workspace's server is locked open, so it has no caret. */
-.ws-server-head[data-act="toggle-server"] { cursor: pointer; }
-.ws-server-head[data-act="toggle-server"]:hover .ws-server-name,
-.ws-server-head[data-act="toggle-server"]:hover .ws-server-icon,
-.ws-server-head[data-act="toggle-server"]:hover .ws-server-caret { color: var(--text-secondary); }
-.ws-server-head:focus-visible { box-shadow: inset 0 0 0 1px var(--accent-primary); }
-
-.ws-server-caret {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-}
-
-.ws-server-caret::before {
-  content: '';
-  width: 4px;
-  height: 4px;
-  border-right: 1.25px solid currentColor;
-  border-bottom: 1.25px solid currentColor;
-  transform: translateY(-1px) rotate(45deg);
-  transition: transform 150ms ease;
-}
-
-.ws-server-head.collapsed .ws-server-caret::before { transform: rotate(-45deg); }
-.ws-server-head.locked .ws-server-caret::before { visibility: hidden; }
-
-@media (prefers-reduced-motion: reduce) {
-  .ws-server-caret::before { transition: none; }
 }
 
 /* The status bar's server mark, smaller. */
@@ -955,16 +1028,6 @@
 }
 
 .ws-server-head:not(.up) .ws-server-icon { color: var(--text-muted); }
-
-.ws-server-count {
-  flex: none;
-  min-width: 14px;
-  padding-right: 4px;
-  text-align: right;
-  font-size: 10px;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
 
 .ws-server-name {
   flex: 0 1 auto;
@@ -987,29 +1050,15 @@
   background: var(--border-subtle);
 }
 
-.ws-empty-compact { padding: 2px 8px 6px; }
-
-.ws-add-server {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  padding: 5px 8px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-tertiary);
-  font: inherit;
-  font-size: 11px;
-  text-align: left;
-  cursor: pointer;
-  outline: none;
+/* While the link comes up: its state, muted, where Connect would be. */
+.ws-server-state {
+  flex: none;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 20px;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
-
-.ws-add-server > span:not(.ws-new-key) { flex: 1; }
-
-.ws-add-server:hover,
-.ws-add-server:focus-visible { background: var(--bg-hover); color: var(--text-primary); }
 
 /* ─── New Workspace: Frame's own controls (multi-server-connections) ─── */
 /* Selects are drawn as the switchers' box (bg-tertiary, border, radius-md,
@@ -1109,19 +1158,3 @@
   background: var(--bg-hover);
   color: var(--text-primary);
 }
-
-/* "New workspace…" leads the menu, like the project menu's "Add a project…". */
-.ws-new-key {
-  flex: none;
-  margin-left: 6px;
-  font-size: 10px;
-  color: var(--text-muted);
-  letter-spacing: 0.3px;
-}
-
-/* Scoped under .ws-menu: menu.css (imported after this file) sets every
-   .sidebar-project-menu-item to 13px, which beat a bare .ws-new. Same size
-   and height as "Add server…". */
-.ws-menu .ws-new { height: 28px; padding: 0 8px; line-height: 28px; font-size: 11px; font-weight: 400; }
-.ws-new:disabled { opacity: 0.45; cursor: default; }
-.ws-new:disabled:hover { background: transparent; color: var(--text-tertiary); }

@@ -685,6 +685,8 @@ function revealSidebarTab(tabName) {
   // (project-dropdown spec) — the list/rail it used to defer to is gone.
   const cp = document.getElementById('sidebar-current-project-wrap');
   if (cp) cp.style.display = '';
+  // The workspace list is open or folded per view (workspace-list-agent-alerts).
+  require('./workspaceSection').setView(tabName);
   if (tabName === 'changes') ipcRenderer.send(IPC.REFRESH_GIT_STATUS);
   // GitHub loads on reveal the way Changes refreshes on reveal (D8); the
   // panel's own show() owns the data and the .visible flag.
@@ -990,6 +992,32 @@ function registerCommands() {
     shortcut: 'CmdOrCtrl+Shift+N',
     when: () => !!state.getProjectPath(),
     run: () => require('./newWorkspaceModal').open()
+  });
+  // Switching and "what waits on me" (workspace-list-agent-alerts): palette
+  // only, no shortcuts.
+  r({
+    id: 'workspace.switch',
+    title: 'Switch Workspace…',
+    category: 'Workspace',
+    when: () => !!state.getProjectPath(),
+    run: () => {
+      const section = require('./workspaceSection');
+      commandPalette.pick({
+        placeholder: 'Switch to workspace…',
+        items: section.switchItems().map((item) => ({
+          title: item.title,
+          detail: item.detail,
+          run: () => section.selectById(item.id)
+        }))
+      });
+    }
+  });
+  r({
+    id: 'workspace.nextWaiting',
+    title: 'Go to Next Waiting Agent',
+    category: 'Workspace',
+    when: () => !!state.getProjectPath(),
+    run: () => require('./workspaceSection').goToNextWaiting()
   });
   r({
     id: 'workspace.review',
