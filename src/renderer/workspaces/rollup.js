@@ -57,4 +57,4 @@ function summaryFor(map, workspaceId) {
   return (map && map.get(workspaceId || MAIN_ID)) || emptySummary();
 }
 
-module.exports = { MAIN_ID, PRIORITY, summarize, summaryFor };
+module.exports = { MAIN_ID, PRIORITY, bucketOf, summarize, summaryFor };
