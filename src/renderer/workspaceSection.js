@@ -34,6 +34,7 @@ const laneStatus = require('./laneStatus');
 const notify = require('./notify');
 const { escapeHtml } = require('./htmlUtils');
 const rollup = require('./workspaces/rollup');
+const attention = require('./workspaces/attention');
 const workspacePr = require('./workspacePr');
 
 let rootEl = null;
@@ -189,14 +190,53 @@ function scheduleRender() {
   });
 }
 
-function summaries() {
-  const projectPath = state.getProjectPath();
-  let states = [];
+/** Every terminal's state, across projects and workspaces. */
+function terminalStates() {
   try {
     const ui = require('./terminal').getMultiTerminalUI();
-    if (ui) states = ui.getManager().getTerminalStates(true);
+    if (ui) return ui.getManager().getTerminalStates(true);
   } catch (_) { /* terminal system not ready yet */ }
-  return rollup.summarize(states, projectPath, (id) => laneStatus.getStatus(id));
+  return [];
+}
+
+function summaries() {
+  return rollup.summarize(terminalStates(), state.getProjectPath(), (id) => laneStatus.getStatus(id));
+}
+
+/** This project's agents that wait on the user, most urgent first (workspaces/attention.js). */
+function waitingQueue() {
+  return attention.waitingQueue(terminalStates(), state.getProjectPath(), (id) => laneStatus.getStatus(id));
+}
+
+const WAIT_TITLES = {
+  approval: 'is waiting for permission',
+  input: 'is waiting for your input'
+};
+
+/**
+ * A row's trailing label while an agent in that workspace waits:
+ * `approval · 2m`, the agent's name in the tooltip. Nothing otherwise, so
+ * rows keep one height whether or not an agent waits.
+ */
+function waitHtml(queue, workspaceId) {
+  const wait = attention.workspaceWait(queue, workspaceId);
+  if (!wait) return '';
+  const who = wait.agentName || 'An agent';
+  return `<span class="ws-wait ${wait.kind}" title="${escapeHtml(`${who} ${WAIT_TITLES[wait.kind]}`)}">${escapeHtml(attention.waitLabel(wait.kind, wait.since))}</span>`;
+}
+
+// Labels count minutes: the list is redrawn every 30 seconds, and only
+// while a label is on screen.
+const WAIT_TICK_MS = 30 * 1000;
+let waitTimer = null;
+
+function syncWaitTimer() {
+  const shown = !!(rootEl && !rootEl.hidden && rootEl.querySelector('.ws-wait'));
+  if (shown && !waitTimer) waitTimer = setInterval(scheduleRender, WAIT_TICK_MS);
+  else if (!shown && waitTimer) {
+    clearInterval(waitTimer);
+    waitTimer = null;
+  }
 }
 
 const DOT_TITLES = {
@@ -211,7 +251,7 @@ function dotHtml(summary) {
   return `<span class="ws-dot ${summary.dot}" title="${DOT_TITLES[summary.dot]}"></span>`;
 }
 
-function rowHtml(ws, { selectedId, sums }) {
+function rowHtml(ws, { selectedId, sums, queue }) {
   const on = ws.id === selectedId ? ' on' : '';
   const missing = ws.missing ? ' missing' : '';
   const where = ws.location === 'server' ? ` server${ws.offline ? ' offline' : ''}` : '';
@@ -239,6 +279,7 @@ function rowHtml(ws, { selectedId, sums }) {
     <div class="ws-row${on}${missing}${where}" data-id="${escapeHtml(ws.id)}" tabindex="0" role="button"${on ? ' aria-current="true"' : ''}>
       ${dotHtml(rollup.summaryFor(sums, ws.id))}
       <span class="ws-labels">${primary}${secondary}</span>
+      ${waitHtml(queue, ws.id)}
       ${trailing}
     </div>`;
 }
@@ -353,7 +394,7 @@ function serverEmptyHtml(link) {
  * "Connect a server" offer. The sub-headers name the hosts, so the group
  * carries no label of its own.
  */
-function remoteGroupHtml(remote, { canCreate, selectedId, sums }) {
+function remoteGroupHtml(remote, { canCreate, selectedId, sums, queue }) {
   const links = serverViews();
   if (!links.length) {
     return `<div class="ws-empty">
@@ -365,7 +406,7 @@ function remoteGroupHtml(remote, { canCreate, selectedId, sums }) {
     const rows = remote.filter((w) => w.serverKey === link.key);
     const locked = rows.some((w) => w.id === selectedId);
     const collapsed = !locked && !isServerOpen(link.key, rows.length);
-    const body = collapsed ? '' : (rows.length ? rows.map((ws) => rowHtml(ws, { selectedId, sums })).join('') : serverEmptyHtml(link));
+    const body = collapsed ? '' : (rows.length ? rows.map((ws) => rowHtml(ws, { selectedId, sums, queue })).join('') : serverEmptyHtml(link));
     return `<div class="ws-server" role="group" aria-label="${escapeHtml(link.host)}">
         ${serverHeadHtml(link, { collapsed, count: rows.length, locked })}
         ${body}
@@ -389,6 +430,7 @@ function render() {
   rootEl.hidden = !projectPath;
   if (!projectPath) {
     rootEl.innerHTML = '';
+    syncWaitTimer();
     return;
   }
   const prevList = rootEl.querySelector('.ws-list');
@@ -399,6 +441,7 @@ function render() {
   const selected = state.getWorkspace();
   const selectedId = selected ? selected.id : state.MAIN_WORKSPACE_ID;
   const sums = summaries();
+  const queue = waitingQueue();
   const canCreate = isRepo && loadedFor === projectPath;
   const addTitle = canCreate
     ? 'New workspace — on this Mac or a server (⌘⇧N)'
@@ -431,10 +474,11 @@ function render() {
       <div class="ws-row main${mainOn ? ' on' : ''}" data-id="main" tabindex="0" role="button"${mainOn ? ' aria-current="true"' : ''}>
         ${dotHtml(rollup.summaryFor(sums, state.MAIN_WORKSPACE_ID))}
         <span class="ws-labels"><span class="ws-primary" title="${escapeHtml(mainLabel())}">${escapeHtml(mainLabel())}</span><span class="ws-secondary">project checkout</span></span>
+        ${waitHtml(queue, state.MAIN_WORKSPACE_ID)}
       </div>
-      ${local.map((ws) => rowHtml(ws, { selectedId, sums })).join('')}
+      ${local.map((ws) => rowHtml(ws, { selectedId, sums, queue })).join('')}
       <div class="ws-sep" role="separator"></div>
-      ${remoteGroupHtml(remote, { canCreate, selectedId, sums })}
+      ${remoteGroupHtml(remote, { canCreate, selectedId, sums, queue })}
       ${archivedHtml}
     </div>`;
 
@@ -449,6 +493,7 @@ function render() {
     const row = [...rootEl.querySelectorAll('.ws-list .ws-row[tabindex="0"]')].find((el) => el.dataset.id === focusedId);
     if (row) row.focus({ preventScroll: true });
   }
+  syncWaitTimer();
 }
 
 // ─── List ────────────────────────────────────────────────────

@@ -261,6 +261,19 @@
   animation: ws-pulse 1.6s ease-in-out infinite;
 }
 
+/* The trailing wait label: which kind of wait, and for how long. Each
+   theme colours it with its own error and warning tokens. */
+.ws-wait {
+  flex: none;
+  font-size: 10px;
+  line-height: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ws-wait.approval { color: var(--error); }
+.ws-wait.input { color: var(--warning-ink); }
+
 @keyframes ws-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }

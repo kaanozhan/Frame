@@ -14,3 +14,10 @@ Followup: the tour's Workspaces step still says "New workspace at the top of thi
 _Captured: 2026-11-18 · 3 file change(s)_
 
 ---
+## T03 — Wait label on rows: which agent waits, on what, for how long
+
+Added the trailing wait label (`approval · 2m`, agent name in the tooltip, before ⋯) to workspace rows and the main row in `workspaceSection.js` from `attention.workspaceWait` and `waitLabel`, and a 30-second redraw that runs only while a label is on screen. Styled it in `workspaces.css` with `--error` and, for input, `--warning-ink` instead of plain `--warning`, because that is the theme's text-safe warning colour. Not seen running.
+
+_Captured: 2026-11-18 · 2 file change(s)_
+
+---
