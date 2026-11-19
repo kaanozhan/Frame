@@ -258,3 +258,34 @@ test('adopt brings back this project\'s home terminals in the view they were ope
     assert.equal(home.home, true);
   } finally { fakeServer.call = saved; }
 });
+
+// ─── Why a terminal was closed travels with the close (W3) ────
+
+test('W3: a server terminal close carries the reason to the server', () => {
+  fakeServer.connected = true;
+  const before = serverCalls.length;
+  handlers[IPC.TERMINAL_DESTROY]({}, 'srv-kbox.boot1-21', 'closed with its pane × in Terminals');
+  const sent = serverCalls.slice(before).filter((c) => c.method === 'terminals.destroy');
+  assert.equal(sent.length, 1);
+  assert.deepEqual(sent[0].params, { terminalId: 'srv-boot1-21', reason: 'closed with its pane × in Terminals' });
+});
+
+test('W3: a close without a reason is labelled, and an older renderer call still closes', () => {
+  fakeServer.connected = true;
+  const before = serverCalls.length;
+  handlers[IPC.TERMINAL_DESTROY]({}, 'srv-kbox.boot1-22');
+  const sent = serverCalls.slice(before).filter((c) => c.method === 'terminals.destroy');
+  assert.equal(sent.length, 1, 'the close is still sent');
+  assert.equal(sent[0].params.reason, 'unlabelled close');
+});
+
+test('W3: a close made while offline keeps its reason for the reconnect', () => {
+  fakeServer.connected = false;
+  handlers[IPC.TERMINAL_DESTROY]({}, 'srv-kbox.boot1-23', '"Kill & restart here" chosen when starting an agent');
+  fakeServer.connected = true;
+  const before = serverCalls.length;
+  registry.emit('connected', {}, 'kbox');
+  const sent = serverCalls.slice(before).filter((c) => c.method === 'terminals.destroy' && c.params.terminalId === 'srv-boot1-23');
+  assert.equal(sent.length, 1);
+  assert.match(sent[0].params.reason, /^"Kill & restart here" chosen when starting an agent — sent on reconnect/);
+});

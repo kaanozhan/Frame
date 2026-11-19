@@ -5617,30 +5617,30 @@
           "purpose": "Check if terminal exists"
         },
         "serverLocationOf": {
-          "line": 545,
+          "line": 548,
           "params": [
             "workspaceId"
           ]
         },
         "server": {
-          "line": 554
+          "line": 557
         },
         "connectedLink": {
-          "line": 559,
+          "line": 562,
           "params": [
             "key"
           ],
           "purpose": "The connected link of `key`, or null."
         },
         "routeOfTerminal": {
-          "line": 565,
+          "line": 568,
           "params": [
             "terminalId"
           ],
           "purpose": "`{ link, serverTerminalId }` a desktop id routes to, or null when its server is unknown."
         },
         "createServerTerminal": {
-          "line": 571,
+          "line": 574,
           "params": [
             "loc",
             "{ cwd",
@@ -5652,14 +5652,14 @@
           ]
         },
         "serverTerminalInfo": {
-          "line": 588,
+          "line": 591,
           "params": [
             "terminalId"
           ],
           "purpose": "Local project/workspace (and server) of a server terminal this window knows, or null."
         },
         "noteServerTerminal": {
-          "line": 593,
+          "line": 596,
           "params": [
             "terminalId",
             "info"
@@ -5667,10 +5667,10 @@
           "purpose": "Remember a server terminal found on reconnect (adopted by the renderer)."
         },
         "wireServerEvents": {
-          "line": 599
+          "line": 602
         },
         "adoptFrom": {
-          "line": 647,
+          "line": 655,
           "params": [
             "link",
             "projectPath",
@@ -5679,14 +5679,14 @@
           "purpose": "One connected server's live terminals of a local project, with a screen each; null when it cannot tell."
         },
         "adoptServerTerminals": {
-          "line": 691,
+          "line": 699,
           "params": [
             "projectPath"
           ],
           "purpose": "Every connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 721,
+          "line": 729,
           "params": [
             "ipcMain"
           ]
@@ -5709,7 +5709,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 33235,
+      "sizeBytes": 34170,
       "extraction": {
         "status": "parsed"
       },
@@ -9616,7 +9616,7 @@
           "SPEC_AGENT_ACTIVITY"
         ]
       },
-      "sizeBytes": 46645,
+      "sizeBytes": 46712,
       "extraction": {
         "status": "parsed"
       },
@@ -13936,7 +13936,7 @@
           "SESSION_RESTORE_SET_LAST_PROJECT"
         ]
       },
-      "sizeBytes": 35975,
+      "sizeBytes": 36111,
       "extraction": {
         "status": "parsed"
       },
@@ -19895,6 +19895,10 @@
             "n"
           ],
           "purpose": "A terminal's default name, number first (\"1st Terminal\", \"2nd Terminal\"):"
+        },
+        "closeCaller": {
+          "line": 78,
+          "purpose": "Where an unlabelled closeTerminal call came from: the first frames past"
         }
       },
       "ipc": {
@@ -19916,13 +19920,14 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 42733,
+      "sizeBytes": 43574,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "5503a1b34dbada83",
         "purposes": {
+          "closeCaller": "dbe7ad2c35f80fff",
           "getTerminalTheme": "c1851af8b213ec21",
           "terminalName": "1c4c500d3f4e3dbd"
         }
@@ -20019,7 +20024,7 @@
           ]
         }
       },
-      "sizeBytes": 26795,
+      "sizeBytes": 26847,
       "extraction": {
         "status": "parsed"
       },
@@ -20795,7 +20800,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 42570,
+      "sizeBytes": 42629,
       "extraction": {
         "status": "parsed"
       },
@@ -26103,11 +26108,12 @@
         "os",
         "shared/serverRouting",
         "screenMirror",
+        "main/logger",
         "main/ptyManager"
       ],
       "functions": {
         "setup": {
-          "line": 42,
+          "line": 43,
           "params": [
             "{ shim",
             "registerMethods",
@@ -26116,14 +26122,14 @@
           "purpose": "Wire terminals into the server: `shim` is the installed electron shim,"
         },
         "toLocalId": {
-          "line": 32,
+          "line": 33,
           "params": [
             "id"
           ],
           "purpose": "An id of another boot names no terminal here."
         }
       },
-      "sizeBytes": 6529,
+      "sizeBytes": 6944,
       "extraction": {
         "status": "parsed"
       },
@@ -31902,7 +31908,7 @@
           ]
         }
       },
-      "sizeBytes": 12110,
+      "sizeBytes": 13740,
       "extraction": {
         "status": "parsed"
       },
@@ -36867,6 +36873,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "6921a52dfaa82b0d89a92c106d9b07b92a7ead8bfe441d48d2b1b85b686a5f80"
+    "revision": "c30cf777454f1e5de7d87dc7095633b433ecc3734b755d149198d5dfccdac89c"
   }
 }
