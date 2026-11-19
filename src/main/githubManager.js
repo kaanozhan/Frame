@@ -126,8 +126,11 @@ async function checkGitHubRepo(projectPath) {
 
 /**
  * The one access check (D6): gh present → signed in → GitHub remote.
- * Short-circuits at the first failure and caches per project until a
- * forced refresh or a project change.
+ * Short-circuits at the first failure. A signed-in result is cached per
+ * project until a forced refresh or a project change; "gh missing" and
+ * "signed out" are not, so installing gh or signing in shows on the next
+ * check — Frame Server never changes project, and kept a signed-out result
+ * until it restarted (server-github-setup G5).
  * @returns {{ gh: boolean, authed: boolean, repoName: string|null, error: string|null }}
  */
 async function checkAccess(projectPath, force = false) {
@@ -148,7 +151,7 @@ async function checkAccess(projectPath, force = false) {
     result = { gh: true, authed: true, repoName: repo.repoName, error: repo.error };
   }
 
-  accessCache.set(projectPath, result);
+  if (result.authed) accessCache.set(projectPath, result);
   return result;
 }
 

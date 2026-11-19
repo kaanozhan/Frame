@@ -167,11 +167,7 @@ function doctorItems(raw = {}) {
   const items = [
     claude,
     codex,
-    !gh.installed
-      ? { id: 'gh', label: 'GitHub CLI', ok: false, detail: 'not installed (needed for pull requests)', fix: 'sudo apt install -y gh' }
-      : !gh.authed
-        ? { id: 'gh', label: 'GitHub CLI', ok: false, detail: 'not signed in', fix: 'gh auth login && gh auth setup-git' }
-        : { id: 'gh', label: 'GitHub CLI', ok: true, detail: 'signed in' },
+    ghItem(gh),
     (r.git || {}).installed
       ? { id: 'git', label: 'git', ok: true, detail: 'installed' }
       : { id: 'git', label: 'git', ok: false, detail: 'not installed', fix: 'sudo apt install -y git' }
@@ -205,6 +201,24 @@ function doctorItems(raw = {}) {
  * shells: Frame's probes) and ~/.bashrc (terminals), then the install runs.
  * Safe to run again. For a system Node whose global folder is root's.
  */
+// GitHub on a server (server-github-setup). The sign-in never asks which
+// host, protocol or method: picking SSH made gh generate and upload a key
+// while `gh auth setup-git` only sets up HTTPS (G1), and a server has no
+// browser, so the one-time code is entered on the Mac (G2). Only gh's own
+// steps: Frame suggests nothing that changes the user's other git or SSH
+// settings on the server.
+const GH_SIGN_IN = 'gh auth login --hostname github.com --git-protocol https --web && gh auth setup-git';
+const GH_SIGN_IN_NOTE = 'The terminal shows a one-time code: open github.com/login/device on this Mac and enter it. '
+  + '"Failed opening a web browser" is expected on a server — gh keeps waiting for the code.';
+
+/** The GitHub CLI row: installed, then signed in. */
+function ghItem(gh) {
+  const base = { id: 'gh', label: 'GitHub CLI' };
+  if (!gh.installed) return { ...base, ok: false, detail: 'not installed (needed for push and pull requests)', fix: 'sudo apt install -y gh' };
+  if (!gh.authed) return { ...base, ok: false, detail: 'not signed in (needed for push and pull requests)', fix: GH_SIGN_IN, note: GH_SIGN_IN_NOTE };
+  return { ...base, ok: true, detail: 'signed in' };
+}
+
 function userNpmInstall(pkg) {
   return [
     'mkdir -p ~/.npm-global',
@@ -244,4 +258,4 @@ function consentNeeded({ connected, agents, installed }) {
   return !!installed;
 }
 
-module.exports = { RELEASE_BASE, INSTALL_EXIT, consentNeeded, agentTerminals, assetFor, releaseUrl, parseVersion, compareVersions, installDecision, parseChecksum, systemdUnit, doctorItems, userNpmInstall };
+module.exports = { RELEASE_BASE, INSTALL_EXIT, consentNeeded, agentTerminals, assetFor, releaseUrl, parseVersion, compareVersions, installDecision, parseChecksum, systemdUnit, doctorItems, userNpmInstall, GH_SIGN_IN };

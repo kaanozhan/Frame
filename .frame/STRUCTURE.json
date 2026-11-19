@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-18",
+  "lastUpdated": "2026-11-19",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -3789,7 +3789,7 @@
           "purpose": "Check if current directory is a git repo with GitHub remote"
         },
         "checkAccess": {
-          "line": 133,
+          "line": 136,
           "params": [
             "projectPath",
             "force = false"
@@ -3797,20 +3797,20 @@
           "purpose": "The one access check (D6): gh present → signed in → GitHub remote."
         },
         "accessError": {
-          "line": 159,
+          "line": 162,
           "params": [
             "access"
           ],
           "purpose": "The legacy error string for a failed access check, or null when the"
         },
         "normalizeState": {
-          "line": 166,
+          "line": 169,
           "params": [
             "state"
           ]
         },
         "loadIssues": {
-          "line": 174,
+          "line": 177,
           "params": [
             "projectPath",
             "state = 'open'"
@@ -3818,7 +3818,7 @@
           "purpose": "Load GitHub issues for current project"
         },
         "loadPullRequests": {
-          "line": 196,
+          "line": 199,
           "params": [
             "projectPath",
             "state = 'open'"
@@ -3826,7 +3826,7 @@
           "purpose": "Load pull requests (G4) with the same open / closed / all filter as issues."
         },
         "checkoutPullRequest": {
-          "line": 219,
+          "line": 222,
           "params": [
             "projectPath",
             "number"
@@ -3834,14 +3834,14 @@
           "purpose": "`gh pr checkout <n>`, refused on a dirty tree the way SWITCH_GIT_BRANCH"
         },
         "openIssue": {
-          "line": 250,
+          "line": 253,
           "params": [
             "url"
           ],
           "purpose": "Open issue in browser"
         },
         "setupIPC": {
-          "line": 259,
+          "line": 262,
           "params": [
             "ipcMain"
           ],
@@ -3858,7 +3858,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 9836,
+      "sizeBytes": 10091,
       "extraction": {
         "status": "parsed"
       },
@@ -5617,30 +5617,30 @@
           "purpose": "Check if terminal exists"
         },
         "serverLocationOf": {
-          "line": 545,
+          "line": 548,
           "params": [
             "workspaceId"
           ]
         },
         "server": {
-          "line": 554
+          "line": 557
         },
         "connectedLink": {
-          "line": 559,
+          "line": 562,
           "params": [
             "key"
           ],
           "purpose": "The connected link of `key`, or null."
         },
         "routeOfTerminal": {
-          "line": 565,
+          "line": 568,
           "params": [
             "terminalId"
           ],
           "purpose": "`{ link, serverTerminalId }` a desktop id routes to, or null when its server is unknown."
         },
         "createServerTerminal": {
-          "line": 571,
+          "line": 574,
           "params": [
             "loc",
             "{ cwd",
@@ -5652,14 +5652,14 @@
           ]
         },
         "serverTerminalInfo": {
-          "line": 588,
+          "line": 591,
           "params": [
             "terminalId"
           ],
           "purpose": "Local project/workspace (and server) of a server terminal this window knows, or null."
         },
         "noteServerTerminal": {
-          "line": 593,
+          "line": 596,
           "params": [
             "terminalId",
             "info"
@@ -5667,10 +5667,10 @@
           "purpose": "Remember a server terminal found on reconnect (adopted by the renderer)."
         },
         "wireServerEvents": {
-          "line": 599
+          "line": 602
         },
         "adoptFrom": {
-          "line": 647,
+          "line": 655,
           "params": [
             "link",
             "projectPath",
@@ -5679,14 +5679,14 @@
           "purpose": "One connected server's live terminals of a local project, with a screen each; null when it cannot tell."
         },
         "adoptServerTerminals": {
-          "line": 691,
+          "line": 699,
           "params": [
             "projectPath"
           ],
           "purpose": "Every connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 721,
+          "line": 729,
           "params": [
             "ipcMain"
           ]
@@ -5709,7 +5709,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 33235,
+      "sizeBytes": 34170,
       "extraction": {
         "status": "parsed"
       },
@@ -8473,7 +8473,7 @@
           ]
         },
         "heldSpec": {
-          "line": 306,
+          "line": 314,
           "params": [
             "projectPath",
             "id"
@@ -8481,7 +8481,7 @@
           "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
         },
         "prDraft": {
-          "line": 320,
+          "line": 328,
           "params": [
             "projectPath",
             "id"
@@ -8489,7 +8489,7 @@
           "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
         },
         "prCreate": {
-          "line": 331,
+          "line": 339,
           "params": [
             "projectPath",
             "id",
@@ -8500,7 +8500,7 @@
           "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
         },
         "merge": {
-          "line": 359,
+          "line": 367,
           "params": [
             "projectPath",
             "id"
@@ -8508,14 +8508,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 409,
+          "line": 417,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 446,
+          "line": 454,
           "params": [
             "projectPath",
             "id"
@@ -8523,7 +8523,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 464,
+          "line": 472,
           "params": [
             "ipcMain"
           ]
@@ -8543,7 +8543,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 21919,
+      "sizeBytes": 22476,
       "extraction": {
         "status": "parsed"
       },
@@ -9616,7 +9616,7 @@
           "SPEC_AGENT_ACTIVITY"
         ]
       },
-      "sizeBytes": 46645,
+      "sizeBytes": 46712,
       "extraction": {
         "status": "parsed"
       },
@@ -13936,7 +13936,7 @@
           "SESSION_RESTORE_SET_LAST_PROJECT"
         ]
       },
-      "sizeBytes": 35975,
+      "sizeBytes": 36111,
       "extraction": {
         "status": "parsed"
       },
@@ -15967,7 +15967,7 @@
           "line": 294
         },
         "open": {
-          "line": 411,
+          "line": 413,
           "params": [
             "{ key = null",
             "add = false } = {}"
@@ -15975,49 +15975,49 @@
           "purpose": "Open the Servers dialog. `key` selects that server; `add` (or no saved"
         },
         "openServerTerminal": {
-          "line": 445,
+          "line": 447,
           "params": [
             "command"
           ],
           "purpose": "A terminal on the selected server, in its home folder, in the current view"
         },
         "openSetupTerminal": {
-          "line": 466,
+          "line": 468,
           "purpose": "\"Set up access in a terminal\" (server-first-connect): a terminal on this"
         },
         "close": {
-          "line": 480
+          "line": 482
         },
         "addServer": {
-          "line": 487,
+          "line": 489,
           "purpose": "Add the host typed in the form, select it and connect it."
         },
         "connect": {
-          "line": 504,
+          "line": 506,
           "params": [
             "key"
           ]
         },
         "disconnectOne": {
-          "line": 518,
+          "line": 520,
           "params": [
             "key"
           ],
           "purpose": "Disconnect one server; it stays in the list and off at the next launch."
         },
         "disconnect": {
-          "line": 526,
+          "line": 528,
           "purpose": "Disconnect every server (File ▸ Disconnect from Server, palette)."
         },
         "removeServer": {
-          "line": 532,
+          "line": 534,
           "params": [
             "key"
           ],
           "purpose": "Forget a server after asking; nothing on the server is touched."
         },
         "runAction": {
-          "line": 544,
+          "line": 546,
           "params": [
             "kind",
             "confirmAgents = false"
@@ -16032,7 +16032,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 24738,
+      "sizeBytes": 24888,
       "extraction": {
         "status": "parsed"
       },
@@ -18751,7 +18751,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 29353,
+      "sizeBytes": 29532,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -19895,6 +19895,10 @@
             "n"
           ],
           "purpose": "A terminal's default name, number first (\"1st Terminal\", \"2nd Terminal\"):"
+        },
+        "closeCaller": {
+          "line": 78,
+          "purpose": "Where an unlabelled closeTerminal call came from: the first frames past"
         }
       },
       "ipc": {
@@ -19916,13 +19920,14 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 42733,
+      "sizeBytes": 43574,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "5503a1b34dbada83",
         "purposes": {
+          "closeCaller": "dbe7ad2c35f80fff",
           "getTerminalTheme": "c1851af8b213ec21",
           "terminalName": "1c4c500d3f4e3dbd"
         }
@@ -20019,7 +20024,7 @@
           ]
         }
       },
-      "sizeBytes": 26795,
+      "sizeBytes": 26847,
       "extraction": {
         "status": "parsed"
       },
@@ -20795,7 +20800,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 42570,
+      "sizeBytes": 42629,
       "extraction": {
         "status": "parsed"
       },
@@ -26103,11 +26108,12 @@
         "os",
         "shared/serverRouting",
         "screenMirror",
+        "main/logger",
         "main/ptyManager"
       ],
       "functions": {
         "setup": {
-          "line": 42,
+          "line": 43,
           "params": [
             "{ shim",
             "registerMethods",
@@ -26116,14 +26122,14 @@
           "purpose": "Wire terminals into the server: `shim` is the installed electron shim,"
         },
         "toLocalId": {
-          "line": 32,
+          "line": 33,
           "params": [
             "id"
           ],
           "purpose": "An id of another boot names no terminal here."
         }
       },
-      "sizeBytes": 6529,
+      "sizeBytes": 6944,
       "extraction": {
         "status": "parsed"
       },
@@ -27131,6 +27137,8 @@
         "pickMergeMethod",
         "fixChecksPrompt",
         "isPushable",
+        "offBranchError",
+        "explainPushError",
         "pushArgs",
         "mergeLanded",
         "baseForBranch",
@@ -27195,8 +27203,24 @@
           ],
           "purpose": "The prompt \"Fix failing checks\" hands the workspace's agent. It names the"
         },
+        "offBranchError": {
+          "line": 150,
+          "params": [
+            "{ branch",
+            "headRef",
+            "branchExists }"
+          ],
+          "purpose": "Why a push must not run because the workspace's folder left its branch, or"
+        },
+        "explainPushError": {
+          "line": 168,
+          "params": [
+            "error"
+          ],
+          "purpose": "A push error with the user's options appended when git could not reach the"
+        },
         "isPushable": {
-          "line": 142,
+          "line": 177,
           "params": [
             "{ branch",
             "base }"
@@ -27204,7 +27228,7 @@
           "purpose": "A workspace branch may be pushed unless it is (or names) its own base."
         },
         "pushArgs": {
-          "line": 157,
+          "line": 192,
           "params": [
             "{ branch",
             "base",
@@ -27213,14 +27237,14 @@
           "purpose": "The argv for pushing a workspace branch (workspace-hardening L1). The push"
         },
         "parseConflicts": {
-          "line": 170,
+          "line": 205,
           "params": [
             "stdout"
           ],
           "purpose": "`git diff --name-only --diff-filter=U -z` → conflicted paths, in order, no duplicates."
         },
         "updateMenuState": {
-          "line": 185,
+          "line": 220,
           "params": [
             "{ behind = 0",
             "merging = false",
@@ -27230,7 +27254,7 @@
           "purpose": "The update items a workspace row offers: `[{ id, label }]`."
         },
         "conflictPrompt": {
-          "line": 198,
+          "line": 233,
           "params": [
             "{ branch",
             "base = 'main'",
@@ -27239,21 +27263,21 @@
           "purpose": "The prompt that hands an update's conflicts to an agent in the workspace."
         },
         "updateMessage": {
-          "line": 211,
+          "line": 246,
           "params": [
             "result"
           ],
           "purpose": "One sentence for the user about an update's result."
         },
         "mergeLanded": {
-          "line": 236,
+          "line": 271,
           "params": [
             "pr"
           ],
           "purpose": "Whether a PR read back after `gh pr merge` has actually merged. On a"
         },
         "baseForBranch": {
-          "line": 246,
+          "line": 281,
           "params": [
             "{ branch",
             "upstream",
@@ -27262,7 +27286,7 @@
           "purpose": "The base a workspace opened from an existing branch should record"
         }
       },
-      "sizeBytes": 11335,
+      "sizeBytes": 13651,
       "extraction": {
         "status": "parsed"
       },
@@ -27273,10 +27297,12 @@
           "checksSummary": "5bacb8007cad8133",
           "composePr": "79db7faf7577e5c8",
           "conflictPrompt": "1c20db3486ce6d8c",
+          "explainPushError": "6521edd998c23bdc",
           "fixChecksPrompt": "12c4e5bb6f83be44",
           "isPushable": "20e43c7377899394",
           "mapPrView": "886ffc419a78fdac",
           "mergeLanded": "875702301f11b53c",
+          "offBranchError": "36bf1ad27d582d4f",
           "parseConflicts": "35eac48b8bf0d2d4",
           "parseCount": "e0e6116d342409ca",
           "pickMergeMethod": "b92b46d28d104dd3",
@@ -27597,7 +27623,8 @@
         "parseChecksum",
         "systemdUnit",
         "doctorItems",
-        "userNpmInstall"
+        "userNpmInstall",
+        "GH_SIGN_IN"
       ],
       "depends": [],
       "functions": {
@@ -27661,22 +27688,28 @@
           ],
           "purpose": "The check-up as items for the Connect dialog. `raw` is what server.doctor"
         },
+        "ghItem": {
+          "line": 215,
+          "params": [
+            "gh"
+          ],
+          "purpose": "The GitHub CLI row: installed, then signed in."
+        },
         "userNpmInstall": {
-          "line": 208,
+          "line": 222,
           "params": [
             "pkg"
-          ],
-          "purpose": "One line that installs an npm package for this user only: npm's prefix"
+          ]
         },
         "agentTerminals": {
-          "line": 225,
+          "line": 239,
           "params": [
             "list"
           ],
           "purpose": "The server terminals running an agent, from `terminals.list` (each with its"
         },
         "consentNeeded": {
-          "line": 242,
+          "line": 256,
           "params": [
             "{ connected",
             "agents",
@@ -27685,7 +27718,7 @@
           "purpose": "Whether an update or rollback must ask first (server-hardening S9): when"
         }
       },
-      "sizeBytes": 10697,
+      "sizeBytes": 11550,
       "extraction": {
         "status": "parsed"
       },
@@ -27697,11 +27730,11 @@
           "compareVersions": "efd0728fd35f2db1",
           "consentNeeded": "c7ac0d601f835fd7",
           "doctorItems": "dd574ec4d6cee2a5",
+          "ghItem": "b2dc973831ace090",
           "installDecision": "e84479a8fb5b69bd",
           "parseChecksum": "691d502f346e91f0",
           "releaseUrl": "57ede9ed46f442ef",
-          "systemdUnit": "4c73100446c0ebe3",
-          "userNpmInstall": "05aa30b53dabc87f"
+          "systemdUnit": "4c73100446c0ebe3"
         }
       }
     },
@@ -28933,7 +28966,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 21917,
+      "sizeBytes": 22381,
       "extraction": {
         "status": "parsed"
       },
@@ -31106,6 +31139,28 @@
         }
       }
     },
+    "test/githubAccessCache.test": {
+      "file": "test/githubAccessCache.test.js",
+      "description": "githubManager.checkAccess caching (server-github-setup G5).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "node:module",
+        "src/main/githubManager"
+      ],
+      "functions": {},
+      "sizeBytes": 3093,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "2d1d78c1f237f085"
+      }
+    },
     "test/githubAccessState.test": {
       "file": "test/githubAccessState.test.js",
       "description": "The GitHub panel's access resolver (github-view-tree-layout spec, G3 / D6).",
@@ -31773,7 +31828,7 @@
         "src/shared/prFlow"
       ],
       "functions": {},
-      "sizeBytes": 10169,
+      "sizeBytes": 13032,
       "extraction": {
         "status": "parsed"
       },
@@ -31891,7 +31946,7 @@
           ]
         }
       },
-      "sizeBytes": 12110,
+      "sizeBytes": 13740,
       "extraction": {
         "status": "parsed"
       },
@@ -32388,7 +32443,7 @@
           "purpose": "A temp HOME and a fake `npm` that logs its arguments and prints `prefix` for `config get prefix`."
         }
       },
-      "sizeBytes": 11638,
+      "sizeBytes": 13668,
       "extraction": {
         "status": "parsed"
       },
@@ -33099,6 +33154,31 @@
       },
       "provenance": {
         "description": "819d5f372129ba9e"
+      }
+    },
+    "test/specImplementBranch.test": {
+      "file": "test/specImplementBranch.test.js",
+      "description": "spec.implement's pre-flight branch rule in a Frame workspace.",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "branchSection": {
+          "line": 23
+        }
+      },
+      "sizeBytes": 3415,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "70920252e9baa20b"
       }
     },
     "test/specManagerServer.test": {
@@ -34111,7 +34191,8 @@
         "src/main/userSettings",
         "src/main/frameProject",
         "src/main/specManager",
-        "src/main/gitStatusManager"
+        "src/main/gitStatusManager",
+        "src/main/githubManager"
       ],
       "functions": {
         "withGh": {
@@ -34153,9 +34234,19 @@
         "detachedWithCommit": {
           "line": 193,
           "purpose": "A workspace whose worktree has one commit on a detached HEAD that no branch holds."
+        },
+        "workspaceWithCommit": {
+          "line": 574
+        },
+        "commitIn": {
+          "line": 580,
+          "params": [
+            "wt",
+            "file"
+          ]
         }
       },
-      "sizeBytes": 30788,
+      "sizeBytes": 34673,
       "extraction": {
         "status": "parsed"
       },
@@ -36752,7 +36843,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 406,
+        "parsed": 408,
         "unsupported": 92,
         "partial": 0
       }
@@ -36799,9 +36890,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 592,
+      "visitedEntries": 594,
       "traversedDirectories": 86,
-      "eligibleFiles": 498,
+      "eligibleFiles": 500,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -36818,7 +36909,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 498,
+      "indexedFiles": 500,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -36826,6 +36917,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "e1c188591929f482aa864854d9bf39b5f282868112d3eaebf264432b49d66229"
+    "revision": "8ea70395e5fff95c34729e4c9fb54371eed0803a132da1f75d06994b09e52df7"
   }
 }

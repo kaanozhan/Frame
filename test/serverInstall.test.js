@@ -184,3 +184,45 @@ test('the check-up\'s npm probe: writable prefix → yes, root\'s → no, no npm
   fsx.rmSync(own, { recursive: true, force: true });
   fsx.rmSync(none, { recursive: true, force: true });
 });
+
+// ─── GitHub on a server (server-github-setup) ─────────────────
+
+test('GitHub CLI row: install, then a sign-in that asks nothing, with the device-code note', () => {
+  const row = (gh) => I.doctorItems({ gh }).find((i) => i.id === 'gh');
+  const missing = row({ installed: false });
+  assert.equal(missing.ok, false);
+  assert.match(missing.detail, /push and pull requests/);
+  assert.equal(missing.fix, 'sudo apt install -y gh');
+
+  const signedOut = row({ installed: true, authed: false });
+  assert.equal(signedOut.ok, false);
+  assert.equal(signedOut.fix, 'gh auth login --hostname github.com --git-protocol https --web && gh auth setup-git');
+  assert.equal(signedOut.fix, I.GH_SIGN_IN);
+  assert.match(signedOut.note, /github\.com\/login\/device on this Mac/);
+  assert.match(signedOut.note, /Failed opening a web browser/);
+  assert.equal(require('../src/renderer/serverConnectModel').fixTerminalFor(signedOut), I.GH_SIGN_IN, 'one line, so Open terminal types it');
+
+  assert.equal(row({ installed: true, authed: true }).ok, true);
+});
+
+test('GH_SIGN_IN runs only gh, with every answer given — no git config or SSH setting of its own', () => {
+  const fsx = require('fs');
+  const osx = require('os');
+  const pathx = require('path');
+  const home = fsx.mkdtempSync(pathx.join(osx.tmpdir(), 'frame-ghhome-'));
+  try {
+    const bin = pathx.join(home, 'bin');
+    fsx.mkdirSync(bin);
+    const log = pathx.join(home, 'calls.log');
+    for (const name of ['gh', 'git', 'ssh', 'ssh-keygen']) {
+      fsx.writeFileSync(pathx.join(bin, name), `#!/bin/sh\necho "${name} $*" >> "${log}"\nexit 0\n`, { mode: 0o755 });
+    }
+    execFileSync('/bin/sh', ['-c', I.GH_SIGN_IN], { env: { HOME: home, PATH: bin }, encoding: 'utf8' });
+    assert.deepEqual(fsx.readFileSync(log, 'utf8').trim().split('\n'), [
+      'gh auth login --hostname github.com --git-protocol https --web',
+      'gh auth setup-git'
+    ]);
+  } finally {
+    fsx.rmSync(home, { recursive: true, force: true });
+  }
+});
