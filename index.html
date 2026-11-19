@@ -318,11 +318,11 @@
           <div id="sidebar-project-menu" class="sidebar-project-menu" role="menu" hidden></div>
         </div>
         <!-- Workspace switcher (workspaces spec): the second level under the
-             project — a dropdown of main + this project's workspaces, grouped
+             project — main + this project's workspaces as a collapsible list, grouped
              Local / Remote. Sits on every rail view, like the project
              switcher, because the selection re-points files, git and
              terminals everywhere. workspaceSection.js renders it. -->
-        <div id="workspace-section" class="workspace-section" hidden></div>
+        <div id="workspace-section" class="workspace-section project-nav-group" hidden></div>
         <!-- Projects view (default) — the project panel for the selected
              project (project-dropdown spec): selection lives in the
              current-project switcher above, which also carries "+ Add a
@@ -1579,15 +1579,24 @@
         </aside>
         <section class="sc-detail" aria-live="polite">
           <div id="sc-empty" class="sc-empty" hidden>
-            <p>No servers yet. Add the SSH host of a machine you want to run workspaces on — a Linux box, a GPU machine, a second dev server.</p>
+            <h4 class="sc-note-title">Before you start</h4>
+            <p>Workspaces can run on a Linux or macOS machine you reach with <code>ssh</code> from this Mac — a Linux box, a GPU machine, a second dev server. Frame signs in with your SSH key, never a password.</p>
+            <ul class="sc-note-list">
+              <li><b>What to type:</b> a Host from <code>~/.ssh/config</code> (suggested as you type), or <code>user@address</code>.</li>
+              <li><b>No key login yet?</b> Run this in a terminal on this Mac, with your server in place of <code>user@host</code>. It creates a key if this Mac has none and copies it to the server, asking for the password once:</li>
+            </ul>
+            <div class="sc-fix sc-note-cmd"><code id="sc-note-command"></code><button type="button" id="sc-note-copy" class="sc-link">Copy</button></div>
+            <p class="sc-note-small">A key with a passphrase has to be in your agent or Keychain (<code>ssh-add --apple-use-keychain ~/.ssh/id_ed25519</code>) — Frame never asks for it.</p>
           </div>
           <div id="sc-detail-body">
             <div class="sc-detail-head">
               <span id="sc-detail-host" class="sc-detail-host"></span>
               <button type="button" id="sc-remove" class="sc-link sc-remove">Remove</button>
             </div>
+            <ol id="sc-steps" class="sc-steps" aria-label="Setup steps"></ol>
             <p id="sc-status" class="sc-status" data-state="off"></p>
             <p id="sc-error" class="nw-error" role="alert"></p>
+            <button type="button" id="sc-error-action" class="task-run-btn task-run-btn-primary sc-error-action" hidden>Set up access in a terminal</button>
             <!-- Install / update (server-install-update) -->
             <div id="sc-install" class="sc-panel" hidden>
               <p id="sc-install-reason" class="sc-install-reason"></p>
@@ -1963,8 +1972,10 @@
         </div>
 
         <div class="settings-section">
-          <h4 class="settings-section-title">Privacy &amp; Analytics</h4>
-          <div class="settings-row">
+          <!-- While the analytics UI is hidden (src/shared/analyticsUi.js) the
+               two analytics rows are hidden and the title reads "Privacy". -->
+          <h4 class="settings-section-title" id="settings-privacy-title">Privacy &amp; Analytics</h4>
+          <div class="settings-row" id="settings-analytics-row">
             <div class="settings-row-text">
               <label class="settings-row-label" for="settings-analytics-toggle">Send anonymous usage stats</label>
               <p class="settings-row-desc">
@@ -1978,7 +1989,7 @@
               <span class="settings-switch-slider"></span>
             </label>
           </div>
-          <div class="settings-row">
+          <div class="settings-row" id="settings-error-reporting-row">
             <div class="settings-row-text">
               <label class="settings-row-label" for="settings-error-reporting-toggle">Send error reports</label>
               <p class="settings-row-desc">

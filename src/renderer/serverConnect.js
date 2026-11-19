@@ -30,6 +30,7 @@ const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const notify = require('./notify');
 const model = require('./serverConnectModel');
+const sshErrors = require('../shared/sshErrors');
 
 const OFF = { state: 'off', host: null, error: null, frameVersion: null, platform: null, saved: null, install: null };
 
@@ -54,6 +55,12 @@ const LABELS = {
   'needs-update': 'Frame Server needs an update',
   installing: 'Installing…'
 };
+
+/** A status's label: an ssh failure only the user can fix waits, it does not retry (server-first-connect). */
+function labelOf(s) {
+  if (s.state === 'error' && sshErrors.needsUser(s.errorKind)) return 'Needs your action';
+  return LABELS[s.state] || s.state;
+}
 
 // ─── Shared state ────────────────────────────────────────────
 
@@ -185,6 +192,15 @@ function init() {
     else renderModal();
   });
   $('#sc-recheck').addEventListener('click', () => loadDoctor(selectedKey, true));
+  $('#sc-error-action').addEventListener('click', () => openSetupTerminal());
+  // "Before you start" (server-first-connect): the key setup, for any host.
+  const noteCommand = sshErrors.setupCommand('user@host');
+  $('#sc-note-command').textContent = noteCommand;
+  $('#sc-note-copy').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    try { await navigator.clipboard.writeText(noteCommand); btn.textContent = 'Copied'; } catch (_) { btn.textContent = 'Copy failed'; }
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+  });
   $('#sc-open-terminal').addEventListener('click', () => openServerTerminal(null));
   $('#sc-doctor-list').addEventListener('click', async (e) => {
     const term = e.target.closest('button[data-terminal-fix]');
@@ -268,7 +284,7 @@ function renderList() {
     li.appendChild(el('span', 'sc-server-dot'));
     const text = el('span', 'sc-server-text');
     text.appendChild(el('span', 'sc-server-host', srv.host));
-    text.appendChild(el('span', 'sc-server-state', LABELS[st] || st));
+    text.appendChild(el('span', 'sc-server-state', labelOf(srv.status)));
     li.appendChild(text);
     return li;
   }));
@@ -288,10 +304,23 @@ function renderModal() {
   const s = statusOf(selectedKey);
   const cur = m(selectedKey);
   $('#sc-detail-host').textContent = s.host;
+  // Connect → Install Frame Server → Check-up (server-first-connect).
+  $('#sc-steps').replaceChildren(...model.steps(s, cur.doctorFor === s.host ? cur.doctor : null).map((step, i) => {
+    const li = el('li', 'sc-step');
+    li.dataset.state = step.state;
+    li.appendChild(el('span', 'sc-step-mark', step.state === 'done' ? '✓' : (step.state === 'failed' || step.state === 'attention') ? '!' : String(i + 1)));
+    li.appendChild(el('span', 'sc-step-label', step.label));
+    if (step.state === 'active') li.setAttribute('aria-current', 'step');
+    return li;
+  }));
   const line = $('#sc-status');
-  line.textContent = `${LABELS[s.state] || s.state}${s.state === 'connected' && s.frameVersion ? ` · Frame Server ${s.frameVersion}${s.platform ? ` (${s.platform})` : ''}` : ''}`;
+  line.textContent = `${labelOf(s)}${s.state === 'connected' && s.frameVersion ? ` · Frame Server ${s.frameVersion}${s.platform ? ` (${s.platform})` : ''}` : ''}`;
   line.dataset.state = s.state;
-  $('#sc-error').textContent = s.error && s.state !== 'connected' ? s.error : '';
+  // ssh's failure in plain words, with the one step that fixes it (server-first-connect).
+  const failed = !!s.error && s.state !== 'connected';
+  const said = failed ? sshErrors.describe(s.errorKind, s.host, s.error) : { message: '', action: null };
+  $('#sc-error').textContent = said.message;
+  $('#sc-error-action').hidden = said.action !== 'setup';
 
   // Install / update panel
   const needs = s.state === 'needs-install' || s.state === 'needs-update';
@@ -425,6 +454,26 @@ async function openServerTerminal(command) {
     ui.enterLane(id);
   } catch (err) {
     notify.error(`Could not open a terminal on ${s.host}: ${err.message}`);
+  }
+}
+
+/**
+ * "Set up access in a terminal" (server-first-connect): a terminal on this
+ * Mac with the key setup typed in for the selected server. ssh itself shows
+ * the fingerprint and asks for the password; the dialog closes so the
+ * terminal has the screen, and Connect is pressed when the user is done.
+ */
+async function openSetupTerminal() {
+  const s = statusOf(selectedKey);
+  if (!s.host) return;
+  close();
+  try {
+    const ui = require('./terminal').getMultiTerminalUI();
+    const id = await ui.getManager().createLocalCommandTerminal({ command: sshErrors.setupCommand(s.host), name: `Set up ${s.host}` });
+    ui.enterLane(id);
+    notify.info(`Press Enter in the terminal, answer ssh there, then Connect ${s.host} again from Servers.`);
+  } catch (err) {
+    notify.error(`Could not open a terminal: ${err.message}`);
   }
 }
 

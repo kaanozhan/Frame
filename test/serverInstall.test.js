@@ -117,3 +117,70 @@ test('consentNeeded: ask whenever running agents cannot be ruled out (server-har
   assert.equal(I.consentNeeded({ connected: false, agents: null, installed: true }), true, 'not connected but installed');
   assert.equal(I.consentNeeded({ connected: false, agents: null, installed: false }), false, 'nothing installed, nothing to end');
 });
+
+// ─── Agent CLIs on a system Node: install without sudo ───────
+
+const { execFileSync } = require('child_process');
+const fsx = require('fs');
+const osx = require('os');
+const pathx = require('path');
+const M = require('../src/renderer/serverConnectModel');
+
+/** A temp HOME and a fake `npm` that logs its arguments and prints `prefix` for `config get prefix`. */
+function sandbox(prefix = '') {
+  const home = fsx.mkdtempSync(pathx.join(osx.tmpdir(), 'frame-npm-'));
+  const bin = pathx.join(home, 'bin');
+  fsx.mkdirSync(bin);
+  fsx.writeFileSync(pathx.join(bin, 'npm'), `#!/bin/sh\necho "$*" >> "$HOME/npm.log"\nif [ "$1 $2 $3" = "config get prefix" ]; then echo "${prefix}"; fi\n`, { mode: 0o755 });
+  const run = (cmd) => execFileSync('/bin/sh', ['-c', cmd], { env: { HOME: home, PATH: `${bin}:/usr/bin:/bin` }, encoding: 'utf8' }).trim();
+  return { home, run };
+}
+
+test('doctorItems: when npm\'s global folder needs sudo, the agent fixes install in the user\'s home', () => {
+  const raw = { claude: { installed: false }, codex: { installed: false }, gh: { installed: true, authed: true }, git: { installed: true }, service: { mode: 'systemd', linger: true } };
+  const byId = (r) => Object.fromEntries(I.doctorItems(r).map((i) => [i.id, i]));
+  const sys = byId({ ...raw, npm: { globalWritable: false } });
+  assert.match(sys.claude.fix, /npm config set prefix ~\/\.npm-global/);
+  assert.match(sys.claude.fix, /npm install -g @anthropic-ai\/claude-code$/);
+  assert.match(sys.codex.fix, /npm install -g @openai\/codex$/);
+  assert.doesNotMatch(sys.claude.fix, /sudo/);
+  assert.match(sys.claude.detail, /needs sudo here/);
+  assert.equal(M.fixTerminalFor(sys.claude), sys.claude.fix, 'one line, so Open terminal types it');
+  for (const npm of [{ globalWritable: true }, { globalWritable: null }, undefined]) {
+    const plain = byId({ ...raw, npm });
+    assert.equal(plain.claude.fix, 'npm install -g @anthropic-ai/claude-code', JSON.stringify(npm));
+    assert.equal(plain.claude.detail, 'not installed');
+  }
+});
+
+test('userNpmInstall: moves npm\'s prefix home, puts its bin on PATH once, and installs', () => {
+  const { home, run } = sandbox();
+  const cmd = I.userNpmInstall('@openai/codex');
+  run(cmd);
+  run(cmd); // safe to run again
+  const log = fsx.readFileSync(pathx.join(home, 'npm.log'), 'utf8').trim().split('\n');
+  assert.deepEqual(log, [`config set prefix ${home}/.npm-global`, 'install -g @openai/codex', `config set prefix ${home}/.npm-global`, 'install -g @openai/codex']);
+  assert.ok(fsx.statSync(pathx.join(home, '.npm-global')).isDirectory());
+  for (const f of ['.profile', '.bashrc']) {
+    const lines = fsx.readFileSync(pathx.join(home, f), 'utf8').trim().split('\n');
+    assert.deepEqual(lines, ['export PATH="$HOME/.npm-global/bin:$PATH"'], `${f}: the line once`);
+  }
+  assert.match(run('. ~/.profile; echo "$PATH"'), new RegExp(`^${home}/\\.npm-global/bin:`), 'a login shell finds the installed CLIs');
+  fsx.rmSync(home, { recursive: true, force: true });
+});
+
+test('the check-up\'s npm probe: writable prefix → yes, root\'s → no, no npm → nothing', () => {
+  const { NPM_GLOBAL_PROBE } = require('../src/server/doctor');
+  const own = fsx.mkdtempSync(pathx.join(osx.tmpdir(), 'frame-prefix-'));
+  fsx.mkdirSync(pathx.join(own, 'lib', 'node_modules'), { recursive: true });
+  assert.equal(sandbox(own).run(NPM_GLOBAL_PROBE), 'yes');
+  if (process.getuid && process.getuid() !== 0) {
+    fsx.chmodSync(pathx.join(own, 'lib', 'node_modules'), 0o555);
+    assert.equal(sandbox(own).run(NPM_GLOBAL_PROBE), 'no', 'like /usr/lib/node_modules for a normal user');
+    fsx.chmodSync(pathx.join(own, 'lib', 'node_modules'), 0o755);
+  }
+  const none = fsx.mkdtempSync(pathx.join(osx.tmpdir(), 'frame-nonpm-'));
+  assert.equal(execFileSync('/bin/sh', ['-c', NPM_GLOBAL_PROBE], { env: { HOME: none, PATH: none }, encoding: 'utf8' }).trim(), '', 'unknown, so the plain command stays');
+  fsx.rmSync(own, { recursive: true, force: true });
+  fsx.rmSync(none, { recursive: true, force: true });
+});

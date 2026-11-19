@@ -428,9 +428,22 @@ async function listLocal(projectPath) {
     error: null,
     isRepo: true,
     mainBranch: main ? (main.branch || (main.detached ? 'detached HEAD' : null)) : null,
-    workspaces: await withBase(projectPath, registry.activeOf(reconciled)),
+    workspaces: withHeadBranch(await withBase(projectPath, registry.activeOf(reconciled)), present),
     archived: registry.archivedOf(reconciled)
   };
+}
+
+/**
+ * Display only: each row's `headBranch` is the branch git reports for its
+ * folder right now, so the sidebar names a branch renamed inside the
+ * worktree (an agent's `git branch -m`) the way the status bar does. Null
+ * on a detached HEAD. Never stored — the record's `branch` stays what push,
+ * PR and every other action use.
+ */
+function withHeadBranch(rows, worktrees) {
+  const key = (p) => registry.normalizePath(realPath(p));
+  const at = new Map(worktrees.map((w) => [key(w.path), w.detached ? null : (w.branch || null)]));
+  return rows.map((r) => ({ ...r, headBranch: at.has(key(r.path)) ? at.get(key(r.path)) : null }));
 }
 
 /**

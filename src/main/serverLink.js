@@ -40,6 +40,7 @@ const WebSocket = require('ws');
 const P = require('../shared/serverProtocol');
 const { DESKTOP_ORIGIN } = require('../shared/serverSecurity');
 const { consentNeeded } = require('../shared/serverInstall');
+const sshErrors = require('../shared/sshErrors');
 const logger = require('./logger');
 
 const BACKOFF_MS = [1000, 2000, 5000, 10000, 30000];
@@ -65,13 +66,13 @@ function readConnectionInfo(host) {
     execFile(sshBin(), [...SSH_OPTS, host, 'cat ~/.frame-server/connection.json'], { timeout: SSH_TIMEOUT_MS, maxBuffer: 64 * 1024 }, (err, stdout, stderr) => {
       if (err) {
         const text = String(stderr || err.message || '').trim();
+        const sshKind = sshErrors.classify(stderr, err.code);
         if (/No such file/i.test(text)) {
           const e = new Error(`Frame Server is not running on ${host}.`);
           e.notRunning = true;
           return reject(e);
         }
-        if (/Permission denied|Host key verification|Could not resolve|Connection refused|timed out/i.test(text)) return reject(new Error(`ssh ${host}: ${text.split('\n').pop()}`));
-        return reject(new Error(text ? `ssh ${host}: ${text.split('\n').pop()}` : `ssh ${host} failed`));
+        return reject(Object.assign(new Error(text ? `ssh ${host}: ${text.split('\n').pop()}` : `ssh ${host} failed`), { sshKind }));
       }
       try {
         const info = JSON.parse(stdout);
@@ -138,7 +139,7 @@ function waitForPort(port, child, timeoutMs) {
  * @param {(line, link) => void} [o.onProgress]         installer progress
  */
 function createLink({ key, host, frameVersion = () => '0.0.0', onStatus = () => {}, onEvent = () => {}, onProgress = () => {} }) {
-  let status = { state: 'off', host, error: null, frameVersion: null, platform: null, install: null, serverId: null };
+  let status = { state: 'off', host, error: null, errorKind: null, frameVersion: null, platform: null, install: null, serverId: null };
   let preflighted = false;  // the host was probed in this session
   let session = 0;          // bumps on every connect/disconnect; stale loops stop
   let tunnel = null;        // ChildProcess
@@ -277,7 +278,7 @@ function createLink({ key, host, frameVersion = () => '0.0.0', onStatus = () => 
     try {
       await waitForPort(forward.target, child, TUNNEL_READY_MS);
     } catch (err) {
-      throw forwardRefused(tunnelErr) || new Error(tunnelErr.trim() ? `${err.message} ${tunnelErr.trim().split('\n').pop()}` : err.message);
+      throw forwardRefused(tunnelErr) || Object.assign(new Error(tunnelErr.trim() ? `${err.message} ${tunnelErr.trim().split('\n').pop()}` : err.message), { sshKind: sshErrors.classify(tunnelErr, child.exitCode) });
     }
     if (mySession !== session) return;
     let opened;
@@ -322,17 +323,17 @@ function createLink({ key, host, frameVersion = () => '0.0.0', onStatus = () => 
     if (mySession !== session || gone) return;
     up = true;
     attempt = 0;
-    setStatus({ state: 'connected', error: null, frameVersion: serverVersion || null, platform: ping ? `${ping.platform}-${ping.arch}` : null, serverId });
+    setStatus({ state: 'connected', error: null, errorKind: null, frameVersion: serverVersion || null, platform: ping ? `${ping.platform}-${ping.arch}` : null, serverId });
     logger.info('server', `connected to ${host} (Frame ${serverVersion})`);
     emit('connected', status);
   }
 
-  function scheduleRetry(mySession, error) {
+  function scheduleRetry(mySession, error, errorKind = null) {
     if (mySession !== session) return;
     const delay = BACKOFF_MS[Math.min(attempt, BACKOFF_MS.length - 1)];
     attempt += 1;
     // A link that never came up stays "error" (still retrying); a lost one is "reconnecting".
-    setStatus({ state: status.state === 'error' ? 'error' : 'reconnecting', error });
+    setStatus({ state: status.state === 'error' ? 'error' : 'reconnecting', error, errorKind });
     clearTimeout(retryTimer);
     retryTimer = setTimeout(() => loop(mySession), delay);
   }
@@ -348,14 +349,14 @@ function createLink({ key, host, frameVersion = () => '0.0.0', onStatus = () => 
   async function preflight(mySession, { protocolOk = true } = {}) {
     const d = await installer().decide(host, { protocolOk });
     if (mySession !== session) return 'stale';
-    if (d.action === 'error') throw new Error(d.reason);
+    if (d.action === 'error') throw Object.assign(new Error(d.reason), { sshKind: d.sshKind || null });
     const inst = d.probe && d.probe.installed;
     const info = { action: d.action, reason: d.reason, desktopVersion: d.desktopVersion, dev: d.dev, current: inst ? inst.current : null, previous: inst ? inst.previous : null, manual: !!(inst && inst.manual) };
     // Nothing to talk to (not installed), or a server this Frame cannot talk
     // to (another protocol): wait for the user. An older but compatible server
     // is connected to, so its running agents can be named before any update.
     if (d.action === 'install' || (d.action !== 'none' && !protocolOk)) {
-      setStatus({ state: d.action === 'install' ? 'needs-install' : 'needs-update', error: null, install: info });
+      setStatus({ state: d.action === 'install' ? 'needs-install' : 'needs-update', error: null, errorKind: null, install: info });
       return 'wait';
     }
     setStatus({ install: info });
@@ -392,8 +393,16 @@ function createLink({ key, host, frameVersion = () => '0.0.0', onStatus = () => 
       if (err.notRunning || err.unreachable) preflighted = false; // probe again: it may need starting or installing
       logger.warn('server', `connect to ${host} failed: ${err.message}`);
       // Never connected yet in this session → error state, still retrying.
-      if (status.state === 'connecting') setStatus({ state: 'error', error: err.message });
-      scheduleRetry(mySession, err.message);
+      // `errorKind`: what an ssh failure means (server-first-connect), or null.
+      const errorKind = err.sshKind || null;
+      // A host key not accepted or a login refused: only the user can fix it,
+      // so the loop waits for Connect instead of rerunning ssh on a backoff.
+      if (sshErrors.needsUser(errorKind)) {
+        setStatus({ state: 'error', error: err.message, errorKind });
+        return;
+      }
+      if (status.state === 'connecting') setStatus({ state: 'error', error: err.message, errorKind });
+      scheduleRetry(mySession, err.message, errorKind);
     }
   }
 
@@ -403,7 +412,7 @@ function createLink({ key, host, frameVersion = () => '0.0.0', onStatus = () => 
     session += 1;
     attempt = 0;
     preflighted = false;
-    setStatus({ state: 'connecting', host, error: null, frameVersion: null, platform: null, install: null });
+    setStatus({ state: 'connecting', host, error: null, errorKind: null, frameVersion: null, platform: null, install: null });
     loop(session);
   }
 
@@ -413,7 +422,7 @@ function createLink({ key, host, frameVersion = () => '0.0.0', onStatus = () => 
     session += 1;
     clearTimeout(retryTimer);
     teardown();
-    if (!quiet) setStatus({ state: 'off', error: null, frameVersion: null, platform: null });
+    if (!quiet) setStatus({ state: 'off', error: null, errorKind: null, frameVersion: null, platform: null });
     if (wasUp) emit('disconnected', status);
   }
 
@@ -468,7 +477,7 @@ function createLink({ key, host, frameVersion = () => '0.0.0', onStatus = () => 
       connect();
       return { error: null, result };
     }
-    setStatus({ state: 'error', error: (result && result.message) || 'The install failed.' });
+    setStatus({ state: 'error', errorKind: null, error: (result && result.message) || 'The install failed.' });
     return { error: (result && result.message) || 'The install failed.', result };
   }
 

@@ -311,3 +311,50 @@ test('S8: removing a server closes only its link and forgets it', async () => {
     off();
   }
 });
+
+// ─── server-first-connect: what an ssh failure means ─────────
+
+test('T02: a first-connect ssh failure carries its kind in the status', async () => {
+  const cases = { newhost: 'host-unknown', changedhost: 'host-changed', deniedhost: 'auth', nohost: 'no-resolve' };
+  for (const [host, kind] of Object.entries(cases)) {
+    sc.add(host);
+    const key = keyOf(host);
+    try {
+      sc.connect(key);
+      await waitFor(() => sc.of(key).getStatus().errorKind === kind, 15000, `${host} → ${kind}`);
+      const s = sc.of(key).getStatus();
+      assert.equal(s.state, 'error', host);
+      assert.match(String(s.error), new RegExp(`ssh ${host}:`), 'ssh\'s own line stays as the fallback');
+    } finally {
+      sc.remove(key);
+    }
+  }
+  assert.ok(sc.of(keyOf('box')).isConnected(), 'the other server is untouched');
+});
+
+test('T03: an access error waits for Connect; a network error keeps retrying', async () => {
+  const log = path.join(SANDBOX, 'ssh-runs.log');
+  const runs = (host) => (fs.existsSync(log) ? fs.readFileSync(log, 'utf8').split('\n').filter((h) => h === host).length : 0);
+  process.env.FAKE_SSH_LOG = log;
+  try {
+    sc.add('deniedhost');
+    const denied = keyOf('deniedhost');
+    sc.connect(denied);
+    await waitFor(() => sc.of(denied).getStatus().errorKind === 'auth', 15000, 'the refused login');
+    await new Promise((r) => setTimeout(r, 3500)); // backoff would have run ssh twice more by now
+    assert.equal(runs('deniedhost'), 1, 'ssh ran once, then the loop waited');
+    assert.equal(sc.of(denied).getStatus().state, 'error');
+    sc.connect(denied);
+    await waitFor(() => runs('deniedhost') === 2, 10000, 'Connect running ssh again');
+    sc.remove(denied);
+
+    sc.add('nohost');
+    const nohost = keyOf('nohost');
+    sc.connect(nohost);
+    await waitFor(() => runs('nohost') >= 2, 10000, 'a second try at an unresolved host');
+    assert.equal(sc.of(nohost).getStatus().errorKind, 'no-resolve');
+    sc.remove(nohost);
+  } finally {
+    delete process.env.FAKE_SSH_LOG;
+  }
+});

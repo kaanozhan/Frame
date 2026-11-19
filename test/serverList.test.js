@@ -19,6 +19,23 @@ test('normalizeHost trims and refuses what cannot be an SSH host', () => {
   }
 });
 
+test('server-first-connect: a pasted ssh command is reduced to its host', () => {
+  assert.deepEqual(L.normalizeHost('ssh me@203.0.113.5'), { host: 'me@203.0.113.5' });
+  assert.deepEqual(L.normalizeHost('  ssh   devbox '), { host: 'devbox' });
+  assert.deepEqual(L.normalizeHost('ssh -p 2222 me@example.test'), { host: 'ssh://me@example.test:2222' });
+  assert.deepEqual(L.normalizeHost('ssh me@example.test -p2222'), { error: 'Enter only the host, without a command after it.' }, 'anything after the host is refused, options included');
+  assert.deepEqual(L.normalizeHost('ssh -l me -p 22 example.test'), { host: 'ssh://me@example.test:22' });
+  assert.deepEqual(L.normalizeHost('ssh -l me example.test'), { host: 'me@example.test' });
+  assert.match(L.normalizeHost('ssh -i ~/.ssh/key me@example.test').error, /~\/\.ssh\/config/);
+  assert.match(L.normalizeHost('ssh -p abc me@example.test').error, /not a port/);
+  assert.match(L.normalizeHost('ssh -p 70000 me@example.test').error, /not a port/);
+  assert.match(L.normalizeHost('ssh me@example.test uptime').error, /without a command/);
+  assert.match(L.normalizeHost('ssh -p').error, /SSH host/);
+  assert.deepEqual(L.normalizeHost('ssh'), { host: 'ssh' }, 'a lone word is still an alias');
+  assert.match(L.normalizeHost('ssh -oProxyCommand=x box').error, /~\/\.ssh\/config/, 'never an option smuggled in');
+  assert.deepEqual(L.addServer([], 'ssh me@example.test', { makeKey: keys('cccc3333') }).entry.host, 'me@example.test');
+});
+
 test('addServer gives each server its own key and connects it on launch by default', () => {
   const a = L.addServer([], 'devbox', { makeKey: keys('aaaa1111') });
   assert.deepEqual(a.entry, { key: 'aaaa1111', host: 'devbox', serverId: null, autoConnect: true });

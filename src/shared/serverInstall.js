@@ -138,19 +138,28 @@ function systemdUnit() {
 /**
  * The check-up as items for the Connect dialog. `raw` is what server.doctor
  * measured: `{ claude, codex: { installed, signedIn }, gh: { installed, authed },
- * git: { installed }, service: { mode, linger } }`. Each item is
+ * git: { installed }, service: { mode, linger }, npm: { globalWritable } }`.
+ * `npm.globalWritable` false (a system Node whose global folder is root's):
+ * the agent CLIs' fix installs into the user's home instead, no sudo. Each item is
  * `{ id, label, ok, optional?, detail, fix? }`; at least one agent CLI must be ready.
  */
 function doctorItems(raw = {}) {
   const r = raw || {};
+  const userNpm = !!(r.npm && r.npm.globalWritable === false);
+  const npmInstall = (pkg) => (userNpm ? userNpmInstall(pkg) : `npm install -g ${pkg}`);
   const agent = (id, label, install, login) => {
     const a = r[id] || {};
     if (!a.installed) return { id, label, ok: false, detail: 'not installed', fix: install };
     if (!a.signedIn) return { id, label, ok: false, detail: 'installed, not signed in', fix: login };
     return { id, label, ok: true, detail: 'ready' };
   };
-  const claude = agent('claude', 'Claude Code', 'npm install -g @anthropic-ai/claude-code', 'claude   # then sign in');
-  const codex = agent('codex', 'Codex', 'npm install -g @openai/codex', 'codex login');
+  const claude = agent('claude', 'Claude Code', npmInstall('@anthropic-ai/claude-code'), 'claude   # then sign in');
+  const codex = agent('codex', 'Codex', npmInstall('@openai/codex'), 'codex login');
+  if (userNpm) {
+    for (const a of [claude, codex]) {
+      if (a.detail === 'not installed') a.detail = 'not installed — npm\'s global folder needs sudo here, so this installs it in your home';
+    }
+  }
   const anyAgent = claude.ok || codex.ok;
   claude.optional = anyAgent && !claude.ok;
   codex.optional = anyAgent && !codex.ok;
@@ -190,6 +199,22 @@ function doctorItems(raw = {}) {
   return items;
 }
 
+/**
+ * One line that installs an npm package for this user only: npm's prefix
+ * moves to ~/.npm-global (once), its bin goes on PATH in ~/.profile (login
+ * shells: Frame's probes) and ~/.bashrc (terminals), then the install runs.
+ * Safe to run again. For a system Node whose global folder is root's.
+ */
+function userNpmInstall(pkg) {
+  return [
+    'mkdir -p ~/.npm-global',
+    'npm config set prefix ~/.npm-global',
+    `{ grep -qs '.npm-global/bin' ~/.profile || echo 'export PATH="$HOME/.npm-global/bin:$PATH"' | tee -a ~/.profile ~/.bashrc >/dev/null; }`,
+    'export PATH="$HOME/.npm-global/bin:$PATH"',
+    `npm install -g ${pkg}`
+  ].join(' && ');
+}
+
 const AGENT_NAMES = ['claude', 'codex', 'gemini', 'aider'];
 
 /**
@@ -219,4 +244,4 @@ function consentNeeded({ connected, agents, installed }) {
   return !!installed;
 }
 
-module.exports = { RELEASE_BASE, INSTALL_EXIT, consentNeeded, agentTerminals, assetFor, releaseUrl, parseVersion, compareVersions, installDecision, parseChecksum, systemdUnit, doctorItems };
+module.exports = { RELEASE_BASE, INSTALL_EXIT, consentNeeded, agentTerminals, assetFor, releaseUrl, parseVersion, compareVersions, installDecision, parseChecksum, systemdUnit, doctorItems, userNpmInstall };

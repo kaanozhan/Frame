@@ -27,6 +27,7 @@ const cloudHub = require('./cloudHub');
 const uiZoom = require('../shared/uiZoom');
 
 const ANALYTICS_KEY = 'analyticsEnabled';
+const { ANALYTICS_UI_HIDDEN } = require('../shared/analyticsUi');
 const CRASH_DUMPS_KEY = 'crashDumpsEnabled';
 const ERROR_REPORTING_KEY = 'errorReportingEnabled';
 const DISMISSED_VERSION_KEY = 'dismissedUpdateVersion';
@@ -88,6 +89,9 @@ function init() {
     if (!toggleEl) console.error('Frame settings: required elements not found');
     return;
   }
+
+  // Analytics UI hidden: its two rows are not offered (analyticsUi.js).
+  if (ANALYTICS_UI_HIDDEN) hideAnalyticsRows();
 
   // Load current value
   syncToggleFromSettings();
@@ -456,6 +460,16 @@ async function syncZoomFromMain() {
  * switch that silences it. The stored value is untouched — turning analytics
  * back on restores whatever the user had chosen here.
  */
+/** Hidden analytics UI: hide its switch and the error-report switch that rides on it. */
+function hideAnalyticsRows() {
+  for (const id of ['settings-analytics-row', 'settings-error-reporting-row']) {
+    const row = document.getElementById(id);
+    if (row) row.style.display = 'none'; // .settings-row's display: flex would override [hidden]
+  }
+  const title = document.getElementById('settings-privacy-title');
+  if (title) title.textContent = 'Privacy';
+}
+
 function syncErrorReportingAvailability(analyticsOn) {
   if (!errorReportingToggleEl) return;
   errorReportingToggleEl.disabled = !analyticsOn;

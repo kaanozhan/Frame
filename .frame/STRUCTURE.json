@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-16",
+  "lastUpdated": "2026-11-19",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 128871,
+      "sizeBytes": 130285,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -745,26 +745,27 @@
         "electron",
         "userSettings",
         "analyticsEvents",
+        "shared/analyticsUi",
         "pollGate"
       ],
       "functions": {
         "init": {
-          "line": 88,
+          "line": 91,
           "purpose": "Initialize Aptabase and build the PostHog client."
         },
         "initAptabase": {
-          "line": 112
+          "line": 115
         },
         "distinctId": {
-          "line": 129,
+          "line": 132,
           "purpose": "This install's distinct id, resolved on first use and cached for the run."
         },
         "personProperties": {
-          "line": 148,
+          "line": 151,
           "purpose": "Person properties, sent once per run alongside the first event."
         },
         "track": {
-          "line": 161,
+          "line": 164,
           "params": [
             "name",
             "props"
@@ -772,57 +773,57 @@
           "purpose": "Send a registered anonymous event. No-op if disabled or not initialized."
         },
         "isErrorReportingEnabled": {
-          "line": 197,
+          "line": 200,
           "purpose": "Whether exception detail may be sent."
         },
         "captureException": {
-          "line": 214,
+          "line": 217,
           "params": [
             "err"
           ],
           "purpose": "Send one exception, sanitized. No-op unless error reporting is explicitly on."
         },
         "noticeState": {
-          "line": 241,
+          "line": 244,
           "purpose": "Whether the disclosure notice is due, and the version to store when it is"
         },
         "startActiveTimer": {
-          "line": 262,
+          "line": 266,
           "purpose": "Start counting active time."
         },
         "trackAppStarted": {
-          "line": 275,
+          "line": 279,
           "purpose": "Anonymous event marking this launch."
         },
         "trackOptOut": {
-          "line": 290,
+          "line": 294,
           "purpose": "The one event an opt-out sends: that it happened, and nothing else."
         },
         "setEnabled": {
-          "line": 326,
+          "line": 330,
           "params": [
             "enabled"
           ],
           "purpose": "Toggle analytics from Settings. Persists the new state, then re-resolves"
         },
         "migrateLegacySettings": {
-          "line": 346,
+          "line": 350,
           "purpose": "Copy settings forward from the names this feature used when it was called"
         },
         "enforceFailClosed": {
-          "line": 370,
+          "line": 374,
           "purpose": "Make a failed settings load's fail-closed state stick. Called right after"
         },
         "isEnabled": {
-          "line": 381,
+          "line": 385,
           "purpose": "Effective enabled state. Default ON when the setting has never been"
         },
         "shutdown": {
-          "line": 397,
+          "line": 401,
           "purpose": "Flush the batcher and close the client, for the quit path."
         }
       },
-      "sizeBytes": 16206,
+      "sizeBytes": 16478,
       "extraction": {
         "status": "parsed"
       },
@@ -9582,7 +9583,7 @@
           "channel"
         ]
       },
-      "sizeBytes": 11824,
+      "sizeBytes": 11841,
       "extraction": {
         "status": "parsed"
       },
@@ -9627,6 +9628,7 @@
         "http",
         "child_process",
         "shared/serverInstall",
+        "shared/sshErrors",
         "logger",
         "electron",
         "serverConnection",
@@ -9634,16 +9636,16 @@
       ],
       "functions": {
         "sshBin": {
-          "line": 37
+          "line": 38
         },
         "appRoot": {
-          "line": 41
+          "line": 42
         },
         "releaseBase": {
-          "line": 45
+          "line": 46
         },
         "ssh": {
-          "line": 53,
+          "line": 54,
           "params": [
             "host",
             "command",
@@ -9654,25 +9656,25 @@
           "purpose": "Run `command` on `host`. `input` is a string, Buffer or readable stream"
         },
         "sshFailure": {
-          "line": 89,
+          "line": 90,
           "params": [
             "host",
             "res"
           ]
         },
         "desktopVersion": {
-          "line": 99,
+          "line": 100,
           "purpose": "This desktop's version; a desktop running from source is `<v>-dev+<sha>`."
         },
         "probe": {
-          "line": 128,
+          "line": 129,
           "params": [
             "host"
           ],
           "purpose": "What is on the host: `{ error?, unameS, unameM, installed: { current, previous,"
         },
         "decide": {
-          "line": 155,
+          "line": 157,
           "params": [
             "host",
             "{ protocolOk = true } = {}"
@@ -9680,16 +9682,16 @@
           "purpose": "`{ action, reason, desktopVersion, dev, probe }` for a host."
         },
         "parseResult": {
-          "line": 165,
+          "line": 167,
           "params": [
             "stdout"
           ]
         },
         "scriptPath": {
-          "line": 171
+          "line": 173
         },
         "runInstaller": {
-          "line": 176,
+          "line": 178,
           "params": [
             "host",
             "args",
@@ -9698,7 +9700,7 @@
           "purpose": "Run the installer on the host with `args` (already shell-safe words)."
         },
         "download": {
-          "line": 188,
+          "line": 190,
           "params": [
             "url",
             "dest",
@@ -9707,7 +9709,7 @@
           "purpose": "GET with redirects into a file (GitHub release assets redirect to a CDN)."
         },
         "upload": {
-          "line": 213,
+          "line": 215,
           "params": [
             "host",
             "localFile",
@@ -9716,11 +9718,11 @@
           "purpose": "Stream a local file to `remotePath` on the host."
         },
         "sourceTarball": {
-          "line": 220,
+          "line": 222,
           "purpose": "Source tarball of this checkout (`git archive HEAD`) in a temp file."
         },
         "install": {
-          "line": 234,
+          "line": 236,
           "params": [
             "host",
             "{ onProgress = ("
@@ -9728,7 +9730,7 @@
           "purpose": "Install (or update to) this desktop's version on `host`."
         },
         "start": {
-          "line": 280,
+          "line": 282,
           "params": [
             "host",
             "{ onProgress = ("
@@ -9736,7 +9738,7 @@
           "purpose": "Start the installed current version (after a reboot, or a stopped process)."
         },
         "rollback": {
-          "line": 285,
+          "line": 287,
           "params": [
             "host",
             "{ onProgress = ("
@@ -9744,14 +9746,14 @@
           "purpose": "Back to the previous installed version."
         },
         "runningAgents": {
-          "line": 301,
+          "line": 303,
           "params": [
             "key = null"
           ],
           "purpose": "The agents running on one server (`key`; the first connected one without),"
         }
       },
-      "sizeBytes": 14758,
+      "sizeBytes": 14965,
       "extraction": {
         "status": "parsed"
       },
@@ -9789,34 +9791,35 @@
         "shared/serverProtocol",
         "shared/serverSecurity",
         "shared/serverInstall",
+        "shared/sshErrors",
         "logger",
         "serverInstaller"
       ],
       "functions": {
         "sshBin": {
-          "line": 55
+          "line": 56
         },
         "installer": {
-          "line": 59
+          "line": 60
         },
         "readConnectionInfo": {
-          "line": 63,
+          "line": 64,
           "params": [
             "host"
           ]
         },
         "freePort": {
-          "line": 89
+          "line": 90
         },
         "forwardRefused": {
-          "line": 102,
+          "line": 103,
           "params": [
             "text"
           ],
           "purpose": "The sshd refused to forward to a socket: say what to change (S8)."
         },
         "waitForPort": {
-          "line": 108,
+          "line": 109,
           "params": [
             "port",
             "child",
@@ -9824,7 +9827,7 @@
           ]
         },
         "createLink": {
-          "line": 140,
+          "line": 141,
           "params": [
             "{ key",
             "host",
@@ -9833,7 +9836,7 @@
           "purpose": "One server's link."
         }
       },
-      "sizeBytes": 20791,
+      "sizeBytes": 21445,
       "extraction": {
         "status": "parsed"
       },
@@ -12367,8 +12370,16 @@
             "projectPath"
           ]
         },
+        "withHeadBranch": {
+          "line": 443,
+          "params": [
+            "rows",
+            "worktrees"
+          ],
+          "purpose": "Display only: each row's `headBranch` is the branch git reports for its"
+        },
         "withBase": {
-          "line": 440,
+          "line": 453,
           "params": [
             "projectPath",
             "rows"
@@ -12376,7 +12387,7 @@
           "purpose": "Records stored before workspaces knew their base (`base: null`) read as the"
         },
         "baseForBranch": {
-          "line": 447,
+          "line": 460,
           "params": [
             "projectPath",
             "branch"
@@ -12384,14 +12395,14 @@
           "purpose": "The base to prefill for a workspace opened from `branch` (decision B2)."
         },
         "status": {
-          "line": 456,
+          "line": 469,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "create": {
-          "line": 475,
+          "line": 488,
           "params": [
             "projectPath",
             "{ from = 'new'",
@@ -12404,14 +12415,14 @@
           "purpose": "Create a workspace."
         },
         "refExists": {
-          "line": 580,
+          "line": 593,
           "params": [
             "ref",
             "projectPath"
           ]
         },
         "archive": {
-          "line": 596,
+          "line": 609,
           "params": [
             "projectPath",
             "id",
@@ -12422,7 +12433,7 @@
           "purpose": "Archive. With uncommitted changes and no `action`, nothing happens and"
         },
         "restore": {
-          "line": 651,
+          "line": 664,
           "params": [
             "projectPath",
             "id"
@@ -12430,7 +12441,7 @@
           "purpose": "Restore: recreate the worktree from the branch, copy files again; refused when the branch is open elsewhere."
         },
         "rename": {
-          "line": 679,
+          "line": 692,
           "params": [
             "projectPath",
             "id",
@@ -12440,7 +12451,7 @@
           "purpose": "Rename the short name (label only; the folder stays) and/or the branch (`git branch -m`)."
         },
         "removeRecord": {
-          "line": 713,
+          "line": 726,
           "params": [
             "projectPath",
             "id"
@@ -12448,13 +12459,13 @@
           "purpose": "Forget a record whose worktree is gone (missing) or that is archived."
         },
         "setupIPC": {
-          "line": 729,
+          "line": 742,
           "params": [
             "ipcMain"
           ]
         },
         "archiveQueued": {
-          "line": 756,
+          "line": 769,
           "params": [
             "projectPath",
             "id",
@@ -12481,7 +12492,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 34517,
+      "sizeBytes": 35186,
       "extraction": {
         "status": "parsed"
       },
@@ -12512,6 +12523,7 @@
           "serverProjectFor": "16b973c83496d03e",
           "serverRoots": "a6296ff018796775",
           "withBase": "5fcc74b573fe69cf",
+          "withHeadBranch": "171e5a862b98fc02",
           "workspacesRoot": "c775b00e7f51ade2"
         }
       }
@@ -18223,39 +18235,40 @@
         "settingsOverlay",
         "cloudHub",
         "shared/uiZoom",
+        "shared/analyticsUi",
         "../package.json"
       ],
       "functions": {
         "init": {
-          "line": 64
+          "line": 65
         },
         "initAccountSection": {
-          "line": 158
+          "line": 162
         },
         "pullAccountState": {
-          "line": 179
+          "line": 183
         },
         "refreshAccountOnOpen": {
-          "line": 190,
+          "line": 194,
           "purpose": "Opening the modal re-reads the session, so the row never shows a state"
         },
         "renderAccount": {
-          "line": 194,
+          "line": 198,
           "params": [
             "state"
           ]
         },
         "initAboutSection": {
-          "line": 210
+          "line": 214
         },
         "runCheck": {
-          "line": 303,
+          "line": 307,
           "params": [
             "userInitiated"
           ]
         },
         "renderUpdateState": {
-          "line": 343,
+          "line": 347,
           "params": [
             "{ checked",
             "found",
@@ -18267,39 +18280,42 @@
           ]
         },
         "showUpdateBanner": {
-          "line": 377,
+          "line": 381,
           "params": [
             "info"
           ]
         },
         "hideUpdateBanner": {
-          "line": 394
-        },
-        "hideSidebarDot": {
           "line": 398
         },
+        "hideSidebarDot": {
+          "line": 402
+        },
         "formatRelative": {
-          "line": 404,
+          "line": 408,
           "params": [
             "date"
           ]
         },
         "initZoomSelect": {
-          "line": 420,
+          "line": 424,
           "purpose": "Fill the Interface size select from the shared ladder — one option per"
         },
         "syncZoomFromMain": {
-          "line": 443
+          "line": 447
+        },
+        "hideAnalyticsRows": {
+          "line": 464,
+          "purpose": "Hidden analytics UI: hide its switch and the error-report switch that rides on it."
         },
         "syncErrorReportingAvailability": {
-          "line": 459,
+          "line": 473,
           "params": [
             "analyticsOn"
-          ],
-          "purpose": "Error reporting is gated on analytics in main (analytics.captureException"
+          ]
         },
         "syncToggleFromSettings": {
-          "line": 466
+          "line": 480
         }
       },
       "ipc": {
@@ -18317,16 +18333,16 @@
           "ANALYTICS_TRACK"
         ]
       },
-      "sizeBytes": 18468,
+      "sizeBytes": 19119,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "1dffdbc6d50a7e19",
         "purposes": {
+          "hideAnalyticsRows": "2580c3061bdd6e9a",
           "initZoomSelect": "cbe76526d4d65826",
-          "refreshAccountOnOpen": "6949aa232013ac20",
-          "syncErrorReportingAvailability": "f99d7b4f4c5c647a"
+          "refreshAccountOnOpen": "6949aa232013ac20"
         }
       }
     },
@@ -22697,60 +22713,68 @@
         "shared/ipcChannels",
         "notify",
         "serverConnectModel",
+        "shared/sshErrors",
         "terminal"
       ],
       "functions": {
+        "labelOf": {
+          "line": 60,
+          "params": [
+            "s"
+          ],
+          "purpose": "A status's label: an ssh failure only the user can fix waits, it does not retry (server-first-connect)."
+        },
         "getStatus": {
-          "line": 60
+          "line": 67
         },
         "getServers": {
-          "line": 64
+          "line": 71
         },
         "getServer": {
-          "line": 68,
+          "line": 75,
           "params": [
             "key"
           ]
         },
         "onChange": {
-          "line": 72,
+          "line": 79,
           "params": [
             "cb"
           ]
         },
         "onServersChange": {
-          "line": 77,
+          "line": 84,
           "params": [
             "cb"
           ]
         },
         "statusOf": {
-          "line": 82,
+          "line": 89,
           "params": [
             "key"
           ]
         },
         "m": {
-          "line": 87,
+          "line": 94,
           "params": [
             "key = selectedKey"
           ]
         },
         "setModel": {
-          "line": 91,
+          "line": 98,
           "params": [
             "key",
             "next"
           ]
         },
         "updateAvailable": {
-          "line": 95,
+          "line": 102,
           "params": [
             "s"
           ]
         },
         "onServerStatus": {
-          "line": 100,
+          "line": 107,
           "params": [
             "key",
             "prev",
@@ -22759,40 +22783,40 @@
           "purpose": "One server's status changed: its model, toasts and check-up."
         },
         "apply": {
-          "line": 122,
+          "line": 129,
           "params": [
             "payload"
           ],
           "purpose": "A status payload from main: `{ ...default server status, servers, notice? }`."
         },
         "isOpen": {
-          "line": 152
+          "line": 159
         },
         "init": {
-          "line": 158
+          "line": 165
         },
         "select": {
-          "line": 220,
+          "line": 236,
           "params": [
             "key"
           ]
         },
         "loadDoctor": {
-          "line": 228,
+          "line": 244,
           "params": [
             "key",
             "force = false"
           ]
         },
         "finishIfClean": {
-          "line": 242,
+          "line": 258,
           "params": [
             "key"
           ],
           "purpose": "A connect started here closes the dialog once that server's check-up has nothing to fix."
         },
         "el": {
-          "line": 251,
+          "line": 267,
           "params": [
             "tag",
             "cls",
@@ -22800,13 +22824,13 @@
           ]
         },
         "renderList": {
-          "line": 258
+          "line": 274
         },
         "renderModal": {
-          "line": 278
+          "line": 294
         },
         "open": {
-          "line": 382,
+          "line": 411,
           "params": [
             "{ key = null",
             "add = false } = {}"
@@ -22814,45 +22838,49 @@
           "purpose": "Open the Servers dialog. `key` selects that server; `add` (or no saved"
         },
         "openServerTerminal": {
-          "line": 416,
+          "line": 445,
           "params": [
             "command"
           ],
           "purpose": "A terminal on the selected server, in its home folder, in the current view"
         },
+        "openSetupTerminal": {
+          "line": 466,
+          "purpose": "\"Set up access in a terminal\" (server-first-connect): a terminal on this"
+        },
         "close": {
-          "line": 431
+          "line": 480
         },
         "addServer": {
-          "line": 438,
+          "line": 487,
           "purpose": "Add the host typed in the form, select it and connect it."
         },
         "connect": {
-          "line": 455,
+          "line": 504,
           "params": [
             "key"
           ]
         },
         "disconnectOne": {
-          "line": 469,
+          "line": 518,
           "params": [
             "key"
           ],
           "purpose": "Disconnect one server; it stays in the list and off at the next launch."
         },
         "disconnect": {
-          "line": 477,
+          "line": 526,
           "purpose": "Disconnect every server (File ▸ Disconnect from Server, palette)."
         },
         "removeServer": {
-          "line": 483,
+          "line": 532,
           "params": [
             "key"
           ],
           "purpose": "Forget a server after asking; nothing on the server is touched."
         },
         "runAction": {
-          "line": 495,
+          "line": 544,
           "params": [
             "kind",
             "confirmAgents = false"
@@ -22867,7 +22895,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 22189,
+      "sizeBytes": 24738,
       "extraction": {
         "status": "parsed"
       },
@@ -22879,9 +22907,11 @@
           "disconnect": "a847ac5d29403a41",
           "disconnectOne": "4dc36968184ed11c",
           "finishIfClean": "8c1e9953e3f6ad74",
+          "labelOf": "a8e0d6429649dfad",
           "onServerStatus": "8e4a4f829083a900",
           "open": "bfad2d2dfdb45d9b",
           "openServerTerminal": "655bfd211ba4dd48",
+          "openSetupTerminal": "51354b5612a70f24",
           "removeServer": "6404b103fd555ef9",
           "runAction": "ae125f8f5b8d24c0"
         }
@@ -22891,6 +22921,7 @@
       "file": "src/renderer/serverConnectModel.js",
       "description": "serverConnectModel — the Connect dialog's state rules (server-hardening S12).",
       "exports": [
+        "steps",
         "initial",
         "onStatus",
         "startAction",
@@ -23010,9 +23041,17 @@
             "wanted"
           ],
           "purpose": "The server to show in the dialog: `wanted` if listed, else the first connected, else the first."
+        },
+        "steps": {
+          "line": 139,
+          "params": [
+            "status",
+            "doctor"
+          ],
+          "purpose": "Where a server stands on Connect → Install Frame Server → Check-up, each"
         }
       },
-      "sizeBytes": 5181,
+      "sizeBytes": 7117,
       "extraction": {
         "status": "parsed"
       },
@@ -23028,6 +23067,7 @@
           "pickSelected": "c909542fbb113c4c",
           "pruneModels": "75baef5d4f75922a",
           "startAction": "c3ff148edfeb056c",
+          "steps": "76555be9b7166280",
           "summary": "2de57637ed10d140",
           "takeRecheck": "1fb3d495fab1fea2",
           "withModel": "580980cf4604d901"
@@ -25598,7 +25638,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 26858,
+      "sizeBytes": 29353,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -26719,7 +26759,9 @@
         "shared/ipcChannels",
         "shared/serverRouting",
         "terminalInput",
-        "themes"
+        "themes",
+        "workspaceSection",
+        "os"
       ],
       "functions": {
         "getTerminalTheme": {
@@ -26762,7 +26804,7 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 41561,
+      "sizeBytes": 42733,
       "extraction": {
         "status": "parsed"
       },
@@ -27333,42 +27375,49 @@
       ],
       "functions": {
         "setActions": {
-          "line": 62,
+          "line": 67,
           "params": [
             "next"
           ],
           "purpose": "Let the dialogs plug in without this module requiring them."
         },
         "init": {
-          "line": 66
+          "line": 71
         },
         "load": {
-          "line": 138,
+          "line": 134,
           "params": [
             "{ reselect = false } = {}"
           ],
           "purpose": "Re-read the project's workspaces; with `reselect`, restore the remembered selection."
         },
         "select": {
-          "line": 185,
+          "line": 181,
           "params": [
             "ws"
           ]
         },
         "scheduleRender": {
-          "line": 201
+          "line": 197
         },
         "summaries": {
-          "line": 211
+          "line": 207
         },
         "dotHtml": {
-          "line": 228,
+          "line": 224,
           "params": [
             "summary"
           ]
         },
+        "branchLabel": {
+          "line": 235,
+          "params": [
+            "ws"
+          ],
+          "purpose": "The branch a row is labelled with: the one git reports for its folder now"
+        },
         "rowHtml": {
-          "line": 233,
+          "line": 239,
           "params": [
             "ws",
             "{ selectedId",
@@ -27376,18 +27425,18 @@
           ]
         },
         "linkView": {
-          "line": 272,
+          "line": 275,
           "params": [
             "srv"
           ],
           "purpose": "A saved server as the Remote group reads it: `{ key, host, phase, state }`."
         },
         "serverViews": {
-          "line": 282,
+          "line": 285,
           "purpose": "Every saved server, in list order (multi-server-connections)."
         },
         "serverHeadHtml": {
-          "line": 292,
+          "line": 295,
           "params": [
             "link",
             "{ collapsed",
@@ -27397,46 +27446,46 @@
           "purpose": "One server's sub-header in Remote, drawn as a labelled sub-separator: the"
         },
         "isServerOpen": {
-          "line": 324,
+          "line": 327,
           "params": [
             "key",
             "count"
           ]
         },
         "setServerOpen": {
-          "line": 328,
+          "line": 331,
           "params": [
             "key",
             "open"
           ]
         },
         "toggleServer": {
-          "line": 333,
+          "line": 336,
           "params": [
             "key"
           ]
         },
         "serverCounts": {
-          "line": 344,
+          "line": 347,
           "params": [
             "list"
           ]
         },
         "openServersThatGrew": {
-          "line": 350,
+          "line": 353,
           "params": [
             "list"
           ]
         },
         "serverEmptyHtml": {
-          "line": 359,
+          "line": 362,
           "params": [
             "link"
           ],
           "purpose": "What a server with no workspaces of this project offers: the next step for its link."
         },
         "remoteGroupHtml": {
-          "line": 377,
+          "line": 380,
           "params": [
             "remote",
             "{ canCreate",
@@ -27446,62 +27495,72 @@
           "purpose": "The Remote group: one sub-header per saved server with its own rows or its"
         },
         "mainLabel": {
-          "line": 405,
+          "line": 408,
           "purpose": "The main row's label: the branch the project's own checkout is on, like"
         },
         "triggerHtml": {
-          "line": 410,
+          "line": 417,
           "params": [
             "{ selectedId",
             "sums }"
           ],
-          "purpose": "The trigger's face: the selected workspace and its status dot."
+          "purpose": "The header: the same section title as the nav's Work and Context — a"
         },
         "render": {
-          "line": 425
+          "line": 436
         },
-        "openDropdown": {
-          "line": 496
+        "readListOpen": {
+          "line": 508
         },
-        "closeDropdown": {
-          "line": 506,
+        "setListOpen": {
+          "line": 512,
           "params": [
-            "{ focusTrigger = false } = {}"
+            "open"
           ]
         },
+        "openList": {
+          "line": 518,
+          "params": [
+            "{ focus = false } = {}"
+          ],
+          "purpose": "Expand the list; `focus` lands on the selected row so arrows and Enter work straight away."
+        },
+        "closeList": {
+          "line": 530
+        },
         "moveFocus": {
-          "line": 522,
+          "line": 539,
           "params": [
             "step"
           ],
-          "purpose": "Arrow keys walk the dropdown's rows and buttons, top to bottom."
+          "purpose": "Arrow keys walk the list's rows and buttons, top to bottom."
         },
         "findWs": {
-          "line": 530,
+          "line": 547,
           "params": [
             "id"
           ]
         },
         "onClick": {
-          "line": 534,
+          "line": 551,
           "params": [
             "e"
           ]
         },
         "onKeyDown": {
-          "line": 568,
+          "line": 585,
           "params": [
             "e"
           ]
         },
         "onContextMenu": {
-          "line": 596,
+          "line": 617,
           "params": [
             "e"
           ]
         },
         "showMenu": {
-          "line": 609,
+          "line": 630,
           "params": [
             "ws",
             "x",
@@ -27509,48 +27568,48 @@
           ]
         },
         "hideMenu": {
-          "line": 636
+          "line": 657
         },
         "onMenuClick": {
-          "line": 640,
+          "line": 661,
           "params": [
             "e"
           ]
         },
         "sendFilesTo": {
-          "line": 652,
+          "line": 673,
           "params": [
             "ws"
           ]
         },
         "openNew": {
-          "line": 662,
+          "line": 683,
           "params": [
             "opts"
           ]
         },
         "startRename": {
-          "line": 670,
+          "line": 691,
           "params": [
             "ws",
             "field"
           ]
         },
         "commitRename": {
-          "line": 677,
+          "line": 698,
           "params": [
             "input"
           ]
         },
         "archiveWorkspace": {
-          "line": 697,
+          "line": 718,
           "params": [
             "ws"
           ],
           "purpose": "Archive a workspace (T09). Clean → archived straight away. Uncommitted"
         },
         "rescueBranchName": {
-          "line": 738,
+          "line": 759,
           "params": [
             "ws",
             "head"
@@ -27558,7 +27617,7 @@
           "purpose": "The branch name archive's rescue creates; the sha may be unknown before a commit is made."
         },
         "askRescue": {
-          "line": 744,
+          "line": 765,
           "params": [
             "ws",
             "head"
@@ -27566,14 +27625,14 @@
           "purpose": "The rescue dialog: keep unreachable commits on a rescue branch, or cancel. Resolves true/false."
         },
         "closeWorkspaceTerminals": {
-          "line": 781,
+          "line": 802,
           "params": [
             "workspaceId"
           ],
           "purpose": "Close every terminal of one workspace of the current project."
         },
         "askArchiveChoice": {
-          "line": 794,
+          "line": 815,
           "params": [
             "ws",
             "count"
@@ -27581,41 +27640,41 @@
           "purpose": "The dirty-archive dialog. Resolves `{ action, message }`, or null on cancel."
         },
         "selectedWorkspace": {
-          "line": 852,
+          "line": 873,
           "purpose": "The selected workspace's record, or null on main."
         },
         "restoreWorkspace": {
-          "line": 858,
+          "line": 879,
           "params": [
             "ws"
           ]
         },
         "removeRecord": {
-          "line": 871,
+          "line": 892,
           "params": [
             "ws"
           ]
         },
         "workspaceChipHtml": {
-          "line": 880,
+          "line": 901,
           "params": [
             "ws"
           ],
           "purpose": "A small chip naming the workspace a spec lives in; '' for main."
         },
         "selectSpecWorkspace": {
-          "line": 893,
+          "line": 914,
           "params": [
             "ws"
           ],
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 907,
+          "line": 928,
           "purpose": "Active workspaces of the current project, as last loaded."
         },
         "serverOpen": {
-          "line": 320,
+          "line": 323,
           "params": [
             "("
           ]
@@ -27628,7 +27687,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 42218,
+      "sizeBytes": 42570,
       "extraction": {
         "status": "parsed"
       },
@@ -27638,12 +27697,14 @@
           "archiveWorkspace": "4363218bb753fb2e",
           "askArchiveChoice": "2981894ae593cf4b",
           "askRescue": "24458e85717df59f",
+          "branchLabel": "0bfbf12599febeee",
           "closeWorkspaceTerminals": "22a7c42ea098a240",
           "getWorkspaces": "0eab879c07f7a326",
           "linkView": "aeb38c4ced639f63",
           "load": "e807754c516c9be1",
           "mainLabel": "edac7efb729dd2d6",
-          "moveFocus": "e1d5336f87eacefc",
+          "moveFocus": "95c1b6649ae48ff8",
+          "openList": "9beebe76e5da95f3",
           "remoteGroupHtml": "adc0ab63d3466cbd",
           "rescueBranchName": "9535b434ca8c9ced",
           "selectSpecWorkspace": "7d88cec82ca928f9",
@@ -27652,7 +27713,7 @@
           "serverHeadHtml": "c62e3fcf5eb6fe11",
           "serverViews": "7373d424d7bdc9e3",
           "setActions": "4f2a1450120dc24f",
-          "triggerHtml": "64fca0d38a6bff1e",
+          "triggerHtml": "4f84e2300fec82be",
           "workspaceChipHtml": "f678cae99043073b"
         }
       }
@@ -32499,7 +32560,8 @@
       "description": "Server check-up — what this server can do for Frame and what is missing",
       "exports": [
         "setup",
-        "measure"
+        "measure",
+        "NPM_GLOBAL_PROBE"
       ],
       "depends": [
         "fs",
@@ -32511,35 +32573,35 @@
       ],
       "functions": {
         "shell": {
-          "line": 24,
+          "line": 31,
           "params": [
             "command"
           ],
           "purpose": "Run a command in the user's login shell (PATH from their profile); resolves { ok, stdout }."
         },
         "exists": {
-          "line": 33,
+          "line": 40,
           "params": [
             "p"
           ]
         },
         "claudeSignedIn": {
-          "line": 37,
+          "line": 44,
           "params": [
             "home"
           ]
         },
         "measure": {
-          "line": 47
+          "line": 54
         },
         "setup": {
-          "line": 70,
+          "line": 80,
           "params": [
             "{ registerMethods }"
           ]
         }
       },
-      "sizeBytes": 3133,
+      "sizeBytes": 3761,
       "extraction": {
         "status": "parsed"
       },
@@ -33083,6 +33145,22 @@
           "formatLabel": "a461593a6caf854b",
           "validateEvent": "d1d14b24d13d08ec"
         }
+      }
+    },
+    "shared/analyticsUi": {
+      "file": "src/shared/analyticsUi.js",
+      "description": "Analytics UI — one switch that hides the analytics UI for now, to be",
+      "exports": [
+        "ANALYTICS_UI_HIDDEN"
+      ],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 688,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "145f8d8c7f064495"
       }
     },
     "shared/cloudMoveHold": {
@@ -34477,7 +34555,8 @@
         "installDecision",
         "parseChecksum",
         "systemdUnit",
-        "doctorItems"
+        "doctorItems",
+        "userNpmInstall"
       ],
       "depends": [],
       "functions": {
@@ -34535,21 +34614,28 @@
           "purpose": "The systemd user unit that runs the current version."
         },
         "doctorItems": {
-          "line": 144,
+          "line": 146,
           "params": [
             "raw = {}"
           ],
           "purpose": "The check-up as items for the Connect dialog. `raw` is what server.doctor"
         },
+        "userNpmInstall": {
+          "line": 208,
+          "params": [
+            "pkg"
+          ],
+          "purpose": "One line that installs an npm package for this user only: npm's prefix"
+        },
         "agentTerminals": {
-          "line": 200,
+          "line": 225,
           "params": [
             "list"
           ],
           "purpose": "The server terminals running an agent, from `terminals.list` (each with its"
         },
         "consentNeeded": {
-          "line": 217,
+          "line": 242,
           "params": [
             "{ connected",
             "agents",
@@ -34558,7 +34644,7 @@
           "purpose": "Whether an update or rollback must ask first (server-hardening S9): when"
         }
       },
-      "sizeBytes": 9491,
+      "sizeBytes": 10697,
       "extraction": {
         "status": "parsed"
       },
@@ -34573,7 +34659,8 @@
           "installDecision": "e84479a8fb5b69bd",
           "parseChecksum": "691d502f346e91f0",
           "releaseUrl": "57ede9ed46f442ef",
-          "systemdUnit": "4c73100446c0ebe3"
+          "systemdUnit": "4c73100446c0ebe3",
+          "userNpmInstall": "05aa30b53dabc87f"
         }
       }
     },
@@ -34598,35 +34685,42 @@
         "defaultMakeKey": {
           "line": 23
         },
+        "fromSshCommand": {
+          "line": 35,
+          "params": [
+            "words"
+          ],
+          "purpose": "A pasted ssh command (server-first-connect): `ssh me@host` gives `me@host`;"
+        },
         "normalizeHost": {
-          "line": 28,
+          "line": 68,
           "params": [
             "host"
           ],
-          "purpose": "The host as typed, trimmed; `{ error }` when it cannot be an SSH host."
+          "purpose": "The host as typed, trimmed; `{ error }` when it cannot be an SSH host. A"
         },
         "validEntry": {
-          "line": 36,
+          "line": 81,
           "params": [
             "e"
           ]
         },
         "sanitize": {
-          "line": 42,
+          "line": 87,
           "params": [
             "list"
           ],
           "purpose": "A clean copy of a stored list: malformed entries and repeated keys dropped."
         },
         "uniqueKey": {
-          "line": 58,
+          "line": 103,
           "params": [
             "list",
             "makeKey"
           ]
         },
         "addServer": {
-          "line": 71,
+          "line": 116,
           "params": [
             "list",
             "host",
@@ -34636,7 +34730,7 @@
           "purpose": "Add `host`. `{ list, entry }`, or `{ error, existing }` when the host is not"
         },
         "removeServer": {
-          "line": 82,
+          "line": 127,
           "params": [
             "list",
             "key"
@@ -34644,7 +34738,7 @@
           "purpose": "The list without `key`."
         },
         "findServer": {
-          "line": 87,
+          "line": 132,
           "params": [
             "list",
             "key"
@@ -34652,7 +34746,7 @@
           "purpose": "The entry for `key`, or null."
         },
         "findByServerId": {
-          "line": 92,
+          "line": 137,
           "params": [
             "list",
             "serverId",
@@ -34661,7 +34755,7 @@
           "purpose": "The entry (other than `exceptKey`) that holds `serverId`, or null."
         },
         "updateServer": {
-          "line": 98,
+          "line": 143,
           "params": [
             "list",
             "key",
@@ -34670,14 +34764,14 @@
           "purpose": "`list` with `fields` merged into the entry for `key` (unknown keys leave it unchanged)."
         },
         "autoConnectKeys": {
-          "line": 103,
+          "line": 148,
           "params": [
             "list"
           ],
           "purpose": "Keys of the servers to connect on launch, in list order."
         },
         "migrate": {
-          "line": 112,
+          "line": 157,
           "params": [
             "{ servers",
             "server } = {}",
@@ -34686,7 +34780,7 @@
           "purpose": "The saved list from user settings, migrating the old single `server`"
         }
       },
-      "sizeBytes": 4749,
+      "sizeBytes": 6395,
       "extraction": {
         "status": "parsed"
       },
@@ -34697,8 +34791,9 @@
           "autoConnectKeys": "5114961a9a8035b4",
           "findByServerId": "507c250e5b3965c8",
           "findServer": "9a931dcf893e3b35",
+          "fromSshCommand": "b07f0259d56617bc",
           "migrate": "3be52737b4b43433",
-          "normalizeHost": "41fe74ea0ba72242",
+          "normalizeHost": "22184eec3e6ab77a",
           "removeServer": "1df0a81d2c11cbf1",
           "sanitize": "3d4a7efa5cb1e756",
           "updateServer": "c34ac232b3ff4a2a"
@@ -34994,6 +35089,70 @@
           "checkUpgrade": "43f3ff871e2cce21",
           "generateToken": "85541e44695bec62",
           "tokensEqual": "9711a2c2a5362cd8"
+        }
+      }
+    },
+    "shared/sshErrors": {
+      "file": "src/shared/sshErrors.js",
+      "description": "sshErrors — what an ssh failure means, in words a first-time user can act",
+      "exports": [
+        "classify",
+        "needsUser",
+        "describe",
+        "setupCommand",
+        "SSH_FAILED"
+      ],
+      "depends": [],
+      "functions": {
+        "classify": {
+          "line": 33,
+          "params": [
+            "stderr",
+            "code"
+          ],
+          "purpose": "The kind of an ssh failure, or null (not ssh's own failure, or not one we know)."
+        },
+        "needsUser": {
+          "line": 43,
+          "params": [
+            "kind"
+          ],
+          "purpose": "Kinds only the user can fix: retrying them changes nothing."
+        },
+        "describe": {
+          "line": 52,
+          "params": [
+            "kind",
+            "host",
+            "fallback = ''"
+          ],
+          "purpose": "`{ message, action }` for the dialog. `action` is 'setup' (open a terminal"
+        },
+        "shellQuote": {
+          "line": 74,
+          "params": [
+            "s"
+          ]
+        },
+        "setupCommand": {
+          "line": 83,
+          "params": [
+            "host"
+          ],
+          "purpose": "The line typed (never run) in a terminal on this Mac: create a key when"
+        }
+      },
+      "sizeBytes": 4157,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "2f37b3e407198177",
+        "purposes": {
+          "classify": "a8722bf9f4926761",
+          "describe": "135c06ef29c53332",
+          "needsUser": "036a8b47aa7a4948",
+          "setupCommand": "3a27827284bcd39a"
         }
       }
     },
@@ -36392,6 +36551,26 @@
         "description": "9d61943b8b213ee4"
       }
     },
+    "test/analyticsUi.test": {
+      "file": "test/analyticsUi.test.js",
+      "description": "Analytics UI hidden (src/shared/analyticsUi.js): the notice is never due,",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "module",
+        "src/shared/analyticsUi",
+        "src/main/analytics"
+      ],
+      "functions": {},
+      "sizeBytes": 1603,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "bb07dba2307f2d02"
+      }
+    },
     "test/branchOptions.test": {
       "file": "test/branchOptions.test.js",
       "description": "branchOptions — the New Workspace branch fields' list (pure).",
@@ -37756,14 +37935,14 @@
       ],
       "functions": {
         "remoteHome": {
-          "line": 16,
+          "line": 21,
           "params": [
             "host"
           ],
           "purpose": "One remote home per host (multi-server-connections): FAKE_REMOTE_HOMES is"
         }
       },
-      "sizeBytes": 3214,
+      "sizeBytes": 4211,
       "extraction": {
         "status": "parsed"
       },
@@ -39781,7 +39960,7 @@
         "src/renderer/serverConnectModel"
       ],
       "functions": {},
-      "sizeBytes": 5179,
+      "sizeBytes": 7282,
       "extraction": {
         "status": "parsed"
       },
@@ -39841,7 +40020,7 @@
           ]
         }
       },
-      "sizeBytes": 15646,
+      "sizeBytes": 17697,
       "extraction": {
         "status": "parsed"
       },
@@ -39921,15 +40100,30 @@
         "node:assert/strict",
         "src/shared/serverInstall",
         "fs",
-        "path"
+        "path",
+        "child_process",
+        "os",
+        "src/renderer/serverConnectModel",
+        "src/server/doctor"
       ],
-      "functions": {},
-      "sizeBytes": 7579,
+      "functions": {
+        "sandbox": {
+          "line": 130,
+          "params": [
+            "prefix = ''"
+          ],
+          "purpose": "A temp HOME and a fake `npm` that logs its arguments and prints `prefix` for `config get prefix`."
+        }
+      },
+      "sizeBytes": 11638,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "760904a1f755fc32"
+        "description": "760904a1f755fc32",
+        "purposes": {
+          "sandbox": "d52b0b6e0ea621d3"
+        }
       }
     },
     "test/serverList.test": {
@@ -39949,7 +40143,7 @@
           ]
         }
       },
-      "sizeBytes": 4719,
+      "sizeBytes": 6210,
       "extraction": {
         "status": "parsed"
       },
@@ -40858,6 +41052,25 @@
         }
       }
     },
+    "test/sshErrors.test": {
+      "file": "test/sshErrors.test.js",
+      "description": "What an ssh failure means (server-first-connect T01). The samples are",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "child_process",
+        "src/shared/sshErrors"
+      ],
+      "functions": {},
+      "sizeBytes": 4127,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "014e5893d0967b80"
+      }
+    },
     "test/structureBootstrap.test": {
       "file": "test/structureBootstrap.test.js",
       "description": "structureBootstrap tests (STR-01 T07/T08): shipping the parser's complete",
@@ -41699,7 +41912,7 @@
           "purpose": "A workspace whose worktree has one commit on a detached HEAD that no branch holds."
         }
       },
-      "sizeBytes": 29350,
+      "sizeBytes": 30788,
       "extraction": {
         "status": "parsed"
       },
@@ -44681,7 +44894,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 456,
+        "parsed": 460,
         "unsupported": 94,
         "partial": 0
       }
@@ -44728,9 +44941,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 645,
+      "visitedEntries": 649,
       "traversedDirectories": 87,
-      "eligibleFiles": 550,
+      "eligibleFiles": 554,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -44747,7 +44960,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 550,
+      "indexedFiles": 554,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -44755,6 +44968,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "670c531c9650bbe2a9526f96ac32b1275b212dc829a5e41985dcd06c60301fcc"
+    "revision": "7a6f36268be1f1c1a4aa6797a540d750ac9d1bec12b0ced246db23c395558324"
   }
 }

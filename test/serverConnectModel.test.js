@@ -86,3 +86,26 @@ test('pickSelected keeps the chosen server, else the first connected, else the f
   assert.equal(M.pickSelected([srv('a', 'off')], null), 'a');
   assert.equal(M.pickSelected([], 'a'), null);
 });
+
+// ─── server-first-connect T04: the step indicator ────────────
+
+test('T04: the steps follow the server from connecting to a clean check-up', () => {
+  const at = (status, doctor = null) => M.steps(status, doctor).map((s) => s.state).join(' ');
+  assert.deepEqual(M.steps({ state: 'off' }, null).map((s) => [s.id, s.label]), [['connect', 'Connect'], ['install', 'Install Frame Server'], ['checkup', 'Check-up']]);
+  assert.equal(at({ state: 'off' }), 'todo todo todo');
+  assert.equal(at({ state: 'connecting' }), 'active todo todo');
+  assert.equal(at({ state: 'reconnecting' }), 'active todo todo');
+  assert.equal(at({ state: 'error', errorKind: 'auth' }), 'failed todo todo', 'waiting on the user');
+  assert.equal(at({ state: 'error', errorKind: 'no-resolve' }), 'failed todo todo', 'retrying');
+  assert.equal(at({ state: 'error', errorKind: null, error: 'ssh box: kex failed', install: null }), 'failed todo todo');
+  assert.equal(at({ state: 'needs-install', install: { action: 'install' } }), 'done active todo');
+  assert.equal(at({ state: 'needs-update', install: { action: 'update' } }), 'done active todo');
+  assert.equal(at({ state: 'installing' }), 'done active todo');
+  assert.equal(at({ state: 'error', errorKind: null, error: 'The install failed.', install: { action: 'install' } }), 'done failed todo');
+  assert.equal(at({ state: 'error', errorKind: null, error: 'socket closed', install: { action: 'none' } }), 'failed todo todo');
+  assert.equal(at({ state: 'connected' }, null), 'done done active', 'check-up loading');
+  assert.equal(at({ state: 'connected' }, { items: [{ ok: true }, { ok: true }] }), 'done done done');
+  assert.equal(at({ state: 'connected' }, { items: [{ ok: true }, { ok: false }] }), 'done done attention', 'something to set up is a warning, not a failure');
+  assert.equal(at({ state: 'connected' }, { items: [{ ok: true }, { ok: false, optional: true }] }), 'done done done', 'an optional item may be missing');
+  assert.equal(at({ state: 'connected' }, { error: 'Not connected.', items: [] }), 'done done failed');
+});
