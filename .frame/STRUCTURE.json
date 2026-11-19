@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-18",
+  "lastUpdated": "2026-11-19",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -28944,7 +28944,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 21917,
+      "sizeBytes": 22381,
       "extraction": {
         "status": "parsed"
       },
@@ -33112,6 +33112,31 @@
         "description": "819d5f372129ba9e"
       }
     },
+    "test/specImplementBranch.test": {
+      "file": "test/specImplementBranch.test.js",
+      "description": "spec.implement's pre-flight branch rule in a Frame workspace.",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "branchSection": {
+          "line": 23
+        }
+      },
+      "sizeBytes": 3415,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "70920252e9baa20b"
+      }
+    },
     "test/specManagerServer.test": {
       "file": "test/specManagerServer.test.js",
       "description": "Desktop specManager with server workspaces (server-specs spec).",
@@ -36768,7 +36793,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 406,
+        "parsed": 407,
         "unsupported": 92,
         "partial": 0
       }
@@ -36815,9 +36840,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 592,
+      "visitedEntries": 593,
       "traversedDirectories": 86,
-      "eligibleFiles": 498,
+      "eligibleFiles": 499,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -36834,7 +36859,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 498,
+      "indexedFiles": 499,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -36842,6 +36867,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "5cb0275f003844599b9be93658e3ce76271ddf07c91081fd7ea803938ade4161"
+    "revision": "6921a52dfaa82b0d89a92c106d9b07b92a7ead8bfe441d48d2b1b85b686a5f80"
   }
 }
