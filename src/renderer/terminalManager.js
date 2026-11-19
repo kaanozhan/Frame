@@ -69,6 +69,18 @@ function terminalName(n) {
   return `${n}${suffix} Terminal`;
 }
 
+
+/**
+ * Where an unlabelled closeTerminal call came from: the first frames past
+ * it, each file reduced to its name — the reason reaches a server's log, and
+ * this Mac's folders have no business there.
+ */
+function closeCaller() {
+  const frames = String(new Error().stack || '').split('\n').slice(3, 6)
+    .map((l) => l.trim().replace(/^at /, '').replace(/(?:file:\/\/)?\/[^\s()]*\/([^\/\s()]+:\d+:\d+)/g, '$1'));
+  return `unlabelled close from ${frames.join(' < ') || 'an unknown caller'}`;
+}
+
 class TerminalManager {
   constructor() {
     this._createSeq = 0; // request ids for TERMINAL_CREATE
@@ -764,15 +776,18 @@ class TerminalManager {
   }
 
   /**
-   * Close terminal
+   * Close terminal. `reason` names who asked — main logs it, and a server
+   * terminal's server logs it next to "Destroyed terminal", so a terminal
+   * that vanished can be traced to the action that closed it. A call
+   * without one logs its caller instead.
    */
-  closeTerminal(terminalId) {
+  closeTerminal(terminalId, { reason = null } = {}) {
     const instance = this.terminals.get(terminalId);
     if (instance) {
       instance.terminal.dispose();
       instance.element.remove();
       this.terminals.delete(terminalId);
-      ipcRenderer.send(IPC.TERMINAL_DESTROY, terminalId);
+      ipcRenderer.send(IPC.TERMINAL_DESTROY, terminalId, reason || closeCaller());
 
       if (this.activeTerminalId === terminalId) {
         const remaining = Array.from(this.terminals.keys());
@@ -984,7 +999,7 @@ class TerminalManager {
     // Handle terminal destroyed from main process
     ipcRenderer.on(IPC.TERMINAL_DESTROYED, (event, { terminalId }) => {
       if (this.terminals.has(terminalId)) {
-        this.closeTerminal(terminalId);
+        this.closeTerminal(terminalId, { reason: 'the terminal had already ended' });
       }
     });
   }

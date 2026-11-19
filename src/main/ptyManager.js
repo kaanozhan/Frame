@@ -541,6 +541,9 @@ const serverTerminals = new Map(); // desktop id → { projectPath (local), work
 // Server terminals closed while their server was down: sent when it
 // reconnects, and never adopted back while it still lists them (server-hardening T4).
 const pendingDestroys = new Set(); // desktop ids
+// Why each pending close was asked for, sent with it on reconnect so the
+// server's log names it too.
+const pendingReasons = new Map(); // desktop id → reason
 
 function serverLocationOf(workspaceId) {
   if (!workspaceId || workspaceId === 'main') return null;
@@ -618,13 +621,18 @@ function wireServerEvents() {
     if (!link) return;
     for (const id of pendingDestroys) {
       const route = routeOfTerminal(id);
-      if (route && route.serverKey === key) link.send('terminals.destroy', { terminalId: route.serverTerminalId });
+      if (route && route.serverKey === key) {
+        const reason = `${pendingReasons.get(id) || 'unlabelled close'} — sent on reconnect, asked while the server was down`;
+        logger.info('ptyManager', `Closing server terminal ${id}: ${reason}`);
+        link.send('terminals.destroy', { terminalId: route.serverTerminalId, reason });
+      }
     }
   });
   sc.on('terminal.destroyed', (p, key) => {
     const id = idOf(p, key);
     if (!id) return;
     pendingDestroys.delete(id);
+    pendingReasons.delete(id);
     serverTerminals.delete(id);
     toWindow(IPC.TERMINAL_DESTROYED, { terminalId: id, exitCode: p.exitCode });
   });
@@ -810,17 +818,23 @@ function setupIPC(ipcMain) {
   });
 
   // Destroy terminal
-  ipcMain.on(IPC.TERMINAL_DESTROY, (event, terminalId) => {
+  // `reason` (from the renderer's closeTerminal) is only logged: here, and
+  // for a server terminal on the server too, so a closed terminal can be
+  // traced to the action that closed it.
+  ipcMain.on(IPC.TERMINAL_DESTROY, (event, terminalId, reason) => {
+    const why = typeof reason === 'string' && reason ? reason.slice(0, 500) : 'unlabelled close';
     if (isServerTerminalId(terminalId)) {
       serverTerminals.delete(terminalId);
       const route = routeOfTerminal(terminalId);
       if (!route || !route.link) return; // its server is gone from the list
+      logger.info('ptyManager', `Closing server terminal ${terminalId}: ${why}`);
       // Offline: keep the close and send it on reconnect, instead of the
       // terminal running on and coming back (T4).
-      if (route.link.isConnected()) route.link.send('terminals.destroy', { terminalId: route.serverTerminalId });
-      else pendingDestroys.add(terminalId);
+      if (route.link.isConnected()) route.link.send('terminals.destroy', { terminalId: route.serverTerminalId, reason: why });
+      else { pendingDestroys.add(terminalId); pendingReasons.set(terminalId, why); }
       return;
     }
+    logger.info('ptyManager', `Closing terminal ${terminalId}: ${why}`);
     destroyTerminal(terminalId);
   });
 

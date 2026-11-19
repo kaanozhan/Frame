@@ -138,6 +138,23 @@ function fixChecksPrompt({ branch, number, failingNames = [] }) {
   ].join('\n');
 }
 
+/**
+ * Why a push must not run because the workspace's folder left its branch, or
+ * null. Push names the workspace's branch (`refs/heads/B:refs/heads/B`), so
+ * when the folder is on another branch — an agent's `git switch -c` or
+ * `git branch -m` — it would send B as it was, without the new commits, and
+ * report success. `headRef` is the folder's branch (null when detached:
+ * mid-rebase or bisect, which comes back — no refusal). `branchExists` says
+ * whether B is still there (false after a rename).
+ */
+function offBranchError({ branch, headRef, branchExists }) {
+  if (!branch || !headRef || headRef === branch) return null;
+  const lead = `This workspace's folder is on branch "${headRef}", not on its own branch "${branch}" — Frame pushes "${branch}", so the work on "${headRef}" would not be sent. Nothing was pushed.`;
+  return branchExists
+    ? `${lead} To bring the work back, run in the workspace's terminal: git switch ${branch} && git merge --ff-only ${headRef}`
+    : `${lead} "${branch}" was renamed to "${headRef}"; to rename it back, run in the workspace's terminal: git branch -m ${headRef} ${branch}`;
+}
+
 // git's own lines when it could not reach the remote over SSH: no host key
 // for it, or no key it accepts (server-github-setup G3).
 const SSH_PUSH_FAILURE = /Host key verification failed|Permission denied \(publickey|No .* host key is known for/i;
@@ -283,6 +300,7 @@ module.exports = {
   pickMergeMethod,
   fixChecksPrompt,
   isPushable,
+  offBranchError,
   explainPushError,
   pushArgs,
   mergeLanded,

@@ -174,6 +174,30 @@ test('baseForBranch: the upstream when it is another branch, else the default', 
   assert.equal(baseForBranch({ branch: 'feat/x', upstream: null, defaultBranch: null }), null);
 });
 
+// ─── offBranchError: the folder left the workspace's branch (W1) ───
+
+test('offBranchError: none while the folder is on the workspace branch, or detached (mid-rebase)', () => {
+  const { offBranchError } = require('../src/shared/prFlow');
+  assert.equal(offBranchError({ branch: 'ws/teal', headRef: 'ws/teal', branchExists: true }), null);
+  assert.equal(offBranchError({ branch: 'ws/teal', headRef: null, branchExists: true }), null, 'detached HEAD is left alone');
+  assert.equal(offBranchError({ branch: null, headRef: 'x', branchExists: false }), null);
+});
+
+test('offBranchError: a switch to another branch names both and the way back, never pushing', () => {
+  const { offBranchError } = require('../src/shared/prFlow');
+  const msg = offBranchError({ branch: 'ws/teal', headRef: 'feat/x', branchExists: true });
+  assert.match(msg, /on branch "feat\/x", not on its own branch "ws\/teal"/);
+  assert.match(msg, /Nothing was pushed/);
+  assert.match(msg, /git switch ws\/teal && git merge --ff-only feat\/x$/);
+});
+
+test('offBranchError: a rename (the old branch is gone) offers to rename it back', () => {
+  const { offBranchError } = require('../src/shared/prFlow');
+  const msg = offBranchError({ branch: 'ws/teal', headRef: 'feat/x', branchExists: false });
+  assert.match(msg, /"ws\/teal" was renamed to "feat\/x"/);
+  assert.match(msg, /git branch -m feat\/x ws\/teal$/);
+});
+
 // ─── explainPushError (server-github-setup G3) ────────────────
 
 test('explainPushError: an SSH failure keeps git\'s text and adds what to do', () => {

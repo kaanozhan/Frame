@@ -20,7 +20,7 @@
 const fs = require('fs');
 const { IPC } = require('../shared/ipcChannels');
 const registry = require('../shared/workspaceRegistry');
-const { mapPrView, parseCount, composePr, pickMergeMethod, pushArgs, explainPushError, parseConflicts, mergeLanded } = require('../shared/prFlow');
+const { mapPrView, parseCount, composePr, pickMergeMethod, pushArgs, offBranchError, explainPushError, parseConflicts, mergeLanded } = require('../shared/prFlow');
 const projectRegistry = require('./projectRegistry');
 const git = require('./gitBranchesManager');
 const github = require('./githubManager');
@@ -293,6 +293,14 @@ async function push(projectPath, id) {
   // A workspace opened from an existing branch may have no stored base: the
   // remote's default branch stands in, so the base can never be pushed.
   const base = await baseOf(projectPath, ws);
+  // The folder must still be on the workspace's branch: pushing that branch
+  // after the folder moved to another would report success and send none of
+  // the new work (W1). A detached HEAD (mid-rebase) is left alone.
+  const head = await git.headState(ws.path, ws.branch);
+  if (!head.error && !head.detached) {
+    const off = offBranchError({ branch: ws.branch, headRef: head.ref, branchExists: await git.localBranchExists(ws.branch, ws.path) });
+    if (off) return { error: off };
+  }
   const upstream = await git.upstreamOf(ws.path);
   const plan = pushArgs({ branch: ws.branch, base, upstream });
   if (plan.error) return { error: plan.error };
