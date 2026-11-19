@@ -197,3 +197,28 @@ test('offBranchError: a rename (the old branch is gone) offers to rename it back
   assert.match(msg, /"ws\/teal" was renamed to "feat\/x"/);
   assert.match(msg, /git branch -m feat\/x ws\/teal$/);
 });
+
+// ─── explainPushError (server-github-setup G3) ────────────────
+
+test('explainPushError: an SSH failure keeps git\'s text and adds what to do', () => {
+  const { explainPushError } = require('../src/shared/prFlow');
+  for (const raw of [
+    'Host key verification failed.\nfatal: Could not read from remote repository.',
+    'git@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository.',
+    'No ED25519 host key is known for github.com and you have requested strict checking.'
+  ]) {
+    const out = explainPushError(raw);
+    assert.ok(out.startsWith(raw.trim()), 'git\'s own lines first');
+    assert.match(out, /could not reach the remote over SSH/);
+    assert.match(out, /add an SSH key from that machine to your GitHub account/);
+    assert.match(out, /git remote set-url origin https:\/\/github\.com\/<owner>\/<repo>\.git/);
+    assert.doesNotMatch(out, /insteadOf|--global/, 'nothing that changes the machine\'s other git settings');
+  }
+});
+
+test('explainPushError: any other failure is left exactly as git said it', () => {
+  const { explainPushError } = require('../src/shared/prFlow');
+  const raw = '! [rejected] ws/teal -> ws/teal (non-fast-forward)';
+  assert.equal(explainPushError(raw), raw);
+  assert.equal(explainPushError('fatal: Authentication failed for \'https://github.com/o/r.git/\''), 'fatal: Authentication failed for \'https://github.com/o/r.git/\'');
+});

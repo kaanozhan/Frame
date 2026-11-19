@@ -683,6 +683,8 @@
 .sc-check-detail { color: var(--text-tertiary); }
 .sc-fix { display: flex; gap: 6px; align-items: center; margin-top: 3px; min-width: 0; }
 .sc-fix code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: 3px 6px; border-radius: var(--radius-sm); background: var(--bg-tertiary); font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+/* What a fix command will ask of the user (gh's device code on a server). */
+.sc-check-note { margin: 4px 0 0; font-size: 11px; line-height: 15px; color: var(--text-tertiary); }
 .sb-server[data-state="needs-install"] .sb-server-dot,
 .sb-server[data-state="needs-update"] .sb-server-dot,
 .sb-server[data-state="installing"] .sb-server-dot { background: var(--warning); }

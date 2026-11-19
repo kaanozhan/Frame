@@ -20,7 +20,7 @@
 const fs = require('fs');
 const { IPC } = require('../shared/ipcChannels');
 const registry = require('../shared/workspaceRegistry');
-const { mapPrView, parseCount, composePr, pickMergeMethod, pushArgs, offBranchError, parseConflicts, mergeLanded } = require('../shared/prFlow');
+const { mapPrView, parseCount, composePr, pickMergeMethod, pushArgs, offBranchError, explainPushError, parseConflicts, mergeLanded } = require('../shared/prFlow');
 const projectRegistry = require('./projectRegistry');
 const git = require('./gitBranchesManager');
 const github = require('./githubManager');
@@ -307,7 +307,7 @@ async function push(projectPath, id) {
   const st = await git.worktreeStatus(ws.path);
   const res = await git.pushBranch(ws.path, plan.args);
   refresh(projectPath);
-  return { error: res.error || null, dirty: st.count || 0 };
+  return { error: res.error ? explainPushError(res.error) : null, dirty: st.count || 0 };
 }
 
 /** The spec a workspace holds (spec-in-workspace), with its documents, or null. */
