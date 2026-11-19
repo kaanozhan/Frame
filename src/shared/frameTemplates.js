@@ -236,6 +236,7 @@ The four spec commands are \`spec.new\`, \`spec.plan\`, \`spec.tasks\` and \`spe
 | \`{slug}\` | the spec's slug — **omitted for \`spec.new\`**, which runs before the spec exists |
 | \`{title}\` | the spec's title (from \`status.json\`) — **omitted for \`spec.new\`** for the same reason |
 | \`{description}\` | the user's description, verbatim (\`spec.new\` only; empty otherwise) |
+| \`{tool_id}\` | your CLI's id: \`claude-code\` for Claude Code, \`codex\` for Codex — never \`claude\`, which \`status.json\` rejects |
 | \`{report_template_path}\` | \`.frame/runtime/commands/<tool>/plan-report-template.html\` — falling back to \`claude-code\`'s copy, which is the only one staged, when the tool ships none |
 | \`{report_generator_path}\` | \`.frame/runtime/commands/<tool>/build-implement-report.mjs\` — same fallback |
 

@@ -188,3 +188,44 @@ test('a phase advance works on a spec that was never repaired', () => {
   assert.equal(result.status.phase, 'implementing');
   assert.equal(result.status.slug, 'advance-me');
 });
+
+// ─── ai_tool "claude" (spec.new's {tool_id} left unfilled) ────
+
+function writeGuessedToolSpec(slug) {
+  const dir = specDir(slug);
+  fs.writeFileSync(path.join(dir, 'spec.md'), '# spec\n');
+  const raw = JSON.stringify({ slug, title: 'Guessed tool', phase: 'specified', generated_task_ids: [], ai_tool: 'claude' }, null, 2);
+  fs.writeFileSync(path.join(dir, 'status.json'), raw);
+  return raw;
+}
+
+test('ai_tool "claude" reads as claude-code: the spec is listed, not shown broken', () => {
+  writeGuessedToolSpec('guessed');
+  const spec = specManager.listSpecs(projectDir).find((s) => s.slug === 'guessed');
+  assert.ok(spec, 'listed');
+  assert.ok(!spec.malformed, `not malformed (${spec.malformedReason || spec.reason || ''})`);
+  assert.equal(spec.ai_tool, 'claude-code');
+});
+
+test('listing never rewrites the file for it; the next status update stores it fixed', () => {
+  const raw = writeGuessedToolSpec('guessed');
+  specManager.listSpecs(projectDir);
+  assert.equal(fs.readFileSync(path.join(projectDir, '.frame', 'specs', 'guessed', 'status.json'), 'utf8'), raw, 'untouched by listing');
+
+  const result = specManager.updateSpecStatus(projectDir, 'guessed', { implement_mode: 'guided' });
+  assert.equal(result.error, undefined, `the update is accepted (was: ${result.error})`);
+  assert.equal(readStatus('guessed').ai_tool, 'claude-code');
+  assert.equal(readStatus('guessed').implement_mode, 'guided');
+});
+
+test('repairSpecStatus: only "claude" is normalised; real values and other unknowns are left to the validator', () => {
+  const { repairSpecStatus } = specManager;
+  const base = { slug: 's', title: 't', phase: 'specified', generated_task_ids: [] };
+  for (const v of ['claude-code', 'codex', 'gemini', undefined]) {
+    const input = v === undefined ? base : { ...base, ai_tool: v };
+    assert.equal(repairSpecStatus(input, 's').status, input, `${v}: same object`);
+  }
+  assert.equal(repairSpecStatus({ ...base, ai_tool: 'claude' }, 's').status.ai_tool, 'claude-code');
+  assert.deepEqual(repairSpecStatus({ ...base, ai_tool: 'claude' }, 's').filled, [], 'not a write-worthy fill');
+  assert.equal(repairSpecStatus({ ...base, ai_tool: 'gpt' }, 's').status.ai_tool, 'gpt');
+});
