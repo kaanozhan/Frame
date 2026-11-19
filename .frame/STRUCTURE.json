@@ -28933,7 +28933,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 21917,
+      "sizeBytes": 22381,
       "extraction": {
         "status": "parsed"
       },
@@ -33101,6 +33101,31 @@
         "description": "819d5f372129ba9e"
       }
     },
+    "test/specImplementBranch.test": {
+      "file": "test/specImplementBranch.test.js",
+      "description": "spec.implement's pre-flight branch rule in a Frame workspace.",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "branchSection": {
+          "line": 23
+        }
+      },
+      "sizeBytes": 3415,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "70920252e9baa20b"
+      }
+    },
     "test/specManagerServer.test": {
       "file": "test/specManagerServer.test.js",
       "description": "Desktop specManager with server workspaces (server-specs spec).",
@@ -36746,7 +36771,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 406,
+        "parsed": 407,
         "unsupported": 92,
         "partial": 0
       }
@@ -36793,9 +36818,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 592,
+      "visitedEntries": 593,
       "traversedDirectories": 86,
-      "eligibleFiles": 498,
+      "eligibleFiles": 499,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -36812,7 +36837,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 498,
+      "indexedFiles": 499,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -36820,6 +36845,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "65a109a4b8d913f599771b015652e018a204cd1ca3db3bf45fb33a5593a7fc6a"
+    "revision": "c0fff0d556b55ca155ef778155af677d2d90efe47b5fa6d9f4e0cf18308bef03"
   }
 }
