@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-18",
+  "lastUpdated": "2026-11-19",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -8473,7 +8473,7 @@
           ]
         },
         "heldSpec": {
-          "line": 306,
+          "line": 314,
           "params": [
             "projectPath",
             "id"
@@ -8481,7 +8481,7 @@
           "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
         },
         "prDraft": {
-          "line": 320,
+          "line": 328,
           "params": [
             "projectPath",
             "id"
@@ -8489,7 +8489,7 @@
           "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
         },
         "prCreate": {
-          "line": 331,
+          "line": 339,
           "params": [
             "projectPath",
             "id",
@@ -8500,7 +8500,7 @@
           "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
         },
         "merge": {
-          "line": 359,
+          "line": 367,
           "params": [
             "projectPath",
             "id"
@@ -8508,14 +8508,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 409,
+          "line": 417,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 446,
+          "line": 454,
           "params": [
             "projectPath",
             "id"
@@ -8523,7 +8523,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 464,
+          "line": 472,
           "params": [
             "ipcMain"
           ]
@@ -8543,7 +8543,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 21919,
+      "sizeBytes": 22429,
       "extraction": {
         "status": "parsed"
       },
@@ -27137,6 +27137,7 @@
         "pickMergeMethod",
         "fixChecksPrompt",
         "isPushable",
+        "offBranchError",
         "pushArgs",
         "mergeLanded",
         "baseForBranch",
@@ -27201,8 +27202,17 @@
           ],
           "purpose": "The prompt \"Fix failing checks\" hands the workspace's agent. It names the"
         },
+        "offBranchError": {
+          "line": 150,
+          "params": [
+            "{ branch",
+            "headRef",
+            "branchExists }"
+          ],
+          "purpose": "Why a push must not run because the workspace's folder left its branch, or"
+        },
         "isPushable": {
-          "line": 142,
+          "line": 159,
           "params": [
             "{ branch",
             "base }"
@@ -27210,7 +27220,7 @@
           "purpose": "A workspace branch may be pushed unless it is (or names) its own base."
         },
         "pushArgs": {
-          "line": 157,
+          "line": 174,
           "params": [
             "{ branch",
             "base",
@@ -27219,14 +27229,14 @@
           "purpose": "The argv for pushing a workspace branch (workspace-hardening L1). The push"
         },
         "parseConflicts": {
-          "line": 170,
+          "line": 187,
           "params": [
             "stdout"
           ],
           "purpose": "`git diff --name-only --diff-filter=U -z` → conflicted paths, in order, no duplicates."
         },
         "updateMenuState": {
-          "line": 185,
+          "line": 202,
           "params": [
             "{ behind = 0",
             "merging = false",
@@ -27236,7 +27246,7 @@
           "purpose": "The update items a workspace row offers: `[{ id, label }]`."
         },
         "conflictPrompt": {
-          "line": 198,
+          "line": 215,
           "params": [
             "{ branch",
             "base = 'main'",
@@ -27245,21 +27255,21 @@
           "purpose": "The prompt that hands an update's conflicts to an agent in the workspace."
         },
         "updateMessage": {
-          "line": 211,
+          "line": 228,
           "params": [
             "result"
           ],
           "purpose": "One sentence for the user about an update's result."
         },
         "mergeLanded": {
-          "line": 236,
+          "line": 253,
           "params": [
             "pr"
           ],
           "purpose": "Whether a PR read back after `gh pr merge` has actually merged. On a"
         },
         "baseForBranch": {
-          "line": 246,
+          "line": 263,
           "params": [
             "{ branch",
             "upstream",
@@ -27268,7 +27278,7 @@
           "purpose": "The base a workspace opened from an existing branch should record"
         }
       },
-      "sizeBytes": 11335,
+      "sizeBytes": 12494,
       "extraction": {
         "status": "parsed"
       },
@@ -27283,6 +27293,7 @@
           "isPushable": "20e43c7377899394",
           "mapPrView": "886ffc419a78fdac",
           "mergeLanded": "875702301f11b53c",
+          "offBranchError": "36bf1ad27d582d4f",
           "parseConflicts": "35eac48b8bf0d2d4",
           "parseCount": "e0e6116d342409ca",
           "pickMergeMethod": "b92b46d28d104dd3",
@@ -28939,7 +28950,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 21917,
+      "sizeBytes": 22381,
       "extraction": {
         "status": "parsed"
       },
@@ -31779,7 +31790,7 @@
         "src/shared/prFlow"
       ],
       "functions": {},
-      "sizeBytes": 10169,
+      "sizeBytes": 11571,
       "extraction": {
         "status": "parsed"
       },
@@ -33107,6 +33118,31 @@
         "description": "819d5f372129ba9e"
       }
     },
+    "test/specImplementBranch.test": {
+      "file": "test/specImplementBranch.test.js",
+      "description": "spec.implement's pre-flight branch rule in a Frame workspace.",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "branchSection": {
+          "line": 23
+        }
+      },
+      "sizeBytes": 3415,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "70920252e9baa20b"
+      }
+    },
     "test/specManagerServer.test": {
       "file": "test/specManagerServer.test.js",
       "description": "Desktop specManager with server workspaces (server-specs spec).",
@@ -34111,7 +34147,8 @@
         "src/main/userSettings",
         "src/main/frameProject",
         "src/main/specManager",
-        "src/main/gitStatusManager"
+        "src/main/gitStatusManager",
+        "src/main/githubManager"
       ],
       "functions": {
         "withGh": {
@@ -34153,9 +34190,19 @@
         "detachedWithCommit": {
           "line": 193,
           "purpose": "A workspace whose worktree has one commit on a detached HEAD that no branch holds."
+        },
+        "workspaceWithCommit": {
+          "line": 574
+        },
+        "commitIn": {
+          "line": 580,
+          "params": [
+            "wt",
+            "file"
+          ]
         }
       },
-      "sizeBytes": 30788,
+      "sizeBytes": 34673,
       "extraction": {
         "status": "parsed"
       },
@@ -36752,7 +36799,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 406,
+        "parsed": 407,
         "unsupported": 92,
         "partial": 0
       }
@@ -36799,9 +36846,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 592,
+      "visitedEntries": 593,
       "traversedDirectories": 86,
-      "eligibleFiles": 498,
+      "eligibleFiles": 499,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -36818,7 +36865,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 498,
+      "indexedFiles": 499,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -36826,6 +36873,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "b096ca3d8a0f2d7c627c3df50df9dc4c3e2568b3802a2fcc729f65382926d079"
+    "revision": "c30cf777454f1e5de7d87dc7095633b433ecc3734b755d149198d5dfccdac89c"
   }
 }

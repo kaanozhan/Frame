@@ -568,3 +568,77 @@ test('a branch renamed in the worktree shows in the list as headBranch; the reco
   row = (await workspaceManager.list(project)).workspaces.find((w) => w.id === id);
   assert.equal(row.headBranch, null, 'a detached HEAD has no branch to show; the row falls back to the record');
 });
+
+// ─── W1: the folder left the workspace's branch ───────────────
+
+async function workspaceWithCommit() {
+  const { project, remote } = makeProject();
+  const created = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  assert.equal(created.error, null, created.error);
+  return { project, remote, ...created.workspace };
+}
+function commitIn(wt, file) {
+  fs.writeFileSync(path.join(wt, file), `${file}\n`);
+  gitWrite(['add', '.'], wt);
+  gitWrite(['commit', '-qm', file], wt);
+}
+
+test('W1: after an agent switches the folder to a new branch, push refuses and sends nothing', async () => {
+  const { project, remote, id, path: wt, branch } = await workspaceWithCommit();
+  gitWrite(['switch', '-q', '-c', 'feat/agent'], wt);   // what the agent ran
+  commitIn(wt, 'agent.txt');
+  const res = await workspaceGitState.push(project, id);
+  assert.match(res.error || '', /on branch "feat\/agent", not on its own branch/);
+  assert.match(res.error, /git switch .* && git merge --ff-only feat\/agent/);
+  assert.equal(remoteSha(remote, branch), null, 'the workspace branch was not pushed without the work');
+  assert.equal(remoteSha(remote, 'feat/agent'), null);
+
+  // The way back the message gives works, and push then sends the work.
+  gitWrite(['switch', '-q', branch], wt);
+  gitWrite(['merge', '-q', '--ff-only', 'feat/agent'], wt);
+  const again = await workspaceGitState.push(project, id);
+  assert.equal(again.error, null, again.error);
+  assert.equal(remoteSha(remote, branch), git(['rev-parse', 'HEAD'], wt), 'the agent work reached the workspace branch');
+});
+
+test('W1: after a rename (git branch -m), push refuses and offers the rename back', async () => {
+  const { project, remote, id, path: wt, branch } = await workspaceWithCommit();
+  gitWrite(['branch', '-m', 'feat/renamed'], wt);
+  commitIn(wt, 'work.txt');
+  const res = await workspaceGitState.push(project, id);
+  assert.match(res.error || '', new RegExp(`"${branch.replace('/', '\\/')}" was renamed to "feat\\/renamed"`));
+  assert.equal(remoteSha(remote, 'feat/renamed'), null);
+
+  gitWrite(['branch', '-m', 'feat/renamed', branch], wt);
+  const again = await workspaceGitState.push(project, id);
+  assert.equal(again.error, null, again.error);
+  assert.equal(remoteSha(remote, branch), git(['rev-parse', 'HEAD'], wt));
+});
+
+test('W1: a detached HEAD (as mid-rebase) is not refused — push behaves as before', async () => {
+  const { project, remote, id, path: wt, branch } = await workspaceWithCommit();
+  commitIn(wt, 'one.txt');
+  const tip = git(['rev-parse', 'HEAD'], wt);
+  gitWrite(['checkout', '-q', '--detach'], wt);
+  const res = await workspaceGitState.push(project, id);
+  assert.equal(res.error, null, res.error);
+  assert.equal(remoteSha(remote, branch), tip, 'the workspace branch is pushed as it is');
+});
+
+test('W1: PR creation stops at the same check, before gh is asked anything', async () => {
+  const { project, id, path: wt } = await workspaceWithCommit();
+  gitWrite(['switch', '-q', '-c', 'feat/agent'], wt);
+  const calls = [];
+  const res = await withGh(async (args) => {
+    calls.push(args.slice(0, 2).join(' '));
+    if (args[0] === 'pr' && args[1] === 'create') return { ok: true, stdout: 'https://github.com/o/r/pull/1', error: null };
+    return { ok: false, stdout: '', error: 'n/a' };
+  }, async () => {
+    const github = require('../src/main/githubManager');
+    const realCheck = github.checkAccess;
+    github.checkAccess = async () => ({ gh: true, authed: true, repoName: 'o/r', error: null });
+    try { return await workspaceGitState.prCreate(project, id, { title: 'T' }); } finally { github.checkAccess = realCheck; }
+  });
+  assert.match(res.error || '', /^Push failed: This workspace's folder is on branch "feat\/agent"/);
+  assert.equal(calls.includes('pr create'), false, 'no pull request was opened');
+});
