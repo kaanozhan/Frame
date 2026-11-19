@@ -68,6 +68,29 @@ function setActions(next) {
   Object.assign(actions, next || {});
 }
 
+// Called with the active workspaces after each load() that lands, so views
+// that name a workspace (the Briefs card's part rows) redraw when one is
+// created, renamed or archived (frame-cloud-start-workspace).
+const changeListeners = new Set();
+
+/** Run `fn(workspaces)` after each load() completes. → a function that stops it. */
+function onChange(fn) {
+  if (typeof fn !== 'function') return () => {};
+  changeListeners.add(fn);
+  return () => changeListeners.delete(fn);
+}
+
+function emitChange() {
+  const list = getWorkspaces();
+  for (const fn of changeListeners) {
+    try {
+      fn(list);
+    } catch (err) {
+      console.error('workspaceSection: a change listener failed', err);
+    }
+  }
+}
+
 function init() {
   rootEl = document.getElementById('workspace-section');
   if (!rootEl) {
@@ -176,6 +199,7 @@ async function load({ reselect = false } = {}) {
     }
   }
   render();
+  emitChange();
 }
 
 function select(ws) {
@@ -935,6 +959,7 @@ module.exports = {
   render,
   select,
   setActions,
+  onChange,
   getWorkspaces,
   selectedWorkspace,
   workspaceChipHtml,

@@ -1,0 +1,23 @@
+{
+  "slug": "frame-cloud-start-workspace",
+  "title": "Start Work in workspaces",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-frame-cloud-start-workspace-T01",
+    "task-spec-frame-cloud-start-workspace-T02",
+    "task-spec-frame-cloud-start-workspace-T03",
+    "task-spec-frame-cloud-start-workspace-T04",
+    "task-spec-frame-cloud-start-workspace-T05",
+    "task-spec-frame-cloud-start-workspace-T06",
+    "task-spec-frame-cloud-start-workspace-T07",
+    "task-spec-frame-cloud-start-workspace-T08",
+    "task-spec-frame-cloud-start-workspace-T09",
+    "task-spec-frame-cloud-start-workspace-T10",
+    "task-spec-frame-cloud-start-workspace-T11"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-11-19T00:00:00Z",
+  "updated_at": "2026-11-19T12:06:26.612Z",
+  "last_phase_at": "2026-11-19T12:06:26.612Z",
+  "implement_mode": "autonomous"
+}

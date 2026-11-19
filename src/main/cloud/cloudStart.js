@@ -337,12 +337,27 @@ function withBegunBranches(briefs, store, projectId, localBranches = null) {
 
 // ─── The dialog and the start ─────────────────────────────────
 
-/** What the branch is cut from: the local `targetBranch`, else `origin/<targetBranch>`, else null. */
+/**
+ * What the branch is cut from by default: `origin/<targetBranch>`, which the
+ * start fetches first, else the local `targetBranch`, else null. Origin's
+ * copy wins because a local branch can be behind it, and New Workspace cuts
+ * from origin's copy too (frame-cloud-start-workspace T11).
+ */
 function pickBase(targetBranch, { local, remote }) {
   if (!targetBranch) return null;
-  if (local) return targetBranch;
   if (remote) return `origin/${targetBranch}`;
+  if (local) return targetBranch;
   return null;
+}
+
+/**
+ * The workspace's base for a branch cut from `base`: a branch name, never a
+ * remote ref (`origin/main` → `main`), because the workspace record's base
+ * drives ↓behind, the PR's base and Update from base.
+ */
+function workspaceBase(base) {
+  const b = str(base).trim();
+  return b.startsWith('origin/') ? b.slice('origin/'.length) : b;
 }
 
 /**
@@ -359,6 +374,22 @@ function baseOptions(branches) {
     .sort(byTime)
     .map((b) => ({ name: b.name, remote: true }));
   return [...local, ...remote];
+}
+
+/**
+ * Fetch an `origin/<name>` base, so the branch is cut from origin's latest.
+ * Never throws: a failure is reported, and the branch is cut from the last
+ * fetched copy. A local base is not fetched (`skipped`).
+ * → `{ fetched, error, skipped }`.
+ */
+async function fetchBase(base, deps) {
+  if (!base.startsWith('origin/') || !deps.fetchBase) return { fetched: false, error: null, skipped: true };
+  try {
+    const result = obj(await deps.fetchBase(base.slice('origin/'.length)));
+    return { fetched: result.fetched === true, error: result.fetched === true ? null : errorText(result.error || 'the fetch failed'), skipped: false };
+  } catch (err) {
+    return { fetched: false, error: errorText(err), skipped: false };
+  }
 }
 
 /** Does `base` name a branch this folder has: a local one, or `origin/<name>`? */
@@ -397,18 +428,18 @@ function startMode(brief) {
 }
 
 /**
- * What the Start Work dialog shows for a brief detail and the folder's state.
+ * What the Start Work dialog shows for a brief detail and the folder's branches.
  * `begun` maps a part id to the branch this machine began it on. In 'start'
  * mode every part can be begun; in 'begin' mode only one with a reserved ref
  * that was not begun yet. A part whose definition does not parse carries its
  * `problem` and cannot be begun.
  * → `{ ok: true, mode, number, title, targetBranch, parts: [{ partId, title,
- * shape, type, ref, begunBranch, problem, canBegin }], suggestions,
- * currentBranch, changeCount, base, bases }` or `{ ok: false, reason: 'notStartable' }`.
- * `base` is the default (the target, local or origin's) and `bases` what the
- * "from" menu offers.
+ * shape, type, ref, begunBranch, problem, canBegin }], suggestions, base,
+ * bases }` or `{ ok: false, reason: 'notStartable' }`.
+ * `base` is the default (the target, origin's else local) and `bases` what
+ * the "from" menu offers.
  */
-function prepareView({ brief, currentBranch, changeCount, base, begun = {}, branches = [] }) {
+function prepareView({ brief, base, begun = {}, branches = [] }) {
   const b = obj(brief);
   const mode = startMode(b);
   if (!mode) return { ok: false, reason: 'notStartable' };
@@ -434,8 +465,6 @@ function prepareView({ brief, currentBranch, changeCount, base, begun = {}, bran
       };
     }),
     suggestions: branchSuggestions(b),
-    currentBranch: currentBranch || '',
-    changeCount: Number.isInteger(changeCount) ? changeCount : 0,
     base: base || null,
     bases: baseOptions(branches),
   };
@@ -446,9 +475,13 @@ function errorText(err) {
 }
 
 /**
- * A Start Work or Begin request (`{ number, beginPartId, branch, base, stash }`) →
- * what happened. One part is begun each time: its branch is cut from the
- * brief's target and only that part is written. On a brief not started yet
+ * A Start Work or Begin request (`{ number, beginPartId, branch, base }`) →
+ * what happened. One part is begun each time, in a workspace of its own
+ * (frame-cloud-start-workspace): its branch is cut from the brief's target
+ * without touching the main checkout, a new workspace opens that branch, and
+ * only that part is written — a spec part's folder into the workspace, a
+ * task part's row into the main checkout's `tasks.json`, where task state
+ * lives (spec-in-workspace). On a brief not started yet
  * ('start'), every part's ref is picked against the folder and exactly one
  * `brief.start` reserves them all; the other parts stay in the cloud. On a
  * started brief ('begin'), the part's reserved ref is used and nothing is
@@ -456,25 +489,39 @@ function errorText(err) {
  *
  * Every local check runs first — the part exists and can be begun, its
  * definition parses, the branch name is valid and free, the base (the
- * user's pick, else the brief's target) exists, a
- * dirty folder has consent — so a refusal writes nothing, locally or in the
- * cloud. A failure after that is `partial`: the brief is started either way,
+ * user's pick, else the brief's target) exists — so a refusal writes
+ * nothing, locally or in the cloud. An `origin/` base is then fetched
+ * (`deps.fetchBase`), before `brief.start`; a failed fetch is no refusal,
+ * the branch is cut from the last fetched copy and the answer's `fetch`
+ * says so. A local base is cut as it is. The folder's uncommitted changes are not
+ * asked about (frame-cloud-start-workspace): nothing is stashed. A failure
+ * after that is `partial`: the brief is started either way,
  * and the answer names the step and the part that was not written. Only a
  * part fully written is recorded as begun.
  *
  * Once it is, the branch goes to the cloud (`deps.recordBranch`) with the
- * commit it was cut from (`deps.headSha()`, read right after the checkout).
+ * commit it was cut from (`deps.branchSha(branch)`, the new branch's tip,
+ * read right after it is cut — never the main checkout's HEAD).
  * That call is not awaited and its failure is swallowed: it never changes
  * Begin's answer, and the next Briefs read sends it again (frame-cloud-brief-done
  * D6, D9). Without a full commit id it is skipped.
  *
- * `deps`: `{ call, projectSlug, specSlugs(), taskIds(), currentBranch(),
- * changeCount(), isValidBranchName(name), localBranchExists(name),
- * remoteBranchExists(name), begun(partId) → { branch } | null,
- * stash(message), createBranch(name, base, { track }), headSha() → sha |
- * null, writeSpec(slug, files), writeTasks(rows), recordBegun({ partId, ref,
- * branch, baseSha }), recordBranch({ id, partId, branch, baseSha }), now() }`;
- * each may be async, and the effects throw on failure.
+ * `deps`: `{ call, projectSlug, specSlugs(), taskIds(),
+ * isValidBranchName(name), localBranchExists(name),
+ * remoteBranchExists(name), fetchBase(name) → { fetched, error },
+ * begun(partId) → { branch } | null,
+ * createBranch(name, base, { track }) (cut, not checked out),
+ * branchSha(name) → sha | null, createWorkspace(branch, base) → { workspace:
+ * { id, name, path, branch, base }, setupScript }, writeSpec(slug, files,
+ * root), writeTasks(rows), tasksPath() → the main checkout's tasks.json,
+ * recordBegun({ partId, ref, branch, baseSha }), recordBranch({ id, partId,
+ * branch, baseSha }), now() }`; each may be async, and the effects throw on
+ * failure.
+ *
+ * Success carries `workspace` and its `setupScript`, which the renderer runs
+ * before it opens the lane there, and `fetch: { fetched, error, skipped }`; a task part's `begin` also carries
+ * `tasksPath`, so the task run updates the main checkout's file. Partial
+ * steps: `branch`, `workspace` (the branch stays) and `files`.
  */
 async function handleStartRequest(request, deps) {
   const r = obj(request);
@@ -505,7 +552,7 @@ async function handleStartRequest(request, deps) {
   if (!deps.isValidBranchName(branch)) return { ok: false, reason: 'badBranch', detail: branch };
   if (await deps.localBranchExists(branch)) return { ok: false, reason: 'branchTaken', detail: branch };
 
-  // The base the user picked, else the brief's target (local, else origin's).
+  // The base the user picked, else the brief's target (origin's, else local).
   const chosenBase = str(r.base).trim();
   let base;
   if (chosenBase) {
@@ -519,10 +566,7 @@ async function handleStartRequest(request, deps) {
     if (!base) return { ok: false, reason: 'baseMissing', detail: brief.targetBranch };
   }
 
-  const changeCount = await deps.changeCount();
-  if (changeCount > 0 && r.stash !== true) {
-    return { ok: false, reason: 'dirty', changeCount, currentBranch: await deps.currentBranch() };
-  }
+  const fetch = await fetchBase(base, deps);
 
   if (refs) {
     const started = await startThrough(deps.call, {
@@ -542,15 +586,6 @@ async function handleStartRequest(request, deps) {
     error: errorText(err),
   });
 
-  const stashMessage = changeCount > 0 ? `Start Work #${brief.number}` : null;
-  if (stashMessage) {
-    try {
-      await deps.stash(stashMessage);
-    } catch (err) {
-      return partial('stash', err);
-    }
-  }
-
   try {
     // A remote base is cut without tracking, so the work branch does not track it.
     await deps.createBranch(branch, base, { track: !base.startsWith('origin/') });
@@ -558,25 +593,46 @@ async function handleStartRequest(request, deps) {
     return partial('branch', err);
   }
 
-  // The commit the branch was cut from: HEAD, right after the checkout.
+  // The commit the branch was cut from: its own tip, right after it is cut.
+  // Worktrees share refs with the main repository, so this is the same
+  // commit the workspace starts at.
   let baseSha = null;
   try {
-    const head = deps.headSha ? await deps.headSha() : null;
-    baseSha = isSha(head) ? head : null;
+    const tip = deps.branchSha ? await deps.branchSha(branch) : null;
+    baseSha = isSha(tip) ? tip : null;
   } catch {
     baseSha = null;
+  }
+
+  // The part's own workspace, opened on the branch just cut. A failure leaves
+  // the branch where it is: Start Work can be finished from it by hand.
+  let workspace;
+  let setupScript = '';
+  try {
+    const created = obj(await deps.createWorkspace(branch, workspaceBase(base)));
+    const ws = obj(created.workspace);
+    if (!isNonEmpty(ws.id) || !isNonEmpty(ws.path)) throw new Error('the workspace was not created');
+    workspace = { id: ws.id, name: str(ws.name), path: ws.path, branch: str(ws.branch) || branch, base: ws.base || null };
+    setupScript = str(created.setupScript);
+  } catch (err) {
+    return partial('workspace', err);
   }
 
   const now = deps.now();
   let begin;
   try {
     if (part.shape === 'spec') {
-      await deps.writeSpec(ref, specFiles({ slug: ref, title: part.title, definition: part.definition, now }));
+      await deps.writeSpec(ref, specFiles({ slug: ref, title: part.title, definition: part.definition, now }), workspace.path);
       begin = { shape: 'spec', slug: ref, title: part.title };
     } else {
       const row = taskRow({ part, fields: parseTaskDefinition(part.definition).fields, id: ref, brief, now });
+      const tasksPath = str(deps.tasksPath ? await deps.tasksPath() : '') || null;
       await deps.writeTasks([row]);
-      begin = { shape: 'task', task: { id: row.id, title: row.title, description: row.description, priority: row.priority } };
+      begin = {
+        shape: 'task',
+        task: { id: row.id, title: row.title, description: row.description, priority: row.priority },
+        tasksPath,
+      };
     }
   } catch (err) {
     return partial('files', err);
@@ -595,8 +651,10 @@ async function handleStartRequest(request, deps) {
     part: { title: part.title, shape: part.shape, ref },
     specs: part.shape === 'spec' ? 1 : 0,
     tasks: part.shape === 'task' ? 1 : 0,
-    stashMessage,
     begin,
+    workspace,
+    setupScript,
+    fetch,
   };
 }
 
@@ -623,6 +681,7 @@ module.exports = {
   getBegun,
   withBegunBranches,
   pickBase,
+  workspaceBase,
   baseOptions,
   prepareView,
   handleStartRequest,

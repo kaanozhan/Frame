@@ -7,8 +7,12 @@
  * started brief's part opens the same dialog for that part alone. The branch
  * row reads like a code host's new-branch control: the name as an editable
  * chip, prefilled with the suggestion, and "from <base> ⌄", the brief's
- * target unless the user picks another local or origin branch. A dirty folder
- * is asked about before anything is sent.
+ * target unless the user picks another local or origin branch. The folder's
+ * uncommitted changes are not asked about: the part opens in a workspace of
+ * its own, and the main checkout is never switched or stashed
+ * (frame-cloud-start-workspace). Under the branch row, the workspace's name
+ * follows the branch as it is typed; with a server saved, a Location line
+ * reads This Mac, with Server shown disabled as Coming soon (phase 2).
  *
  * Main prepares the view and does every check and write again: this module
  * sends a folder path, a brief number and the user's choices. Its words live
@@ -33,7 +37,7 @@ const ICON = {
 };
 
 // The one open dialog: { el, id, number, partId, view, choice, edited, base,
-// menuOpen, pending, stash, done, onStarted, onPartial }.
+// menuOpen, pending, done, onStarted, onPartial }.
 let dialog = null;
 
 function ref(name) {
@@ -57,7 +61,7 @@ function open({ number, partId = null, onStarted, onPartial }) {
     </div>`;
   dialog = {
     el, id, number, partId, view: null, choice: null, edited: false, base: null,
-    menuOpen: false, pending: false, stash: false, done: false, onStarted, onPartial,
+    menuOpen: false, pending: false, done: false, onStarted, onPartial,
   };
   el.addEventListener('click', onClick);
   el.addEventListener('change', onChange);
@@ -185,7 +189,61 @@ function renderBranchRow() {
         </span>
       </div>
       <p class="cloud-briefs-field-error" data-ref="basemissing" hidden>${escapeHtml(copy.baseMissingLine(view.targetBranch))}</p>
+      <div class="cloud-briefs-start-where">
+        <span class="cloud-briefs-start-where-label">${escapeHtml(copy.WORKSPACE_LABEL)}</span>
+        <span class="cloud-briefs-start-workspace" data-ref="wsname"></span>
+      </div>
+      ${renderLocation()}
     </div>`;
+}
+
+/**
+ * Where the workspace is created: This Mac, the only place in phase 1, and a
+ * server location shown disabled as Coming soon. Shown only once a server is
+ * saved, as New Workspace's Location row is.
+ */
+function renderLocation() {
+  if (savedServers().length === 0) return '';
+  const name = `${dialog.id}-location`;
+  return `<div class="cloud-briefs-start-where" role="radiogroup" aria-label="${escapeHtml(copy.LOCATION_LABEL)}">
+      <span class="cloud-briefs-start-where-label">${escapeHtml(copy.LOCATION_LABEL)}</span>
+      <label class="cloud-briefs-start-location">
+        <input type="radio" name="${name}" value="" checked> ${escapeHtml(copy.THIS_MAC_LABEL)}
+      </label>
+      <label class="cloud-briefs-start-location disabled">
+        <input type="radio" name="${name}" value="" disabled> ${escapeHtml(copy.SERVER_LOCATION_LABEL)}
+        <span class="cloud-briefs-start-soon">${escapeHtml(copy.COMING_SOON)}</span>
+      </label>
+    </div>`;
+}
+
+/** The project's saved Frame Servers; none when the list cannot be read. */
+function savedServers() {
+  try {
+    // Lazy-required, as New Workspace reaches it.
+    return require('./serverConnect').getServers() || [];
+  } catch (_) {
+    return [];
+  }
+}
+
+/**
+ * The workspace name line: what workspaceManager.create will call a
+ * workspace opened on this branch (an empty field begins on the
+ * suggestion), against this Mac's loaded workspaces.
+ */
+function renderWorkspaceName() {
+  const el = ref('wsname');
+  if (!el) return;
+  const typed = ref('branch').value.trim();
+  const branch = typed || dialog.view.suggestions[dialog.choice] || '';
+  let taken = [];
+  try {
+    taken = require('./workspaceSection').getWorkspaces()
+      .filter((w) => w.location !== 'server')
+      .map((w) => w.name);
+  } catch (_) { /* the sidebar is not loaded: no names taken */ }
+  el.textContent = copy.workspaceNameText(copy.beginWorkspaceName(branch, taken));
 }
 
 function renderReady() {
@@ -195,23 +253,28 @@ function renderReady() {
     <p class="cloud-briefs-muted">${escapeHtml(view.mode === 'begin' ? copy.BEGIN_DIALOG_DESCRIPTION : copy.START_DIALOG_DESCRIPTION)}</p>
     ${choose ? renderChoices() : renderSinglePart()}
     ${renderBranchRow()}
-    <div class="cloud-briefs-start-dirty" data-ref="dirty" hidden></div>
     <p class="cloud-briefs-form-error" data-ref="error" hidden></p>
     <div class="cloud-briefs-start-actions" data-ref="actions">
       <button type="button" class="cloud-briefs-web-btn" data-action="cancel">${escapeHtml(copy.CANCEL_LABEL)}</button>
       <button type="button" class="cloud-briefs-primary-btn" data-action="confirm">${escapeHtml(copy.startSubmitLabel(false))}</button>
     </div>`;
   renderBase();
+  renderWorkspaceName();
   const name = ref('branch');
   name.focus();
   name.select();
 }
 
-/** The base button, the missing-base line and whether confirm can go. */
+/**
+ * The base button, the missing-base line and whether confirm can go. The
+ * button carries the base's icon, local or origin, as its menu row does.
+ */
 function renderBase() {
   const { base } = dialog;
   const button = ref('base');
-  button.innerHTML = `<span>${escapeHtml(base || copy.PICK_BASE_LABEL)}</span>${ICON.chevron}`;
+  const known = base ? dialog.view.bases.find((b) => b.name === base) : null;
+  const icon = !base ? '' : (known ? known.remote : base.startsWith('origin/')) ? ICON.remote : ICON.local;
+  button.innerHTML = `${icon}<span>${escapeHtml(base || copy.PICK_BASE_LABEL)}</span>${ICON.chevron}`;
   ref('basemissing').hidden = Boolean(base);
   syncConfirm();
 }
@@ -245,19 +308,6 @@ function setMenu(openIt) {
   }
 }
 
-/** Ask before stashing: the folder's branch and change count, Stash and continue or Cancel. */
-function showDirty(branch, count) {
-  const dirty = ref('dirty');
-  dirty.innerHTML = `<p>${escapeHtml(copy.dirtyWarning(branch, count))}</p>
-    <div class="cloud-briefs-start-actions">
-      <button type="button" class="cloud-briefs-web-btn" data-action="cancel">${escapeHtml(copy.CANCEL_LABEL)}</button>
-      <button type="button" class="cloud-briefs-primary-btn" data-action="stash">${escapeHtml(copy.STASH_AND_CONTINUE_LABEL)}</button>
-    </div>`;
-  dirty.hidden = false;
-  ref('actions').hidden = true;
-  dirty.querySelector('[data-action="stash"]').focus();
-}
-
 function showError(message) {
   const errorEl = ref('error');
   errorEl.textContent = message;
@@ -268,8 +318,6 @@ function setPending(on) {
   dialog.pending = on;
   const confirm = ref('body').querySelector('[data-action="confirm"]');
   if (confirm) confirm.textContent = copy.startSubmitLabel(on);
-  const stash = ref('body').querySelector('[data-action="stash"]');
-  if (stash) stash.disabled = on;
   for (const input of dialog.el.querySelectorAll('input')) input.disabled = on || input.closest('.disabled') !== null;
   ref('base').disabled = on;
   syncConfirm();
@@ -289,10 +337,7 @@ function onClick(e) {
   const name = action.dataset.action;
   if (name === 'cancel') close();
   else if (name === 'confirm') confirm();
-  else if (name === 'stash') {
-    dialog.stash = true;
-    confirm();
-  } else if (name === 'toggle-base') {
+  else if (name === 'toggle-base') {
     setMenu(!dialog.menuOpen);
   } else if (name === 'pick-base') {
     dialog.base = action.dataset.base;
@@ -304,16 +349,20 @@ function onClick(e) {
 
 function onChange(e) {
   if (!dialog || !dialog.view || e.target.type !== 'radio' || !e.target.value) return;
+  if (e.target.name !== `${dialog.id}-choice`) return;
   dialog.choice = e.target.value;
   // The name follows the choice until the user types in it.
   if (!dialog.edited) ref('branch').value = dialog.view.suggestions[dialog.choice] || '';
+  renderWorkspaceName();
   syncConfirm();
 }
 
 function onInput(e) {
   if (!dialog) return;
-  if (e.target === ref('branch')) dialog.edited = true;
-  else if (e.target === ref('basefilter')) renderBaseList();
+  if (e.target === ref('branch')) {
+    dialog.edited = true;
+    renderWorkspaceName();
+  } else if (e.target === ref('basefilter')) renderBaseList();
 }
 
 function onKeydown(e) {
@@ -333,17 +382,12 @@ async function confirm() {
   if (!current || current.pending || current.done || !current.view) return;
   const part = chosenPart();
   if (!part || !part.canBegin || !current.base) return;
-  if (current.view.changeCount > 0 && !current.stash) {
-    showDirty(current.view.currentBranch, current.view.changeCount);
-    return;
-  }
   const path = state.getProjectPath();
   const request = {
     number: current.number,
     beginPartId: part.partId,
     branch: ref('branch').value.trim(),
     base: current.base,
-    stash: current.stash,
   };
   ref('error').hidden = true;
   setPending(true);
@@ -364,17 +408,6 @@ async function confirm() {
     if (current.onStarted) current.onStarted(result);
     return;
   }
-  if (result && result.reason === 'dirty') {
-    // The folder changed after the dialog opened: ask now, never stash silently.
-    current.view.changeCount = result.changeCount;
-    current.view.currentBranch = result.currentBranch;
-    showDirty(result.currentBranch, result.changeCount);
-    return;
-  }
-  // A refusal returns to the form; the dirty question is asked again next time.
-  current.stash = false;
-  ref('dirty').hidden = true;
-  ref('actions').hidden = false;
   if (result && result.reason === 'partial') {
     // Past the checks: nothing to retry here, only what to finish by hand.
     current.done = true;

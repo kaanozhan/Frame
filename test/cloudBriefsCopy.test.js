@@ -442,14 +442,72 @@ test('partialMessage names the failed step, what was written and what is missing
     + 'Not written — create these by hand under the same names: “Fix typo” (task task-fix-typo).');
   assert.equal(copy.partialMessage({ step: 'branch', written: [], missing: [{ title: 'A', shape: 'spec', ref: 'a' }] }),
     'The brief is started in Frame Cloud, but creating the branch failed. Not written — create these by hand under the same names: “A” (spec a).');
-  assert.match(copy.partialMessage({ step: 'stash', written: [], missing: [] }), /stashing your changes failed\.$/);
+  assert.equal(copy.partialMessage({ step: 'workspace', error: 'disk full', written: [], missing: [{ title: 'A', shape: 'spec', ref: 'a' }] }),
+    'The brief is started in Frame Cloud, but opening a workspace on its branch failed: disk full. Not written — create these by hand under the same names: “A” (spec a).');
+  assert.match(copy.partialMessage({ step: 'stash', written: [], missing: [] }), /but a step failed\.$/, 'stash is no longer a step');
 });
 
-test('startedNotice names the part and its branch, the brief on its first part, and the stash when there was one', () => {
-  assert.equal(copy.startedNotice({ mode: 'start', number: 5, part: { title: 'Login flow' }, branch: 'feat/login', stashMessage: null }),
-    'Brief #5 started: “Login flow” on feat/login.');
-  assert.equal(copy.startedNotice({ mode: 'begin', number: 5, part: { title: 'Fix typo' }, branch: 'fix/typo', stashMessage: 'Start Work #5' }),
-    'Began “Fix typo” on fix/typo. Your changes were stashed as “Start Work #5”.');
+test('startedNotice names the part, its branch and its workspace, and the brief on its first part', () => {
+  assert.equal(copy.startedNotice({ mode: 'start', number: 5, part: { title: 'Login flow' }, branch: 'feat/login', workspace: { name: 'login' } }),
+    'Brief #5 started: “Login flow” on feat/login, in workspace login.');
+  assert.equal(copy.startedNotice({ mode: 'begin', number: 5, part: { title: 'Fix typo' }, branch: 'fix/typo', workspace: { name: 'typo' } }),
+    'Began “Fix typo” on fix/typo, in workspace typo.');
+  assert.equal(copy.startedNotice({ mode: 'begin', number: 5, part: { title: 'Fix typo' }, branch: 'fix/typo' }),
+    'Began “Fix typo” on fix/typo.');
+});
+
+test('fetchFailedNotice speaks only when an origin base could not be fetched', () => {
+  assert.equal(copy.fetchFailedNotice({ fetch: { fetched: false, error: 'offline', skipped: false }, workspace: { base: 'main' } }),
+    'Couldn\'t fetch origin/main — cut from the last fetched copy.');
+  assert.equal(copy.fetchFailedNotice({ fetch: { fetched: false, error: 'offline', skipped: false } }),
+    'Couldn\'t fetch the base — cut from the last fetched copy.');
+  assert.equal(copy.fetchFailedNotice({ fetch: { fetched: true, error: null, skipped: false }, workspace: { base: 'main' } }), null);
+  assert.equal(copy.fetchFailedNotice({ fetch: { fetched: false, error: null, skipped: true }, workspace: { base: 'main' } }), null);
+  assert.equal(copy.fetchFailedNotice({}), null);
+  assert.equal(copy.fetchFailedNotice(), null);
+});
+
+test('beginWorkspaceName names the workspace as create does: the branch\'s last segment, slugged and unique', () => {
+  assert.equal(copy.beginWorkspaceName('feat/export-api'), 'export-api');
+  assert.equal(copy.beginWorkspaceName('feat/export-api', ['export-api']), 'export-api-2');
+  assert.equal(copy.beginWorkspaceName('feat/export-api', ['Export-API', 'export-api-2']), 'export-api-3');
+  assert.equal(copy.beginWorkspaceName('fix/Fix_Typo'), 'fix-typo');
+  assert.equal(copy.beginWorkspaceName('main'), 'main');
+  assert.equal(copy.beginWorkspaceName('  feat/x  '), 'x');
+  assert.equal(copy.beginWorkspaceName('feat/'), null);
+  assert.equal(copy.beginWorkspaceName(''), null);
+  assert.equal(copy.beginWorkspaceName(undefined), null);
+  assert.equal(copy.workspaceNameText('x'), 'x');
+  assert.equal(copy.workspaceNameText(null), 'Named when it is created');
+});
+
+test('partWorkspace finds the active local workspace on the part\'s begun branch, else its cloud branch', () => {
+  const ws = (id, branch, extra = {}) => ({ id, name: id, branch, path: `/w/${id}`, ...extra });
+  const list = [ws('a', 'feat/a'), ws('b', 'feat/b'), ws('c', 'feat/c', { location: 'local' })];
+  assert.equal(copy.partWorkspace({ begunBranch: 'feat/b', branch: 'feat/a' }, list).id, 'b', 'the begun branch wins');
+  assert.equal(copy.partWorkspace({ begunBranch: null, branch: 'feat/a' }, list).id, 'a', 'else the cloud branch');
+  assert.equal(copy.partWorkspace({ branch: 'feat/c' }, list).id, 'c');
+  assert.equal(copy.partWorkspace({ begunBranch: 'feat/z' }, list), null);
+  assert.equal(copy.partWorkspace({}, list), null);
+  assert.equal(copy.partWorkspace({ branch: 'feat/a' }, null), null);
+  assert.equal(copy.partWorkspace(null, list), null);
+});
+
+test('partWorkspace skips a workspace that is archived, missing or on a server', () => {
+  const part = { begunBranch: 'feat/x' };
+  for (const extra of [{ archivedAt: '2026-11-19T00:00:00Z' }, { missing: true }, { location: 'server', host: 'box' }]) {
+    assert.equal(copy.partWorkspace(part, [{ id: 'x', name: 'x', branch: 'feat/x', ...extra }]), null, JSON.stringify(extra));
+  }
+  assert.equal(copy.partWorkspace(part, [
+    { id: 'srv', name: 'x', branch: 'feat/x', location: 'server' },
+    { id: 'mac', name: 'x', branch: 'feat/x' },
+  ]).id, 'mac');
+  assert.equal(copy.partWorkspaceHint('login-flow'), 'Switch to workspace login-flow');
+});
+
+test('startedNotice never mentions a stash', () => {
+  const notice = copy.startedNotice({ mode: 'start', number: 5, part: { title: 'A' }, branch: 'feat/a', workspace: { name: 'a' }, stashMessage: 'Start Work #5' });
+  assert.equal(notice, 'Brief #5 started: “A” on feat/a, in workspace a.');
 });
 
 test('the Start Work dialog words', () => {
@@ -460,8 +518,16 @@ test('the Start Work dialog words', () => {
   assert.equal(copy.COMING_SOON, 'Coming soon');
   assert.equal(copy.beginDialogTitle('Fix typo'), 'Begin “Fix typo”');
   assert.equal(copy.FROM_LABEL, 'from');
-  assert.equal(copy.dirtyWarning('feat/x', 1), 'feat/x has 1 uncommitted change. Stash them so the new branch starts clean, or cancel and commit them first.');
-  assert.match(copy.dirtyWarning('', 3), /^This folder has 3 uncommitted changes\./);
+  assert.equal(copy.WORKSPACE_LABEL, 'Workspace');
+  assert.equal(copy.LOCATION_LABEL, 'Location');
+  assert.equal(copy.THIS_MAC_LABEL, 'This Mac');
+  assert.equal(copy.SERVER_LOCATION_LABEL, 'Server');
+  assert.match(copy.START_DIALOG_DESCRIPTION, /its own branch and workspace/);
+  assert.match(copy.BEGIN_DIALOG_DESCRIPTION, /its own branch and workspace/);
+  assert.match(copy.beginHint('spec'), /new workspace/);
+  assert.match(copy.beginHint('task'), /new workspace/);
+  assert.equal(copy.dirtyWarning, undefined, 'no dirty-folder warning: nothing is stashed');
+  assert.equal(copy.STASH_AND_CONTINUE_LABEL, undefined);
   assert.equal(copy.startSubmitLabel(true), 'Starting…');
   assert.match(copy.baseMissingLine(''), /no target branch/);
   assert.match(copy.baseMissingLine('main'), /^The target branch main is not on this machine\./);

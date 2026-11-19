@@ -40,6 +40,7 @@
  */
 
 const { ROLE_FORBIDDEN } = require('./cloudRoles');
+const { toSlug, uniquify } = require('../shared/workspaceNames');
 
 /**
  * The board's open columns, in order. A brief lands in one by its status:
@@ -505,8 +506,8 @@ function beginDialogTitle(title) {
   return `Begin “${title}”`;
 }
 
-const START_DIALOG_DESCRIPTION = 'The part you begin gets its own branch and opens in a lane. The other parts wait on the brief until you begin them.';
-const BEGIN_DIALOG_DESCRIPTION = 'This part gets its own branch and opens in a lane.';
+const START_DIALOG_DESCRIPTION = 'The part you begin gets its own branch and workspace, and opens in a lane there. The other parts wait on the brief until you begin them.';
+const BEGIN_DIALOG_DESCRIPTION = 'This part gets its own branch and workspace, and opens in a lane there.';
 const START_CHOICE_TITLE = 'Begin with';
 
 /** A Begin choice: "Begin with “Login flow”". */
@@ -517,8 +518,8 @@ function beginWithLabel(title) {
 /** What Begin opens, by the part's shape. */
 function beginHint(shape) {
   return shape === 'spec'
-    ? 'Writes this spec on its own branch, then opens a lane that plans it.'
-    : 'Writes this task on its own branch, then opens a lane that runs it.';
+    ? 'Writes this spec in a new workspace on its own branch, then opens a lane there that plans it.'
+    : 'Adds this task, opens a new workspace on its own branch, then a lane there that runs it.';
 }
 
 const ORCHESTRATE_LABEL = 'Orchestrate';
@@ -526,6 +527,27 @@ const ORCHESTRATE_HINT = 'Run every part side by side, each on its own branch.';
 const COMING_SOON = 'Coming soon';
 const BRANCH_LABEL = 'Branch';
 const FROM_LABEL = 'from';
+const WORKSPACE_LABEL = 'Workspace';
+const LOCATION_LABEL = 'Location';
+const THIS_MAC_LABEL = 'This Mac';
+const SERVER_LOCATION_LABEL = 'Server';
+
+/**
+ * The name the part's new workspace will get, as workspaceManager.create
+ * names one opened from a branch: the branch's last segment, slugged and made
+ * unique against `taken` (`feat/export-api` → `export-api`, then
+ * `export-api-2`). null when the branch leaves no usable name, in which case
+ * the workspace gets an automatic one.
+ */
+function beginWorkspaceName(branch, taken = []) {
+  const slug = toSlug(String(branch || '').trim().split('/').pop());
+  return slug ? uniquify(slug, taken) : null;
+}
+
+/** The workspace line's value: the name, or what happens without one. */
+function workspaceNameText(name) {
+  return name || 'Named when it is created';
+}
 const BASE_FILTER_PLACEHOLDER = 'Find a branch…';
 const BASE_LOCAL_TITLE = 'Local';
 const BASE_REMOTE_TITLE = 'origin';
@@ -539,14 +561,6 @@ function baseMissingLine(targetBranch) {
     : 'This brief has no target branch. Pick a base to cut from.';
 }
 
-/** The dirty folder's warning: "feat/x has 3 uncommitted changes. …". */
-function dirtyWarning(branch, count) {
-  const changes = `${count} uncommitted ${count === 1 ? 'change' : 'changes'}`;
-  const where = branch ? `${branch} has ${changes}` : `This folder has ${changes}`;
-  return `${where}. Stash them so the new branch starts clean, or cancel and commit them first.`;
-}
-
-const STASH_AND_CONTINUE_LABEL = 'Stash and continue';
 const CANCEL_LABEL = 'Cancel';
 
 /** The confirm button: "Start", or "Starting…" while it runs. */
@@ -597,8 +611,8 @@ function startErrorMessage(result) {
 }
 
 const PARTIAL_STEPS = {
-  stash: 'stashing your changes failed',
   branch: 'creating the branch failed',
+  workspace: 'opening a workspace on its branch failed',
   files: 'writing the parts failed',
 };
 
@@ -622,16 +636,28 @@ function partialMessage(result) {
 }
 
 /**
- * The toast when a part was begun: "Brief #5 started: “Login flow” on
- * feat/login." for the brief's first part, "Began “Fix typo” on fix/typo."
- * for a later one, plus the stash when there was one.
+ * The toast when a part was begun in its own workspace: "Brief #5 started:
+ * “Login flow” on feat/login, in workspace login." for the brief's first
+ * part, "Began “Fix typo” on fix/typo, in workspace typo." for a later one.
+ * Without a workspace name the sentence ends at the branch.
  */
-function startedNotice({ mode, number, part, branch, stashMessage } = {}) {
+function startedNotice({ mode, number, part, branch, workspace } = {}) {
   const title = part && part.title ? `“${part.title}”` : 'the part';
-  const main = mode === 'begin'
-    ? `Began ${title} on ${branch}.`
-    : `Brief #${number} started: ${title} on ${branch}.`;
-  return stashMessage ? `${main} Your changes were stashed as “${stashMessage}”.` : main;
+  const where = workspace && workspace.name ? `${branch}, in workspace ${workspace.name}` : branch;
+  return mode === 'begin'
+    ? `Began ${title} on ${where}.`
+    : `Brief #${number} started: ${title} on ${where}.`;
+}
+
+/**
+ * The note after a start whose `origin/` base could not be fetched: the
+ * branch was cut from the last fetched copy. Null when the fetch worked or
+ * the base was local.
+ */
+function fetchFailedNotice({ fetch, workspace } = {}) {
+  if (!fetch || fetch.skipped || fetch.fetched) return null;
+  const base = workspace && workspace.base ? `origin/${workspace.base}` : 'the base';
+  return `Couldn't fetch ${base} — cut from the last fetched copy.`;
 }
 
 const OPEN_SPEC_LABEL = 'Open spec';
@@ -783,6 +809,26 @@ function partStatusOf({ part, spec, task, lane, target, tracking = 'ready' } = {
   if (p.branch && !p.branchGone) return { label: `On ${p.branch}`, tone: 'elsewhere', laneName: null, run: null };
   if (p.begunBranch) return { label: `On ${p.begunBranch}`, tone: 'elsewhere', laneName: null, run: null };
   return { label: 'Not started', tone: 'idle', laneName: null, run: 'begin' };
+}
+
+/**
+ * The workspace on this Mac a begun part is in: the active, local workspace
+ * whose branch is the part's `begunBranch`, else its cloud `branch`. Git
+ * checks a branch out in at most one worktree, so the match is unique. A
+ * workspace that is archived, missing or on a server is not a match, and the
+ * row then reads as it does without one. → the workspace record, or null.
+ */
+function partWorkspace(part, workspaces) {
+  const p = part || {};
+  const branch = p.begunBranch || p.branch;
+  if (!branch || !Array.isArray(workspaces)) return null;
+  return workspaces.find((w) => w && w.branch === branch && !w.archivedAt && !w.missing
+    && (w.location || 'local') === 'local') || null;
+}
+
+/** The part row's workspace chip, as its tooltip: "Switch to workspace login-flow". */
+function partWorkspaceHint(name) {
+  return `Switch to workspace ${name}`;
 }
 
 const RUN_LABEL = 'Run';
@@ -1263,22 +1309,29 @@ module.exports = {
   COMING_SOON,
   BRANCH_LABEL,
   FROM_LABEL,
+  WORKSPACE_LABEL,
+  LOCATION_LABEL,
+  THIS_MAC_LABEL,
+  SERVER_LOCATION_LABEL,
+  beginWorkspaceName,
+  workspaceNameText,
   BASE_FILTER_PLACEHOLDER,
   BASE_LOCAL_TITLE,
   BASE_REMOTE_TITLE,
   NO_BASE_MATCH,
   PICK_BASE_LABEL,
   baseMissingLine,
-  dirtyWarning,
-  STASH_AND_CONTINUE_LABEL,
   CANCEL_LABEL,
   startSubmitLabel,
   partProblemMessage,
   startErrorMessage,
   partialMessage,
   startedNotice,
+  fetchFailedNotice,
   OPEN_SPEC_LABEL,
   OPEN_TASK_LABEL,
+  partWorkspace,
+  partWorkspaceHint,
   partNotHereMessage,
   IMPLEMENTED_LABEL,
   TRACKING_WARNINGS,

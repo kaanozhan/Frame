@@ -1394,6 +1394,10 @@ button.cloud-briefs-milestone-name:focus-visible {
   cursor: pointer;
 }
 
+.cloud-briefs-branchrow-base svg {
+  flex-shrink: 0;
+}
+
 .cloud-briefs-branchrow-base span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1470,16 +1474,52 @@ button.cloud-briefs-milestone-name:focus-visible {
   padding: var(--space-sm);
 }
 
-/* A dirty folder: asked before anything is written. */
-.cloud-briefs-start-dirty {
+/* Where the part opens: its workspace's name, and (with a server saved) the location. */
+.cloud-briefs-start-where {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  padding: var(--space-md);
-  border: 1px solid var(--warning);
-  border-radius: var(--radius-md);
-  color: var(--warning-ink);
-  font-size: 13px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: 0 var(--space-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.cloud-briefs-start-where-label {
+  flex: 0 0 72px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-start-workspace {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.cloud-briefs-start-location {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.cloud-briefs-start-location.disabled {
+  cursor: default;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-start-location input {
+  margin: 0;
+  accent-color: var(--accent-primary);
+}
+
+.cloud-briefs-start-location .cloud-briefs-start-soon {
+  margin-left: 0;
 }
 
 .cloud-briefs-start-actions {
@@ -1658,6 +1698,32 @@ button.cloud-briefs-prow-pr {
 }
 
 button.cloud-briefs-prow-pr:hover {
+  color: var(--accent-primary);
+}
+
+/* The workspace on this Mac a part is in: a chip that selects it. */
+.cloud-briefs-prow-ws {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 160px;
+  margin-left: var(--space-xs);
+  padding: 0 6px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cloud-briefs-prow-ws:hover {
+  border-color: var(--accent-primary);
   color: var(--accent-primary);
 }
 

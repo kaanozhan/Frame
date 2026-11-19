@@ -6,8 +6,11 @@
  * folder's connected project, reads the brief and the folder's git state for
  * the Start Work dialog (`CLOUD_BRIEF_START_PREPARE`), and wires the real
  * effects into the core's handler for the start itself (`CLOUD_BRIEF_START`):
- * git through gitBranchesManager, spec folders through fsSafe under
- * frameStore's spec path, and task rows through tasksManager in one round.
+ * git through gitBranchesManager (an `origin/` base is fetched first; the
+ * branch is cut, never checked out), the
+ * part's workspace through workspaceManager.create, spec folders through
+ * fsSafe under the workspace's spec path, and task rows through tasksManager
+ * into the main checkout in one round.
  * It also keeps `<userData>/cloud-starts.json`, the parts this machine began,
  * on which branch and from which commit, and sends a begun part's branch to
  * the cloud (`brief.recordBranch`). The token and every write stay in main.
@@ -17,12 +20,15 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const { IPC } = require('../../shared/ipcChannels');
+const { FRAME_FILES } = require('../../shared/frameConstants');
 const { isValidBranchName } = require('../../shared/gitRefNames');
 const fsSafe = require('../fsSafe');
 const frameStore = require('../frameStore');
 const logger = require('../logger');
 const tasksManager = require('../tasksManager');
+const specManager = require('../specManager');
 const git = require('../gitBranchesManager');
+const workspaceManager = require('../workspaceManager');
 const cloudProjectsService = require('./cloudProjectsService');
 const { getBrief, recordBranch } = require('./cloudBriefs');
 const core = require('./cloudStart');
@@ -92,15 +98,30 @@ async function withBegunBranches(briefs, projectId, folderPath) {
   return core.withBegunBranches(briefs, begun(), projectId, localBranches);
 }
 
-/** The spec folder names in `.frame/specs/`. */
+/**
+ * Every spec slug the project holds, across checkouts: the folder names in
+ * the main checkout's `.frame/specs/` (a folder that is not a valid spec
+ * still takes its name) and every slug specManager lists, which adds the
+ * specs living in active workspaces. A part started in a workspace writes its
+ * spec there, so the main folder alone would hand out a slug already taken.
+ */
 function specSlugs(folderPath) {
+  const slugs = new Set();
   try {
-    return fs.readdirSync(frameStore.specsRoot(folderPath), { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name);
+    for (const entry of fs.readdirSync(frameStore.specsRoot(folderPath), { withFileTypes: true })) {
+      if (entry.isDirectory()) slugs.add(entry.name);
+    }
   } catch {
-    return [];
+    // No specs folder yet: nothing taken here.
   }
+  try {
+    for (const spec of specManager.listSpecs(folderPath)) {
+      if (spec && typeof spec.slug === 'string' && spec.slug) slugs.add(spec.slug);
+    }
+  } catch (err) {
+    logger.warn('cloudStart', `could not list the workspaces' specs: ${err.message}`);
+  }
+  return [...slugs];
 }
 
 /** Every task id in `tasks.json`. */
@@ -109,16 +130,13 @@ function taskIds(folderPath) {
   return data && Array.isArray(data.tasks) ? data.tasks.map((t) => t && t.id).filter(Boolean) : [];
 }
 
-/** How many changes `git status --porcelain` lists. Throws when git cannot tell. */
-async function changeCount(folderPath) {
-  const status = await git.isWorkingTreeClean(folderPath);
-  if (status.error) throw new Error(status.error);
-  return status.changes.length;
-}
-
-/** Write a spec folder. It is created, never overwritten: a folder the new branch already holds fails the write. */
-function writeSpec(folderPath, slug, files) {
-  const dir = frameStore.resolveSpecDir(folderPath, slug);
+/**
+ * Write a spec folder under `root`, the part's workspace. It is created,
+ * never overwritten: a folder the new branch already holds fails the write.
+ */
+function writeSpec(root, slug, files) {
+  if (!root) throw new Error('no workspace to write the spec into');
+  const dir = frameStore.resolveSpecDir(root, slug);
   if (fs.existsSync(dir)) throw new Error(`.frame/specs/${slug} already exists on this branch`);
   fs.mkdirSync(dir, { recursive: true });
   for (const [name, content] of Object.entries(files)) {
@@ -148,6 +166,18 @@ function orThrow(result) {
 }
 
 /**
+ * Open the part's branch in a new local workspace, the way New Workspace
+ * does (naming, the registry, copyFiles, tooling, the setup script).
+ * → `{ workspace, setupScript }`; throws on failure.
+ */
+async function createWorkspace(folderPath, branch, base) {
+  const result = await workspaceManager.create(folderPath, { from: 'branch', branch, base: base || undefined });
+  orThrow(result);
+  if (!result || !result.workspace) throw new Error('the workspace was not created');
+  return { workspace: result.workspace, setupScript: result.setupScript || '' };
+}
+
+/**
  * What the Start Work dialog shows. → prepareView's shape, or
  * `{ ok: false, reason }` for a folder not connected or a failed read.
  */
@@ -159,9 +189,7 @@ async function prepare(folderPath, number) {
   if (!read.ok) return { ok: false, reason: read.reason };
   const brief = read.value;
   try {
-    const [currentBranch, count, list, local, remote] = await Promise.all([
-      git.currentBranch(folderPath),
-      changeCount(folderPath),
+    const [list, local, remote] = await Promise.all([
       git.loadBranches(folderPath),
       brief.targetBranch ? git.localBranchExists(brief.targetBranch, folderPath) : false,
       brief.targetBranch ? git.remoteBranchExists(brief.targetBranch, folderPath) : false,
@@ -177,8 +205,6 @@ async function prepare(folderPath, number) {
     }
     return core.prepareView({
       brief,
-      currentBranch,
-      changeCount: count,
       base: core.pickBase(brief.targetBranch, { local, remote }),
       begun: begunBranches,
       branches: list && Array.isArray(list.branches) ? list.branches : [],
@@ -203,25 +229,24 @@ async function start(folderPath, request) {
       beginPartId: typeof r.beginPartId === 'string' ? r.beginPartId : null,
       branch: typeof r.branch === 'string' ? r.branch : '',
       base: typeof r.base === 'string' ? r.base : '',
-      stash: r.stash === true,
     }, {
       call: cloudProjectsService.call,
       projectSlug: project.slug,
       specSlugs: () => specSlugs(folderPath),
       taskIds: () => taskIds(folderPath),
-      currentBranch: () => git.currentBranch(folderPath),
-      changeCount: () => changeCount(folderPath),
       isValidBranchName,
       localBranchExists: (name) => git.localBranchExists(name, folderPath),
       remoteBranchExists: (name) => git.remoteBranchExists(name, folderPath),
+      fetchBase: (name) => git.fetchBranch(folderPath, name),
       begun: (partId) => core.getBegun(begun(), project.id, r.number, partId),
       recordBegun: (entry) => recordBegun({ ...entry, projectId: project.id, number: r.number, begunAt: new Date().toISOString() }),
-      stash: async (message) => orThrow(await git.stashAll(folderPath, message)),
-      createBranch: async (name, base, { track }) => orThrow(await git.createBranch(folderPath, name, true, base, { track })),
-      headSha: () => git.getHeadSha(folderPath),
+      createBranch: async (name, base, { track }) => orThrow(await git.createBranch(folderPath, name, false, base, { track })),
+      branchSha: (name) => git.branchTipSha(folderPath, name),
+      createWorkspace: (branch, base) => createWorkspace(folderPath, branch, base),
       recordBranch: (input) => sendBranch(input),
-      writeSpec: (slug, files) => writeSpec(folderPath, slug, files),
+      writeSpec: (slug, files, root) => writeSpec(root, slug, files),
       writeTasks: (rows) => writeTasks(folderPath, rows),
+      tasksPath: () => frameStore.resolvePath(folderPath, FRAME_FILES.TASKS),
       now: () => new Date().toISOString(),
     });
   } catch (err) {
