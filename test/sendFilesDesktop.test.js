@@ -84,7 +84,8 @@ const sendFiles = require('../src/main/sendFiles');
 const { readEntries } = require('../src/shared/fileArchive');
 const frameProject = require('../src/main/frameProject');
 
-const write = (file, body = 'x\n', mode) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, body); if (mode) fs.chmodSync(file, mode); };
+// Always chmod: a fresh file's mode follows the umask (0644 under 022, 0664 under 002), and T05 asserts exact modes.
+const write = (file, body = 'x\n', mode = 0o644) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, body); fs.chmodSync(file, mode); };
 
 /** A Frame project with tracked a.txt; ignored .env, certs/, node_modules/ and .frame/bin; untracked src/new.js. */
 function project() {
