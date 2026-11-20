@@ -118,9 +118,7 @@ function loadConfig() {
     detectDefaultTool().then((toolId) => {
       config.activeTool = toolId;
       saveConfig();
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send(IPC.AI_TOOL_CHANGED, getActiveTool());
-      }
+      announceToolChange();
     }).catch((err) => {
       logger.warn('aiToolManager', 'default tool detection failed:', err.message);
     });
@@ -166,14 +164,39 @@ function setActiveTool(toolId) {
     saveConfig();
     if (changed) analytics.track('ai_tool_selected', { tool: toolId });
 
-    // Notify renderer about the change
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC.AI_TOOL_CHANGED, getActiveTool());
-    }
+    announceToolChange();
 
     return true;
   }
   return false;
+}
+
+/**
+ * Main-process listeners for the active tool (the app menu, whose AI
+ * Commands submenu is built from it). Every path that changes the tool —
+ * the renderer's selector over SET_AI_TOOL, the menu's own switcher,
+ * first-run detection — goes through announceToolChange, so no surface
+ * keeps the previous tool's commands (#34).
+ */
+const toolChangeListeners = new Set();
+
+function onToolChange(listener) {
+  toolChangeListeners.add(listener);
+  return () => toolChangeListeners.delete(listener);
+}
+
+function announceToolChange() {
+  const tool = getActiveTool();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(IPC.AI_TOOL_CHANGED, tool);
+  }
+  for (const listener of toolChangeListeners) {
+    try {
+      listener(tool);
+    } catch (err) {
+      logger.warn('aiToolManager', 'tool change listener failed:', err.message);
+    }
+  }
 }
 
 /**
@@ -455,6 +478,7 @@ module.exports = {
   checkToolAvailable,
   getActiveTool,
   setActiveTool,
+  onToolChange,
   getConfig,
   getCommand,
   getStartCommand,
