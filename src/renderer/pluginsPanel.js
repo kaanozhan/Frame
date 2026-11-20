@@ -259,8 +259,7 @@ function render() {
   contentElement.querySelectorAll('.plugin-install-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const pluginName = btn.dataset.pluginName;
-      installPlugin(pluginName);
+      installPlugin(btn.dataset.pluginId, btn.dataset.pluginName);
     });
   });
 }
@@ -301,6 +300,7 @@ function renderPluginItem(plugin) {
           </button>
         ` : `
           <button class="plugin-install-btn"
+                  data-plugin-id="${plugin.id}"
                   data-plugin-name="${plugin.name}"
                   title="Install plugin">
             Install
@@ -365,8 +365,10 @@ async function togglePlugin(pluginId) {
 /**
  * Install plugin via terminal command
  */
-function installPlugin(pluginName) {
-  const command = `/plugin install ${pluginName}`;
+function installPlugin(pluginId, pluginName) {
+  // The id is `<marketplace dir>@<marketplace>` — what `/plugin install`
+  // needs. The display name can differ from the dir and has no marketplace (#3).
+  const command = `/plugin install ${pluginId}`;
 
   // Send command to terminal
   if (typeof window.terminalSendCommand === 'function') {
