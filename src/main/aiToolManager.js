@@ -239,12 +239,17 @@ function composeLaunchCommand(command, launchFlags) {
   return [command, ...launchFlags.map(quoteArg)].join(' ');
 }
 
-function isPathLike(command) {
-  return !!command && (
-    command.startsWith('./') ||
-    command.startsWith('../') ||
-    command.startsWith('/')
-  );
+/**
+ * True when the command names a file rather than a PATH lookup: absolute
+ * (`/usr/bin/x`, `C:\tools\x.exe`, `\\host\share\x`) or explicitly relative
+ * (`./x`, `../x`, and on Windows `.\x`, `..\x`). `p` is injectable so tests
+ * can check the Windows rules on any platform (#203).
+ */
+function isPathLike(command, p = path) {
+  if (!command) return false;
+  if (p.isAbsolute(command)) return true;
+  const prefixes = p.sep === '\\' ? ['./', '../', '.\\', '..\\'] : ['./', '../'];
+  return prefixes.some((prefix) => command.startsWith(prefix));
 }
 
 /**
@@ -262,7 +267,7 @@ async function isCommandAvailable(command, projectPath) {
 
   // Path-based command: check the binary actually exists & is executable.
   if (isPathLike(command)) {
-    const target = command.startsWith('/')
+    const target = path.isAbsolute(command)
       ? command
       : (projectPath ? path.resolve(projectPath, command) : command);
     try {
@@ -454,6 +459,7 @@ module.exports = {
   getCommand,
   getStartCommand,
   composeLaunchCommand,
+  isPathLike,
   addCustomTool,
   removeCustomTool,
   AI_TOOLS
