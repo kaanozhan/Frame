@@ -54,3 +54,11 @@ _Captured: 2026-11-21 · 2 file change(s)_
 
 ---
 
+## T08 — Add the flow modal and dispatchFullAuto
+
+Added src/renderer/flowModeModal.js and, in agentDispatch, _dispatchWithFlowChoice, dispatchFullAuto/_startFullAuto and _recordStatus; the stage-and-dispatch half of dispatchSpecCommand became _dispatchStaged with an optional known destination, so the flow modal's own destination replaces the continue-or-new dialog. Beyond the plan: the flow modal carries the implement modal's destination section for a live lane, so dialogs never stack, and a full-auto start reuses the existing implement_mode_selected event (mode autonomous) instead of adding one.
+
+_Captured: 2026-11-21 · 2 file change(s)_
+
+---
+

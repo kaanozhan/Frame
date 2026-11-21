@@ -9404,6 +9404,7 @@
         "resumeAgentSession",
         "dispatchSpecCommand",
         "dispatchSpecNew",
+        "dispatchFullAuto",
         "getSpecLaneInfo",
         "getTaskLaneInfo",
         "onSpecLaneActivity",
@@ -9419,6 +9420,9 @@
         "htmlUtils",
         "notify",
         "implementModeModal",
+        "flowModeModal",
+        "specNextAction",
+        "shared/specFlow",
         "reportSection",
         "aiToolSelector",
         "workspaceSection",
@@ -9426,14 +9430,14 @@
       ],
       "functions": {
         "init": {
-          "line": 47,
+          "line": 50,
           "params": [
             "ui"
           ],
           "purpose": "Initialize with the MultiTerminalUI instance."
         },
         "dispatch": {
-          "line": 94,
+          "line": 97,
           "params": [
             "{ terminalId = null",
             "createNew = false",
@@ -9447,11 +9451,11 @@
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 249,
+          "line": 252,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 284,
+          "line": 287,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -9459,7 +9463,7 @@
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
         "_trackAgentRunWhenReady": {
-          "line": 309,
+          "line": 312,
           "params": [
             "terminalId",
             "toolId"
@@ -9467,17 +9471,17 @@
           "purpose": "`agent_run_started` means the CLI came up — the bar dispatch() already"
         },
         "_startAgentInNewFrame": {
-          "line": 318
+          "line": 321
         },
         "resumeClaudeSession": {
-          "line": 344,
+          "line": 347,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a Claude Code session from the sessions list."
         },
         "resumeAgentSession": {
-          "line": 371,
+          "line": 374,
           "params": [
             "tool",
             "sessionId",
@@ -9490,7 +9494,7 @@
           "purpose": "Resume a Claude Code or Codex session in a new terminal of `projectPath`"
         },
         "_askNewOrRestart": {
-          "line": 414,
+          "line": 417,
           "params": [
             "frameName",
             "hasAgent"
@@ -9498,11 +9502,11 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "_selectedWorkspaceId": {
-          "line": 482,
+          "line": 485,
           "purpose": "The selected workspace's id, sent with BUILD_SPEC_COMMAND_FILE: for a"
         },
         "_selectSpecWorkspace": {
-          "line": 488,
+          "line": 491,
           "params": [
             "projectPath",
             "slug"
@@ -9510,22 +9514,70 @@
           "purpose": "Select the checkout a spec lives in; returns its root (main = projectPath)."
         },
         "_workspaceForNewSpec": {
-          "line": 511,
+          "line": 514,
           "params": [
             "projectPath"
           ],
           "purpose": "The workspace a new spec is written in: the selected one, or — from main —"
         },
         "dispatchSpecCommand": {
-          "line": 534,
+          "line": 537,
           "params": [
             "{ slug",
             "title = null",
             "command } = {}"
           ]
         },
+        "_dispatchStaged": {
+          "line": 579,
+          "params": [
+            "{ slug",
+            "title",
+            "command",
+            "projectPath",
+            "assignment",
+            "destination = null }"
+          ],
+          "purpose": "Stage a phase command and dispatch it to the spec's lane — after asking"
+        },
+        "_recordStatus": {
+          "line": 635,
+          "params": [
+            "projectPath",
+            "slug",
+            "partial"
+          ]
+        },
+        "_dispatchWithFlowChoice": {
+          "line": 649,
+          "params": [
+            "{ slug",
+            "title",
+            "command",
+            "projectPath",
+            "assignment }"
+          ],
+          "purpose": "The flow modal → record flow_mode → run. From Generate Plan, step by step"
+        },
+        "dispatchFullAuto": {
+          "line": 691,
+          "params": [
+            "{ slug",
+            "title = null } = {}"
+          ],
+          "purpose": "Start a full-auto run of a spec: record flow_mode and the autonomous"
+        },
+        "_startFullAuto": {
+          "line": 705,
+          "params": [
+            "{ slug",
+            "projectPath",
+            "assignment",
+            "phase }"
+          ]
+        },
         "_dispatchImplement": {
-          "line": 613,
+          "line": 760,
           "params": [
             "{ slug",
             "title",
@@ -9535,107 +9587,107 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "_isSpecCreatorLane": {
-          "line": 721,
+          "line": 868,
           "params": [
             "terminalId"
           ],
           "purpose": "Still open, and still carrying the transient name we gave it."
         },
         "_onSpecData": {
-          "line": 737,
+          "line": 884,
           "params": [
             "specs"
           ],
           "purpose": "A new slug appeared — attach it to the lane that produced it."
         },
         "_bindSpecCreatorLane": {
-          "line": 757,
+          "line": 904,
           "params": [
             "terminalId",
             "slug"
           ]
         },
         "dispatchSpecNew": {
-          "line": 793,
+          "line": 940,
           "params": [
             "description"
           ],
           "purpose": "Hand the user's free-form text to the standard `spec.new` flow."
         },
         "getSpecLaneInfo": {
-          "line": 888,
+          "line": 1035,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 912,
+          "line": 1059,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 933,
+          "line": 1080,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 937,
+          "line": 1084,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 941,
+          "line": 1088,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 958,
+          "line": 1105,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 966,
+          "line": 1113,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 989,
+          "line": 1136,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 997,
+          "line": 1144,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 1015,
+          "line": 1162,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 1025,
+          "line": 1172,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 1034,
+          "line": 1181,
           "params": [
             "frameName",
             "specName"
@@ -9643,14 +9695,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 1075,
+          "line": 1222,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 1104,
+          "line": 1251,
           "params": [
             "terminalId",
             "message"
@@ -9666,10 +9718,11 @@
           "ANALYTICS_TRACK",
           "ANALYTICS_TRACK",
           "ANALYTICS_TRACK",
+          "ANALYTICS_TRACK",
           "SPEC_AGENT_ACTIVITY"
         ]
       },
-      "sizeBytes": 46712,
+      "sizeBytes": 53034,
       "extraction": {
         "status": "parsed"
       },
@@ -9680,6 +9733,8 @@
           "_askNewOrRestart": "efc1e508e99fa188",
           "_assignedLane": "76e8eaf8ee50f56c",
           "_dispatchImplement": "b07ddd2ffbc27686",
+          "_dispatchStaged": "cddafb0ae1c99f73",
+          "_dispatchWithFlowChoice": "f35592f9318a39a0",
           "_isSpecCreatorLane": "18da917b1fa2beef",
           "_onSpecData": "139e794738ce5f20",
           "_selectSpecWorkspace": "7edc3dacf77b1f79",
@@ -9689,6 +9744,7 @@
           "_waitForAgentReady": "a626843d6a626ace",
           "_workspaceForNewSpec": "79b2a2da2a74a652",
           "dispatch": "5d84ea33d736c73b",
+          "dispatchFullAuto": "b8e4972c885a94a5",
           "dispatchSpecNew": "2ac4c8949f90aa5a",
           "getSpecLaneInfo": "95454eeae9051c36",
           "getTaskLaneInfo": "317346690b72ca12",
@@ -11523,6 +11579,40 @@
           "setupIPC": "4c49f7443d20ad7c",
           "showNote": "ff472f33a748cdce",
           "startRename": "65cca67936a536f7"
+        }
+      }
+    },
+    "renderer/flowModeModal": {
+      "file": "src/renderer/flowModeModal.js",
+      "description": "Flow Mode Modal (full-auto-spec-flow)",
+      "exports": [
+        "open"
+      ],
+      "depends": [
+        "htmlUtils",
+        "shared/specFlow"
+      ],
+      "functions": {
+        "open": {
+          "line": 52,
+          "params": [
+            "{ slug",
+            "title = null",
+            "current = null",
+            "lane = null",
+            "resume = false } = {}"
+          ],
+          "purpose": "Open the modal."
+        }
+      },
+      "sizeBytes": 6372,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "6ba102f235855509",
+        "purposes": {
+          "open": "e1158a27f0ac8681"
         }
       }
     },
@@ -36178,6 +36268,11 @@
     ],
     "flow": [
       {
+        "module": "renderer/flowModeModal",
+        "file": "src/renderer/flowModeModal.js",
+        "description": "Flow Mode Modal (full-auto-spec-flow)"
+      },
+      {
         "module": "shared/prFlow",
         "file": "src/shared/prFlow.js",
         "description": "prFlow — the rules behind a workspace's way out: push, pull request,"
@@ -36456,6 +36551,11 @@
     ],
     "modal": [
       {
+        "module": "renderer/flowModeModal",
+        "file": "src/renderer/flowModeModal.js",
+        "description": "Flow Mode Modal (full-auto-spec-flow)"
+      },
+      {
         "module": "renderer/frameSettingsModal",
         "file": "src/renderer/frameSettingsModal.js",
         "description": "Frame Settings"
@@ -36499,6 +36599,18 @@
         "module": "renderer/sendFilesModal",
         "file": "src/renderer/sendFilesModal.js",
         "description": "Send files to server — pick the files git does not carry and send them to"
+      }
+    ],
+    "mode": [
+      {
+        "module": "renderer/flowModeModal",
+        "file": "src/renderer/flowModeModal.js",
+        "description": "Flow Mode Modal (full-auto-spec-flow)"
+      },
+      {
+        "module": "renderer/implementModeModal",
+        "file": "src/renderer/implementModeModal.js",
+        "description": "Implement Mode Modal"
       }
     ],
     "model": [
@@ -37263,7 +37375,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 416,
+        "parsed": 417,
         "unsupported": 92,
         "partial": 0
       }
@@ -37310,9 +37422,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 602,
+      "visitedEntries": 603,
       "traversedDirectories": 86,
-      "eligibleFiles": 508,
+      "eligibleFiles": 509,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -37329,7 +37441,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 508,
+      "indexedFiles": 509,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -37337,6 +37449,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "65995285eb5ba0e4908838eef853554c7527eadde35e8b987cc296aaa1de1d59"
+    "revision": "5cad3f7cd14128f4065d7f9fafe372a5b6e357be3e8e1a931f39a965bcad53ea"
   }
 }
