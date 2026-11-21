@@ -134,6 +134,46 @@ the context your work produces outlives any single tool, including Frame.
 
 ---
 
+## Self-Hosted: Run Your Agents on Your Own Server
+
+Frame can put a workspace on **your own Linux server**. Its terminals and
+agents run there, and they keep running when you close your laptop. Open
+Frame again later and you are back in the same live sessions, with the
+screen as the agent left it.
+
+- **Your machine, your keys.** Frame Server is installed on a server you
+  control and is reached over your own SSH. It listens only on localhost
+  and accepts connections only through an SSH tunnel with a private token.
+  Nothing goes through a Frame cloud.
+- **Install and update from the desktop.** Add a server in the Servers
+  dialog. Frame connects over SSH, installs Frame Server (prebuilt for
+  linux-x64 and linux-arm64), checks the download, and keeps it running
+  (as a systemd user service where available). Updates roll back
+  automatically if the new version fails its health check. A check-up lists anything still missing
+  on the server (an agent CLI, `git`, `gh`) and opens a server terminal
+  with the fix typed for you.
+- **Send a project in one step.** Frame sends your project's committed git
+  history to the server. Uncommitted changes and secrets stay on your Mac.
+  If the workspace needs files git doesn't carry, such as `.env` or local
+  config, you pick them in a list and only those are sent.
+- **Same workflow as local.** Server workspaces have the same panels as
+  local ones: file tree, changes and diffs, review, push, pull requests and
+  update-from-base. The spec flow runs on the server too: New Spec, Plan,
+  Tasks and Implement.
+- **Several servers at once.** Connect any number of servers. Each
+  workspace shows which host it lives on, and an offline server says so
+  instead of silently falling back to your machine.
+
+Requirements: a Linux server (x86_64 or arm64, glibc 2.28+) that you can
+reach with an SSH key, plus Claude Code or Codex CLI installed on it. You can
+also install Frame Server by hand:
+
+```bash
+curl -fsSL https://github.com/kaanozhan/Frame/releases/latest/download/install-frame-server.sh | bash
+```
+
+---
+
 ## Features
 
 ### Terminal
@@ -260,6 +300,7 @@ Pre-built binaries available on the [releases page](https://github.com/kaanozhan
 - [x] Plugins panel
 - [x] Spec-driven development — spec / plan / tasks / outcome markdown workflow with auto-import to tasks.json
 - [x] Light / dark theme
+- [x] Self-hosted Frame Server — workspaces, terminals and agents on your own Linux server over SSH
 
 ### In Progress
 - [ ] Prompt history as developer style profile — learning and persisting your working style across sessions
@@ -267,7 +308,6 @@ Pre-built binaries available on the [releases page](https://github.com/kaanozhan
 
 ### Planned
 - [ ] Plugin marketplace
-- [ ] Remote development (SSH)
 
 ---
 
