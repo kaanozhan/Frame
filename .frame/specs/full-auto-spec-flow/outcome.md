@@ -22,3 +22,11 @@ _Captured: 2026-11-21 · 2 file change(s)_
 
 ---
 
+## T04 — Write spec.auto.md and register spec.auto
+
+Added src/templates/commands/claude-code/spec.auto.md and registered spec.auto in SUPPORTED_COMMANDS, COMMAND_TEMPLATE_FILES and the server's COMMANDS. buildSpecCommandFile('spec.auto') stages the three phase prompts (stagePhasePrompts) and passes their paths to getCommandPrompt through a new optional extraVars argument; launchFlagsFor adds getAutoLaunchFlags. scripts/spec-command-hint.js was left without spec.auto on purpose: the bare-CLI path is implement-launch.js --full-auto (T07).
+
+_Captured: 2026-11-21 · 6 file change(s)_
+
+---
+

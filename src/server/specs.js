@@ -36,7 +36,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const COMMANDS = ['spec.new', 'spec.plan', 'spec.tasks', 'spec.implement'];
+const COMMANDS = ['spec.new', 'spec.plan', 'spec.tasks', 'spec.implement', 'spec.auto'];
 const LOCAL_MODE = 'This project keeps Frame files out of git (local mode), so a spec on the server would be lost when the workspace is archived — write it in a local workspace.';
 const SLUG_RE = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
 // What the desktop may change on a server spec: what the spec flow needs.

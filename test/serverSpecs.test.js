@@ -286,6 +286,17 @@ test('T04: spec.implement names the clone\'s tasks.json; spec.new stages without
   assert.ok(fs.readFileSync(path.join(ws, fresh.relPath), 'utf8').includes('Make a thing'));
 });
 
+test('full-auto-spec-flow T04: specs.stage accepts spec.auto and stages its phase prompts on the server', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  const r = await methods['specs.stage']({ projectPath, root: ws, slug: 'on-server', command: 'spec.auto', aiTool: 'claude-code' });
+  assert.equal(r.success, true, r.error);
+  assert.equal(r.relPath, '.frame/runtime/prompts/on-server__spec.auto.md');
+  for (const cmd of ['spec.plan', 'spec.tasks', 'spec.implement']) {
+    assert.ok(fs.existsSync(path.join(ws, '.frame', 'runtime', 'prompts', `on-server__${cmd}.md`)), `${cmd} prompt staged in the worktree`);
+  }
+  assert.equal(r.launchFlags[0], '--settings');
+});
+
 test('T04: specs.stage refuses local-mode projects and unknown commands', async () => {
   const { projectPath, ws } = await serverWorkspace();
   const bad = await methods['specs.stage']({ projectPath, root: ws, slug: 'on-server', command: 'spec.ship' });
