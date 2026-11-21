@@ -187,9 +187,9 @@ function select(ws) {
   if (ws.missing) return;
   hideMenu();
   state.setWorkspace({ id: ws.id, root: ws.path, name: ws.name, branch: ws.branch });
-  if (ws.location === 'server') return; // its tooling lives on the server
   // Refresh Frame's tooling in the worktree (hooks, staged templates, spec
-  // index) so the agents about to run there see what main sees.
+  // index) so the agents about to run there see what main sees. A server
+  // workspace's Frame Server stages it there (server-workspace-tooling).
   ipcRenderer.invoke(IPC.WORKSPACE_PROVISION, { projectPath: state.getProjectPath(), id: ws.id })
     .catch(() => { /* best effort — the next spec command provisions again */ });
 }

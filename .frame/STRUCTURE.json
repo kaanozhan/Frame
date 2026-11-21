@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-19",
+  "lastUpdated": "2026-11-21",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -549,10 +549,12 @@
         "checkToolAvailable",
         "getActiveTool",
         "setActiveTool",
+        "onToolChange",
         "getConfig",
         "getCommand",
         "getStartCommand",
         "composeLaunchCommand",
+        "isPathLike",
         "addCustomTool",
         "removeCustomTool",
         "AI_TOOLS"
@@ -588,64 +590,75 @@
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 133,
+          "line": 131,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 144,
+          "line": 142,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 151,
+          "line": 149,
           "purpose": "Get the currently active tool"
         },
         "setActiveTool": {
-          "line": 159,
+          "line": 157,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
+        "onToolChange": {
+          "line": 183,
+          "params": [
+            "listener"
+          ]
+        },
+        "announceToolChange": {
+          "line": 188
+        },
         "getConfig": {
-          "line": 182,
+          "line": 205,
           "purpose": "Get full configuration for renderer"
         },
         "addCustomTool": {
-          "line": 192,
+          "line": 215,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 209,
+          "line": 232,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
         "quoteArg": {
-          "line": 229,
+          "line": 252,
           "params": [
             "arg"
           ],
           "purpose": "Compose the command line a lane actually types: the resolved CLI plus any"
         },
         "composeLaunchCommand": {
-          "line": 237,
+          "line": 260,
           "params": [
             "command",
             "launchFlags"
           ]
         },
         "isPathLike": {
-          "line": 242,
+          "line": 271,
           "params": [
-            "command"
-          ]
+            "command",
+            "p = path"
+          ],
+          "purpose": "True when the command names a file rather than a PATH lookup: absolute"
         },
         "isCommandAvailable": {
-          "line": 260,
+          "line": 288,
           "params": [
             "command",
             "projectPath"
@@ -653,17 +666,17 @@
           "purpose": "Check whether a CLI command can actually be launched on this system."
         },
         "trackProbeFailure": {
-          "line": 327,
+          "line": 355,
           "params": [
             "reason"
           ]
         },
         "setupIPC": {
-          "line": 335,
+          "line": 363,
           "purpose": "Setup IPC handlers"
         },
         "checkToolAvailable": {
-          "line": 379,
+          "line": 407,
           "params": [
             "{ toolId",
             "projectPath = null",
@@ -673,14 +686,14 @@
           "purpose": "Is the tool's CLI installed where this process runs? Returns"
         },
         "getCommand": {
-          "line": 435,
+          "line": 463,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 443,
+          "line": 471,
           "purpose": "Get the start command for active tool"
         }
       },
@@ -691,11 +704,10 @@
           "CHECK_AI_TOOL_AVAILABLE"
         ],
         "emits": [
-          "AI_TOOL_CHANGED",
           "AI_TOOL_CHANGED"
         ]
       },
-      "sizeBytes": 14891,
+      "sizeBytes": 15948,
       "extraction": {
         "status": "parsed"
       },
@@ -712,6 +724,7 @@
           "getStartCommand": "0b3c8eea99bca897",
           "init": "729e266422b35f93",
           "isCommandAvailable": "a94fec2f40407bf9",
+          "isPathLike": "71681e179a9f9f16",
           "loadConfig": "9e7f7fe82b32fe9a",
           "quoteArg": "fc995331ba4acbea",
           "removeCustomTool": "f88a74c039f31d34",
@@ -4298,7 +4311,7 @@
       ],
       "functions": {
         "init": {
-          "line": 40,
+          "line": 42,
           "params": [
             "window",
             "app",
@@ -4307,7 +4320,7 @@
           "purpose": "Initialize menu module"
         },
         "cmd": {
-          "line": 55,
+          "line": 64,
           "params": [
             "label",
             "commandId",
@@ -4316,47 +4329,47 @@
           "purpose": "Menu item that runs a command-registry id in the renderer."
         },
         "getMenuTemplate": {
-          "line": 66,
+          "line": 75,
           "purpose": "Get menu template based on active AI tool"
         },
         "openSettings": {
-          "line": 255
+          "line": 264
         },
         "buildAICommandsSubmenu": {
-          "line": 266,
+          "line": 275,
           "params": [
             "tool"
           ],
           "purpose": "Build the AI-tool root's submenu: Start first, then the tool's slash"
         },
         "buildToolSwitcherSubmenu": {
-          "line": 315,
+          "line": 324,
           "purpose": "Build tool switcher submenu"
         },
         "buildThemeSubmenu": {
-          "line": 336,
+          "line": 342,
           "purpose": "View › Theme: one radio item per registry entry, the current one checked."
         },
         "sendCommand": {
-          "line": 351,
+          "line": 357,
           "params": [
             "command"
           ],
           "purpose": "Send command to terminal"
         },
         "sendAppCommand": {
-          "line": 361,
+          "line": 367,
           "params": [
             "commandId"
           ],
           "purpose": "Run a renderer command by its command-registry id (the menu's one"
         },
         "openHistoryFile": {
-          "line": 370,
+          "line": 376,
           "purpose": "Open history file in default editor"
         },
         "createMenu": {
-          "line": 384,
+          "line": 390,
           "purpose": "Create and set application menu"
         }
       },
@@ -4370,7 +4383,7 @@
           "RUN_APP_COMMAND"
         ]
       },
-      "sizeBytes": 11821,
+      "sizeBytes": 12298,
       "extraction": {
         "status": "parsed"
       },
@@ -7676,7 +7689,7 @@
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 636,
+          "line": 638,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -7684,14 +7697,14 @@
           "purpose": "Top-level bootstrap orchestrator. Called from frameProject.js after the"
         },
         "ensureStructureHook": {
-          "line": 681,
+          "line": 683,
           "params": [
             "projectPath"
           ],
           "purpose": "Install the pre-commit hook for a project that opted into the module map"
         }
       },
-      "sizeBytes": 29560,
+      "sizeBytes": 29737,
       "extraction": {
         "status": "parsed"
       },
@@ -8577,6 +8590,7 @@
         "list",
         "serverLocation",
         "serverRoots",
+        "provision",
         "status",
         "baseForBranch",
         "create",
@@ -8930,8 +8944,16 @@
             "ipcMain"
           ]
         },
+        "provision": {
+          "line": 771,
+          "params": [
+            "projectPath",
+            "id"
+          ],
+          "purpose": "Refresh Frame's gitignored tooling in a workspace (on selection): copied"
+        },
         "archiveQueued": {
-          "line": 769,
+          "line": 790,
           "params": [
             "projectPath",
             "id",
@@ -8958,7 +8980,7 @@
           "WORKSPACES_UPDATED"
         ]
       },
-      "sizeBytes": 35186,
+      "sizeBytes": 36256,
       "extraction": {
         "status": "parsed"
       },
@@ -8980,6 +9002,7 @@
           "listServer": "04ca1bea10b3974d",
           "localIdentity": "45f45e051f23b3c6",
           "notifyRenderer": "f9f667afbfb4fe2c",
+          "provision": "9ac947c09181f248",
           "removeRecord": "cfa0e770acc4b861",
           "rename": "3e9545571f850334",
           "restore": "6f2ad8b2b915b68e",
@@ -14704,7 +14727,7 @@
           "purpose": "Render plugins list"
         },
         "renderPluginItem": {
-          "line": 271,
+          "line": 270,
           "params": [
             "plugin"
           ],
@@ -14727,6 +14750,7 @@
         "installPlugin": {
           "line": 368,
           "params": [
+            "pluginId",
             "pluginName"
           ],
           "purpose": "Install plugin via terminal command"
@@ -14739,7 +14763,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 11788,
+      "sizeBytes": 11987,
       "extraction": {
         "status": "parsed"
       },
@@ -20800,7 +20824,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 42629,
+      "sizeBytes": 42637,
       "extraction": {
         "status": "parsed"
       },
@@ -25936,19 +25960,21 @@
         "shared/serverRouting",
         "main/projectRegistry",
         "main/workspaceManager",
+        "shared/workspaceRegistry",
+        "tooling",
         "main/gitBranchesManager",
         "main/aiToolManager"
       ],
       "functions": {
         "uploadsDir": {
-          "line": 26,
+          "line": 31,
           "purpose": "Where uploads land: `<server home>/tmp` (server-onboarding)."
         },
         "projectsRoot": {
-          "line": 31
+          "line": 36
         },
         "setup": {
-          "line": 35,
+          "line": 40,
           "params": [
             "{ shim",
             "registerMethods",
@@ -25956,7 +25982,7 @@
           ]
         }
       },
-      "sizeBytes": 8897,
+      "sizeBytes": 10324,
       "extraction": {
         "status": "parsed"
       },
@@ -26068,11 +26094,8 @@
         "main/specManager",
         "main/fsSafe",
         "main/frameStore",
-        "main/commandStaging",
-        "main/structureBootstrap",
-        "main/workspaceTooling",
+        "tooling",
         "main/gitSharing",
-        "../scripts/spec-index",
         "main/projectRegistry",
         "shared/workspaceRegistry"
       ],
@@ -26085,7 +26108,7 @@
           ]
         }
       },
-      "sizeBytes": 8139,
+      "sizeBytes": 7601,
       "extraction": {
         "status": "parsed"
       },
@@ -26138,6 +26161,59 @@
         "purposes": {
           "setup": "b1faf5b173071512",
           "toLocalId": "0a5473fc6a70b40e"
+        }
+      }
+    },
+    "server/tooling": {
+      "file": "src/server/tooling.js",
+      "description": "Frame's gitignored tooling on a server (server-workspace-tooling).",
+      "exports": [
+        "provisionTooling",
+        "provisionIfFrame",
+        "isFrameProject"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/frameConstants",
+        "main/structureBootstrap",
+        "main/commandStaging",
+        "main/workspaceTooling",
+        "../scripts/spec-index"
+      ],
+      "functions": {
+        "provisionTooling": {
+          "line": 25,
+          "params": [
+            "projectPath",
+            "root"
+          ],
+          "purpose": "Stage the tooling into `projectPath` (the clone), then into `root` when it is a worktree. Returns the copied relative paths."
+        },
+        "isFrameProject": {
+          "line": 41,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "provisionIfFrame": {
+          "line": 46,
+          "params": [
+            "projectPath",
+            "root"
+          ],
+          "purpose": "`provisionTooling` for a Frame project; nothing for any other. Never throws — a workspace action must not fail over it."
+        }
+      },
+      "sizeBytes": 2671,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "d943160e75c5df5a",
+        "purposes": {
+          "provisionIfFrame": "8f9dd955f03672a4",
+          "provisionTooling": "f0fe6516ada3b59a"
         }
       }
     },
@@ -29440,6 +29516,27 @@
         "description": "a806f9f813564656"
       }
     },
+    "test/aiToolPathLike.test": {
+      "file": "test/aiToolPathLike.test.js",
+      "description": "isPathLike — which custom-tool commands name a file instead of a PATH",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "os",
+        "path",
+        "node:module",
+        "src/main/aiToolManager"
+      ],
+      "functions": {},
+      "sizeBytes": 2133,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "374010e05f94829a"
+      }
+    },
     "test/analytics.test": {
       "file": "test/analytics.test.js",
       "description": "Analytics policy tests — fail-closed opt-out decision.",
@@ -31596,6 +31693,30 @@
         "description": "489ed77a1a39ab36"
       }
     },
+    "test/menuToolSwitch.test": {
+      "file": "test/menuToolSwitch.test.js",
+      "description": "The app menu follows the active AI tool however it is switched (#34).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "node:module",
+        "src/main/aiToolManager",
+        "src/main/menu",
+        "src/shared/ipcChannels"
+      ],
+      "functions": {},
+      "sizeBytes": 4103,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "cc8031bd62f795e4"
+      }
+    },
     "test/metaPathGuard.test": {
       "file": "test/metaPathGuard.test.js",
       "description": "Meta-path doctrine guard and mirror drift test (frame-storage-seam T06/T07).",
@@ -32203,26 +32324,28 @@
           ]
         },
         "project": {
-          "line": 90,
+          "line": 91,
           "purpose": "A Frame project with tracked a.txt; ignored .env, certs/, node_modules/ and .frame/bin; untracked src/new.js."
         },
         "write": {
-          "line": 87,
+          "line": 88,
           "params": [
             "file",
             "body = 'x\\n'",
-            "mode"
-          ]
+            "mode = 0o644"
+          ],
+          "purpose": "Always chmod: a fresh file's mode follows the umask (0644 under 022, 0664 under 002), and T05 asserts exact modes."
         }
       },
-      "sizeBytes": 11266,
+      "sizeBytes": 11382,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "a9c4dd0d5942be6a",
         "purposes": {
-          "project": "8decf2c0d5889bc1"
+          "project": "8decf2c0d5889bc1",
+          "write": "ae387da4122f7504"
         }
       }
     },
@@ -32270,7 +32393,7 @@
           ]
         }
       },
-      "sizeBytes": 5842,
+      "sizeBytes": 7340,
       "extraction": {
         "status": "parsed"
       },
@@ -32845,6 +32968,48 @@
       },
       "provenance": {
         "description": "77c4d16534bf76d5"
+      }
+    },
+    "test/serverWorkspaceTooling.test": {
+      "file": "test/serverWorkspaceTooling.test.js",
+      "description": "Frame's gitignored tooling in server workspaces (server-workspace-tooling).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "src/server/electronShim",
+        "src/server/projects",
+        "src/server/specs"
+      ],
+      "functions": {
+        "write": {
+          "line": 40,
+          "params": [
+            "file",
+            "body"
+          ]
+        },
+        "receive": {
+          "line": 51,
+          "params": [
+            "{ frame }"
+          ],
+          "purpose": "A project received by the server; `frame` gives it .frame/config.json and Frame's .gitignore block."
+        }
+      },
+      "sizeBytes": 7108,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "efb2c8a54659ba0c",
+        "purposes": {
+          "receive": "0a8e93e0a9de6cc7"
+        }
       }
     },
     "test/sessionHookInstall.test": {
@@ -36718,6 +36883,18 @@
         "description": "Server terminals — the PTYs of server workspaces (server-workspaces spec, T4)."
       }
     ],
+    "tooling": [
+      {
+        "module": "main/workspaceTooling",
+        "file": "src/main/workspaceTooling.js",
+        "description": "Workspace tooling — Frame's gitignored helpers inside a workspace's"
+      },
+      {
+        "module": "server/tooling",
+        "file": "src/server/tooling.js",
+        "description": "Frame's gitignored tooling on a server (server-workspace-tooling)."
+      }
+    ],
     "tour": [
       {
         "module": "renderer/guidedTour",
@@ -36843,7 +37020,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 408,
+        "parsed": 412,
         "unsupported": 92,
         "partial": 0
       }
@@ -36890,9 +37067,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 594,
+      "visitedEntries": 598,
       "traversedDirectories": 86,
-      "eligibleFiles": 500,
+      "eligibleFiles": 504,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -36909,7 +37086,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 500,
+      "indexedFiles": 504,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -36917,6 +37094,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "8ea70395e5fff95c34729e4c9fb54371eed0803a132da1f75d06994b09e52df7"
+    "revision": "ed9a2406e0eaa04d6985b2aa7ba92f503750e0ebc2b866b58ce5570bcb5ee0be"
   }
 }
