@@ -161,8 +161,13 @@ function getSpecDir(projectPath, slug) {
  * recorded slug is a rename question, and rewriting it here would silently
  * cut every `source: spec:<slug>:T##` link in tasks.json.
  *
+ * `ai_tool: "claude"` — what an agent guessed when spec.new's {tool_id}
+ * reached it unfilled — reads as "claude-code", the only Claude value the
+ * validator accepts. That is not counted in `filled`, so listing never
+ * rewrites the file for it; the next real status write stores it fixed.
+ *
  * Returns { status, filled } — `status` is the same object when nothing was
- * missing, so callers can skip writing.
+ * missing or normalised, and `filled` lists what the caller should persist.
  */
 function repairSpecStatus(obj, folderName) {
   if (!obj || typeof obj !== 'object') return { status: obj, filled: [] };
@@ -178,8 +183,13 @@ function repairSpecStatus(obj, folderName) {
     status.generated_task_ids = [];
     filled.push('generated_task_ids');
   }
+  let normalised = false;
+  if (status.ai_tool === 'claude') {
+    status.ai_tool = 'claude-code';
+    normalised = true;
+  }
 
-  return filled.length ? { status, filled } : { status: obj, filled: [] };
+  return filled.length || normalised ? { status, filled } : { status: obj, filled: [] };
 }
 
 function validateSpecStatus(obj) {

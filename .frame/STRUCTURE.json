@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-19",
+  "lastUpdated": "2026-11-21",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -549,10 +549,12 @@
         "checkToolAvailable",
         "getActiveTool",
         "setActiveTool",
+        "onToolChange",
         "getConfig",
         "getCommand",
         "getStartCommand",
         "composeLaunchCommand",
+        "isPathLike",
         "addCustomTool",
         "removeCustomTool",
         "AI_TOOLS"
@@ -588,64 +590,75 @@
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 133,
+          "line": 131,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 144,
+          "line": 142,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 151,
+          "line": 149,
           "purpose": "Get the currently active tool"
         },
         "setActiveTool": {
-          "line": 159,
+          "line": 157,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
+        "onToolChange": {
+          "line": 183,
+          "params": [
+            "listener"
+          ]
+        },
+        "announceToolChange": {
+          "line": 188
+        },
         "getConfig": {
-          "line": 182,
+          "line": 205,
           "purpose": "Get full configuration for renderer"
         },
         "addCustomTool": {
-          "line": 192,
+          "line": 215,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 209,
+          "line": 232,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
         "quoteArg": {
-          "line": 229,
+          "line": 252,
           "params": [
             "arg"
           ],
           "purpose": "Compose the command line a lane actually types: the resolved CLI plus any"
         },
         "composeLaunchCommand": {
-          "line": 237,
+          "line": 260,
           "params": [
             "command",
             "launchFlags"
           ]
         },
         "isPathLike": {
-          "line": 242,
+          "line": 271,
           "params": [
-            "command"
-          ]
+            "command",
+            "p = path"
+          ],
+          "purpose": "True when the command names a file rather than a PATH lookup: absolute"
         },
         "isCommandAvailable": {
-          "line": 260,
+          "line": 288,
           "params": [
             "command",
             "projectPath"
@@ -653,17 +666,17 @@
           "purpose": "Check whether a CLI command can actually be launched on this system."
         },
         "trackProbeFailure": {
-          "line": 327,
+          "line": 355,
           "params": [
             "reason"
           ]
         },
         "setupIPC": {
-          "line": 335,
+          "line": 363,
           "purpose": "Setup IPC handlers"
         },
         "checkToolAvailable": {
-          "line": 379,
+          "line": 407,
           "params": [
             "{ toolId",
             "projectPath = null",
@@ -673,14 +686,14 @@
           "purpose": "Is the tool's CLI installed where this process runs? Returns"
         },
         "getCommand": {
-          "line": 435,
+          "line": 463,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 443,
+          "line": 471,
           "purpose": "Get the start command for active tool"
         }
       },
@@ -691,11 +704,10 @@
           "CHECK_AI_TOOL_AVAILABLE"
         ],
         "emits": [
-          "AI_TOOL_CHANGED",
           "AI_TOOL_CHANGED"
         ]
       },
-      "sizeBytes": 14891,
+      "sizeBytes": 15948,
       "extraction": {
         "status": "parsed"
       },
@@ -712,6 +724,7 @@
           "getStartCommand": "0b3c8eea99bca897",
           "init": "729e266422b35f93",
           "isCommandAvailable": "a94fec2f40407bf9",
+          "isPathLike": "71681e179a9f9f16",
           "loadConfig": "9e7f7fe82b32fe9a",
           "quoteArg": "fc995331ba4acbea",
           "removeCustomTool": "f88a74c039f31d34",
@@ -7337,7 +7350,7 @@
           "purpose": "Check if current directory is a git repo with GitHub remote"
         },
         "checkAccess": {
-          "line": 133,
+          "line": 136,
           "params": [
             "projectPath",
             "force = false"
@@ -7345,20 +7358,20 @@
           "purpose": "The one access check (D6): gh present → signed in → GitHub remote."
         },
         "accessError": {
-          "line": 159,
+          "line": 162,
           "params": [
             "access"
           ],
           "purpose": "The legacy error string for a failed access check, or null when the"
         },
         "normalizeState": {
-          "line": 166,
+          "line": 169,
           "params": [
             "state"
           ]
         },
         "loadIssues": {
-          "line": 174,
+          "line": 177,
           "params": [
             "projectPath",
             "state = 'open'"
@@ -7366,7 +7379,7 @@
           "purpose": "Load GitHub issues for current project"
         },
         "loadPullRequests": {
-          "line": 196,
+          "line": 199,
           "params": [
             "projectPath",
             "state = 'open'"
@@ -7374,7 +7387,7 @@
           "purpose": "Load pull requests (G4) with the same open / closed / all filter as issues."
         },
         "checkoutPullRequest": {
-          "line": 219,
+          "line": 222,
           "params": [
             "projectPath",
             "number"
@@ -7382,14 +7395,14 @@
           "purpose": "`gh pr checkout <n>`, refused on a dirty tree the way SWITCH_GIT_BRANCH"
         },
         "openIssue": {
-          "line": 250,
+          "line": 253,
           "params": [
             "url"
           ],
           "purpose": "Open issue in browser"
         },
         "setupIPC": {
-          "line": 259,
+          "line": 262,
           "params": [
             "ipcMain"
           ],
@@ -7406,7 +7419,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 9836,
+      "sizeBytes": 10091,
       "extraction": {
         "status": "parsed"
       },
@@ -7853,7 +7866,7 @@
       ],
       "functions": {
         "init": {
-          "line": 40,
+          "line": 42,
           "params": [
             "window",
             "app",
@@ -7862,7 +7875,7 @@
           "purpose": "Initialize menu module"
         },
         "cmd": {
-          "line": 55,
+          "line": 64,
           "params": [
             "label",
             "commandId",
@@ -7871,47 +7884,47 @@
           "purpose": "Menu item that runs a command-registry id in the renderer."
         },
         "getMenuTemplate": {
-          "line": 66,
+          "line": 75,
           "purpose": "Get menu template based on active AI tool"
         },
         "openSettings": {
-          "line": 255
+          "line": 264
         },
         "buildAICommandsSubmenu": {
-          "line": 266,
+          "line": 275,
           "params": [
             "tool"
           ],
           "purpose": "Build the AI-tool root's submenu: Start first, then the tool's slash"
         },
         "buildToolSwitcherSubmenu": {
-          "line": 315,
+          "line": 324,
           "purpose": "Build tool switcher submenu"
         },
         "buildThemeSubmenu": {
-          "line": 336,
+          "line": 342,
           "purpose": "View › Theme: one radio item per registry entry, the current one checked."
         },
         "sendCommand": {
-          "line": 351,
+          "line": 357,
           "params": [
             "command"
           ],
           "purpose": "Send command to terminal"
         },
         "sendAppCommand": {
-          "line": 361,
+          "line": 367,
           "params": [
             "commandId"
           ],
           "purpose": "Run a renderer command by its command-registry id (the menu's one"
         },
         "openHistoryFile": {
-          "line": 370,
+          "line": 376,
           "purpose": "Open history file in default editor"
         },
         "createMenu": {
-          "line": 384,
+          "line": 390,
           "purpose": "Create and set application menu"
         }
       },
@@ -7925,7 +7938,7 @@
           "RUN_APP_COMMAND"
         ]
       },
-      "sizeBytes": 11821,
+      "sizeBytes": 12298,
       "extraction": {
         "status": "parsed"
       },
@@ -9172,30 +9185,30 @@
           "purpose": "Check if terminal exists"
         },
         "serverLocationOf": {
-          "line": 545,
+          "line": 548,
           "params": [
             "workspaceId"
           ]
         },
         "server": {
-          "line": 554
+          "line": 557
         },
         "connectedLink": {
-          "line": 559,
+          "line": 562,
           "params": [
             "key"
           ],
           "purpose": "The connected link of `key`, or null."
         },
         "routeOfTerminal": {
-          "line": 565,
+          "line": 568,
           "params": [
             "terminalId"
           ],
           "purpose": "`{ link, serverTerminalId }` a desktop id routes to, or null when its server is unknown."
         },
         "createServerTerminal": {
-          "line": 571,
+          "line": 574,
           "params": [
             "loc",
             "{ cwd",
@@ -9207,14 +9220,14 @@
           ]
         },
         "serverTerminalInfo": {
-          "line": 588,
+          "line": 591,
           "params": [
             "terminalId"
           ],
           "purpose": "Local project/workspace (and server) of a server terminal this window knows, or null."
         },
         "noteServerTerminal": {
-          "line": 593,
+          "line": 596,
           "params": [
             "terminalId",
             "info"
@@ -9222,10 +9235,10 @@
           "purpose": "Remember a server terminal found on reconnect (adopted by the renderer)."
         },
         "wireServerEvents": {
-          "line": 599
+          "line": 602
         },
         "adoptFrom": {
-          "line": 647,
+          "line": 655,
           "params": [
             "link",
             "projectPath",
@@ -9234,14 +9247,14 @@
           "purpose": "One connected server's live terminals of a local project, with a screen each; null when it cannot tell."
         },
         "adoptServerTerminals": {
-          "line": 691,
+          "line": 699,
           "params": [
             "projectPath"
           ],
           "purpose": "Every connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 721,
+          "line": 729,
           "params": [
             "ipcMain"
           ]
@@ -9264,7 +9277,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 33235,
+      "sizeBytes": 34170,
       "extraction": {
         "status": "parsed"
       },
@@ -10404,7 +10417,7 @@
           ]
         },
         "repairSpecStatus": {
-          "line": 167,
+          "line": 172,
           "params": [
             "obj",
             "folderName"
@@ -10412,26 +10425,26 @@
           "purpose": "Fill in the fields of a status.json that the folder itself already"
         },
         "validateSpecStatus": {
-          "line": 185,
+          "line": 195,
           "params": [
             "obj"
           ]
         },
         "readFileSafe": {
-          "line": 204,
+          "line": 214,
           "params": [
             "p"
           ]
         },
         "readStatus": {
-          "line": 213,
+          "line": 223,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "writeStatus": {
-          "line": 224,
+          "line": 234,
           "params": [
             "projectPath",
             "slug",
@@ -10439,33 +10452,33 @@
           ]
         },
         "indexStamp": {
-          "line": 255,
+          "line": 265,
           "params": [
             "projectPath"
           ],
           "purpose": "mtime of the derived index, or 0 — used to tell a rebuild from a no-op."
         },
         "scheduleIndexRefresh": {
-          "line": 264,
+          "line": 274,
           "params": [
             "projectPath"
           ]
         },
         "buildSpecCatalog": {
-          "line": 292,
+          "line": 302,
           "params": [
             "projectPath"
           ],
           "purpose": "One line per non-excluded spec for the spec.new catalog embed. Reads the"
         },
         "listSpecs": {
-          "line": 312,
+          "line": 322,
           "params": [
             "projectPath"
           ]
         },
         "listSpecsCore": {
-          "line": 318,
+          "line": 328,
           "params": [
             "projectPath",
             "tasksProject",
@@ -10474,7 +10487,7 @@
           ]
         },
         "listSpecReports": {
-          "line": 413,
+          "line": 423,
           "params": [
             "projectPath",
             "slug"
@@ -10482,7 +10495,7 @@
           "purpose": "Which of a spec's two generated reports exist on disk, named as the viewer"
         },
         "looksLikeSpecFolder": {
-          "line": 422,
+          "line": 432,
           "params": [
             "projectPath",
             "folderName"
@@ -10490,7 +10503,7 @@
           "purpose": "A folder is a spec if it carries at least one of the chain's artifacts."
         },
         "malformedSpec": {
-          "line": 434,
+          "line": 444,
           "params": [
             "folderName",
             "status",
@@ -10499,7 +10512,7 @@
           "purpose": "A spec folder Frame cannot read as a spec, rendered as itself rather than"
         },
         "fileExists": {
-          "line": 454,
+          "line": 464,
           "params": [
             "projectPath",
             "slug",
@@ -10507,7 +10520,7 @@
           ]
         },
         "derivePhase": {
-          "line": 458,
+          "line": 468,
           "params": [
             "projectPath",
             "slug",
@@ -10517,7 +10530,7 @@
           ]
         },
         "recordedTaskCount": {
-          "line": 499,
+          "line": 509,
           "params": [
             "projectPath",
             "slug",
@@ -10525,14 +10538,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 505,
+          "line": 515,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "countPhaseWrite": {
-          "line": 526,
+          "line": 536,
           "params": [
             "projectPath",
             "slug",
@@ -10541,7 +10554,7 @@
           ]
         },
         "reconcilePhase": {
-          "line": 534,
+          "line": 544,
           "params": [
             "projectPath",
             "slug",
@@ -10549,14 +10562,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 580,
+          "line": 590,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 584,
+          "line": 594,
           "params": [
             "projectPath",
             "aiTool",
@@ -10564,7 +10577,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 604,
+          "line": 614,
           "params": [
             "projectPath",
             "aiTool",
@@ -10572,7 +10585,7 @@
           ]
         },
         "interpolateValues": {
-          "line": 613,
+          "line": 623,
           "params": [
             "obj",
             "vars"
@@ -10580,14 +10593,14 @@
           "purpose": "Run `interpolate` over each value of an object. One pass, no recursion."
         },
         "interpolate": {
-          "line": 621,
+          "line": 631,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 634,
+          "line": 644,
           "params": [
             "projectPath",
             "slug",
@@ -10599,7 +10612,7 @@
           ]
         },
         "reportAssetRel": {
-          "line": 721,
+          "line": 731,
           "params": [
             "projectPath",
             "tool",
@@ -10608,34 +10621,34 @@
           "purpose": "Which staged report asset a tool's prompt should name."
         },
         "resolveVerificationCommand": {
-          "line": 788,
+          "line": 798,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 803,
+          "line": 813,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 821,
+          "line": 831,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 845,
+          "line": 855,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 861,
+          "line": 871,
           "params": [
             "projectPath",
             "slug",
@@ -10644,21 +10657,21 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "specNewPromptFilename": {
-          "line": 882,
+          "line": 892,
           "params": [
             "date"
           ],
           "purpose": "A slug-less run has no stable name to key the prompt file on — `${slug}__`"
         },
         "uniquePromptFilename": {
-          "line": 887,
+          "line": 897,
           "params": [
             "promptsDir",
             "filename"
           ]
         },
         "buildSpecCommandFile": {
-          "line": 896,
+          "line": 906,
           "params": [
             "projectPath",
             "slug",
@@ -10670,32 +10683,32 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 949,
+          "line": 959,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 975,
+          "line": 985,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 994,
+          "line": 1004,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "completedTaskIdsFromOutcome": {
-          "line": 1008,
+          "line": 1018,
           "params": [
             "content"
           ]
         },
         "initialTaskState": {
-          "line": 1015,
+          "line": 1025,
           "params": [
             "status",
             "outcomeIds",
@@ -10704,7 +10717,7 @@
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 1023,
+          "line": 1033,
           "params": [
             "projectPath",
             "slug",
@@ -10712,27 +10725,27 @@
           ]
         },
         "arraysEqual": {
-          "line": 1111,
+          "line": 1121,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 1118,
+          "line": 1128,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 1129,
+          "line": 1139,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "readSpecReport": {
-          "line": 1170,
+          "line": 1180,
           "params": [
             "projectPath",
             "slug",
@@ -10741,7 +10754,7 @@
           "purpose": "Read one of a spec's two generated HTML reports, for the in-app viewer."
         },
         "searchSpecs": {
-          "line": 1199,
+          "line": 1209,
           "params": [
             "projectPath",
             "query"
@@ -10749,7 +10762,7 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "updateSpecStatus": {
-          "line": 1212,
+          "line": 1222,
           "params": [
             "projectPath",
             "slug",
@@ -10757,14 +10770,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1236,
+          "line": 1246,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1255,
+          "line": 1265,
           "params": [
             "projectPath",
             "oldSlug",
@@ -10773,96 +10786,96 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "specsWatchHandler": {
-          "line": 1379,
+          "line": 1389,
           "params": [
             "projectPath"
           ],
           "purpose": "One handler for every specs folder of the watched project — main's and each"
         },
         "closeWorkspaceSpecWatchers": {
-          "line": 1408
+          "line": 1418
         },
         "refreshWorkspaceWatchers": {
-          "line": 1421,
+          "line": 1431,
           "params": [
             "projectPath"
           ],
           "purpose": "Watch each active workspace's `.frame/specs` alongside main's, then push"
         },
         "startWatching": {
-          "line": 1449,
+          "line": 1459,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1529
+          "line": 1539
         },
         "markSpecNewLaunch": {
-          "line": 1584,
+          "line": 1594,
           "params": [
             "projectPath"
           ]
         },
         "consumeSpecNewLaunch": {
-          "line": 1590,
+          "line": 1600,
           "params": [
             "projectPath"
           ]
         },
         "resolveSpecOrigin": {
-          "line": 1606,
+          "line": 1616,
           "params": [
             "projectPath"
           ],
           "purpose": "How this spec was started, from Frame's own state — never guessed from the"
         },
         "trackSpecLifecycle": {
-          "line": 1617,
+          "line": 1627,
           "params": [
             "projectPath",
             "specs"
           ]
         },
         "pushSpecData": {
-          "line": 1645,
+          "line": 1655,
           "params": [
             "projectPath"
           ]
         },
         "serverConn": {
-          "line": 1684
+          "line": 1694
         },
         "linkOf": {
-          "line": 1689,
+          "line": 1699,
           "params": [
             "serverKey"
           ],
           "purpose": "The connected link of a server key, or null (down, removed, or no key)."
         },
         "serverWorkspacesOf": {
-          "line": 1699,
+          "line": 1709,
           "params": [
             "projectPath"
           ],
           "purpose": "The watched project's server workspaces: `[{ id, root, host, serverKey, projectPath, serverProjectPath, name }]`."
         },
         "serverSpecLists": {
-          "line": 1712,
+          "line": 1722,
           "params": [
             "projectPath"
           ],
           "purpose": "`[{ workspace, specs }]` for mergeSpecLists — the cached server lists of `projectPath`."
         },
         "markServerSpecsOffline": {
-          "line": 1721,
+          "line": 1731,
           "params": [
             "serverKey = null"
           ],
           "purpose": "Tag the entries of one server (`serverKey`), or of every server, offline."
         },
         "refreshServerSpecs": {
-          "line": 1735,
+          "line": 1745,
           "params": [
             "projectPath",
             "onlyRoot = null"
@@ -10870,7 +10883,7 @@
           "purpose": "Re-list the server workspaces of `projectPath` (only `onlyRoot` when given),"
         },
         "remoteSpecEntry": {
-          "line": 1782,
+          "line": 1792,
           "params": [
             "projectPath",
             "slug"
@@ -10878,19 +10891,19 @@
           "purpose": "The server workspace entry that holds `slug` for `projectPath`, or null when"
         },
         "serverOffline": {
-          "line": 1795,
+          "line": 1805,
           "params": [
             "entry"
           ]
         },
         "offlineText": {
-          "line": 1799,
+          "line": 1809,
           "params": [
             "entry"
           ]
         },
         "serverSpecCall": {
-          "line": 1803,
+          "line": 1813,
           "params": [
             "entry",
             "method",
@@ -10898,7 +10911,7 @@
           ]
         },
         "getServerSpec": {
-          "line": 1808,
+          "line": 1818,
           "params": [
             "entry",
             "slug"
@@ -10906,7 +10919,7 @@
           "purpose": "GET_SPEC for a server spec: the server's getSpec, tagged with its workspace; `{ offline: host }` while unreachable."
         },
         "readServerSpecReport": {
-          "line": 1832,
+          "line": 1842,
           "params": [
             "entry",
             "slug",
@@ -10914,7 +10927,7 @@
           ]
         },
         "updateServerSpecStatus": {
-          "line": 1841,
+          "line": 1851,
           "params": [
             "entry",
             "slug",
@@ -10922,26 +10935,26 @@
           ]
         },
         "unwatchServerSpecs": {
-          "line": 1852
+          "line": 1862
         },
         "wireServerSpecs": {
-          "line": 1861
+          "line": 1871
         },
         "checkoutLocations": {
-          "line": 1908,
+          "line": 1918,
           "params": [
             "root"
           ]
         },
         "inCheckout": {
-          "line": 1914,
+          "line": 1924,
           "params": [
             "root",
             "fn"
           ]
         },
         "listSpecsIn": {
-          "line": 1927,
+          "line": 1937,
           "params": [
             "root",
             "tasksProject"
@@ -10949,14 +10962,14 @@
           "purpose": "listSpecs over one checkout; task counts come from `tasksProject`'s tasks.json."
         },
         "getSpecIn": {
-          "line": 1931,
+          "line": 1941,
           "params": [
             "root",
             "slug"
           ]
         },
         "readSpecReportIn": {
-          "line": 1935,
+          "line": 1945,
           "params": [
             "root",
             "slug",
@@ -10964,7 +10977,7 @@
           ]
         },
         "updateSpecStatusIn": {
-          "line": 1939,
+          "line": 1949,
           "params": [
             "root",
             "slug",
@@ -10972,7 +10985,7 @@
           ]
         },
         "syncSpecTasksIn": {
-          "line": 1944,
+          "line": 1954,
           "params": [
             "root",
             "tasksProject"
@@ -10980,7 +10993,7 @@
           "purpose": "Import every spec's tasks.md in `root` into `tasksProject`'s tasks.json."
         },
         "buildSpecCommandFileIn": {
-          "line": 1957,
+          "line": 1967,
           "params": [
             "root",
             "tasksProject",
@@ -10992,13 +11005,13 @@
           "purpose": "Stage a spec command's prompt in `root`, with `{tasks_path}` naming `tasksProject`'s tasks.json."
         },
         "init": {
-          "line": 1963,
+          "line": 1973,
           "params": [
             "window"
           ]
         },
         "handleGetSpec": {
-          "line": 1971,
+          "line": 1981,
           "params": [
             "projectPath",
             "slug"
@@ -11006,7 +11019,7 @@
           "purpose": "The spec IPC handlers route a server spec to Frame Server (server-specs"
         },
         "handleReadSpecReport": {
-          "line": 1976,
+          "line": 1986,
           "params": [
             "projectPath",
             "slug",
@@ -11014,7 +11027,7 @@
           ]
         },
         "handleUpdateSpecStatus": {
-          "line": 1981,
+          "line": 1991,
           "params": [
             "projectPath",
             "slug",
@@ -11022,7 +11035,7 @@
           ]
         },
         "serverStagingTarget": {
-          "line": 1995,
+          "line": 2005,
           "params": [
             "projectPath",
             "slug",
@@ -11031,7 +11044,7 @@
           "purpose": "Where a spec command for `workspaceId` / `slug` runs when that is a server"
         },
         "handleBuildSpecCommandFile": {
-          "line": 2010,
+          "line": 2020,
           "params": [
             "{ projectPath",
             "slug = null",
@@ -11044,7 +11057,7 @@
           "purpose": "BUILD_SPEC_COMMAND_FILE: stage locally, or — for a server workspace — have"
         },
         "setupIPC": {
-          "line": 2035,
+          "line": 2045,
           "params": [
             "ipcMain"
           ]
@@ -11071,7 +11084,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 93237,
+      "sizeBytes": 93713,
       "extraction": {
         "status": "parsed"
       },
@@ -11231,7 +11244,7 @@
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 636,
+          "line": 638,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -11239,14 +11252,14 @@
           "purpose": "Top-level bootstrap orchestrator. Called from frameProject.js after the"
         },
         "ensureStructureHook": {
-          "line": 681,
+          "line": 683,
           "params": [
             "projectPath"
           ],
           "purpose": "Install the pre-commit hook for a project that opted into the module map"
         }
       },
-      "sizeBytes": 29560,
+      "sizeBytes": 29737,
       "extraction": {
         "status": "parsed"
       },
@@ -12028,7 +12041,7 @@
           ]
         },
         "heldSpec": {
-          "line": 306,
+          "line": 314,
           "params": [
             "projectPath",
             "id"
@@ -12036,7 +12049,7 @@
           "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
         },
         "prDraft": {
-          "line": 320,
+          "line": 328,
           "params": [
             "projectPath",
             "id"
@@ -12044,7 +12057,7 @@
           "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
         },
         "prCreate": {
-          "line": 331,
+          "line": 339,
           "params": [
             "projectPath",
             "id",
@@ -12055,7 +12068,7 @@
           "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
         },
         "merge": {
-          "line": 359,
+          "line": 367,
           "params": [
             "projectPath",
             "id"
@@ -12063,14 +12076,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 409,
+          "line": 417,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 446,
+          "line": 454,
           "params": [
             "projectPath",
             "id"
@@ -12078,7 +12091,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 464,
+          "line": 472,
           "params": [
             "ipcMain"
           ]
@@ -12098,7 +12111,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 21919,
+      "sizeBytes": 22476,
       "extraction": {
         "status": "parsed"
       },
@@ -13234,7 +13247,7 @@
           "SPEC_AGENT_ACTIVITY"
         ]
       },
-      "sizeBytes": 50210,
+      "sizeBytes": 50277,
       "extraction": {
         "status": "parsed"
       },
@@ -20862,7 +20875,7 @@
           "SESSION_RESTORE_SET_LAST_PROJECT"
         ]
       },
-      "sizeBytes": 36072,
+      "sizeBytes": 36208,
       "extraction": {
         "status": "parsed"
       },
@@ -21633,7 +21646,7 @@
           "purpose": "Render plugins list"
         },
         "renderPluginItem": {
-          "line": 271,
+          "line": 270,
           "params": [
             "plugin"
           ],
@@ -21656,6 +21669,7 @@
         "installPlugin": {
           "line": 368,
           "params": [
+            "pluginId",
             "pluginName"
           ],
           "purpose": "Install plugin via terminal command"
@@ -21668,7 +21682,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 11788,
+      "sizeBytes": 11987,
       "extraction": {
         "status": "parsed"
       },
@@ -22935,7 +22949,7 @@
           "line": 294
         },
         "open": {
-          "line": 411,
+          "line": 413,
           "params": [
             "{ key = null",
             "add = false } = {}"
@@ -22943,49 +22957,49 @@
           "purpose": "Open the Servers dialog. `key` selects that server; `add` (or no saved"
         },
         "openServerTerminal": {
-          "line": 445,
+          "line": 447,
           "params": [
             "command"
           ],
           "purpose": "A terminal on the selected server, in its home folder, in the current view"
         },
         "openSetupTerminal": {
-          "line": 466,
+          "line": 468,
           "purpose": "\"Set up access in a terminal\" (server-first-connect): a terminal on this"
         },
         "close": {
-          "line": 480
+          "line": 482
         },
         "addServer": {
-          "line": 487,
+          "line": 489,
           "purpose": "Add the host typed in the form, select it and connect it."
         },
         "connect": {
-          "line": 504,
+          "line": 506,
           "params": [
             "key"
           ]
         },
         "disconnectOne": {
-          "line": 518,
+          "line": 520,
           "params": [
             "key"
           ],
           "purpose": "Disconnect one server; it stays in the list and off at the next launch."
         },
         "disconnect": {
-          "line": 526,
+          "line": 528,
           "purpose": "Disconnect every server (File ▸ Disconnect from Server, palette)."
         },
         "removeServer": {
-          "line": 532,
+          "line": 534,
           "params": [
             "key"
           ],
           "purpose": "Forget a server after asking; nothing on the server is touched."
         },
         "runAction": {
-          "line": 544,
+          "line": 546,
           "params": [
             "kind",
             "confirmAgents = false"
@@ -23000,7 +23014,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 24738,
+      "sizeBytes": 24888,
       "extraction": {
         "status": "parsed"
       },
@@ -25743,7 +25757,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 29353,
+      "sizeBytes": 29532,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -26889,6 +26903,10 @@
             "n"
           ],
           "purpose": "A terminal's default name, number first (\"1st Terminal\", \"2nd Terminal\"):"
+        },
+        "closeCaller": {
+          "line": 78,
+          "purpose": "Where an unlabelled closeTerminal call came from: the first frames past"
         }
       },
       "ipc": {
@@ -26910,13 +26928,14 @@
           "TERMINAL_RESIZE_ID"
         ]
       },
-      "sizeBytes": 42733,
+      "sizeBytes": 43574,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "5503a1b34dbada83",
         "purposes": {
+          "closeCaller": "dbe7ad2c35f80fff",
           "getTerminalTheme": "c1851af8b213ec21",
           "terminalName": "1c4c500d3f4e3dbd"
         }
@@ -27014,7 +27033,7 @@
           ]
         }
       },
-      "sizeBytes": 26958,
+      "sizeBytes": 27010,
       "extraction": {
         "status": "parsed"
       },
@@ -27804,7 +27823,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 43305,
+      "sizeBytes": 43364,
       "extraction": {
         "status": "parsed"
       },
@@ -30054,7 +30073,7 @@
           ]
         }
       },
-      "sizeBytes": 16624,
+      "sizeBytes": 16810,
       "extraction": {
         "status": "parsed"
       },
@@ -33150,11 +33169,12 @@
         "os",
         "shared/serverRouting",
         "screenMirror",
+        "main/logger",
         "main/ptyManager"
       ],
       "functions": {
         "setup": {
-          "line": 42,
+          "line": 43,
           "params": [
             "{ shim",
             "registerMethods",
@@ -33163,14 +33183,14 @@
           "purpose": "Wire terminals into the server: `shim` is the installed electron shim,"
         },
         "toLocalId": {
-          "line": 32,
+          "line": 33,
           "params": [
             "id"
           ],
           "purpose": "An id of another boot names no terminal here."
         }
       },
-      "sizeBytes": 6529,
+      "sizeBytes": 6944,
       "extraction": {
         "status": "parsed"
       },
@@ -33943,28 +33963,28 @@
           "purpose": "Get current ISO timestamp"
         },
         "renderSpecSection": {
-          "line": 301,
+          "line": 302,
           "purpose": "The spec sections as actually emitted into docs: wrapped in managed-block"
         },
         "renderSpecCoreSection": {
-          "line": 305
+          "line": 306
         },
         "formatProjectFacts": {
-          "line": 326,
+          "line": 327,
           "params": [
             "project"
           ],
           "purpose": "Render the Project Facts section for AGENTS.md from the detected project"
         },
         "getAgentsTemplate": {
-          "line": 355,
+          "line": 356,
           "params": [
             "projectName",
             "options"
           ]
         },
         "getReferenceTemplate": {
-          "line": 462,
+          "line": 463,
           "params": [
             "projectName",
             "options"
@@ -33972,7 +33992,7 @@
           "purpose": "REFERENCE.md template — the reference-on-demand companion to the lean"
         },
         "getStructureTemplate": {
-          "line": 738,
+          "line": 739,
           "params": [
             "projectName",
             "project"
@@ -33980,21 +34000,21 @@
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 766,
+          "line": 767,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 786,
+          "line": 787,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 832,
+          "line": 833,
           "params": [
             "projectName",
             "project",
@@ -34003,24 +34023,24 @@
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 919,
+          "line": 920,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getClaudeRuleTemplate": {
-          "line": 962,
+          "line": 963,
           "params": [
             "agentsText"
           ],
           "purpose": "`.claude/rules/frame.md` — the file Claude Code loads at session start."
         },
         "getFrameGitignoreBlock": {
-          "line": 977
+          "line": 978
         },
         "hintCommand": {
-          "line": 996,
+          "line": 997,
           "params": [
             "script",
             "mode"
@@ -34028,7 +34048,7 @@
           "purpose": "The command of one Claude Code hint hook (server-linux-readiness)."
         },
         "hintHooksFor": {
-          "line": 1130,
+          "line": 1131,
           "params": [
             "template",
             "{ structureMap = false } = {}"
@@ -34036,7 +34056,7 @@
           "purpose": "The hint hooks a project should get. The full sets above stay as they are —"
         },
         "sessionReportCommand": {
-          "line": 1174,
+          "line": 1175,
           "params": [
             "tool",
             "guard = ''"
@@ -34044,7 +34064,7 @@
           "purpose": "Session report hook (restore-ai-sessions-on-relaunch). On SessionStart the"
         },
         "getGenericWrapperTemplate": {
-          "line": 1209,
+          "line": 1210,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -34052,38 +34072,38 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 1255
+          "line": 1256
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1292,
+          "line": 1293,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "classifyStructureHook": {
-          "line": 1321,
+          "line": 1322,
           "params": [
             "text"
           ],
           "purpose": "'current' when `text` is today's template, 'previous' when it is an"
         },
         "getOrchBusHeader": {
-          "line": 1340,
+          "line": 1341,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1352,
+          "line": 1353,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1372
+          "line": 1373
         },
         "getOrchBinScripts": {
-          "line": 1390,
+          "line": 1391,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       },
-      "sizeBytes": 61068,
+      "sizeBytes": 61208,
       "extraction": {
         "status": "parsed"
       },
@@ -34208,6 +34228,8 @@
         "pickMergeMethod",
         "fixChecksPrompt",
         "isPushable",
+        "offBranchError",
+        "explainPushError",
         "pushArgs",
         "mergeLanded",
         "baseForBranch",
@@ -34272,8 +34294,24 @@
           ],
           "purpose": "The prompt \"Fix failing checks\" hands the workspace's agent. It names the"
         },
+        "offBranchError": {
+          "line": 150,
+          "params": [
+            "{ branch",
+            "headRef",
+            "branchExists }"
+          ],
+          "purpose": "Why a push must not run because the workspace's folder left its branch, or"
+        },
+        "explainPushError": {
+          "line": 168,
+          "params": [
+            "error"
+          ],
+          "purpose": "A push error with the user's options appended when git could not reach the"
+        },
         "isPushable": {
-          "line": 142,
+          "line": 177,
           "params": [
             "{ branch",
             "base }"
@@ -34281,7 +34319,7 @@
           "purpose": "A workspace branch may be pushed unless it is (or names) its own base."
         },
         "pushArgs": {
-          "line": 157,
+          "line": 192,
           "params": [
             "{ branch",
             "base",
@@ -34290,14 +34328,14 @@
           "purpose": "The argv for pushing a workspace branch (workspace-hardening L1). The push"
         },
         "parseConflicts": {
-          "line": 170,
+          "line": 205,
           "params": [
             "stdout"
           ],
           "purpose": "`git diff --name-only --diff-filter=U -z` → conflicted paths, in order, no duplicates."
         },
         "updateMenuState": {
-          "line": 185,
+          "line": 220,
           "params": [
             "{ behind = 0",
             "merging = false",
@@ -34307,7 +34345,7 @@
           "purpose": "The update items a workspace row offers: `[{ id, label }]`."
         },
         "conflictPrompt": {
-          "line": 198,
+          "line": 233,
           "params": [
             "{ branch",
             "base = 'main'",
@@ -34316,21 +34354,21 @@
           "purpose": "The prompt that hands an update's conflicts to an agent in the workspace."
         },
         "updateMessage": {
-          "line": 211,
+          "line": 246,
           "params": [
             "result"
           ],
           "purpose": "One sentence for the user about an update's result."
         },
         "mergeLanded": {
-          "line": 236,
+          "line": 271,
           "params": [
             "pr"
           ],
           "purpose": "Whether a PR read back after `gh pr merge` has actually merged. On a"
         },
         "baseForBranch": {
-          "line": 246,
+          "line": 281,
           "params": [
             "{ branch",
             "upstream",
@@ -34339,7 +34377,7 @@
           "purpose": "The base a workspace opened from an existing branch should record"
         }
       },
-      "sizeBytes": 11335,
+      "sizeBytes": 13651,
       "extraction": {
         "status": "parsed"
       },
@@ -34350,10 +34388,12 @@
           "checksSummary": "5bacb8007cad8133",
           "composePr": "79db7faf7577e5c8",
           "conflictPrompt": "1c20db3486ce6d8c",
+          "explainPushError": "6521edd998c23bdc",
           "fixChecksPrompt": "12c4e5bb6f83be44",
           "isPushable": "20e43c7377899394",
           "mapPrView": "886ffc419a78fdac",
           "mergeLanded": "875702301f11b53c",
+          "offBranchError": "36bf1ad27d582d4f",
           "parseConflicts": "35eac48b8bf0d2d4",
           "parseCount": "e0e6116d342409ca",
           "pickMergeMethod": "b92b46d28d104dd3",
@@ -34674,7 +34714,8 @@
         "parseChecksum",
         "systemdUnit",
         "doctorItems",
-        "userNpmInstall"
+        "userNpmInstall",
+        "GH_SIGN_IN"
       ],
       "depends": [],
       "functions": {
@@ -34738,22 +34779,28 @@
           ],
           "purpose": "The check-up as items for the Connect dialog. `raw` is what server.doctor"
         },
+        "ghItem": {
+          "line": 215,
+          "params": [
+            "gh"
+          ],
+          "purpose": "The GitHub CLI row: installed, then signed in."
+        },
         "userNpmInstall": {
-          "line": 208,
+          "line": 222,
           "params": [
             "pkg"
-          ],
-          "purpose": "One line that installs an npm package for this user only: npm's prefix"
+          ]
         },
         "agentTerminals": {
-          "line": 225,
+          "line": 239,
           "params": [
             "list"
           ],
           "purpose": "The server terminals running an agent, from `terminals.list` (each with its"
         },
         "consentNeeded": {
-          "line": 242,
+          "line": 256,
           "params": [
             "{ connected",
             "agents",
@@ -34762,7 +34809,7 @@
           "purpose": "Whether an update or rollback must ask first (server-hardening S9): when"
         }
       },
-      "sizeBytes": 10697,
+      "sizeBytes": 11550,
       "extraction": {
         "status": "parsed"
       },
@@ -34774,11 +34821,11 @@
           "compareVersions": "efd0728fd35f2db1",
           "consentNeeded": "c7ac0d601f835fd7",
           "doctorItems": "dd574ec4d6cee2a5",
+          "ghItem": "b2dc973831ace090",
           "installDecision": "e84479a8fb5b69bd",
           "parseChecksum": "691d502f346e91f0",
           "releaseUrl": "57ede9ed46f442ef",
-          "systemdUnit": "4c73100446c0ebe3",
-          "userNpmInstall": "05aa30b53dabc87f"
+          "systemdUnit": "4c73100446c0ebe3"
         }
       }
     },
@@ -36168,7 +36215,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 21917,
+      "sizeBytes": 22381,
       "extraction": {
         "status": "parsed"
       },
@@ -36640,6 +36687,27 @@
       },
       "provenance": {
         "description": "a806f9f813564656"
+      }
+    },
+    "test/aiToolPathLike.test": {
+      "file": "test/aiToolPathLike.test.js",
+      "description": "isPathLike — which custom-tool commands name a file instead of a PATH",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "os",
+        "path",
+        "node:module",
+        "src/main/aiToolManager"
+      ],
+      "functions": {},
+      "sizeBytes": 2133,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "374010e05f94829a"
       }
     },
     "test/analytics.test": {
@@ -38897,6 +38965,28 @@
         }
       }
     },
+    "test/githubAccessCache.test": {
+      "file": "test/githubAccessCache.test.js",
+      "description": "githubManager.checkAccess caching (server-github-setup G5).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "node:module",
+        "src/main/githubManager"
+      ],
+      "functions": {},
+      "sizeBytes": 3093,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "2d1d78c1f237f085"
+      }
+    },
     "test/githubAccessState.test": {
       "file": "test/githubAccessState.test.js",
       "description": "The GitHub panel's access resolver (github-view-tree-layout spec, G3 / D6).",
@@ -39332,6 +39422,30 @@
         "description": "489ed77a1a39ab36"
       }
     },
+    "test/menuToolSwitch.test": {
+      "file": "test/menuToolSwitch.test.js",
+      "description": "The app menu follows the active AI tool however it is switched (#34).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "node:module",
+        "src/main/aiToolManager",
+        "src/main/menu",
+        "src/shared/ipcChannels"
+      ],
+      "functions": {},
+      "sizeBytes": 4103,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "cc8031bd62f795e4"
+      }
+    },
     "test/metaPathGuard.test": {
       "file": "test/metaPathGuard.test.js",
       "description": "Meta-path doctrine guard and mirror drift test (frame-storage-seam T06/T07).",
@@ -39564,7 +39678,7 @@
         "src/shared/prFlow"
       ],
       "functions": {},
-      "sizeBytes": 10169,
+      "sizeBytes": 13032,
       "extraction": {
         "status": "parsed"
       },
@@ -39682,7 +39796,7 @@
           ]
         }
       },
-      "sizeBytes": 12110,
+      "sizeBytes": 13740,
       "extraction": {
         "status": "parsed"
       },
@@ -39993,26 +40107,28 @@
           ]
         },
         "project": {
-          "line": 90,
+          "line": 91,
           "purpose": "A Frame project with tracked a.txt; ignored .env, certs/, node_modules/ and .frame/bin; untracked src/new.js."
         },
         "write": {
-          "line": 87,
+          "line": 88,
           "params": [
             "file",
             "body = 'x\\n'",
-            "mode"
-          ]
+            "mode = 0o644"
+          ],
+          "purpose": "Always chmod: a fresh file's mode follows the umask (0644 under 022, 0664 under 002), and T05 asserts exact modes."
         }
       },
-      "sizeBytes": 11266,
+      "sizeBytes": 11382,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "a9c4dd0d5942be6a",
         "purposes": {
-          "project": "8decf2c0d5889bc1"
+          "project": "8decf2c0d5889bc1",
+          "write": "ae387da4122f7504"
         }
       }
     },
@@ -40233,7 +40349,7 @@
           "purpose": "A temp HOME and a fake `npm` that logs its arguments and prints `prefix` for `config get prefix`."
         }
       },
-      "sizeBytes": 11638,
+      "sizeBytes": 13668,
       "extraction": {
         "status": "parsed"
       },
@@ -40795,7 +40911,7 @@
           "purpose": "A project with one spec in `phase`, and the command templates staged."
         }
       },
-      "sizeBytes": 12187,
+      "sizeBytes": 12762,
       "extraction": {
         "status": "parsed"
       },
@@ -40982,6 +41098,31 @@
         "description": "819d5f372129ba9e"
       }
     },
+    "test/specImplementBranch.test": {
+      "file": "test/specImplementBranch.test.js",
+      "description": "spec.implement's pre-flight branch rule in a Frame workspace.",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "branchSection": {
+          "line": 23
+        }
+      },
+      "sizeBytes": 3415,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "70920252e9baa20b"
+      }
+    },
     "test/specManagerServer.test": {
       "file": "test/specManagerServer.test.js",
       "description": "Desktop specManager with server workspaces (server-specs spec).",
@@ -41084,9 +41225,15 @@
           "params": [
             "slug"
           ]
+        },
+        "writeGuessedToolSpec": {
+          "line": 194,
+          "params": [
+            "slug"
+          ]
         }
       },
-      "sizeBytes": 7481,
+      "sizeBytes": 9700,
       "extraction": {
         "status": "parsed"
       },
@@ -41986,7 +42133,8 @@
         "src/main/userSettings",
         "src/main/frameProject",
         "src/main/specManager",
-        "src/main/gitStatusManager"
+        "src/main/gitStatusManager",
+        "src/main/githubManager"
       ],
       "functions": {
         "withGh": {
@@ -42028,9 +42176,19 @@
         "detachedWithCommit": {
           "line": 193,
           "purpose": "A workspace whose worktree has one commit on a detached HEAD that no branch holds."
+        },
+        "workspaceWithCommit": {
+          "line": 574
+        },
+        "commitIn": {
+          "line": 580,
+          "params": [
+            "wt",
+            "file"
+          ]
         }
       },
-      "sizeBytes": 30788,
+      "sizeBytes": 34673,
       "extraction": {
         "status": "parsed"
       },
@@ -45012,7 +45170,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 460,
+        "parsed": 464,
         "unsupported": 94,
         "partial": 0
       }
@@ -45059,9 +45217,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 649,
+      "visitedEntries": 653,
       "traversedDirectories": 87,
-      "eligibleFiles": 554,
+      "eligibleFiles": 558,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -45078,7 +45236,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 554,
+      "indexedFiles": 558,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -45086,6 +45244,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "75fa0f8cc2c8f7d7cd6ba40f739c625da5c2b02d725d8aac92736e485d2036d0"
+    "revision": "21ea54b98050b4e83c5dbd9495a4635ee20dc87cf082936e4accb896d3e76bc6"
   }
 }

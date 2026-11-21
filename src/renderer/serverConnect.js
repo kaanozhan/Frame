@@ -387,6 +387,8 @@ function renderModal() {
           fix.appendChild(open);
         }
         body.appendChild(fix);
+        // What the command will ask of the user, e.g. gh's device code (G2).
+        if (i.note) body.appendChild(el('p', 'sc-check-note', i.note));
       }
       li.appendChild(body);
       return li;

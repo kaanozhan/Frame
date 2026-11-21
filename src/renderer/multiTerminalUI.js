@@ -743,7 +743,7 @@ class MultiTerminalUI {
     const name = state ? (state.customName || state.name) : null;
     terminalChipNotice.confirmClose({
       name,
-      onConfirm: () => this.manager.closeTerminal(terminalId)
+      onConfirm: () => this.manager.closeTerminal(terminalId, { reason: 'closed from its chip (confirmed)' })
     });
   }
 
@@ -824,7 +824,7 @@ class MultiTerminalUI {
    */
   closeActiveTerminal() {
     if (this.manager.activeTerminalId && this.manager.terminals.size > 1) {
-      this.manager.closeTerminal(this.manager.activeTerminalId);
+      this.manager.closeTerminal(this.manager.activeTerminalId, { reason: 'Close Terminal command (⌘⇧W, menu or palette) on the active terminal' });
     }
   }
 

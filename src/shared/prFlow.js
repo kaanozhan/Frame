@@ -138,6 +138,41 @@ function fixChecksPrompt({ branch, number, failingNames = [] }) {
   ].join('\n');
 }
 
+/**
+ * Why a push must not run because the workspace's folder left its branch, or
+ * null. Push names the workspace's branch (`refs/heads/B:refs/heads/B`), so
+ * when the folder is on another branch — an agent's `git switch -c` or
+ * `git branch -m` — it would send B as it was, without the new commits, and
+ * report success. `headRef` is the folder's branch (null when detached:
+ * mid-rebase or bisect, which comes back — no refusal). `branchExists` says
+ * whether B is still there (false after a rename).
+ */
+function offBranchError({ branch, headRef, branchExists }) {
+  if (!branch || !headRef || headRef === branch) return null;
+  const lead = `This workspace's folder is on branch "${headRef}", not on its own branch "${branch}" — Frame pushes "${branch}", so the work on "${headRef}" would not be sent. Nothing was pushed.`;
+  return branchExists
+    ? `${lead} To bring the work back, run in the workspace's terminal: git switch ${branch} && git merge --ff-only ${headRef}`
+    : `${lead} "${branch}" was renamed to "${headRef}"; to rename it back, run in the workspace's terminal: git branch -m ${headRef} ${branch}`;
+}
+
+// git's own lines when it could not reach the remote over SSH: no host key
+// for it, or no key it accepts (server-github-setup G3).
+const SSH_PUSH_FAILURE = /Host key verification failed|Permission denied \(publickey|No .* host key is known for/i;
+
+/**
+ * A push error with the user's options appended when git could not reach the
+ * remote over SSH — typical on a Frame Server, which gets the Mac's
+ * git@github.com: remote and has no SSH key GitHub knows. git's own text is
+ * kept first. Options only: Frame changes nothing on that machine.
+ */
+function explainPushError(error) {
+  const text = String(error || '');
+  if (!SSH_PUSH_FAILURE.test(text)) return text;
+  return `${text.trim()}\n\ngit could not reach the remote over SSH from the machine this workspace runs on — it does not know the remote's host key, or has no SSH key the remote accepts. `
+    + 'Either add an SSH key from that machine to your GitHub account, or point this project\'s remote at HTTPS in the workspace\'s terminal '
+    + '(git remote set-url origin https://github.com/<owner>/<repo>.git) — with gh signed in there, git uses gh\'s login.';
+}
+
 /** A workspace branch may be pushed unless it is (or names) its own base. */
 function isPushable({ branch, base }) {
   if (!branch) return false;
@@ -265,6 +300,8 @@ module.exports = {
   pickMergeMethod,
   fixChecksPrompt,
   isPushable,
+  offBranchError,
+  explainPushError,
   pushArgs,
   mergeLanded,
   baseForBranch,

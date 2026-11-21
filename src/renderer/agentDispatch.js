@@ -277,7 +277,7 @@ async function startDefaultAgent() {
   // Focused Frame is busy — let the user decide rather than clobbering it.
   const choice = await _askNewOrRestart(_laneName(focusedId), !!s.agentName);
   if (choice === 'cancel') return;
-  if (choice === 'restart') manager.closeTerminal(focusedId);
+  if (choice === 'restart') manager.closeTerminal(focusedId, { reason: '"Kill & restart here" chosen when starting an agent' });
   _startAgentInNewFrame();
 }
 

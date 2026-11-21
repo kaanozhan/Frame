@@ -29,6 +29,8 @@ const themes = require('../renderer/themes');
 let mainWindow = null;
 let appPath = null;
 let aiToolManager = null;
+/** Drops init's active-tool subscription, so a second init doesn't add another. */
+let unsubscribeToolChange = null;
 /** The theme the renderer last applied — drives the View › Theme radio. */
 let currentTheme = themes.DEFAULT_THEME;
 
@@ -41,6 +43,13 @@ function init(window, app, toolManager) {
   mainWindow = window;
   appPath = app.getPath('userData');
   aiToolManager = toolManager;
+
+  // The AI Commands submenu is built from the active tool, so rebuild on
+  // every switch — not only the menu's own switcher (#34).
+  if (unsubscribeToolChange) unsubscribeToolChange();
+  unsubscribeToolChange = aiToolManager && typeof aiToolManager.onToolChange === 'function'
+    ? aiToolManager.onToolChange(() => createMenu())
+    : null;
 
   ipcMain.removeAllListeners(IPC.THEME_CHANGED);
   ipcMain.on(IPC.THEME_CHANGED, (event, id) => {
@@ -320,11 +329,8 @@ function buildToolSwitcherSubmenu() {
     label: tool.name,
     type: 'radio',
     checked: tool.id === activeTool.id,
-    click: () => {
-      aiToolManager.setActiveTool(tool.id);
-      // Rebuild menu with new tool
-      createMenu();
-    }
+    // setActiveTool announces the change, and init's listener rebuilds the menu.
+    click: () => aiToolManager.setActiveTool(tool.id)
   }));
 }
 

@@ -497,7 +497,7 @@ class TerminalsView {
 
     pane.querySelector('[data-close]').addEventListener('click', (e) => {
       e.stopPropagation();
-      this.manager.closeTerminal(terminalId);
+      this.manager.closeTerminal(terminalId, { reason: 'closed with its pane × in Terminals' });
     });
 
     pane.querySelector('[data-rename]').addEventListener('click', (e) => {

@@ -548,9 +548,11 @@ function runInitialFullScan(projectPath, options = {}) {
 
     let child;
     try {
-      child = spawn(options.nodePath || 'node', [parserPath, '--full', '--json'], {
+      // The app's own runtime, like structureLifecycle: a packaged app launched
+      // from Finder/launchd has no `node` on PATH (#146).
+      child = spawn(options.nodePath || process.execPath, [parserPath, '--full', '--json'], {
         cwd: projectPath,
-        env: { ...process.env, ...(options.env || {}), FRAME_PROJECT_ROOT: projectPath, FRAME_STRUCTURE_ATTEMPT_ID: attemptId },
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', ...(options.env || {}), FRAME_PROJECT_ROOT: projectPath, FRAME_STRUCTURE_ATTEMPT_ID: attemptId },
         stdio: ['ignore', 'pipe', 'pipe']
       });
     } catch (err) {

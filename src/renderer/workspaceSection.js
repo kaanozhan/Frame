@@ -829,7 +829,7 @@ function closeWorkspaceTerminals(workspaceId) {
     if (!ui) return;
     const manager = ui.getManager();
     manager.getTerminalsInScope(state.getProjectPath(), workspaceId)
-      .forEach((t) => manager.closeTerminal(t.id));
+      .forEach((t) => manager.closeTerminal(t.id, { reason: `its workspace was archived (${workspaceId})` }));
   } catch (err) {
     console.error('workspaceSection: could not close the workspace terminals', err);
   }

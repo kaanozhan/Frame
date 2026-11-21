@@ -24,6 +24,7 @@ const crypto = require('crypto');
 const os = require('os');
 const { serverTerminalId, parseServerTerminalId } = require('../shared/serverRouting');
 const { createMirror } = require('./screenMirror');
+const logger = require('../main/logger');
 
 const LOCAL_PREFIX = 'term-';
 const BOOT = crypto.randomBytes(3).toString('hex');
@@ -113,8 +114,13 @@ function setup({ shim, registerMethods, broadcast }) {
       }
       return null;
     },
-    'terminals.destroy': async ({ terminalId }) => {
-      if (meta.has(terminalId)) ptyManager.destroyTerminal(toLocalId(terminalId));
+    'terminals.destroy': async ({ terminalId, reason = null }) => {
+      // The desktop says why (its closeTerminal callers); logged next to
+      // ptyManager's "Destroyed terminal" so a vanished terminal is traceable.
+      if (meta.has(terminalId)) {
+        logger.info('terminals', `Close requested for ${terminalId} by the desktop: ${typeof reason === 'string' && reason ? reason.slice(0, 500) : 'no reason given (older desktop)'}`);
+        ptyManager.destroyTerminal(toLocalId(terminalId));
+      }
       const m = meta.get(terminalId);
       if (m) { m.mirror.dispose(); meta.delete(terminalId); }
       // The PTY's exit sends terminal.destroyed (ptyManager → fake window).

@@ -118,9 +118,7 @@ function loadConfig() {
     detectDefaultTool().then((toolId) => {
       config.activeTool = toolId;
       saveConfig();
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send(IPC.AI_TOOL_CHANGED, getActiveTool());
-      }
+      announceToolChange();
     }).catch((err) => {
       logger.warn('aiToolManager', 'default tool detection failed:', err.message);
     });
@@ -166,14 +164,39 @@ function setActiveTool(toolId) {
     saveConfig();
     if (changed) analytics.track('ai_tool_selected', { tool: toolId });
 
-    // Notify renderer about the change
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC.AI_TOOL_CHANGED, getActiveTool());
-    }
+    announceToolChange();
 
     return true;
   }
   return false;
+}
+
+/**
+ * Main-process listeners for the active tool (the app menu, whose AI
+ * Commands submenu is built from it). Every path that changes the tool —
+ * the renderer's selector over SET_AI_TOOL, the menu's own switcher,
+ * first-run detection — goes through announceToolChange, so no surface
+ * keeps the previous tool's commands (#34).
+ */
+const toolChangeListeners = new Set();
+
+function onToolChange(listener) {
+  toolChangeListeners.add(listener);
+  return () => toolChangeListeners.delete(listener);
+}
+
+function announceToolChange() {
+  const tool = getActiveTool();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(IPC.AI_TOOL_CHANGED, tool);
+  }
+  for (const listener of toolChangeListeners) {
+    try {
+      listener(tool);
+    } catch (err) {
+      logger.warn('aiToolManager', 'tool change listener failed:', err.message);
+    }
+  }
 }
 
 /**
@@ -239,12 +262,17 @@ function composeLaunchCommand(command, launchFlags) {
   return [command, ...launchFlags.map(quoteArg)].join(' ');
 }
 
-function isPathLike(command) {
-  return !!command && (
-    command.startsWith('./') ||
-    command.startsWith('../') ||
-    command.startsWith('/')
-  );
+/**
+ * True when the command names a file rather than a PATH lookup: absolute
+ * (`/usr/bin/x`, `C:\tools\x.exe`, `\\host\share\x`) or explicitly relative
+ * (`./x`, `../x`, and on Windows `.\x`, `..\x`). `p` is injectable so tests
+ * can check the Windows rules on any platform (#203).
+ */
+function isPathLike(command, p = path) {
+  if (!command) return false;
+  if (p.isAbsolute(command)) return true;
+  const prefixes = p.sep === '\\' ? ['./', '../', '.\\', '..\\'] : ['./', '../'];
+  return prefixes.some((prefix) => command.startsWith(prefix));
 }
 
 /**
@@ -262,7 +290,7 @@ async function isCommandAvailable(command, projectPath) {
 
   // Path-based command: check the binary actually exists & is executable.
   if (isPathLike(command)) {
-    const target = command.startsWith('/')
+    const target = path.isAbsolute(command)
       ? command
       : (projectPath ? path.resolve(projectPath, command) : command);
     try {
@@ -450,10 +478,12 @@ module.exports = {
   checkToolAvailable,
   getActiveTool,
   setActiveTool,
+  onToolChange,
   getConfig,
   getCommand,
   getStartCommand,
   composeLaunchCommand,
+  isPathLike,
   addCustomTool,
   removeCustomTool,
   AI_TOOLS
