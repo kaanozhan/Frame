@@ -25447,14 +25447,14 @@
           "purpose": "How much additionalContext this CLI inlines before it truncates."
         },
         "dialect": {
-          "line": 250,
+          "line": 264,
           "params": [
             "cli"
           ],
           "purpose": "Phrase values for one CLI, falling back to Claude Code's."
         }
       },
-      "sizeBytes": 10006,
+      "sizeBytes": 11167,
       "extraction": {
         "status": "parsed"
       },
@@ -34382,7 +34382,7 @@
         "scripts/toolVocabulary"
       ],
       "functions": {},
-      "sizeBytes": 7426,
+      "sizeBytes": 8098,
       "extraction": {
         "status": "parsed"
       },
@@ -37216,6 +37216,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "1f5264b9d984ecbcddf0bcb9163790eb4bb4c7200dc98de6f6ddb363918654b4"
+    "revision": "77aa02b1fcd90b7d7c17ddd4052e3022ea0c58c07a13dfb78cb188836820eb20"
   }
 }

@@ -14,3 +14,11 @@ _Captured: 2026-11-21 · 5 file change(s)_
 
 ---
 
+## T03 — Add the full_auto_offer dialect value
+
+Added full_auto_offer to both dialects in scripts/toolVocabulary.js, five lines each so the rendered spec.new prompts stay line-for-line comparable, and pinned it in test/toolVocabulary.test.js. No template uses it yet (T06).
+
+_Captured: 2026-11-21 · 2 file change(s)_
+
+---
+

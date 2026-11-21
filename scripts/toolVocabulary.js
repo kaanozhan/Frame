@@ -213,7 +213,7 @@ function inlineCap(cli) {
  * gaps, delivered through the same `{token}` interpolation the templates
  * already use for slug and title.
  *
- * `ask_mechanism` is the only substantive one. Claude Code has a structured
+ * `ask_mechanism` and `full_auto_offer` are the substantive ones. Claude Code has a structured
  * question tool; the templates' own fallback for a CLI without one is to
  * print a numbered list and wait, which is what Codex gets. Wording is kept
  * close so a diff between the two rendered prompts stays small and readable.
@@ -229,7 +229,14 @@ const DIALECT = {
     // shipped, and tokenising a sentence must not reflow the document.
     autonomous_handoff: 'Click the\n   implement button on this spec\'s page in Frame and pick Autonomous, or run\n'
       + '   `node .frame/bin/implement-launch.js {slug}` in a fresh terminal — either\n'
-      + '   one starts implementing with no further input.'
+      + '   one starts implementing with no further input.',
+    // spec.new's closing question (full-auto-spec-flow). Five lines for both
+    // CLIs, so the rendered spec.new documents stay line-for-line comparable.
+    full_auto_offer: 'Ask once, with the `AskUserQuestion` tool, how the rest of this spec runs:\n'
+      + '- **Step by step** — stop here; the user drives plan, tasks and implement from\n'
+      + '  Frame\'s spec page, one phase per click.\n'
+      + '- **Full auto** — plan, tasks and implement run to the end in one new session\n'
+      + '  launched with the autonomous permission flags, with no further questions.'
   },
   [CODEX]: {
     tool_id: CODEX,
@@ -242,7 +249,14 @@ const DIALECT = {
     // them line for line.
     autonomous_handoff: 'Autonomous is not\n   available for Codex yet: Frame\'s launcher still resolves Claude Code\n'
       + '   paths. Offer **guided** instead — the same task-by-task loop, paced by\n'
-      + '   Codex\'s own approval prompts.'
+      + '   Codex\'s own approval prompts.',
+    // Full auto needs the same flagged launch autonomous does, so Codex is
+    // not offered it: the closing question collapses to step by step.
+    full_auto_offer: 'Do not offer full auto: it needs Claude Code\'s autonomous permission\n'
+      + 'flags, which Frame\'s launcher cannot pass to Codex yet. The only option is:\n'
+      + '- **Step by step** — stop here; the user drives plan, tasks and implement from\n'
+      + '  Frame\'s spec page, one phase per click. Record it without asking.\n'
+      + '- (Full auto is not available for Codex.)'
   }
 };
 
