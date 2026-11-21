@@ -455,7 +455,8 @@ test('hook entries are replaced with the guarded form', () => {
   const commands = Object.values(settings.hooks).flat().flatMap((e) => e.hooks.map((h) => h.command))
     .filter((c) => !c.includes('FRAME_SESSION_DIR'));
   assert.equal(commands.length, 6);
-  assert.ok(commands.every((c) => /^sh -c '\[ ! -f \.frame\/bin\/(spec|module|docs|spec-command)-hint\.js \] \|\|/.test(c)), 'guard exits 0');
+  // hooks-run-from-project-root: the guard follows a `cd` to the session's project root.
+  assert.ok(commands.every((c) => /^sh -c 'cd "\$\{CLAUDE_PROJECT_DIR:-\.\}" 2>\/dev\/null; \[ ! -f \.frame\/bin\/(spec|module|docs|spec-command)-hint\.js \] \|\|/.test(c)), 'guard exits 0');
   assert.deepEqual(settings.permissions.allow, ['Bash(npm test)'], 'the rest of the file survives');
 });
 

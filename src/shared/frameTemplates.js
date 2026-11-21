@@ -993,8 +993,23 @@ function getFrameGitignoreBlock() {
  * binary needs `ELECTRON_RUN_AS_NODE=1` to act as Node; real Node ignores it.
  * With neither, and with no `.frame/bin/<script>`, the hook exits 0: a
  * missing helper is never a failing hook.
+ *
+ * It first moves to the project root (hooks-run-from-project-root). Claude
+ * Code runs a hook in the session's current directory, which follows the
+ * agent's `cd`; from a subfolder `.frame/bin/<script>` was not found and the
+ * hint was silently skipped. `$CLAUDE_PROJECT_DIR` is the folder the session
+ * started in and does not follow `cd` — a workspace's worktree when Claude
+ * runs there (measured with Claude Code 2.1.328). Unset, or a `cd` that
+ * fails, leaves the hook where it was: the behaviour before this change.
+ * Paths stay relative, so a Windows-style value only has to work with `cd`.
  */
 function hintCommand(script, mode) {
+  return `sh -c 'cd "\${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null; [ ! -f .frame/bin/${script} ] || { n=$(command -v node || printf %s "$FRAME_NODE"); `
+    + `[ -z "$n" ] || ELECTRON_RUN_AS_NODE=1 exec "$n" .frame/bin/${script} ${mode}; }'`;
+}
+
+/** hintCommand as shipped before hooks-run-from-project-root, without the `cd` — kept to recognise and upgrade it. */
+function hintCommandBeforeProjectRoot(script, mode) {
   return `sh -c '[ ! -f .frame/bin/${script} ] || { n=$(command -v node || printf %s "$FRAME_NODE"); `
     + `[ -z "$n" ] || ELECTRON_RUN_AS_NODE=1 exec "$n" .frame/bin/${script} ${mode}; }'`;
 }
@@ -1155,6 +1170,14 @@ const LEGACY_SPEC_HINT_COMMANDS = [
   "sh -c '[ ! -f .frame/bin/spec-hint.js ] || exec node .frame/bin/spec-hint.js prompt'",
   "sh -c '[ ! -f .frame/bin/spec-command-hint.js ] || exec node .frame/bin/spec-command-hint.js prompt'",
   "sh -c '[ ! -f .frame/bin/docs-hint.js ] || exec node .frame/bin/docs-hint.js session-start'",
+  // Before hooks-run-from-project-root: no `cd` to the project root, so a
+  // hook after the agent's `cd` into a subfolder skipped silently.
+  hintCommandBeforeProjectRoot('spec-hint.js', 'pre-edit'),
+  hintCommandBeforeProjectRoot('module-hint.js', 'search'),
+  hintCommandBeforeProjectRoot('docs-hint.js', 'pre-edit'),
+  hintCommandBeforeProjectRoot('spec-hint.js', 'prompt'),
+  hintCommandBeforeProjectRoot('spec-command-hint.js', 'prompt'),
+  hintCommandBeforeProjectRoot('docs-hint.js', 'session-start'),
 ];
 
 /**
