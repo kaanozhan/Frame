@@ -120,7 +120,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 13764,
+      "sizeBytes": 15901,
       "extraction": {
         "status": "parsed"
       },
@@ -28242,6 +28242,68 @@
         }
       }
     },
+    "shared/specFlow": {
+      "file": "src/shared/specFlow.js",
+      "description": "specFlow — the rules behind a spec's flow mode (full-auto-spec-flow spec).",
+      "exports": [
+        "FLOW_STEP_BY_STEP",
+        "FLOW_FULL_AUTO",
+        "FLOW_MODES",
+        "normalizeFlowMode",
+        "shouldStartFullAuto",
+        "fullAutoResumeAction",
+        "fullAutoStageLabel"
+      ],
+      "depends": [],
+      "functions": {
+        "normalizeFlowMode": {
+          "line": 27,
+          "params": [
+            "status"
+          ],
+          "purpose": "The flow mode a status (or a SPEC_DATA list entry) declares, or null when it"
+        },
+        "shouldStartFullAuto": {
+          "line": 47,
+          "params": [
+            "prevEntry",
+            "nextEntry",
+            "isBound"
+          ],
+          "purpose": "Whether Frame should start a full-auto run now."
+        },
+        "fullAutoResumeAction": {
+          "line": 62,
+          "params": [
+            "status",
+            "laneAlive"
+          ],
+          "purpose": "The next action for a full-auto spec with no live run, or null when the"
+        },
+        "fullAutoStageLabel": {
+          "line": 82,
+          "params": [
+            "phase",
+            "counts",
+            "laneStatus"
+          ],
+          "purpose": "The heading of the locked bar while a full-auto run is live."
+        }
+      },
+      "sizeBytes": 4289,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "03cf31b9e38340dc",
+        "purposes": {
+          "fullAutoResumeAction": "c00f90c38832bf8a",
+          "fullAutoStageLabel": "0051f6a9f3ee1594",
+          "normalizeFlowMode": "4a68995e602548ff",
+          "shouldStartFullAuto": "e82e08310218fb8e"
+        }
+      }
+    },
     "shared/sshErrors": {
       "file": "src/shared/sshErrors.js",
       "description": "sshErrors — what an ssh failure means, in words a first-time user can act",
@@ -33321,6 +33383,24 @@
         "description": "819d5f372129ba9e"
       }
     },
+    "test/specFlow.test": {
+      "file": "test/specFlow.test.js",
+      "description": "specFlow — the flow-mode rules (full-auto-spec-flow spec, T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/specFlow"
+      ],
+      "functions": {},
+      "sizeBytes": 3678,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "056cb592644b9eb1"
+      }
+    },
     "test/specImplementBranch.test": {
       "file": "test/specImplementBranch.test.js",
       "description": "spec.implement's pre-flight branch rule in a Frame workspace.",
@@ -35945,6 +36025,18 @@
         "description": "sendFilesModel — the rules behind the \"Send files to server\" modal"
       }
     ],
+    "flow": [
+      {
+        "module": "shared/prFlow",
+        "file": "src/shared/prFlow.js",
+        "description": "prFlow — the rules behind a workspace's way out: push, pull request,"
+      },
+      {
+        "module": "shared/specFlow",
+        "file": "src/shared/specFlow.js",
+        "description": "specFlow — the rules behind a spec's flow mode (full-auto-spec-flow spec)."
+      }
+    ],
     "frame": [
       {
         "module": "main/frameStore",
@@ -37020,7 +37112,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 412,
+        "parsed": 414,
         "unsupported": 92,
         "partial": 0
       }
@@ -37067,9 +37159,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 598,
+      "visitedEntries": 600,
       "traversedDirectories": 86,
-      "eligibleFiles": 504,
+      "eligibleFiles": 506,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -37086,7 +37178,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 504,
+      "indexedFiles": 506,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -37094,6 +37186,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "ed9a2406e0eaa04d6985b2aa7ba92f503750e0ebc2b866b58ce5570bcb5ee0be"
+    "revision": "199d2695b476180a0186df60d45bb302045a40d02ad215ae1655388ade5293ce"
   }
 }

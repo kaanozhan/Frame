@@ -1,7 +1,7 @@
 {
   "slug": "full-auto-spec-flow",
   "title": "Full-auto spec flow",
-  "phase": "tasks_generated",
+  "phase": "implementing",
   "generated_task_ids": [
     "task-spec-full-auto-spec-flow-T01",
     "task-spec-full-auto-spec-flow-T02",
@@ -16,6 +16,7 @@
   ],
   "ai_tool": "claude-code",
   "created_at": "2026-11-21T13:34:29Z",
-  "updated_at": "2026-11-21T13:59:19.514Z",
-  "last_phase_at": "2026-11-21T13:59:19Z"
+  "updated_at": "2026-11-21T14:05:56.321Z",
+  "last_phase_at": "2026-11-21T14:05:56.321Z",
+  "implement_mode": "guided"
 }
