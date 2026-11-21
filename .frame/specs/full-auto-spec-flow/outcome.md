@@ -62,3 +62,11 @@ _Captured: 2026-11-21 · 2 file change(s)_
 
 ---
 
+## T09 — Start a full-auto run on the live transition
+
+Added knownSpecEntries, fullAutoStarted and _startFullAutoOnTransition to agentDispatch; _startFullAuto now marks the slug before its own status write so the flow modal's full-auto start is not seen as a second transition (split into _startFullAuto/_startFullAutoRun). Deviation: the double-start guard is beyond the plan's wording; without it the modal path would launch two flagged lanes.
+
+_Captured: 2026-11-21 · 1 file change(s)_
+
+---
+

@@ -28,7 +28,7 @@ const notify = require('./notify');
 const implementModeModal = require('./implementModeModal');
 const flowModeModal = require('./flowModeModal');
 const specNextAction = require('./specNextAction');
-const { FLOW_STEP_BY_STEP, FLOW_FULL_AUTO } = require('../shared/specFlow');
+const { FLOW_STEP_BY_STEP, FLOW_FULL_AUTO, shouldStartFullAuto } = require('../shared/specFlow');
 const reportSection = require('./reportSection');
 
 let multiTerminalUI = null;
@@ -703,6 +703,15 @@ async function dispatchFullAuto({ slug, title = null } = {}) {
 }
 
 async function _startFullAuto({ slug, projectPath, assignment, phase }) {
+  // Marked before the status write below: that write reaches _onSpecData as a
+  // full-auto transition on a bound slug, and must not start a second run.
+  fullAutoStarted.add(slug);
+  const result = await _startFullAutoRun({ slug, projectPath, assignment, phase });
+  if (!result || !result.success) fullAutoStarted.delete(slug);
+  return result;
+}
+
+async function _startFullAutoRun({ slug, projectPath, assignment, phase }) {
   // Recorded before staging, like implement_mode in _dispatchImplement: the
   // run's implement phase resolves the autonomous mode from status.json.
   if (!(await _recordStatus(projectPath, slug, { flow_mode: FLOW_FULL_AUTO, implement_mode: 'autonomous' }))) {
@@ -863,6 +872,12 @@ const specCreatorLanes = new Map(); // Map<terminalId, {defaultName: string}>
 // spec in the new project as new.
 let knownSpecSlugs = null;
 let knownSpecProject = null;
+// The same push's entries by slug (full-auto-spec-flow): the full-auto
+// trigger diffs each spec's flow_mode against its previous entry.
+let knownSpecEntries = null; // Map<slug, entry>
+// Slugs a full-auto run was started for in this session, so a repeated push
+// of the same transition can never launch a second flagged lane.
+const fullAutoStarted = new Set();
 
 /** Still open, and still carrying the transient name we gave it. */
 function _isSpecCreatorLane(terminalId) {
@@ -885,8 +900,12 @@ function _onSpecData(specs) {
   const projectPath = state.getProjectPath();
   const incoming = new Set((specs || []).map((s) => s && s.slug).filter(Boolean));
   const previous = knownSpecProject === projectPath ? knownSpecSlugs : null;
+  const previousEntries = knownSpecProject === projectPath ? knownSpecEntries : null;
   knownSpecSlugs = incoming;
   knownSpecProject = projectPath;
+  knownSpecEntries = new Map((specs || []).filter((s) => s && s.slug).map((s) => [s.slug, s]));
+
+  if (previousEntries) _startFullAutoOnTransition(previousEntries, knownSpecEntries);
 
   // The opening snapshot has nothing to diff against: every spec in it already
   // existed, so none of them is "newly created".
@@ -899,6 +918,28 @@ function _onSpecData(specs) {
   if (waiting.length !== 1) return;
 
   _bindSpecCreatorLane(waiting[0], appeared[0]);
+}
+
+/**
+ * The agent that wrote a spec in this window recorded full auto: start the
+ * run (full-auto-spec-flow). Only a live transition on a slug bound to an open
+ * lane here counts — see specFlow.shouldStartFullAuto — so a pull, a project
+ * open or another window's write never launches a flagged session.
+ */
+function _startFullAutoOnTransition(previousEntries, nextEntries) {
+  for (const [slug, next] of nextEntries) {
+    if (fullAutoStarted.has(slug)) continue;
+    const bound = !!_assignedLane(slug);
+    if (!shouldStartFullAuto(previousEntries.get(slug) || null, next, bound)) continue;
+    // _startFullAuto marks the slug and unmarks it when the run never
+    // started, so Resume Full Auto… can retry.
+    dispatchFullAuto({ slug, title: next.title || slug })
+      .catch((err) => {
+        console.error('agentDispatch: full-auto start failed', err);
+        fullAutoStarted.delete(slug);
+        notify.error('Could not start the full-auto run');
+      });
+  }
 }
 
 function _bindSpecCreatorLane(terminalId, slug) {
