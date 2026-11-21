@@ -61,7 +61,8 @@ function execGit(command, projectPath) {
  * create) go through here; the others keep execGit's string form for now
  * (status-bar-branch-picker spec, D7). Rejects with git's own stderr as
  * `error` when there is one, so a refusal such as "already checked out at
- * …" reaches the UI verbatim.
+ * …" reaches the UI verbatim. `opts` sets execFile's `timeout` and
+ * `maxBuffer` (a larger one for a file read through git).
  */
 // `git status` and `git diff` refresh the index's stat cache, which takes
 // index.lock: a read Frame runs in the background could then make an agent's
@@ -112,6 +113,40 @@ async function localBranchExists(name, projectPath) {
     return true;
   } catch (_) {
     return false;
+  }
+}
+
+/** Does `refs/remotes/origin/<name>` exist in this repo? Nothing is fetched: it is what this machine has. */
+async function remoteBranchExists(name, projectPath) {
+  try {
+    await execGitArgs(['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${name}`], projectPath);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/** The checked-out branch's name, or '' when HEAD is detached or git fails. */
+async function currentBranch(projectPath) {
+  try {
+    const { stdout } = await execGitArgs(['rev-parse', '--abbrev-ref', 'HEAD'], projectPath);
+    return stdout === 'HEAD' ? '' : stdout;
+  } catch (_) {
+    return '';
+  }
+}
+
+/**
+ * Stash every change, untracked files included (`git stash push -u -m`), so
+ * what `git status --porcelain` listed is what gets stashed. Ignored files
+ * stay. → `{ error: null }` or `{ error }`.
+ */
+async function stashAll(projectPath, message) {
+  try {
+    await execGitArgs(['stash', 'push', '-u', '-m', message], projectPath);
+    return { error: null };
+  } catch (err) {
+    return { error: err.error || err.message };
   }
 }
 
@@ -237,9 +272,10 @@ async function switchBranch(projectPath, branchName) {
 }
 
 /**
- * Create a new branch
+ * Create a new branch. `{ track: false }` cuts it with `--no-track`, so a
+ * branch made from a remote base does not track that base.
  */
-async function createBranch(projectPath, branchName, checkout = true, baseBranch = null) {
+async function createBranch(projectPath, branchName, checkout = true, baseBranch = null, { track } = {}) {
   if (!projectPath || !branchName) {
     return { error: 'Missing parameters' };
   }
@@ -250,7 +286,10 @@ async function createBranch(projectPath, branchName, checkout = true, baseBranch
   }
 
   try {
-    const args = checkout ? ['checkout', '-b', branchName] : ['branch', branchName];
+    const args = checkout ? ['checkout'] : ['branch'];
+    if (track === false) args.push('--no-track');
+    if (checkout) args.push('-b');
+    args.push(branchName);
     if (baseBranch) args.push(baseBranch);
     await execGitArgs(args, projectPath);
     return { error: null, branch: branchName };
@@ -780,6 +819,64 @@ async function getHeadSha(projectPath) {
   }
 }
 
+// ─── Reading a branch without checking it out (frame-cloud-brief-done) ──
+
+/** A file read through git may be a large tasks.json; execFile's default buffer is 1 MB. */
+const SHOW_MAX_BUFFER = 32 * 1024 * 1024;
+
+/** A value safe to pass as a revision: a non-empty string git cannot read as an option. */
+function isRevArg(value) {
+  return typeof value === 'string' && value.length > 0 && !value.startsWith('-');
+}
+
+/** The full commit id a local branch points at, or null when there is no such branch. */
+async function branchTipSha(projectPath, name) {
+  if (!isRevArg(name)) return null;
+  try {
+    const { stdout } = await execGitArgs(['rev-parse', '--verify', '--quiet', `refs/heads/${name}^{commit}`], projectPath);
+    return stdout || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * A file's text as committed at `ref` (`git show <ref>:./<relPath>`, the path
+ * relative to `projectPath`), without a checkout. null when the file or the
+ * ref is not there.
+ */
+async function showFileAt(projectPath, ref, relPath) {
+  if (!isRevArg(ref) || typeof relPath !== 'string' || !relPath) return null;
+  try {
+    const { stdout } = await execGitArgs(['show', `${ref}:./${relPath}`], projectPath, { maxBuffer: SHOW_MAX_BUFFER });
+    return stdout;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Does this repository hold `sha` as a commit? */
+async function commitExists(projectPath, sha) {
+  if (!isRevArg(sha)) return false;
+  try {
+    await execGitArgs(['cat-file', '-e', `${sha}^{commit}`], projectPath);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/** Is commit `a` an ancestor of `b`, or the same commit? false when either is unknown. */
+async function isAncestor(projectPath, a, b) {
+  if (!isRevArg(a) || !isRevArg(b)) return false;
+  try {
+    await execGitArgs(['merge-base', '--is-ancestor', a, b], projectPath);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 async function branchExists(projectPath, branchName) {
   try {
     await execGit(`git rev-parse --verify --quiet "refs/heads/${branchName}"`, projectPath);
@@ -978,6 +1075,14 @@ module.exports = {
   addWorktree,
   removeWorktree,
   isWorkingTreeClean,
+  localBranchExists,
+  remoteBranchExists,
+  currentBranch,
+  stashAll,
+  branchTipSha,
+  showFileAt,
+  commitExists,
+  isAncestor,
   setupIPC,
   // Workspace helpers (workspaces spec)
   execGitArgs,

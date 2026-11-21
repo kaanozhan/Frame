@@ -114,7 +114,8 @@
   --modal-width-compact: 420px;
   /* The one deliberate exception to the standard: the How to Use Frame
      guide is an index tree beside a page with an illustration, which does
-     not read at 640px (how-to-use-frame-guide spec). Nothing else uses it. */
+     not read at 640px (how-to-use-frame-guide spec). Frame Cloud's modal
+     shares it: a workspace-wide project table beside its actions. */
   --modal-width-wide: 1040px;
 
   /* Border Radius */

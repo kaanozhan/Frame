@@ -14,20 +14,28 @@
  *
  * None of this touches `ipcRenderer` (D3, S6) — `homeData` owns the tool
  * write, `agentDispatch` owns the launch.
+ *
+ * Beside the greeting sits the open folder's started Frame Cloud milestone
+ * (frame-cloud-milestones D4): the Briefs strip's facts on one line — name,
+ * Overdue, end date, a bar and "N of M done" — as one button that opens
+ * Briefs narrowed to it. It shows only while homeData's `milestone` source
+ * holds one, which it does only while the folder's Briefs are available.
  */
 
 const { Terminal } = require('lucide');
 const { escapeHtml } = require('./../../htmlUtils');
 const notify = require('./../../notify');
 const homeData = require('./../homeData');
+const copy = require('./../../cloudBriefsCopy');
 
 const PLACEHOLDER = 'Give your prompt, e.g. Add a dark mode toggle';
+const MILESTONE_HINT = 'Open Briefs on this milestone';
 
 module.exports = {
   id: 'agents',
   title: 'New agent',
   icon: Terminal,
-  sources: ['aiTool'],
+  sources: ['aiTool', 'milestone'],
   defaultSpan: 1,
   defaultEnabled: true,
 
@@ -36,6 +44,8 @@ module.exports = {
   mount(el, ctx) {
     this.ctx = ctx;
     this._starting = false;
+    this._milestoneKey = undefined;
+    this._milestoneId = null;
 
     this.el = document.createElement('div');
     this.el.className = 'home-composer';
@@ -46,7 +56,10 @@ module.exports = {
     // box's bottom row, picker left, Start right.
     this.el.innerHTML = `
       <div class="home-composer-stack">
-        <h1 class="home-composer-title">Welcome to Frame!</h1>
+        <div class="home-composer-head">
+          <h1 class="home-composer-title">Welcome to Frame!</h1>
+          <button type="button" class="home-milestone" title="${escapeHtml(MILESTONE_HINT)}" hidden></button>
+        </div>
         <div class="home-composer-box">
           <textarea class="home-composer-input" rows="5" spellcheck="false"
                     aria-label="Prompt for the agent" placeholder="${escapeHtml(PLACEHOLDER)}"></textarea>
@@ -67,9 +80,11 @@ module.exports = {
     this.inputEl = this.el.querySelector('.home-composer-input');
     this.toolEl = this.el.querySelector('.home-agent-tool');
     this.startEl = this.el.querySelector('.home-agent-start');
+    this.milestoneEl = this.el.querySelector('.home-milestone');
 
     this.toolEl.addEventListener('change', () => this._setTool(this.toolEl.value));
     this.startEl.addEventListener('click', () => this._start());
+    this.milestoneEl.addEventListener('click', () => this._openMilestone());
     this.inputEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
@@ -85,11 +100,54 @@ module.exports = {
     });
 
     el.appendChild(this.el);
+
+    // A Home visit, and coming back to Frame while Home is on screen, read the
+    // milestone again once it is older than 30 s (D12). No timers.
+    homeData.refreshMilestoneIfStale();
+    this._onFocus = () => {
+      if (this.el && this.el.isConnected) homeData.refreshMilestoneIfStale();
+    };
+    window.addEventListener('focus', this._onFocus);
   },
 
-  update({ aiTool }) {
+  update({ aiTool, milestone }) {
     if (!this.el) return;
     this._renderTool(aiTool);
+    this._renderMilestone(milestone ? milestone.milestone : null);
+  },
+
+  /**
+   * The started milestone's pill, or hidden without one. Rebuilt only when
+   * what it says changes (home-widget-board C1), like the tool options.
+   */
+  _renderMilestone(milestone) {
+    const summary = copy.milestoneSummary(milestone, copy.localToday());
+    const key = JSON.stringify(summary);
+    if (key === this._milestoneKey) return;
+    this._milestoneKey = key;
+    this._milestoneId = summary ? summary.id : null;
+    if (!summary) {
+      this.milestoneEl.hidden = true;
+      this.milestoneEl.innerHTML = '';
+      return;
+    }
+    const parts = [`<span class="home-milestone-name">${escapeHtml(summary.name)}</span>`];
+    if (summary.overdue) parts.push(`<span class="home-milestone-overdue">${escapeHtml(copy.OVERDUE_LABEL)}</span>`);
+    if (summary.ends) parts.push(`<span class="home-milestone-ends">${escapeHtml(summary.ends)}</span>`);
+    if (summary.progress) {
+      const percent = Number(summary.progress.percent) || 0;
+      parts.push(`<span class="home-milestone-bar" role="progressbar" aria-label="${escapeHtml(copy.milestoneProgressLabel(summary.name))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width: ${percent}%"></span></span>`);
+      parts.push(`<span class="home-milestone-progress">${escapeHtml(summary.progress.label)}</span>`);
+    }
+    parts.push('<svg class="home-milestone-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>');
+    this.milestoneEl.innerHTML = parts.join('');
+    this.milestoneEl.hidden = false;
+  },
+
+  /** Briefs, narrowed to the tracker's milestone. */
+  _openMilestone() {
+    if (!this._milestoneId) return;
+    require('./../../cloudBriefsPanel').openMilestone(this._milestoneId);
   },
 
   _start() {
@@ -158,11 +216,16 @@ module.exports = {
   },
 
   dispose() {
+    if (this._onFocus) window.removeEventListener('focus', this._onFocus);
+    this._onFocus = null;
     this.el = null;
     this.inputEl = null;
     this.toolEl = null;
     this.startEl = null;
+    this.milestoneEl = null;
     this._toolIds = null;
+    this._milestoneKey = undefined;
+    this._milestoneId = null;
     this.ctx = null;
   }
 };

@@ -685,6 +685,24 @@
   background: var(--menu-hover);
 }
 
+/* With an action: the button sits at the end, as the sticky variant's × does. */
+.app-toast .toast-action {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.app-toast .toast-action:hover {
+  background: var(--bg-hover);
+}
+
 .app-toast-success .toast-icon {
   color: var(--success);
 }
@@ -759,6 +777,26 @@
 #sessions-panel:not(.visible) {
   transform: translateX(100%);
   opacity: 0;
+  pointer-events: none;
+}
+
+/* Briefs (frame-cloud-briefs-read-only): the same hidden-at-home, shown-
+   when-mounted rules as Sessions. position: relative anchors the detail
+   drawer (.specs-dashboard-detail is absolute, inset 0). The board and
+   detail themselves live in cloud-briefs.css. */
+#cloud-briefs-panel {
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+#cloud-briefs-panel.visible {
+  display: flex;
+}
+
+#cloud-briefs-panel:not(.visible) {
   pointer-events: none;
 }
 

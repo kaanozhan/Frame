@@ -1,0 +1,30 @@
+{
+  "slug": "frame-cloud-brief-discussions",
+  "title": "Frame Cloud brief discussions",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-frame-cloud-brief-discussions-T01",
+    "task-spec-frame-cloud-brief-discussions-T02",
+    "task-spec-frame-cloud-brief-discussions-T03",
+    "task-spec-frame-cloud-brief-discussions-T04",
+    "task-spec-frame-cloud-brief-discussions-T05",
+    "task-spec-frame-cloud-brief-discussions-T06",
+    "task-spec-frame-cloud-brief-discussions-T07",
+    "task-spec-frame-cloud-brief-discussions-T08",
+    "task-spec-frame-cloud-brief-discussions-T09",
+    "task-spec-frame-cloud-brief-discussions-T10",
+    "task-spec-frame-cloud-brief-discussions-T11",
+    "task-spec-frame-cloud-brief-discussions-T12",
+    "task-spec-frame-cloud-brief-discussions-T13",
+    "task-spec-frame-cloud-brief-discussions-T14",
+    "task-spec-frame-cloud-brief-discussions-T15",
+    "task-spec-frame-cloud-brief-discussions-T16",
+    "task-spec-frame-cloud-brief-discussions-T17",
+    "task-spec-frame-cloud-brief-discussions-T18"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-09-21T00:00:00Z",
+  "updated_at": "2026-09-21T12:13:24.393Z",
+  "last_phase_at": "2026-09-21T12:13:24.393Z",
+  "implement_mode": "autonomous"
+}

@@ -29,12 +29,12 @@ function missingFields(task) {
   return READY_FIELDS.filter(field => !filled(task[field]));
 }
 
-function formatStep(task, missing) {
+function formatStep(task, missing, tasksFile) {
   const fields = missing.map(f => `\`${f}\``).join(' and ');
   // The entry in tasks.json is where the agent finds the user's original
   // request (`userRequest`) when the New Task form recorded one.
   return `this task is not ready yet: its ${fields} ${missing.length > 1 ? 'are' : 'is'} empty.`
-    + ` Read this task in tasks.json (task id: ${task.id}) and the code it concerns, then write ${missing.length > 1 ? 'them' : 'it'} into that entry.`
+    + ` Read this task in ${tasksFile} (task id: ${task.id}) and the code it concerns, then write ${missing.length > 1 ? 'them' : 'it'} into that entry.`
     + ` Never add or change \`userRequest\`.`
     + ` Show me the acceptance criteria and wait for my confirmation before continuing`;
 }
@@ -48,8 +48,15 @@ function formatStep(task, missing) {
  * when none was given — suggest one and wait for confirmation before
  * creating it. Uncommitted-check comes before the branch so the branch
  * decision is never made on top of an unresolved working tree.
+ *
+ * `opts.tasksPath` names the tasks file by its absolute path. A task begun
+ * in a workspace (frame-cloud-start-workspace) runs in a worktree whose own
+ * `tasks.json` is the branch's copy, while its row lives in the main
+ * checkout's file (spec-in-workspace's `{tasks_path}` rule). Without it the
+ * prompt says "tasks.json" as it always has.
  */
 function buildTaskPrompt(task, opts = {}) {
+  const tasksFile = filled(opts.tasksPath) ? opts.tasksPath : 'tasks.json';
   let prompt = `Work on this task: ${task.title}`;
   if (task.description) prompt += `. ${task.description}`;
   if (task.priority === 'high') prompt += ` (High priority)`;
@@ -57,7 +64,7 @@ function buildTaskPrompt(task, opts = {}) {
 
   const steps = [];
   const missing = missingFields(task);
-  if (missing.length > 0) steps.push(formatStep(task, missing));
+  if (missing.length > 0) steps.push(formatStep(task, missing, tasksFile));
 
   if (opts.branchMode === 'new') {
     const branchStep = opts.newBranchName
@@ -77,7 +84,8 @@ function buildTaskPrompt(task, opts = {}) {
   // when it's genuinely done; the tasks watcher pushes the change straight
   // back into the UI. Terminal-side signals can't tell "done" from
   // "stopped", so this stays the only auto-completion path.
-  prompt += ` When the task is fully complete, update this task's status to "completed" in tasks.json (task id: ${task.id}).`;
+  prompt += ` When the task is fully complete, update this task's status to "completed" in ${tasksFile} (task id: ${task.id}).`;
+  if (tasksFile !== 'tasks.json') prompt += ` Use that exact file, not a tasks.json inside the working folder.`;
 
   return prompt;
 }

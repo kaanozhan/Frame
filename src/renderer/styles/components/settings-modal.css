@@ -423,3 +423,8 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* The Account row keeps the About row styles; its panes moved to cloud-hub.css. */
+#settings-account[hidden] {
+  display: none !important;
+}

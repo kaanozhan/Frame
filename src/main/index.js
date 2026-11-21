@@ -47,6 +47,13 @@ const gitDiffManager = require('./gitDiffManager');
 const analytics = require('./analytics');
 const specManager = require('./specManager');
 const orchestrationManager = require('./orchestrationManager');
+const cloudSession = require('./cloud/cloudSession');
+const cloudProjectsService = require('./cloud/cloudProjectsService');
+const cloudBriefsService = require('./cloud/cloudBriefsService');
+const cloudDiscussionsService = require('./cloud/cloudDiscussionsService');
+const cloudShapeService = require('./cloud/cloudShapeService');
+const cloudStartService = require('./cloud/cloudStartService');
+const cloudDoneService = require('./cloud/cloudDoneService');
 const structureLifecycle = require('./structureLifecycle');
 
 // The running app keeps each open Frame checkout's STRUCTURE.json current
@@ -187,6 +194,12 @@ function createWindow() {
     probeCoreDeps();
   });
 
+  // Frame Cloud: show a stored session, then refresh it in the background.
+  // Once per window, never awaited — a hung server must not hold the app.
+  mainWindow.webContents.once('did-finish-load', () => {
+    setImmediate(() => cloudSession.startup());
+  });
+
   return mainWindow;
 }
 
@@ -258,6 +271,15 @@ function setupAllIPC() {
   // User settings (renderer-side preferences persisted to userData JSON)
   ipcMain.handle(IPC.GET_USER_SETTING, (event, key) => userSettings.get(key));
   ipcMain.handle(IPC.SET_USER_SETTING, (event, key, value) => userSettings.set(key, value));
+
+  // Frame Cloud: sign-in, then the cloud workspace's projects (the Frame Cloud modal),
+  // then the connected project's briefs (read-only)
+  cloudSession.setupIPC(ipcMain);
+  cloudProjectsService.setupIPC(ipcMain);
+  cloudBriefsService.setupIPC(ipcMain);
+  cloudDiscussionsService.setupIPC(ipcMain);
+  cloudShapeService.setupIPC(ipcMain);
+  cloudStartService.setupIPC(ipcMain);
 
   // Git status (file tree decoration polling)
   gitStatusManager.setupIPC(ipcMain);
@@ -389,6 +411,12 @@ function initModulesWithWindow(window) {
   gitStatusManager.init(window);
   specManager.init(window);
   orchestrationManager.init(window);
+  cloudSession.init(window);
+  cloudProjectsService.init(window);
+  cloudDiscussionsService.init(window);
+  cloudShapeService.init(window);
+  cloudStartService.init(window);
+  cloudDoneService.init(window);
   activityLog.attachWindow(window);
   serverConnection.init(window, app.getVersion());
 }
@@ -430,7 +458,9 @@ app.whenReady().then(() => {
 // ones that say what the user did just before leaving — would otherwise die
 // with the process. The flush borrows the same preventDefault-then-re-quit
 // shape the confirmation already uses, and analytics.shutdown() carries its
-// own timeout so a dead network cannot hold the app open.
+// own timeout so a dead network cannot hold the app open. Moves to Done still
+// inside their 5-second Undo are sent in the same pause, capped at 3 s, so a
+// quit never drops one (frame-cloud-brief-manual-done D1, D19).
 app.on('before-quit', (e) => {
   if (!quitConfirmed) {
     if (!confirmQuitWithLiveAgents()) {
@@ -442,7 +472,7 @@ app.on('before-quit', (e) => {
   if (analyticsFlushed) return;
   analyticsFlushed = true;
   e.preventDefault();
-  analytics.shutdown().finally(() => app.quit());
+  Promise.allSettled([analytics.shutdown(), cloudBriefsService.flushMoves()]).finally(() => app.quit());
 });
 
 // Structure lifecycle workers (STR-02) stop once quitting is certain —

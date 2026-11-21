@@ -1,0 +1,20 @@
+{
+  "slug": "frame-cloud-briefs-create",
+  "title": "Frame Cloud briefs, create",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-frame-cloud-briefs-create-T01",
+    "task-spec-frame-cloud-briefs-create-T02",
+    "task-spec-frame-cloud-briefs-create-T03",
+    "task-spec-frame-cloud-briefs-create-T04",
+    "task-spec-frame-cloud-briefs-create-T05",
+    "task-spec-frame-cloud-briefs-create-T06",
+    "task-spec-frame-cloud-briefs-create-T07",
+    "task-spec-frame-cloud-briefs-create-T08"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-09-19T16:07:15Z",
+  "updated_at": "2026-09-19T16:56:43.728Z",
+  "last_phase_at": "2026-09-19T16:56:43.728Z",
+  "implement_mode": "autonomous"
+}

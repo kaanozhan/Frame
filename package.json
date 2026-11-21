@@ -16,9 +16,10 @@
     "find-module": "node scripts/find-module.js",
     "freshness": "node scripts/check-freshness.js",
     "prepare": "git config core.hooksPath .githooks || true",
-    "dist": "npm run build && electron-builder --mac --dir --publish never",
-    "dist:mac": "npm run build && electron-builder --mac --publish never",
-    "dist:mac:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --publish never",
+    "dist": "npm run build && node scripts/release-build.js --mac --dir --publish never",
+    "dist:mac": "npm run build && node scripts/release-build.js --mac --publish never",
+    "dist:mac:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false node scripts/release-build.js --mac --publish never",
+    "dist:release": "FRAME_CLOUD_RELEASE_URL=https://app.frame.cool npm run dist:mac",
     "server": "node src/server/index.js",
     "server:package": "node scripts/build-server-package.js"
   },

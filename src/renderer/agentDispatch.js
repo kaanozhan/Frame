@@ -59,6 +59,7 @@ function init(ui) {
     const instance = multiTerminalUI.getManager().getTerminal(terminalId);
     const a = instance && instance.state.assignment;
     if (a && a.kind === 'task') _notifyTaskLane(a.ref);
+    if (a && a.kind === 'brief') _notifyBriefLane(a.ref);
   });
   ipcRenderer.on(IPC.SPEC_DATA, (event, { specs }) => _onSpecData(specs));
   ipcRenderer.on(IPC.TERMINAL_DESTROYED, (event, { terminalId }) => {
@@ -70,6 +71,7 @@ function init(ui) {
     // The terminal (and its assignment) is already gone, so the task it
     // carried can't be looked up — broadcast a wildcard re-render instead.
     _notifyTaskLane(null);
+    _notifyBriefLane(null);
   });
 }
 
@@ -82,7 +84,7 @@ function init(ui) {
  * @param {string|null} [opts.toolId]      - AI CLI to start if none is
  *                                           running (default: current tool)
  * @param {string}      opts.prompt        - text to inject when ready
- * @param {object|null} [opts.assignment]  - { kind: 'task'|'spec', label, ref }
+ * @param {object|null} [opts.assignment]  - { kind: 'task'|'spec'|'brief', label, ref, purpose? } (purpose: a brief lane's 'discuss' | 'shape')
  * @param {string[]}    [opts.launchFlags] - flags appended to the CLI launch
  *                                           line; only apply when this
  *                                           dispatch starts the agent itself
@@ -925,6 +927,66 @@ function getTaskLaneInfo(taskId) {
 }
 
 /**
+ * Live info about the lane discussing a Frame Cloud brief, or null. Brief
+ * numbers are per project, so only the current project's lanes are read
+ * (unlike tasks, whose ids are global). Same anti-stuck contract as tasks.
+ */
+function getBriefLaneInfo(number) {
+  if (!multiTerminalUI || number == null) return null;
+  const lane = multiTerminalUI.getManager().getTerminalStates()
+    .find(t => t.assignment && t.assignment.kind === 'brief' && t.assignment.ref === number);
+  if (!lane) return null;
+  const s = laneStatus.getStatus(lane.id);
+  return {
+    terminalId: lane.id,
+    name: lane.customName || lane.name,
+    // A lane opened before Shape existed carries no purpose: it was a Discuss lane.
+    purpose: lane.assignment.purpose || 'discuss',
+    status: s.status,
+    agentName: s.agentName,
+    busy: !!s.agentName && (s.status === 'agent-working' || s.status === 'agent-approval')
+  };
+}
+
+/** Enter the lane discussing or shaping a brief. → entered? */
+function enterBriefLane(number) {
+  const info = getBriefLaneInfo(number);
+  if (!info) return false;
+  multiTerminalUI.enterLane(info.terminalId);
+  return true;
+}
+
+/** Enter a lane by its terminal id (a part row's lane link). → false when there is none. */
+function enterLane(terminalId) {
+  if (!multiTerminalUI || !terminalId) return false;
+  multiTerminalUI.enterLane(terminalId);
+  return true;
+}
+
+/**
+ * Open a spec in the Specs grid's drawer, the way the top bar's spec chip
+ * does (multiTerminalUI.enterSpecDrawer). → false when the terminal system
+ * is not ready.
+ */
+function showSpec(slug) {
+  if (!multiTerminalUI || !slug) return false;
+  multiTerminalUI.showSpecsGrid(); // mounts the grid synchronously
+  require('./specsDashboard').openSpec(slug, { instant: true });
+  return true;
+}
+
+/**
+ * Open a task in the Tasks board's drawer, the way the top bar's task chip
+ * does (multiTerminalUI.enterTaskDrawer). → false when the task is not in
+ * this folder's tasks (or the terminal system is not ready).
+ */
+function showTask(id) {
+  if (!multiTerminalUI || !id) return false;
+  multiTerminalUI.showTasksBoard(); // mounts the board synchronously
+  return require('./tasksDashboard').openTask(id, { instant: true });
+}
+
+/**
  * Activity dot for spec/task rows and detail headers: pulsing while the
  * assigned lane's agent works (fast red pulse on approval), steady while
  * it waits at the input box; empty string when no live agent is on it.
@@ -936,6 +998,10 @@ function specStatusDotHtml(slug) {
 
 function taskStatusDotHtml(taskId) {
   return _activityDotHtml(getTaskLaneInfo(taskId));
+}
+
+function briefStatusDotHtml(number) {
+  return _activityDotHtml(getBriefLaneInfo(number));
 }
 
 function _activityDotHtml(info) {
@@ -1006,6 +1072,37 @@ function _notifyTaskLane(taskId) {
       cb(taskId);
     } catch (err) {
       console.error('agentDispatch task-lane listener failed:', err);
+    }
+  }
+}
+
+/**
+ * Subscribe to brief-lane activity. Callback: (number|null) — null means
+ * "a lane disappeared, re-render" (the closed terminal's assignment can no
+ * longer be read). Gated like the task feed. Returns an unsubscribe function.
+ */
+function onBriefLaneActivity(callback) {
+  briefLaneListeners.add(callback);
+  return () => briefLaneListeners.delete(callback);
+}
+
+const briefLaneListeners = new Set();
+const lastBriefLaneKey = new Map(); // Map<number, string> — change gate
+
+function _notifyBriefLane(number) {
+  if (number != null) {
+    const info = getBriefLaneInfo(number);
+    const key = info ? `${info.terminalId}|${info.status}|${info.busy}` : 'none';
+    if (lastBriefLaneKey.get(number) === key) return;
+    lastBriefLaneKey.set(number, key);
+  } else {
+    lastBriefLaneKey.clear();
+  }
+  for (const cb of briefLaneListeners) {
+    try {
+      cb(number);
+    } catch (err) {
+      console.error('agentDispatch brief-lane listener failed:', err);
     }
   }
 }
@@ -1116,8 +1213,15 @@ module.exports = {
   dispatchSpecNew,
   getSpecLaneInfo,
   getTaskLaneInfo,
+  getBriefLaneInfo,
+  enterBriefLane,
+  enterLane,
+  showSpec,
+  showTask,
   onSpecLaneActivity,
   onTaskLaneActivity,
+  onBriefLaneActivity,
   specStatusDotHtml,
-  taskStatusDotHtml
+  taskStatusDotHtml,
+  briefStatusDotHtml
 };

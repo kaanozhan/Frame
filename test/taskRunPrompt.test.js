@@ -134,3 +134,27 @@ test('the completion line closes every prompt', () => {
     assert.ok(buildTaskPrompt(ready({ description: '' }), opts).endsWith(tail));
   }
 });
+
+test('tasksPath names the tasks file in the completion line and the format step', () => {
+  const tasksPath = '/repo/.frame/tasks.json';
+  const tail = ` When the task is fully complete, update this task's status to "completed" in ${tasksPath} (task id: task-1).`
+    + ' Use that exact file, not a tasks.json inside the working folder.';
+  for (const opts of BRANCH_OPTS) {
+    assert.ok(buildTaskPrompt(ready(), { ...opts, tasksPath }).endsWith(tail), JSON.stringify(opts));
+  }
+  const p = buildTaskPrompt(ready({ acceptanceCriteria: '' }), { tasksPath });
+  assert.ok(p.includes(`Read this task in ${tasksPath} (task id: task-1) and the code it concerns`), p);
+  assert.ok(!p.includes(' in tasks.json '), p);
+});
+
+test('without tasksPath, or with a blank one, the prompt is unchanged', () => {
+  for (const opts of BRANCH_OPTS) {
+    for (const task of [ready(), ready({ description: '' }), specTask()]) {
+      const plain = buildTaskPrompt(task, opts);
+      assert.equal(buildTaskPrompt(task, { ...opts, tasksPath: '' }), plain);
+      assert.equal(buildTaskPrompt(task, { ...opts, tasksPath: '   ' }), plain);
+      assert.equal(buildTaskPrompt(task, { ...opts, tasksPath: undefined }), plain);
+    }
+    assert.equal(buildTaskPrompt(specTask(), opts), legacyBuildTaskPrompt(specTask(), opts));
+  }
+});

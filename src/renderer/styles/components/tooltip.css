@@ -34,3 +34,11 @@
   opacity: 1;
   visibility: visible;
 }
+
+/* A short explanation rather than a label: wraps, and sits above the modal
+   overlays (10001) because the info marks that use it live inside them. */
+.ui-tooltip.ui-tooltip-note {
+  white-space: normal;
+  padding: 6px 10px;
+  z-index: 10002;
+}

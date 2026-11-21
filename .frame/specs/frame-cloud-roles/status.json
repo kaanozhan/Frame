@@ -1,0 +1,24 @@
+{
+  "slug": "frame-cloud-roles",
+  "title": "Frame Cloud roles",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-frame-cloud-roles-T01",
+    "task-spec-frame-cloud-roles-T02",
+    "task-spec-frame-cloud-roles-T03",
+    "task-spec-frame-cloud-roles-T04",
+    "task-spec-frame-cloud-roles-T05",
+    "task-spec-frame-cloud-roles-T06",
+    "task-spec-frame-cloud-roles-T07",
+    "task-spec-frame-cloud-roles-T08",
+    "task-spec-frame-cloud-roles-T09",
+    "task-spec-frame-cloud-roles-T10",
+    "task-spec-frame-cloud-roles-T11",
+    "task-spec-frame-cloud-roles-T12"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-11-14T08:16:30Z",
+  "updated_at": "2026-11-14T11:06:39.987Z",
+  "last_phase_at": "2026-11-14T11:06:39.987Z",
+  "implement_mode": "autonomous"
+}

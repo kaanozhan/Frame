@@ -3648,6 +3648,512 @@ Left alone: `healthNotice` still uses a top strip; the separate
 `status-bar-notice-tray` spec (specified the same day) moves it into the
 status bar.
 
+### [2026-09-16] Frame Cloud sign-in: the desktop half of the device flow
+
+**Context.** This spec (`.frame/specs/frame-cloud-sign-in`) is the Frame side
+of FrameCloud's device flow, which is FrameCloud PR #14. That PR serves RFC 8628
+under `/api/auth/device/*` plus `device.register` / `device.me` /
+`device.signOut`. Before implementation started the user asked for an
+umbrella branch on the fork, the same pattern as `feat/pm-enhancement`:
+`feat/frame-cloud-adaptor` was cut at the spec + plan commits and pushed to
+origin. `feat/frame-cloud-sign-in` tracks it, and its PR targets the umbrella,
+not `upstream/main`. Every later FrameCloud piece branches from the umbrella.
+The run was autonomous: T01–T08, one commit per task. After that the user
+tested by hand against a local FrameCloud, which added a device-name fix and
+T09.
+
+**Shape.** `src/main/cloud/` is the connection module's home:
+- `deviceFlow.js` is the pure core. It holds the endpoint calls, the poll
+  loop, and `runSignIn` / `refreshSession`, with fetch, sleep, clock and
+  browser all injected, so a future CLI can wrap it.
+- `cloudSession.js` is the Electron shell. It uses `net.fetch` with a 15 s
+  timeout, owns the state machine, pushes an allowlisted state to the
+  renderer, and registers IPC.
+- `sessionStore.js` writes `userData/cloud-session.json` with the token
+  encrypted by `safeStorage`. Without secure storage the session stays in
+  memory only.
+
+Settings → Account draws only what main pushes. The palette offers
+`cloud.signIn` / `cloud.signOut` only when they apply.
+
+**Where the server address lives.** The user asked. It is resolved on every
+use from `process.env.FRAME_CLOUD_URL`, then `cloudServerUrl` in
+`user-settings.json`, then `DEFAULT_CLOUD_SERVER_URL` in `cloudSession.js`,
+which is `''` today. With nothing resolved, Account is hidden and no request is
+made. A packaged Frame started from Finder or the Dock does not inherit shell
+variables, because `envPath.js` only carries PATH over. The user decided
+against a settings field for the URL: the prod address will be a hard-coded
+constant. The user asked whether open-source users will see the address.
+They will, and that is fine. A server URL is not a secret. `frame-desktop` is
+a public client with no client secret, and all security is server-side:
+browser approval, bearer tokens, rate limits. The server must treat every
+client as untrusted, including forks. Only server-side secrets must stay out
+of the repo. The env and setting overrides stay for development and
+self-hosting.
+
+**Findings from manual testing.**
+- *Device name was an IP.* On the user's Mac `HostName` is unset, so
+  `os.hostname()` returned `192.168.1.104` (a DHCP address), and the device
+  registered under it. The user chose ComputerName. On macOS the shell now
+  reads `scutil --get ComputerName`, then `LocalHostName`, then the hostname,
+  and caches the result. The core also never uses an IP-shaped name. Devices
+  registered before the fix keep their old name until the next sign-in.
+- *Workspace-less users.* Asked how the flow works with no workspace. The web
+  `/device` guard sends a signed-out user to `/login` and a user without a
+  workspace to `/onboarding`. Both carry `redirect=/device?user_code=…`, which
+  `safeRedirect` restricts to that path, and both come back to the approval
+  page. The GitHub-connect step is skipped on this path. The whole detour must
+  fit inside the code's 15 minutes. Frame's `noWorkspace` failure is
+  therefore a safety net that the web practically never lets happen.
+- *The waiting screen felt dead.* The user asked whether a static "Waiting
+  for approval" is right and how the industry does it. Device flow cannot
+  report browser progress. Most desktop apps (VS Code, Slack, Figma, Linear)
+  use authorization code + PKCE with a URL scheme or loopback redirect
+  (RFC 8252), so the app comes to the front by itself. We kept device flow:
+  no protocol registration or port, the same core serves the future CLI, and
+  the server already ships it. Instead the user picked one improvement as its
+  own task, T09 (plan D16): a completed sign-in restores and focuses the
+  window, using `app.focus({ steal: true })` on macOS, and Account shows a 4 s
+  "Signed in to Frame Cloud" note. Suggested and not done: a spinner and
+  expiry countdown, a first-sign-in hint, a "Get a new code" button, and on
+  FrameCloud's side the duplicated "Frame Desktop is signed in" copy plus a
+  "close this tab" line. PKCE is deferred, not rejected.
+
+**Other decisions made while implementing** (details in `outcome.md`):
+- `scripts/redact.js` already had the Bearer pattern. The real hole was that
+  no JSON-quoted secret key (`"access_token":"…"`) matched, and that is now
+  fixed for every key.
+- `startup()` runs once, because the renderer's first `CLOUD_GET_STATE`
+  arrives before `did-finish-load`.
+- A request timeout is surfaced as a plain Error, so the core does not read
+  it as a cancel.
+- Sign-out also deletes fsSafe's `.bak` copy of the session file.
+
+**State.** Nine tasks plus the device-name fix are committed on
+`feat/frame-cloud-sign-in`. `npm test` passes 808 tests; 40 of them are in
+`test/cloudDeviceFlow.test.js`. The shell and UI were checked in the dev app
+against a fake FrameCloud with a scratch `userData`. The user walked the real
+local FrameCloud through sign-in successfully, which surfaced the IP name.
+Still open: the plan's full manual walk (plan change → Pro, deny, expiry,
+revoked token → silent sign-out, offline sign-out), and confirming by hand
+that T09 takes focus while the browser is in front. One of three scripted
+runs read `isFocused()` false right after approval.
+
+### [2026-09-18] Frame Cloud projects: implemented, then a UI/UX pass that reshaped the modal
+
+**Context.** `frame-cloud-projects` was implemented task by task on
+2026-09-17 (T01–T11, `feat/frame-cloud-projects`, cut from the umbrella
+`feat/frame-cloud-adaptor`). `outcome.md` records every departure from the plan,
+entry by entry. On 2026-09-18 the user went through the finished modal screen
+by screen, from screenshots, and asked for changes one at a time. They were
+collected in one commit, `100295b`, "UI/UX düzenlemeleri commitinde", which
+the user named. PR #19 on the fork targets the umbrella.
+
+**Modal size, twice.** The first ask was "Cloud Modal'i how to boyutunda değil
+de diğer modal'lar (plugins etc) boyutlarında olsun", so it moved to the 640px
+standard. After the tables were redone the user reversed it ("modal size
+konusunda fikir değiştirmem gerekti ve How to Modalıyla aynı size'da olsun").
+It now takes the guide's size (`--modal-width-wide`, `min(720px, 86vh)`), and
+the comment in `variables.css` names Frame Cloud as the wide token's second
+user.
+
+**Header.** "Modal'ın tepesi çirkin duruyor, FrameCloud projesinde bir
+UserAvatar'lı görünüm var aynısını oluşturalım." It became one card, modelled
+on FrameCloud's `app-shell.tsx`: the avatar (`user.image`, initials as the
+fallback), the name, `@githubLogin` or the email, and Sign out. Below them are
+the workspace name only, with **Open in browser**, and this device. "Last seen"
+was dropped ("zaten bizim makinemiz"). Opening the workspace needed a new
+channel, `CLOUD_OPEN_WORKSPACE_ON_WEB`, and `buildWorkspaceWebUrl` in the core,
+under the same guards as `buildWebUrl`. The web origin still never reaches the
+renderer.
+
+**Cloud projects.** The Source column went ("source bilgisine gerek yok"),
+then the slug under the name ("Slug'ı direkt gizleyelim"). The header was
+misaligned with the rows because every row was its own grid. The rows now
+share the table's tracks through `subgrid` (Electron 28 / Chromium 120). The
+user then asked whether three cases should look alike: connected; created from
+scratch on the web and absent here; imported from GitHub, present here and not
+connected. The answer was that the dividing line is whether a folder here
+matches, not the source. Rows are now drawn from this device's point of view:
+- **Connected + Open**, for a connected project with a folder here.
+- **Connected**, "Not on this device", for a project connected elsewhere.
+- **Ready to connect**, when a folder here suggests the project. The chip is
+  blue, because the accent is green and would read as Connected. At first
+  Connect only jumped to On this device. The user then asked for it to run the
+  connect flow directly ("direct connect akışını çalıştırsın"), and it now
+  claims in place, with the remote/identity questions under the row.
+- **Not on this device**, when nothing matches.
+
+To support this, candidates now load as soon as the list is ready instead of
+only when On this device is opened. Two options for the absent case were
+discussed: an "Initialize" button, or sending the user to Open Project. Cloning
+a cloud project was proposed and declined ("clone adımı olmasın kafa
+karışmasın"). The row ended with no CTA and an info tooltip instead ("Dosya
+tespit edilemedi… yeni proje açın vs"). The tooltip tells the user to add the
+project with *Add a project…* and connect it from On this device. `tooltip.js`
+gained a `note` variant for it: it wraps and sits above the modal overlays at
+z-index 10002. Existing labels are untouched.
+
+**Why several folders can share one project.** The user asked whether two
+folders on one machine being connected to one cloud project is an
+anti-pattern, and whether each would need its own Frame init. It is not an
+anti-pattern, and no init is needed. `.frame/config.json` is tracked in repo
+mode, so a second clone or a `git worktree` carries the same `projectId`.
+Branch switching in one folder never produces it. Conductor worktrees under
+`.frame/worktrees/` are not in the project list, so they never count. A
+per-folder picker for Open was offered and then withdrawn as too much for a
+rare case.
+
+**On this device became list + detail.** The user found the tab raw ("çok ham
+ve profesyonel production grade gelmedi") and wanted to discuss it first. The
+critique covered several problems:
+- Every unconnected row was a form.
+- A tick-and-bulk ritual stood in front of a list that is usually one to three
+  folders long.
+- Paths were cut from the end, losing the folder name.
+- "→ Frame frame" repeated the name.
+- The S7 line gave no action.
+
+A mockup offered A (one list, one action per row) and B (list + detail).
+https://claude.ai/artifact/FCpnsPRP3z7XD7DYgsz5cs. The user picked B ("List +
+detail çok iyi") and asked for a batch version of it, C. After seeing C:
+"Multiple şimdilik olmasın. Onu ilerde tekrar düşünürüz."
+
+Built: folders are grouped by the plan on the left (Suggested, Not in Frame
+Cloud, Looking for a match, Connected), with a state dot and the path
+shortened with `~`. A choice made in the detail never moves a folder between
+groups. The right side holds the selected folder:
+- **Connect to X**, with the match reason, plus "Pick a different project…"
+  and "Create a new project instead".
+- **Add to Frame Cloud**, with Name, and URL behind a `…/<workspace>/` prefix.
+  The slug check runs on first show.
+- **Open in Frame**, for a connected folder, with Disconnect… confirming in the
+  panel.
+
+**This overturns spec §6.** The ticking, the id/remote default-checked rows and
+**Connect selected (n)** are gone for this phase. The batch design (C) is the
+reference if it returns.
+
+**Signed out.** "Sign in ekranı çok dar kalmış sadece bir buton var… bu bizim
+gelir modelimizin oturacağı yer." The advice was to promise only what exists
+and to show unbuilt features as Coming soon. The user overrode it: "Şu an için
+her özellik varmış gibi gözüksün", "Free ya da Beta koyma". A mockup offered
+two tones. https://claude.ai/artifact/VCkRVcdy6Uv7P2pcLGAAL9. The user chose
+**Product** for the app and said the website will carry the marketing voice
+("notes eklerken web sitesinde daha marketing odaklı yapacağımızın notu da
+eklensin"). The marketing draft in that mockup (Brief Driven Development,
+"Ship with your agents, not after them", a Brief Board preview) is the
+starting point for frame.cool.
+
+Built: the pitch sits on the left and the sign-in card on the right.
+`cloudWelcome.js` holds all the copy in one `COPY` object. The pitch has five
+features (Brief Board, Every machine, Live sessions, Specs on the web, Start
+from GitHub) and a trust line: "Your code stays on your machines". Every
+device-flow step stays inside the card, so the page never jumps.
+
+**Open: Learn more.** It is a disabled button. Where it should lead is
+undecided: How to Use Frame, the frame.cool website, or both ("Learn more ile
+how to use'un bağlanması ve/veya frame.cool web site'a yönlenmesi").
+
+**State.** PR #19 into `feat/frame-cloud-adaptor`. `npm test` passes 913
+tests. The UI pass was built against the mockups and has not been walked end
+to end against a live FrameCloud. The renderer has no DOM harness.
+
+### [2026-09-21] Frame Cloud brief discussions: Discuss, record, and decide a proposal from Frame
+
+**Context.** `frame-cloud-brief-discussions` was implemented on
+`feat/frame-cloud-brief-discussions`, cut from the umbrella
+`feat/frame-cloud-adaptor`, as T01–T18 (autonomous mode for T01–T07, then
+task by task from the user's walks). FrameCloud already stores discussions
+(`brief.recordDiscussion`, one `discussion-recorded` event, no column
+written); the web lists them and deliberately cannot write one. Frame is the
+writer. `outcome.md` has every departure, `digest.md` the distilled rules.
+
+**How a record reaches the server.** The agent in a Discuss lane runs a
+command Frame staged in its own userData (`cloud-discussions/record-discussion.js`),
+not in the user's repo, since a connected folder need not be a Frame project.
+It carries only a discussion id main issued at Discuss, the summary on stdin
+(a quoted heredoc: 10,000 characters of free text do not survive shell
+quoting) and an optional http(s) url. It drops a request on a file bus beside
+itself; main claims it by rename, calls the server and writes a reply the
+command prints. The token, brief id and slug never reach the terminal. On a
+30 s timeout the command withdraws its request, so "Frame did not answer" is
+true, and when main already took it the command says the record may still
+land. `call()` folds server codes into `badRequest`, so the record and decide
+paths catch `NOT_A_PROPOSAL`/`ALREADY_CLOSED`/`ALREADY_WORK` inside the called
+function and return them as values.
+
+**First walk (T08) → T09–T11.** The user's findings: the agent left too many
+"iş odaklı" open questions that do not decide a proposal; it never offered a
+document ("bir noktada eğer tartışmayı sonlandıracaksak bir artifact doküman
+oluşturmamı ister misin diye sorabilir"); the lane chip "bir task formatında
+olmuş … o brief'in açık haline navigate etmeliyiz"; and the card should carry
+Discuss, the record count and the live lane. Codex: no document (asked). The
+prompt now keeps only fate-deciding questions open and asks at wrap-up to
+publish a claude.ai artifact; the chip opens the brief; the card became a
+container with sibling controls, which overturned the plan's "card shows the
+dot only" while keeping its reason (no controls nested in the card button).
+The count comes from `brief.events` per open proposal — the user asked
+"Discussion içerisinde record kayıtları var oradan çekemez miyiz?" and chose
+it once it was clear the list does not carry records ("brief.events ile devam
+et"); rejected: a FrameCloud `discussionCount` field, a local counter.
+
+**Artifact not under Links.** After the second walk the user asked why a
+published artifact was missing from Links. By design it was the record's
+`url`, shown under Discussions; the spec allowed no `addAttachment`. The user
+then asked for it under Links with the record only noting it ("Daha düzenli
+durur bu"), so a write-up url is now also attached as "Discussion write-up
+(<date>)" and Discussions says "Write-up added to Links" (T17).
+
+**Comparing with the web card.** The user pointed at the FrameCloud board
+(`?brief=5`) and asked to assess the differences. Every web-only control is a
+write the earlier specs left on the web; the one that mattered after a
+discussion was the decision. The user set the proposal's controls by state
+(T12–T15): no record → **Discuss**; lane open → "Discussing in <lane>"; at
+least one record → primary **Move to Work**, secondary Discuss; a comment
+after the latest record → the card highlights "N new comments", which opens
+Comments with **Re-discuss**. Asked: "new" means after the latest record (not
+a local seen mark); Move to Work confirms with a priority (Medium default);
+the work stays in this spec rather than a new one. The viewer's own comments
+never count as new. Writes in this spec are now `recordDiscussion`,
+`decide`, and `addAttachment` for a write-up only — never `brief.update`; the
+agent never edits the description (decided by the user).
+
+**Cut-off prompt (T18).** In the last walk the agent said the part of the
+prompt explaining how to record "was cut off" and offered to insert the
+record with SQL. Discuss had typed the whole prompt into the terminal;
+Claude Code collapses large pastes, which `specManager` already documents and
+avoids by staging prompts to a file. The prompt had grown to 4–9 KB with the
+comments. It is now written to `<userData>/cloud-discussions/prompts/<id>.md`
+and the lane gets one "Read '<path>' and follow it exactly" line. Rule: never
+type a long prompt into a lane.
+
+**State.** 18 tasks done, spec `done`; the user walked the final build and it
+passes. `npm test` passes 1026 tests. Open: the heredoc assumes a POSIX shell
+(Windows PowerShell lanes); one `brief.events` request per open proposal on
+the board; the web still shows the write-up link inside its own Discussions
+section.
+
+### [2026-09-24] Frame Cloud brief shape: Shape a work brief into parts from Frame
+
+Spec `frame-cloud-brief-shape`, branch `feat/frame-cloud-brief-shape` (off the
+`feat/frame-cloud-adaptor` umbrella). FrameCloud's `feat/brief-shape` added
+`brief.shape({ id, parts })`: every part and `shaped_at` are written in one
+transaction, `definition` replaces `why`, and `addPart` is gone. The web shows
+parts read-only; Frame is where a brief is shaped. T01–T08 ran autonomously,
+then the user walked the build and the walk reshaped the prompt and the
+notice.
+
+**Plan-time choices (asked).** Shape stays its own click; it is not chained
+onto Move to Work. It gets its own staged command (`shape-brief.js`), store
+and bus under `<userData>/cloud-shapes/`, because issued Discuss prompts name
+`record-discussion.js` by absolute path and must keep working. Lanes carry
+`purpose: 'discuss' | 'shape'` on their assignment (a lane with none reads as
+Discuss), rather than the purpose being inferred from the brief's kind. Only
+the pure core is tested.
+
+**Too many questions.** After the first walk the user said: "burada çok
+fazla soru soruluyor, içeriklerin boşlukları o unit'lerde dolabilir diye
+düşünüyorum". Then: "Bazen split gerekmeyebilir, işleri genelde tek spec'te
+çözüyoruz… Çok geniş kapsamlı işler için bölme gerekebilir" and "Küçük işler
+için de task". The prompt now defaults to one part: a small job is one task,
+anything bigger is one spec, and it splits only when the work is too broad
+for one spec. It proposes straight away and asks only what would change the
+shape itself. This overturns spec.md's "ask what the split depends on" step.
+
+**Shape vs Run.** The user asked whether Shape should produce a spec/task
+directly or leave that to a second step, Run. Recommended and agreed: two
+steps. A shaped brief lives in the cloud, while a spec lives on one machine
+in one worktree. An implementation plan written at Shape time goes stale
+before work starts, and FrameCloud's part lifecycle (started / merged /
+dropped) is already Run's. The user added: "spec ya da task formatında tutup
+kullanıcı run dediği zaman onu direct .frame üzerine getirip specify
+aşamasını o noktada run etmek". So a definition is now written in Frame's
+own format: `spec.md` sections (Problem, Goal, Constraints, Success Criteria,
+Out of Scope, Open Questions) for a spec part, and `tasks.json` fields
+(Description, Acceptance Criteria, Notes; title ≤ 60) for a task part. Detail
+gaps go under Open Questions / Notes, and Run later runs specify seeded with
+the definition. Run has other duties too ("Run'ın burada farklı görevleri
+olacak ama ona sonra geleceğiz"); it is its own spec. A shaped session now
+ends on "ready to run", because Claude Code had been suggesting "open the
+spec for it".
+
+**Notice → toast.** The user asked for a one-click notice when a brief is
+shaped, and a part count on the card. A no-op Run button was left to the Run
+spec. T10 was first built as a Briefs-board banner and then as a
+status-bar-tray candidate, but the user meant: "kullanıcı terminal
+ekranındayken brief'inin çalışmaya hazır ve shaped olduğunu görsün". It is
+now a `notify.success` toast with an Open brief action. `notify` gained an
+optional `{ action: { label, onClick } }`, and a toast with an action stays
+on screen for 6 s. The tray was offered and declined ("sadece toast kalsın").
+T11 shows "1 spec" / "2 specs · 1 task" on a shaped card, from one
+`brief.getByNumber` per open shaped work brief. This overturns the plan's
+"no new card line" decision.
+
+**State.** 11 tasks done, spec `done`, walked by the user. `npm test` passes
+1078. Open: `layoutMigration.test.js` took ~50 s once while a dev Frame was
+running; each shaped card costs one detail request per board load, and a
+part count on `brief.list` would remove it.
+
+### [2026-09-25] Frame Cloud brief start: begin a shaped brief one part at a time
+
+Spec `frame-cloud-brief-start`, branch `feat/frame-cloud-brief-start` (off the
+`feat/frame-cloud-adaptor` umbrella). FrameCloud's `feat/brief-start` added
+`brief.start({ id, parts: [{ partId, recordRef }] })`: `started_at` is set
+once, every part is linked to its spec slug or task id, the brief goes Active,
+and a second start answers `ALREADY_STARTED` (plus `RECORD_REF_TAKEN` when
+another brief holds a ref). T01–T09 ran autonomously; the walk then reshaped
+the spec twice.
+
+**Cloud first.** `brief.start` goes before any stash, branch or file, and
+every local check (definition, name, branch free, base, dirty with consent)
+runs before it, so a refusal writes nothing anywhere. After the call a
+failure is `partial` and names what was not written. There is no recovery UI
+(asked at plan time). Main writes the files itself: Shape already wrote each
+definition in Frame's format, so no agent is involved.
+
+**Progress on the card (T11).** The Active card only counted parts ("1 spec ·
+1 task"). The user: "bunun çok daha production grade bir card olması
+gerekiyor… Biri x bir lane'de çalışıyor diğeri sadece yaratıldı ama
+çalışmıyor". Each part is now a row with its local status (spec phase or task
+status), its live lane with the activity dot, or Run, plus a summary line when
+there is more than one part. Everything is read from `SPEC_DATA`,
+`TASKS_DATA` and lane activity, with no extra cloud request.
+
+**One part at a time (T12–T15).** The first build wrote every part onto one
+branch named for the chosen part, plus a Create only option. The user: "2
+sini de bir branch seçip yaratıyoruz vs ama yaratılan o branch'te kalıyor
+sonra yenisine başlamak istersek bir problem yaşayabiliriz". Now Start Work
+reserves every ref in `brief.start` but writes only the chosen part, on its
+own branch. The other parts wait on the brief and are begun one by one from
+their rows, each on its own branch and so its own PR. Create only is gone, and
+Orchestrate (parallel parts) is shown, disabled, "Coming soon". Declined: an
+automatic commit of the written part ("neden böyle bir şey olsun istiyorsun").
+The lane commits, and the next Begin's dirty warning catches a dirty folder.
+Begun parts are recorded on this machine (`<userData>/cloud-starts.json`)
+rather than in FrameCloud; per the user, a per-part cloud field "takım
+çalışması da geldiği zaman… çok daha saçma olacak". Known limit: another
+machine does not know which parts were begun.
+
+**Names and base (T14, T16).** Branch and slug names came from part titles,
+which are long sentences in the brief's language, cut mid-word (`…-outc`).
+The user: "bizim spec ve task akışında gayet güzel branch name'leri ai
+tarafından verilebiliyordu". Shape now writes a short kebab-case `key` per
+part (FrameCloud `brief_part.key`, added by the user on `feat/brief-start`
+T09), plus a title of at most 60 characters and a type chosen by the work
+(evaluation tooling had been typed `test`). Frame suggests the slug, task id
+and `<prefix>/<key>` branch from the key, and the user can edit it. Without a
+key, names are cut at a word boundary. The branch row follows a code host's
+control, as the user asked: an editable name chip plus "from `<base>` ⌄",
+defaulting to the brief's target, with local and origin branches in the menu.
+
+**State.** 17 tasks done, spec `done`, walked by the user. `npm test` passes
+1153. Open: the card learns of a deleted branch only on its next load (focus
+or Refresh); brief #1 of the first walk was started under the old model and
+has no begun records; the dirty stash is still named "Start Work #N" for a
+Begin too.
+
+### [2026-09-28] Frame Cloud no workspace: sign in without a workspace, G-A empty state
+
+Spec `frame-cloud-no-workspace`, branch `feat/frame-cloud-no-workspace` (off
+the `feat/frame-cloud-adaptor` umbrella), PR #25 into the umbrella. The
+desktop half of FrameCloud's `desktop-no-workspace`: `device.register` and
+`device.me` now answer `workspace: null` instead of 412 `NO_WORKSPACE`, and
+Frame treats that as signed in. The Team direction (G-A) makes signing in
+free and owning a workspace a paid choice made on the web. T01–T07 ran
+autonomously, and T08 was the user's walk.
+
+**Plan-time choices (asked).** A new workspace is picked up by `device.me`
+when the window opens and, while there is no workspace, when Frame's window
+regains focus (window-open only was rejected: a user coming back from the
+browser would keep seeing the empty state). The empty state is one panel in
+place of the tabs, not a card in Cloud projects plus a "Needs a workspace"
+variant of On this device.
+
+**The focus throttle was a mistake (D9 reversed).** The focus re-read first
+shipped throttled to 10 s. In the walk the user created a workspace, came
+back, and nothing changed until a second trip: "workspace yarattıktan sonra
+Frame'e focus oldum. Güncellenmedi tekrar web'e bakıp geri focus olduğumda
+güncellendi". Clicking "Create a workspace ↗" focuses Frame and started the
+clock, so a quick trip to the browser returned inside it. The first proposal
+was to shorten it to 2 s. The user asked "Bir saniye şeyi koymaya gerek var
+mı o zaman ?". It was removed: focus fires once per return, `refresh()`
+already shares one request, and the listener returns at once when a
+workspace exists (confirmed with the user first: "workspace varken bu
+sorgulama olmayacak değil mi ?"). The re-walk updated on the first return.
+
+**Umbrella sync.** Before the PR, `feat/frame-cloud-adaptor` took
+upstream/main #160–#163 by merge (`4e1d30e`). `src/main/index.js` conflicted
+(the cloud requires against `structureLifecycle`), and both were kept. The
+running Frame app keeps rewriting two upstream specs
+(`reliable-structure-generation`, `str-02-structure-lifecycle`) from `done`
+back to `tasks_generated` and adds their 22 tasks to `tasks.json`, because
+upstream ships them without those tasks. The user: "oraya dokunmayalım
+orayla aynı olsun". Those changes are discarded and never committed.
+
+**State.** 8 tasks done, spec `done`, `npm test` passes 1405. The walk
+confirmed the empty state and the first-return update. The relaunch without
+`project.list`, the Project Settings row and sign-out were not separately
+reported.
+
+### [2026-09-30] Frame Cloud early access: the waitlist in the Frame Cloud window
+
+Spec `frame-cloud-early-access`, branch `feat/frame-cloud-early-access` (off
+the `feat/frame-cloud-adaptor` umbrella). It is the desktop half of FrameCloud's
+`early-access` spec (accounts are created only through `/beta-access/<token>`)
+and its `waitlist` spec (a public `waitlist.join`, one list).
+
+**How the flow was chosen.** The "Erken Erişim Akışı" page went through three
+versions:
+- v1 put the gate at workspace creation, with a "Request access" path for
+  account holders.
+- The user asked "Çok case mi yarattık ya ?".
+- Then: "hesap diye bir şey kimsede yok şu aşamada". Nobody has an account
+  yet, so the gate moved back to account creation: an account is created only
+  through an invite link, and everything after that is today's product.
+- The user rejected pushing undecided people through GitHub auth ("henüz daha
+  waitlist'e girip girmeyeceğini bilmeyen kullanıcıyı bir authentication
+  Flow'una sokmak da akıllıca bir UX deneyimi değil"). So the waitlist is the
+  default path, and sign-in is the secondary "Already invited?".
+
+**The waitlist lives in FrameCloud.** v3 had left the list to frame.cool, and
+FrameCloud's `early-access` built no waitlist. The Frame plan then chose an
+in-app form (D2).
+- The user asked "waitlist.join olsa bunu da istediğimiz yerden
+  çağırabilsek daha mantıklı olmuyor mu ?". FrameCloud then added the
+  `waitlist` spec:
+  - a table and a public mutation;
+  - a per-IP limit;
+  - CORS for frame.cool on that one path only, without credentials;
+  - `waitlist:list`.
+- Frame posts to it from main with no token.
+
+**Decisions in the Frame plan.**
+- The switch is FrameCloud's existing public `invite.mode`, not a Frame
+  constant, so closing early access needs no Frame release.
+- Settings → Account and Project Settings open the window instead of starting
+  sign-in ("Pencereyi açsınlar").
+- The button reads "Continue with GitHub", like the web ("Web'deki gibi
+  olsun").
+- The desktop cannot detect a refused sign-up: the device code stays
+  unapproved. A FrameCloud scan showed that the refusal keeps `redirect`. So
+  the waiting pane tells an invitee to open the invite link, then press Open
+  browser again, which approves the same code.
+
+**Found along the way, left alone on purpose.** The running Frame app rewrites
+`.frame/tasks.json` from memory across branch switches. It carried another
+branch's tasks into a fresh branch, and keeps resetting the upstream specs
+`reliable-structure-generation` and `str-02-structure-lifecycle` from `done`
+to `tasks_generated`, adding their 22 tasks. Those tasks already reached the
+umbrella through PR #25's close-out commit. The user: "yahu kalsın bunlar şu
+anda bunları düzeltmekle uğraşmayalım". The cleanup belongs to the umbrella,
+not to a work branch ("o cloud-adaptor çatı branchinin görevi olmalı").
+
+**State.** 9 tasks done, spec `done`, `npm test` passes 1419. The user walked
+the flow against FrameCloud `feat/early-access` and reported it working. It
+depends on FrameCloud `feat/early-access`, which is not yet merged into
+FrameCloud `main`.
+
 ### [2026-10-02] shadcn/ui look adopted as CSS only — no React, palette unchanged
 
 The request was to replace Frame's components with shadcn/ui components.
@@ -3758,6 +4264,84 @@ This explicitly overturns boards-done-window D3 for specs: `DEFAULT_DONE_WINDOW.
 
 Added: a "Newest / Oldest" segmented control right of All / Active / Done (`specsDashboard.js`, reuses `.specs-filter-scope` styling plus `.specs-filter-sort`). The order lives in the pure `specs/filterModel.js` (`sort` param, `SORTS` export): by `updated_at`, falling back to `created_at`, undated specs count as oldest, ties keep input order. Newest is the default (same as the previous `listSpecs` order); the choice is session state and survives scope picks.
 
+### [2026-11-08] Frame Cloud brief manual Done: move a brief to Done and back from Briefs
+
+Spec `frame-cloud-brief-manual-done`, branch
+`feat/frame-cloud-brief-manual-done` (off the `feat/frame-cloud-adaptor`
+umbrella). Frame's half of FrameCloud's `brief-manual-done`
+(`feat/brief-manual-done`, PR #26), which is phase 1 of the 2026-11-07
+"Active ve Done Akışı" direction
+(https://claude.ai/artifact/Upc2JqXyPWMLyeqgvKUKUQ). The frame-cloud-brief-done
+walk found Done arriving late and on its own after a merge. FrameCloud then
+removed automatic Done: a brief reaches Done only through
+`brief.moveToDone({ id, reason? })` and leaves it through
+`brief.moveBackToActive({ id, reason })`. T01–T07 ran autonomously; the
+developer walked T08.
+
+**Overturned, on purpose** (the spec's Constraints, and plan D15):
+- frame-cloud-brief-done's Goal, "Done means merged" and "The Done column
+  fills on its own". Done is now a person's move, and the Done hint reads
+  "Move a brief here when its work is finished."
+- frame-cloud-brief-done's Constraint "No Frame call marks … a brief Done
+  (FrameCloud C3)". Frame now moves a brief to Done and back. It still never
+  marks a part merged; the cloud alone decides that.
+- The `cloudBriefs.js` header's "a brief Done — stays on the server or the
+  web". The header now lists both moves as writes.
+- The page's "kartı Done'a taşıyarak" (drag the card). Frame follows
+  FrameCloud D3/D4: a button on the card and in the detail, no drag.
+- D15: frame-cloud-brief-done's "normalizeBrief does not carry doneAt, since
+  status places the card". `normalizeBrief` now carries `doneAt`, `doneBy`,
+  `doneReason` and `readyForDone` (true only when the server sends `true`).
+  Status still places the card; `doneAt` dates the detail's
+  "Done: reason · date" line.
+
+**D1 · The held move lives in main.** A move to Done that needs no reason
+shows in Done at once with a 5-second Undo, as on the web. The web accepted
+that a tab closed inside those 5 seconds drops the move (FrameCloud D1).
+Frame owns its process, so main holds the send (`src/shared/cloudMoveHold.js`)
+and sends it when the 5 seconds pass, when another move starts, or at quit
+(`before-quit`, capped at 3000 ms). Closing the view or switching projects
+neither cancels nor hastens it. Asked at plan time; rejected: a hold in the
+renderer with the web's trade-off.
+
+**D7 · A Done brief's parts offer no Begin or Run.** frame-cloud-brief-done
+stated this, but the code never enforced it: a Done brief only ever held
+merged parts, which have no Run anyway. With manual Done a Done brief can
+hold unmerged parts, so `partStatus({ done: true })` keeps each row's words
+and drops its action. After a move back the rows offer Begin and Run again,
+and the completion reporter (Active briefs only, no held refusal) sends what
+the cloud lacks on the next read.
+
+**When a reason is asked.** The panel decides from its last read: tracking is
+`ready` and at least one live part does not count as merged on the target.
+Then a dialog lists those parts with their row status and holds "Move to Done
+anyway" until a reason is typed; the move goes out at once, with no Undo. A
+move back always asks. A held move answered `REASON_REQUIRED` re-reads the
+brief and opens the dialog. Final refusals (`NOT_STARTED`, `ALREADY_DONE`,
+`NOT_DONE`, `ALREADY_CLOSED`, `NOT_WORK`) show their sentence and reload, and
+are never retried. The words are the web's, verbatim.
+
+**Built differently from the plan** (outcome T02–T07):
+- Main reads the brief id inside the held send, not before holding, so an
+  Undo pressed during that read still cancels and an undone move sends no
+  request at all.
+- `flush` also waits on sends already under way.
+- The panel's `moving` overlay is keyed by folder and number, so a project
+  switch never overlays another project's brief.
+- A landed move keeps the card in Done until the re-read arrives.
+- The "Ready for Done" badge is also hidden while tracking is `needs_github`.
+
+**Walk (T08).** The developer walked every Success Criterion against a local
+FrameCloud server carrying `brief-manual-done` on 2026-11-08 and reported all
+of them working, including a quit inside the 5-second hold and a brief moved
+back to Active. No findings.
+
+**State.** 9 tasks done, spec `done`; `npm test` passes 1795. The panel, the
+IPC shell and `notify.js` have no unit tests (D10); during T07 a hidden-window
+Electron harness against a fake cloud passed 49 of 49 checks. Open: phase 2
+(GitHub tracking: PR and review states, `mergeTracking: off`, webhooks), and
+`part-merged` still reads "changed this brief" in History.
+
 ### [2026-11-09] Self-hosted Frame — direction, workspace model, files to copy (discussion, no spec yet)
 
 Context: the user brought a brief from another session ("Frame Server — Self-Hosted Mode", 2026-11-07: FrameClient/FrameServer/SandboxProvider, phases 0–3), that session's full transcript, and a PoC write-up from yet another session ("Frame Enterprise & Self-Hosted PoC": `poc/frame-server` branch with an electron-main shim, a WebSocket hub with numbered/replayed messages, a terminal registry keeping 1 MB per terminal, a browser ipcRenderer shim, File › Connect to Server over an SSH tunnel; ran on a Hetzner box, 1223 tests green). The PoC branch is not in this repo or on origin. User's goal (verbatim): "benim ilk hedefim frame e self hosted özelliğini verebilmek. enterprise ile beraber gelecek şeyleri aynı anda yapıp işi uzatmak istemiyorum."
@@ -3818,3 +4402,172 @@ Why outside, from the code audit: no hard coupling — only orchestration (`gitB
 - Archive: never auto-commit (Conductor does); with uncommitted changes Frame asks commit / discard / cancel. Archive removes the worktree and keeps the branch; "archive after merge" is a setting.
 - Scripts: v1 ships the per-repo setup script and `copyFiles`; the Run button and a per-workspace port are v1.1.
 - Location on disk: a visible `~/frame/workspaces/<repo>/<name>` (like Conductor's `~/conductor/workspaces`), configurable in settings — not under `~/.frame/`, which also avoids confusion with `~/.frame/workspaces.json`.
+
+### [2026-11-15] Frame Cloud milestones: the started milestone on Briefs and on Home
+
+Spec `frame-cloud-milestones`, branch `feat/frame-cloud-milestones` (off the
+`feat/frame-cloud-adaptor` umbrella). Frame's half of FrameCloud's
+`milestone-board` (PR #31) and `board-active-milestone` (PR #32), both of
+which listed "Milestones in Frame desktop" as out of scope. Until now Frame
+kept only a milestone's id, name and status, and a card showed the name and
+nothing else. T01–T11 ran autonomously on 2026-11-15; there was no developer
+walk yet.
+
+**Home's tracker was added at plan time (D4).** The spec asked only for the
+Briefs board. While planning, the user added a tracker on Home: the started
+milestone on the "Welcome to Frame!" row, as one pill (name, Overdue, end
+date, a bar, "N of M done") that opens Briefs narrowed to it. The spec's
+Goal, Constraints and Success Criteria were amended (G6, S11–S13). Rejected:
+name and bar only, with the date and count in a tooltip.
+
+**Decisions asked at plan time:**
+- D1 · Frame never sets a brief's milestone. The detail's Milestone row and
+  New brief stay read-only, and `brief.setMilestone` is never called; "Open on
+  web" is where it changes (the spec's "Milestones stay read-only in Frame",
+  frame-cloud-brief-manual-done's "every other mutation stays on the web").
+- D2 · Only the started milestone narrows the board, as on the web
+  (board-active-milestone D3). Rejected: a select over every open milestone
+  plus "No milestone".
+- D3 · A target branch that moved under a begun part gets nothing extra: the
+  row reads "On `<branch>`" and the merge check uses the brief's current
+  target. Rejected: recording the base branch at Begin, which would reach into
+  the Start flow (the begun record holds only `baseSha`).
+- D12 · Home's data: a new `CLOUD_MILESTONES_LIST` reads `milestone.list`
+  alone (one request) on a project, cloud or availability change and on a
+  Home visit or focus once older than 30 s; every Briefs board draw hands Home
+  its own counts (`homeData.setBoardMilestone`). Rejected: reusing
+  `CLOUD_BRIEFS_LIST` (the board's N+1 reads on every Home visit) and a new
+  FrameCloud `milestone.started` endpoint (a cross-repo dependency that would
+  still need the fallback). So the spec's "No new request" holds for the board
+  only (D13). Still no timers.
+- D14 · Tests cover the pure core and copy only; the panel, `homeData` and the
+  widget stay untested (no DOM harness, checked again).
+
+**Decided silently (plan):** the narrowing is panel state, cleared by
+`hide()` and a folder change (D5); viewers see none of it because Briefs
+already needs `work` (D6, so the spec's "a viewer sees the same strip" is
+moot); a narrowing counts only while it names the started milestone (D8); the
+tracking box keeps reading the whole board (D22); an older server's milestone
+(no counts) reads as its name alone, and `briefs === null` is how that is told
+apart from "No end date" (D11).
+
+**Built differently from the plan** (outcome T01–T11):
+- `targetDate` must be a real calendar day, not only `YYYY-MM-DD`-shaped.
+- `countsWithBriefs` filters to the milestone's own briefs itself (the panel
+  passes every shown brief) and returns null without server counts, unlike
+  the web's, which takes the milestone's briefs already filtered.
+- `homeData`'s reads and the board's handoffs share one sequence, so an older
+  read never overwrites the board's counts (which carry a held Move to Done);
+  a failed read keeps the last value unless the folder lost its connection.
+- Card badges follow the board's `startedMilestone` pick, not the status
+  alone, so an older server's extra started milestones get none.
+- The implement loop's "amend the hash in" step was skipped: `report-data.json`
+  is gitignored, so amending only changed the hash.
+
+**State.** 11 tasks done, spec `done`, digest written; `npm test` passes 2093
+(1 skipped). The panel and Home code were checked only with a throwaway
+fake-DOM harness, not in the running app. Open: a walk of the Success
+Criteria against a FrameCloud server carrying `board-active-milestone`; the
+existing `formatDate` test fails under `TZ=Pacific/Kiritimati` (UTC+14),
+unrelated to this spec.
+
+### [2026-11-19] Start Work in workspaces: each brief part opens in its own workspace on this Mac
+
+Spec `frame-cloud-start-workspace`, branch `feat/frame-cloud-start-workspace`
+(off the `feat/frame-cloud-adaptor` umbrella). Start Work and Begin
+(`frame-cloud-brief-start`, 2026-09-25) predated workspaces: they stashed the
+main checkout, cut the part's branch there and opened the lane there, so one
+checkout held one part at a time. Now each part that is started gets a new
+workspace on its own branch, so parts can run side by side. T01–T10 ran
+autonomously on 2026-11-19. T11 was added the same day after the user's
+first look at the dialog. There was no full developer walk yet.
+
+**Scope agreed with the user before the spec:**
+- Two phases (2026-11-19). Phase 1 (this spec) always creates the workspace on
+  this Mac. Starting a part on a Frame Server is phase 2, a separate spec on
+  its own branch. Phase 1 only shows the server as Coming soon.
+- Frame opens the work and the user coordinates it (2026-11-18): "diğer
+  parçaları başlatmak vs kullanıcının inisiyatifine kalır, isterse begin diye
+  başlatır ama merge etmesi vs onun inisiyatifinde olur". Merge order and
+  conflicts stay with Update from base and Resolve with agent. There is no
+  cross-workspace coordination, and Orchestrate stays disabled (the
+  2026-11-09 "orchestration is out of scope" decision).
+- Implemented stays on this Mac (2026-11-19). Task state stays in the main
+  checkout's `tasks.json` (spec-in-workspace), so `brief.recordCompletion` is
+  never sent for a part begun in a workspace: its rows are not on the branch.
+  PR and merge still reach Frame Cloud through GitHub. Accepted: another
+  machine does not see Implemented, and a merge without a PR is caught only by
+  Link commit.
+
+**Decisions asked at plan time:**
+- The branch is cut first (`git branch`, no checkout) and then opened with
+  `workspaceManager.create({ from: 'branch' })` (spec Open Question 1).
+  Rejected: a branch-name option on `create({ from: 'new' })`, which always
+  cuts from `origin/<base>` and changes the call Frame Server's
+  `workspaces.create` shares. A failed workspace leaves the branch and is
+  `partial` with step `workspace`.
+- The card finds a part's workspace by branch (`begunBranch`, else the cloud
+  `branch`; git checks a branch out in at most one worktree). This overturns
+  the spec's "the begun record stores the workspace": `cloud-starts.json`
+  keeps `{ ref, branch, begunAt, baseSha }`. Rejected: storing the workspace
+  id, which goes stale on archive, rename or re-open. Workspace records
+  already carry `location`, so phase 2 still needs no migration.
+- An archived workspace's chip just drops and the row reads as before (spec
+  Open Question 2). Rejected: a Restore chip.
+- The workspace is named after the branch's last segment, as `create` names
+  one opened from a branch; the dialog shows the name, not a field for it.
+- Setup runs to the end before the lane opens, as New Workspace does. This
+  corrects the spec's citation: a spec created from main runs setup
+  alongside its lane. Rejected: alongside, where a task run could start
+  before dependencies are installed.
+- Coming soon (Location: This Mac + disabled Server) shows only when a server
+  is saved, by New Workspace's rule. Rejected: always showing it.
+- Tests cover the pure logic only (no DOM harness).
+
+**Asked after T10 (T11, the base):** looking at the dialog's "from main ⌄",
+the user asked: "arayüzün böyle olması branch seçimi için mantıklı mı sence ?
+Çünkü kullanıcı remote repo'sundan da base alabilir gibi geliyor bana ? Burada
+sadece local repo'lar listeleniyor ?". The menu already listed origin's
+branches, but the closed button gave no sign of it. The real gap was that
+nothing was fetched, and the default was the local target, which can be
+behind origin. `frame-cloud-brief-start` had decided "Frame does not fetch:
+the base is what this machine has". That made sense when the branch was
+checked out in the main checkout, but not now that Start Work opens a
+workspace, as New Workspace does from a fetched `origin/<base>`. The user
+chose to fix it as T11 in this PR. The decision is overturned:
+- The default base is `origin/<target>`, else the local target.
+- An `origin/` base is fetched at start (after the checks, before
+  `brief.start`). A failed fetch cuts from the last fetched copy and shows
+  "Couldn't fetch origin/<base> — cut from the last fetched copy."
+- A local base the user picks is cut as it is.
+- The closed button shows the local or origin icon.
+- Rejected: fetching when the dialog opens (up to 15 s of waiting), and
+  listing remotes other than `origin`, such as a fork's `upstream`, which New
+  Workspace does not do either.
+
+**Decided silently (plan):** the task-run prompt names the main checkout's
+`tasks.json` by path (`buildTaskPrompt({ tasksPath })`); ref allocation counts
+specs in every checkout (`specManager.listSpecs`); `baseSha` is read from the
+new branch's tip, not the main checkout's HEAD; the workspace's base is a
+branch name (`origin/main` → `main`); `cloudDoneService` is unchanged.
+
+**Built differently from the plan** (outcome T01–T11):
+- The task prompt also names the path in its format step, not only in the
+  completion line. A Begin task row has no acceptance criteria, so that step
+  would otherwise send the agent to the worktree's copy, where the row is not.
+- Start Work calls `workspaceManager.create` directly, outside the
+  per-project `serialize` queue the IPC path uses, because the plan kept
+  `workspaceManager` unchanged. Followup: a `createQueued` export, like
+  `archiveQueued`.
+- The implement loop's "amend the hash in" step was skipped again:
+  `report-data.json` is gitignored.
+
+**State.** 11 tasks done, spec `done`, digest written; `npm test` passes
+2259 of 2260 (0 fail). Under Node 20.5.1 on this Mac,
+`test/serverConnection.test.js` and `test/specManagerServer.test.js` pass
+every test but never exit (an open handle, from the merged server work), so
+`npm test` hangs. The run tested them separately with a time cap. The
+installed app keeps re-adding 27 completed `server-*` task rows to
+`tasks.json`; they were left out of every commit. Open: a walk of the Success
+Criteria in the running app (dialog lines, the lane after setup, two parts
+running at once, the card's chip).

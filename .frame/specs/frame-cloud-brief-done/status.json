@@ -1,0 +1,23 @@
+{
+  "slug": "frame-cloud-brief-done",
+  "title": "Frame Cloud brief done",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-frame-cloud-brief-done-T01",
+    "task-spec-frame-cloud-brief-done-T02",
+    "task-spec-frame-cloud-brief-done-T03",
+    "task-spec-frame-cloud-brief-done-T04",
+    "task-spec-frame-cloud-brief-done-T05",
+    "task-spec-frame-cloud-brief-done-T06",
+    "task-spec-frame-cloud-brief-done-T07",
+    "task-spec-frame-cloud-brief-done-T08",
+    "task-spec-frame-cloud-brief-done-T09",
+    "task-spec-frame-cloud-brief-done-T10",
+    "task-spec-frame-cloud-brief-done-T11"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-11-04T07:42:42Z",
+  "updated_at": "2026-11-07T13:36:27.650Z",
+  "last_phase_at": "2026-11-07T13:36:27.650Z",
+  "implement_mode": "autonomous"
+}

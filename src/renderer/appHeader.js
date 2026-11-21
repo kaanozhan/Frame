@@ -28,6 +28,11 @@
  *     sidebarResize.onChange / dock.onChange, never from the click itself,
  *     so the buttons stay right whichever entry point moved the region.
  *
+ *   - The Frame Cloud entry (frame-cloud-header-entry spec), right of the
+ *     mark. bindCloudEntry paints #cloud-entry from cloudEntry.entryFor on
+ *     every session push. It is called from index.js after cloudHub.init,
+ *     with cloudHub passed in, because the hub is not up when init() runs.
+ *
  * Start (#sidebar-agent-launch) and the project switcher keep their bindings
  * in index.js; they bind by id and the elements are simply there now.
  */
@@ -40,6 +45,8 @@ const { applyTheme, currentTheme } = require('./terminalTabBar');
 const sidebarResize = require('./sidebarResize');
 const dock = require('./dock');
 const commandRegistry = require('./commandRegistry');
+const tooltip = require('./tooltip');
+const { entryFor } = require('./cloudEntry');
 
 let initialized = false;
 
@@ -190,6 +197,54 @@ function initLayoutToggles(root) {
   dock.onChange(paintDock);
 }
 
+/**
+ * The Frame Cloud entry: hidden without a server address, otherwise the
+ * session's icon or initial, label and tag (cloudEntry.entryFor), all plain
+ * text. A click toggles the Frame Cloud window, as the rail button did.
+ *
+ * tooltip.attach fixes its text when attached, so a changed tooltip replaces
+ * the button with a clone and attaches a fresh one; if the old button had
+ * focus, the clone takes it.
+ */
+function bindCloudEntry(cloudHub) {
+  if (!document.getElementById('cloud-entry')) {
+    console.error('Frame Cloud: #cloud-entry not found — the header has no Frame Cloud entry');
+    return;
+  }
+  let boundTooltip = null;
+
+  const paint = (session) => {
+    let btn = document.getElementById('cloud-entry');
+    if (!btn) return;
+    const entry = entryFor(session);
+    btn.hidden = !entry;
+    if (!entry) return;
+
+    btn.dataset.kind = entry.kind;
+    btn.classList.toggle('cloud-entry-call', entry.call);
+    btn.setAttribute('aria-label', entry.tooltip);
+    btn.querySelector('.cloud-entry-initial').textContent = entry.initial;
+    btn.querySelector('.cloud-entry-label').textContent = entry.label;
+    const tag = btn.querySelector('.cloud-entry-tag');
+    tag.textContent = entry.tag || '';
+    tag.hidden = !entry.tag;
+
+    if (entry.tooltip === boundTooltip) return;
+    boundTooltip = entry.tooltip;
+    const hadFocus = document.activeElement === btn;
+    if (tooltip.current === btn) tooltip.hide();
+    const fresh = btn.cloneNode(true);
+    btn.replaceWith(fresh);
+    btn = fresh;
+    btn.addEventListener('click', () => cloudHub.toggle());
+    tooltip.attach(btn, entry.tooltip, { placement: 'bottom' });
+    if (hadFocus) btn.focus();
+  };
+
+  paint(cloudHub.session());
+  cloudHub.onSession(paint);
+}
+
 function init() {
   if (initialized) return;
   const root = document.getElementById('app-header');
@@ -208,4 +263,4 @@ function init() {
   require('./aiToolSelector').mountSelector();
 }
 
-module.exports = { init };
+module.exports = { init, bindCloudEntry };

@@ -27,7 +27,9 @@ const SECRETS = [
   ['Bearer header', 'Authorization: Bearer abc123def456ghi789jkl', 'abc123def456ghi789jkl'],
   ['password=', 'mysql -u root password=hunter22secret', 'hunter22secret'],
   ['api_key:', 'config set api_key: 0123456789abcdef', '0123456789abcdef'],
-  ['quoted secret', 'export CLIENT_SECRET="s3cr3tv4lue99"', 's3cr3tv4lue99']
+  ['quoted secret', 'export CLIENT_SECRET="s3cr3tv4lue99"', 's3cr3tv4lue99'],
+  ['access_token in a JSON body', 'token response {"access_token":"fc_9d2Kq81xZpLm","token_type":"Bearer"}', 'fc_9d2Kq81xZpLm'],
+  ['Bearer in a JSON header map', 'request headers {"Authorization":"Bearer fc9d2Kq81xZpLm7T4w"}', 'fc9d2Kq81xZpLm7T4w']
 ];
 
 for (const [name, input, secret] of SECRETS) {
@@ -45,7 +47,8 @@ const CLEAN = [
   'npm run build && electron .',
   'Error loading tasks: SyntaxError: Unexpected end of JSON input',
   'watcher error on /Users/x/project: ENOENT',
-  'git checkout -b frame/my-spec/work 504838a'
+  'git checkout -b frame/my-spec/work 504838a',
+  'device token answer {"token_type":"Bearer","expires_in":2592000}'
 ];
 
 for (const line of CLEAN) {
