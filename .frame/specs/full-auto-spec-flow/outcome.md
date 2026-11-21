@@ -46,3 +46,11 @@ _Captured: 2026-11-21 · 3 file change(s)_
 
 ---
 
+## T07 — Add --full-auto to implement-launch.js
+
+Added parseArgs, promptRelFor, templateCandidates, autoPromptVars (pure) and recordFullAutoMode, mainTasksPath, stageFullAuto, launch to src/templates/bin/implement-launch.js, with tests in test/implementLaunch.test.js. Smoke-tested end to end with a stand-in claude. The staged implement prompt keeps a literal {autonomous_handoff} in its conversational-entry section, as the existing implement-only launch already did; that section is never read when the mode is recorded.
+
+_Captured: 2026-11-21 · 2 file change(s)_
+
+---
+

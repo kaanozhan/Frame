@@ -28839,6 +28839,11 @@
         "buildLaunchArgs",
         "resolveRawTemplatePath",
         "findProjectRoot",
+        "parseArgs",
+        "promptRelFor",
+        "templateCandidates",
+        "autoPromptVars",
+        "AUTO_PHASES",
         "IMPLEMENT_ALLOW",
         "IMPLEMENT_DENY",
         "REPORT_GENERATOR_REL",
@@ -28852,7 +28857,7 @@
       ],
       "functions": {
         "interpolate": {
-          "line": 72,
+          "line": 91,
           "params": [
             "template",
             "vars"
@@ -28860,21 +28865,21 @@
           "purpose": "{key} → vars[key]; unknown placeholders are left intact (same contract as"
         },
         "resolveVerificationCommand": {
-          "line": 79,
+          "line": 98,
           "params": [
             "config"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildPermissions": {
-          "line": 91,
+          "line": 110,
           "params": [
             "verification"
           ],
           "purpose": "The implement-permissions.json body. When a verification command exists,"
         },
         "buildLaunchArgs": {
-          "line": 101,
+          "line": 120,
           "params": [
             "settingsAbsPath",
             "promptRelPath"
@@ -28882,66 +28887,137 @@
           "purpose": "The CLI launch line: the permission flags plus the short read-this-file"
         },
         "resolveRawTemplatePath": {
-          "line": 111,
+          "line": 130,
           "params": [
             "projectRoot",
             "existsFn = fs.existsSync"
           ],
           "purpose": "Raw template path: override → staged. `existsFn` is injectable for tests."
         },
+        "parseArgs": {
+          "line": 140,
+          "params": [
+            "args"
+          ],
+          "purpose": "`<slug> [--full-auto]` in any order. Unknown flags are an error rather than"
+        },
+        "promptRelFor": {
+          "line": 152,
+          "params": [
+            "slug",
+            "command"
+          ],
+          "purpose": "Where a staged prompt lands, per command."
+        },
+        "templateCandidates": {
+          "line": 157,
+          "params": [
+            "projectRoot",
+            "command"
+          ],
+          "purpose": "A command's raw template: the project override, else the staged copy."
+        },
+        "autoPromptVars": {
+          "line": 166,
+          "params": [
+            "{ projectRoot",
+            "slug",
+            "title",
+            "tasksPath }"
+          ],
+          "purpose": "The variables a full-auto run's prompts are filled with. Mirrors what"
+        },
         "findProjectRoot": {
-          "line": 123,
+          "line": 185,
           "params": [
             "startDir"
           ],
           "purpose": "Walk up from a starting dir to the nearest ancestor that holds a .frame/"
         },
         "readJson": {
-          "line": 133,
+          "line": 195,
           "params": [
             "absPath"
           ]
         },
         "recordAutonomousMode": {
-          "line": 143,
+          "line": 205,
           "params": [
             "projectRoot",
             "slug"
           ],
           "purpose": "Merge implement_mode: autonomous into the spec's status.json, preserving"
         },
+        "recordFullAutoMode": {
+          "line": 217,
+          "params": [
+            "projectRoot",
+            "slug"
+          ],
+          "purpose": "Full auto records both modes: flow_mode for every later dispatch, and the"
+        },
+        "mainTasksPath": {
+          "line": 230,
+          "params": [
+            "projectRoot"
+          ],
+          "purpose": "Task state lives in the main checkout's tasks.json, also when this runs in"
+        },
+        "stageFullAuto": {
+          "line": 244,
+          "params": [
+            "projectRoot",
+            "slug",
+            "title"
+          ],
+          "purpose": "Stage the three phase prompts and spec.auto's. Returns the auto prompt's"
+        },
         "writePermissions": {
-          "line": 153,
+          "line": 256,
           "params": [
             "projectRoot"
           ]
         },
         "fail": {
-          "line": 162,
+          "line": 265,
           "params": [
             "message"
           ]
         },
         "main": {
-          "line": 167,
+          "line": 270,
           "params": [
             "argv"
           ]
+        },
+        "launch": {
+          "line": 316,
+          "params": [
+            "projectRoot",
+            "args"
+          ]
         }
       },
-      "sizeBytes": 8480,
+      "sizeBytes": 13733,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "purposes": {
+          "autoPromptVars": "f481a296c794723e",
           "buildLaunchArgs": "e10f616732c4be77",
           "buildPermissions": "986583aa666a6161",
           "findProjectRoot": "a631952e671031f8",
           "interpolate": "28fd20bb388197f8",
+          "mainTasksPath": "218575b5ea0d0fec",
+          "parseArgs": "3cde8126050a25b0",
+          "promptRelFor": "e5436621019aaeb5",
           "recordAutonomousMode": "685b3a3c5cf59543",
+          "recordFullAutoMode": "1ad6bafa60225e84",
           "resolveRawTemplatePath": "aa8578b7abacc8cf",
-          "resolveVerificationCommand": "55df517cdd84f001"
+          "resolveVerificationCommand": "55df517cdd84f001",
+          "stageFullAuto": "c8097098a4fae929",
+          "templateCandidates": "59774b7168dcebed"
         }
       }
     },
@@ -31544,10 +31620,11 @@
         "node:test",
         "node:assert/strict",
         "path",
-        "src/templates/bin/implement-launch"
+        "src/templates/bin/implement-launch",
+        "fs"
       ],
       "functions": {},
-      "sizeBytes": 5184,
+      "sizeBytes": 7362,
       "extraction": {
         "status": "parsed"
       },
@@ -37260,6 +37337,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "79b8b66fb21b7c518eebfa538fd36208694b1c4250f22167b21ce66083052c44"
+    "revision": "65995285eb5ba0e4908838eef853554c7527eadde35e8b987cc296aaa1de1d59"
   }
 }

@@ -115,3 +115,38 @@ test('resolveRawTemplatePath falls back to the staged copy', () => {
 test('resolveRawTemplatePath returns null when neither exists', () => {
   assert.equal(helper.resolveRawTemplatePath('/proj', () => false), null);
 });
+
+// ─── full auto (full-auto-spec-flow T07) ──────────────────────
+
+test('parseArgs reads the slug and --full-auto in any order', () => {
+  assert.deepEqual(helper.parseArgs(['my-spec']), { slug: 'my-spec', fullAuto: false, error: null });
+  assert.deepEqual(helper.parseArgs(['my-spec', '--full-auto']), { slug: 'my-spec', fullAuto: true, error: null });
+  assert.deepEqual(helper.parseArgs(['--full-auto', 'my-spec']), { slug: 'my-spec', fullAuto: true, error: null });
+});
+
+test('parseArgs refuses an unknown flag and a missing slug', () => {
+  assert.match(helper.parseArgs(['my-spec', '--ful-auto']).error, /unknown option --ful-auto/);
+  assert.match(helper.parseArgs(['--full-auto']).error, /usage/);
+  assert.match(helper.parseArgs([]).error, /usage/);
+});
+
+test('autoPromptVars names the three phase prompts the way spec.auto.md expects', () => {
+  const vars = helper.autoPromptVars({ projectRoot: '/p', slug: 's', title: 'T', tasksPath: '/main/.frame/tasks.json' });
+  assert.equal(vars.plan_prompt_path, '.frame/runtime/prompts/s__spec.plan.md');
+  assert.equal(vars.tasks_prompt_path, '.frame/runtime/prompts/s__spec.tasks.md');
+  assert.equal(vars.implement_prompt_path, '.frame/runtime/prompts/s__spec.implement.md');
+  assert.equal(vars.tasks_path, '/main/.frame/tasks.json');
+  assert.equal(vars.ask_mechanism, 'the `AskUserQuestion` tool');
+  assert.equal(vars.title, 'T');
+  // Every phase token spec.auto.md uses is filled.
+  const fs = require('fs');
+  const auto = fs.readFileSync(path.join(__dirname, '..', 'src', 'templates', 'commands', 'claude-code', 'spec.auto.md'), 'utf8');
+  const filled = helper.interpolate(auto, vars);
+  assert.ok(!/\{[a-z_]+\}/.test(filled), 'no token survives in the staged spec.auto prompt');
+});
+
+test('templateCandidates puts the project override before the staged copy', () => {
+  const [override, staged] = helper.templateCandidates('/p', 'spec.auto');
+  assert.equal(override, path.join('/p', '.frame', 'templates', 'commands', 'claude-code', 'spec.auto.md'));
+  assert.equal(staged, path.join('/p', '.frame', 'runtime', 'commands', 'claude-code', 'spec.auto.md'));
+});
