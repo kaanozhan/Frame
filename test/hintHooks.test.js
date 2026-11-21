@@ -134,6 +134,84 @@ test('an existing project\'s previous hook commands are upgraded on install, not
   assert.deepEqual(after.permissions, settings.permissions, 'other keys untouched');
 });
 
+// ─── hooks-run-from-project-root ──────────────────────────────
+//
+// Claude Code runs a hook in the session's current directory, which follows
+// the agent's `cd`; $CLAUDE_PROJECT_DIR stays the folder the session started
+// in (measured with Claude Code 2.1.328, including a worktree).
+
+test('after the agent cd\'d into a subfolder, each hook still runs — from $CLAUDE_PROJECT_DIR', () => {
+  const dir = project();
+  const sub = path.join(dir, 'src', 'deep');
+  fs.mkdirSync(sub, { recursive: true });
+  for (const c of commands()) {
+    const r = runHook(c, sub, { PATH: NODE_DIR, CLAUDE_PROJECT_DIR: dir });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /^ran [\w-]+\.js [\w-]+$/, c);
+  }
+});
+
+test('without $CLAUDE_PROJECT_DIR, or with one that does not exist, a hook behaves as before', () => {
+  const dir = project();
+  const sub = path.join(dir, 'sub');
+  fs.mkdirSync(sub);
+  for (const c of commands()) {
+    for (const env of [{ PATH: NODE_DIR }, { PATH: NODE_DIR, CLAUDE_PROJECT_DIR: path.join(SANDBOX, 'gone') }]) {
+      const atRoot = runHook(c, dir, env);
+      assert.equal(atRoot.status, 0, atRoot.stderr);
+      assert.match(atRoot.stdout, /^ran /, 'from the project root it runs, as before');
+      const inSub = runHook(c, sub, env);
+      assert.equal(inSub.status, 0, inSub.stderr);
+      assert.equal(inSub.stdout, '', 'from a subfolder it skips silently, as before');
+      assert.equal(inSub.stderr, '');
+    }
+  }
+});
+
+test('a project path with spaces works', () => {
+  const dir = fs.mkdtempSync(path.join(SANDBOX, 'with space '));
+  fs.mkdirSync(path.join(dir, '.frame', 'bin'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.frame', 'bin', 'spec-hint.js'), "process.stdout.write('ran');\n");
+  fs.mkdirSync(path.join(dir, 'a b'));
+  const r = runHook(templates.hintCommand('spec-hint.js', 'prompt'), path.join(dir, 'a b'), { PATH: NODE_DIR, CLAUDE_PROJECT_DIR: dir });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, 'ran');
+});
+
+test('the commands shipped before it are upgraded in place on install, once each', () => {
+  const dir = project();
+  const before = (script, mode) => `sh -c '[ ! -f .frame/bin/${script} ] || { n=$(command -v node || printf %s "$FRAME_NODE"); `
+    + `[ -z "$n" ] || ELECTRON_RUN_AS_NODE=1 exec "$n" .frame/bin/${script} ${mode}; }'`;
+  const settings = {
+    hooks: {
+      PreToolUse: [
+        { matcher: 'Edit|Write', hooks: [{ type: 'command', command: before('spec-hint.js', 'pre-edit') }] },
+        { matcher: 'Edit|Write|NotebookEdit|Bash', hooks: [{ type: 'command', command: before('docs-hint.js', 'pre-edit') }] }
+      ],
+      UserPromptSubmit: [
+        { hooks: [{ type: 'command', command: before('spec-hint.js', 'prompt') }] },
+        { hooks: [{ type: 'command', command: before('spec-command-hint.js', 'prompt') }] }
+      ],
+      SessionStart: [{ hooks: [{ type: 'command', command: before('docs-hint.js', 'session-start') }] }]
+    }
+  };
+  fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.claude', 'settings.json'), JSON.stringify(settings, null, 2));
+  const res = frameProject.installSpecHintHook(dir, { file: 'settings.json' });
+  assert.equal(res.installed, true, JSON.stringify(res));
+  const after = JSON.parse(fs.readFileSync(path.join(dir, '.claude', 'settings.json'), 'utf8'));
+  const all = [];
+  for (const list of Object.values(after.hooks)) for (const e of list) for (const h of e.hooks) all.push(h.command);
+  assert.equal(all.filter((c) => !c.includes('CLAUDE_PROJECT_DIR')).length, 0, 'no command of the previous form is left');
+  for (const c of new Set(all)) assert.equal(all.filter((x) => x === c).length, 1, `once: ${c}`);
+  assert.ok(all.includes(templates.hintCommand('spec-command-hint.js', 'prompt')));
+
+  // Installing again changes nothing.
+  const raw = fs.readFileSync(path.join(dir, '.claude', 'settings.json'), 'utf8');
+  frameProject.installSpecHintHook(dir, { file: 'settings.json' });
+  assert.equal(fs.readFileSync(path.join(dir, '.claude', 'settings.json'), 'utf8'), raw);
+});
+
 test('Codex hooks keep their command (they are machine-wide and trust-tracked)', () => {
   const codex = [];
   for (const list of Object.values(templates.CODEX_HINT_HOOKS)) for (const e of list) for (const h of e.hooks) codex.push(h.command);
