@@ -396,7 +396,11 @@ function listSpecsCore(projectPath, tasksProject, locations, extraLists = []) {
       // spec without a report should cost the payload nothing — measured on
       // this project, an always-present pair of booleans grows SPEC_DATA by
       // ~22% where this grows it by ~4%.
-      ...(reports.length ? { reports } : {})
+      ...(reports.length ? { reports } : {}),
+      // Same payload rule as reports: only when the spec declares one. The
+      // renderer's full-auto trigger diffs this field between pushes
+      // (full-auto-spec-flow), so a change must change the payload.
+      ...(status_.flow_mode ? { flow_mode: status_.flow_mode } : {})
     });
   }
   // Tag each spec with its workspace (null = main) and keep listSpecs' order.
@@ -585,7 +589,9 @@ function reconcilePhase(projectPath, slug, tasksDataOrNull) {
 // are substituted via a simple regex — no expression evaluation.
 
 const FRAME_TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
-const SUPPORTED_COMMANDS = ['spec.new', 'spec.plan', 'spec.tasks', 'spec.implement'];
+// `spec.auto` (full-auto-spec-flow) is the one command a button never names
+// directly: it orchestrates the three phase prompts in one flagged session.
+const SUPPORTED_COMMANDS = ['spec.new', 'spec.plan', 'spec.tasks', 'spec.implement', 'spec.auto'];
 
 function getDefaultTemplatePath(aiTool, command) {
   return path.join(FRAME_TEMPLATES_DIR, 'commands', aiTool, `${command}.md`);
@@ -641,7 +647,7 @@ function interpolate(template, vars) {
 // that command only — every other command reads an existing status.json.
 const isSlugless = (slug, command) => !slug && command === 'spec.new';
 
-function getCommandPrompt(projectPath, slug, command, aiTool, description, rootOverride, tasksProject) {
+function getCommandPrompt(projectPath, slug, command, aiTool, description, rootOverride, tasksProject, extraVars) {
   if (!SUPPORTED_COMMANDS.includes(command)) return { error: `unknown command: ${command}` };
   const tool = aiTool || 'claude-code';
   const slugless = isSlugless(slug, command);
@@ -682,7 +688,10 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description, rootO
     // Full spec catalog only where it's consumed (spec.new's relatedness
     // evaluation and slug disambiguation) — other templates carry no
     // {spec_catalog} token.
-    spec_catalog: command === 'spec.new' ? buildSpecCatalog(projectPath) : ''
+    spec_catalog: command === 'spec.new' ? buildSpecCatalog(projectPath) : '',
+    // spec.auto's phase prompt paths, staged by buildSpecCommandFile just
+    // before this call. Absent for every other command.
+    ...(extraVars || {})
   };
   // Deliberately absent on the slug-less path rather than blanked: neither
   // value exists yet, and the agent is the one that decides them.
@@ -884,6 +893,44 @@ function getImplementLaunchFlags(projectPath, slug, aiTool) {
   return ['--settings', perms.absPath, '--permission-mode', 'auto'];
 }
 
+// The flags a full-auto run (`spec.auto`) launches with: always the
+// autonomous ones, because the whole point of the mode is an uninterrupted
+// run. Claude Code only, for the same reason as getImplementLaunchFlags.
+function getAutoLaunchFlags(projectPath, aiTool) {
+  if ((aiTool || 'claude-code') !== 'claude-code') return [];
+  const perms = writeImplementPermissions(projectPath);
+  if (!perms.success) return [];
+  return ['--settings', perms.absPath, '--permission-mode', 'auto'];
+}
+
+function launchFlagsFor(projectPath, slug, command, aiTool) {
+  if (command === 'spec.implement') return getImplementLaunchFlags(projectPath, slug, aiTool);
+  if (command === 'spec.auto') return getAutoLaunchFlags(projectPath, aiTool);
+  return [];
+}
+
+// The three phase prompts a full-auto run reads in turn, staged where the
+// agent runs, named as spec.auto's {plan,tasks,implement}_prompt_path. Each is
+// the same prompt the phase's own button would stage, so the phase templates
+// stay the single source of each phase.
+const AUTO_PHASES = [
+  ['plan_prompt_path', 'spec.plan'],
+  ['tasks_prompt_path', 'spec.tasks'],
+  ['implement_prompt_path', 'spec.implement']
+];
+
+function stagePhasePrompts(projectPath, slug, aiTool, root, tasksProject, promptsDir) {
+  const vars = {};
+  for (const [key, command] of AUTO_PHASES) {
+    const result = getCommandPrompt(projectPath, slug, command, aiTool, '', root, tasksProject);
+    if (result.error) return { error: result.error };
+    const filename = `${slug}__${command}.md`;
+    fs.writeFileSync(path.join(promptsDir, filename), result.prompt, 'utf8');
+    vars[key] = path.posix.join(RUNTIME_PROMPTS_DIR.replace(/\\/g, '/'), filename);
+  }
+  return { vars };
+}
+
 // A slug-less run has no stable name to key the prompt file on — `${slug}__`
 // would yield `null__spec.new.md` and let every run overwrite the last. The
 // prompt file *is* the recovery surface for the user's text when a run fails
@@ -910,9 +957,17 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool, description, r
   // while the lane ran in a worktree left the agent with a path it could
   // not open.
   const root = rootOverride || (slug ? specRoot(projectPath, slug) : projectPath);
-  const result = getCommandPrompt(projectPath, slug, command, aiTool, description, root, tasksProject);
-  if (result.error) return result;
   const promptsDir = path.join(root, RUNTIME_PROMPTS_DIR);
+  let extraVars = null;
+  if (command === 'spec.auto') {
+    if (!slug || !readStatus(projectPath, slug)) return { error: 'spec not found' };
+    fs.mkdirSync(promptsDir, { recursive: true });
+    const phases = stagePhasePrompts(projectPath, slug, aiTool || 'claude-code', root, tasksProject, promptsDir);
+    if (phases.error) return phases;
+    extraVars = phases.vars;
+  }
+  const result = getCommandPrompt(projectPath, slug, command, aiTool, description, root, tasksProject, extraVars);
+  if (result.error) return result;
   fs.mkdirSync(promptsDir, { recursive: true });
   const slugless = isSlugless(slug, command);
   // Staging a slug-less spec.new prompt is the one thing only Frame's own New
@@ -936,10 +991,10 @@ function buildSpecCommandFile(projectPath, slug, command, aiTool, description, r
   return {
     success: true,
     relPath,
-    // Empty for every command but spec.implement, and for spec.implement
-    // unless the launch hint is autonomous. The renderer passes these
-    // through to the CLI launch line without interpreting them.
-    launchFlags: command === 'spec.implement' ? getImplementLaunchFlags(projectPath, slug, aiTool) : [],
+    // Empty for every command but spec.implement (only when the launch hint
+    // is autonomous) and spec.auto (always, Claude Code only). The renderer
+    // passes these through to the CLI launch line without interpreting them.
+    launchFlags: launchFlagsFor(projectPath, slug, command, aiTool),
     instruction: `Read ${relPath} and follow its instructions exactly.`
   };
 }

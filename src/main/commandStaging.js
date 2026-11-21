@@ -31,7 +31,8 @@ const COMMAND_TEMPLATE_FILES = [
   'spec.new.md',
   'spec.plan.md',
   'spec.tasks.md',
-  'spec.implement.md'
+  'spec.implement.md',
+  'spec.auto.md'
 ];
 const COMMAND_ASSET_FILES = [
   'plan-report-template.html',

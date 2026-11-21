@@ -245,7 +245,7 @@ function renderDetail() {
   const { status, spec, plan, tasks, outcome } = activeSpec;
   const phaseLabel = status.phase.replace(/_/g, ' ');
   const aiLabel = status.ai_tool || '';
-  const nextAction = specNextAction.nextActionForPhase(status.phase);
+  const nextAction = specNextAction.nextActionForPhase(status.phase, status);
 
   contentEl.innerHTML = `
     <div class="spec-detail">

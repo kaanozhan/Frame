@@ -34,10 +34,17 @@
  */
 
 const { escapeHtml } = require('./htmlUtils');
+const { fullAutoResumeAction, fullAutoStageLabel } = require('../shared/specFlow');
 
 // Base next-action per phase. Every phase carries a fixed label; the implement
 // phase's "Implement Tasks…" opens the mode modal rather than naming a mode.
-function nextActionForPhase(phase) {
+// A spec in full auto (full-auto-spec-flow) has one action in every phase
+// with work left: Resume Full Auto…, which opens the flow modal. The action
+// carries the phase so the bar can name the run's stage while it is live.
+// Without a status, or without flow_mode, the per-phase actions are today's.
+function nextActionForPhase(phase, status = null) {
+  const resume = status ? fullAutoResumeAction({ ...status, phase }, false) : null;
+  if (resume) return { ...resume, flowMode: 'full-auto', phase };
   switch (phase) {
     case 'draft':
       return { command: 'spec.new', label: 'Write the Spec', hint: 'Frame turns your description into a structured spec.md.' };
@@ -75,7 +82,8 @@ function taskCounts(allTasks, slug) {
  * Render the next-action bar.
  *
  * @param {object} opts
- * @param {object} opts.action   - from nextActionForPhase(phase)
+ * @param {object} opts.action   - from nextActionForPhase(phase, status); a
+ *                                 full-auto action carries flowMode + phase
  * @param {object|null} opts.lane - getSpecLaneInfo(slug)
  * @param {string|null} [opts.hint] - resolved implement mode; picks the lock
  *                                     regime (continuous vs turn-scoped) while a
@@ -97,6 +105,17 @@ function renderNextActionBar({ action, lane, hint = null, counts = null, buttonI
   // phase; the "…" signals the modal.
   const label = action.label;
   const alive = !!(lane && lane.agentName);
+
+  // Full-auto lock — the lane the run was dispatched to is alive. It spans
+  // every phase and turn boundary of the run, and names the stage; "needs
+  // you" when the agent stopped at the prompt on a stop condition.
+  if (action.flowMode === 'full-auto' && lane && lane.fullAuto) {
+    return _lockedBar({
+      heading: fullAutoStageLabel(action.phase, counts, lane.status),
+      sub: `in ${lane.name}`,
+      label
+    });
+  }
 
   // Run-liveness lock — continuous mode, live agent, tasks still pending.
   // When counts are unknown, a live agent alone holds the lock (fail closed

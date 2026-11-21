@@ -207,6 +207,28 @@ any other decision.
 This is one question inside the technical stage, counting against the same
 3-round cap. It does not get a stage of its own.
 
+### Full auto — the gate decides, it does not ask
+
+Read `flow_mode` in `.frame/specs/{slug}/status.json` (Stage 1 already read the
+file). When it is `"full-auto"`, the user chose to run the rest of this spec
+without being asked, in a session that nobody is watching question by question.
+The gate then runs with **no questions at all**:
+
+- Every fork the gate would have asked — business, technical, and the test
+  posture — takes the option you would have listed first as your
+  recommendation. For the test posture that is the option matching the
+  testing record's convention.
+- Drift that changes the shape of the work is decided the same way, not
+  raised.
+- Record each decision exactly as an asked one, and append the marker
+  `(auto-decided — full auto)` to its bullet under "Resolved plan-time
+  decisions" and to its decision card in the plan report, so the user can find
+  every choice that was made for them.
+- The round caps, the evidence pass, the convergence loop and the report are
+  unchanged.
+
+Any other value, or no `flow_mode`, runs the gate as described above.
+
 ## Stage 3 — Convergence loop
 
 Draft the plan internally — do not write the file yet. Self-critique the draft

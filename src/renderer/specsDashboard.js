@@ -584,7 +584,7 @@ function renderDetailHeader() {
   if (!detailContentEl || !selectedSpec) return;
   const { status, spec, plan, tasks, outcome } = selectedSpec;
   const aiLabel = status.ai_tool || '';
-  const nextAction = specNextAction.nextActionForPhase(status.phase);
+  const nextAction = specNextAction.nextActionForPhase(status.phase, status);
 
   // Same layout as specSection's detail (title → meta → stepper → next
   // action → tabs), centered in the spec-section column, so the drawer and
