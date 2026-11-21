@@ -99,6 +99,12 @@ classify what's there before asking, so the question you ask is the right one:
 A mixed tree gets both classifications in the same question, not two
 interruptions.
 
+**Full auto.** When `flow_mode` in `.frame/specs/{slug}/status.json` is
+`"full-auto"`, a tree whose changes are **all** plan-phase artifacts is
+committed as the plan commit without asking — that output is this same run's
+own planning, and the user chose not to be asked. Foreign changes, a mixed
+tree, and every branch case below still stop and ask, exactly as described.
+
 **The branch.** No file records a spec↔branch mapping; judge by convention:
 
 - In a linked git worktree — `git rev-parse --show-toplevel` is not the

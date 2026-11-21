@@ -30,3 +30,11 @@ _Captured: 2026-11-21 · 6 file change(s)_
 
 ---
 
+## T05 — Add full-auto branches to the plan and implement templates
+
+Added a 'Full auto — the gate decides, it does not ask' subsection to spec.plan.md's Stage 2 and a 'Full auto' paragraph to spec.implement.md's pre-flight; both read flow_mode from status.json. Only new lines were added, so the Codex and Claude Code renders still differ only in their dialect lines.
+
+_Captured: 2026-11-21 · 2 file change(s)_
+
+---
+
