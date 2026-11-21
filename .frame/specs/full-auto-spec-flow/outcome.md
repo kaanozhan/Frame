@@ -38,3 +38,11 @@ _Captured: 2026-11-21 · 2 file change(s)_
 
 ---
 
+## T06 — Ask the flow question at the end of spec.new
+
+Added 'How the rest of this spec runs' to spec.new.md's After writing, filled by the full_auto_offer dialect; full auto also records implement_mode autonomous and names the implement-launch.js --full-auto fallback. Deviation: test/codexTemplates.test.js (not in the plan) had its spec.new drift ceiling raised from 1 to 6 lines for the new dialect value. scripts/spec-command-hint.js (not in the plan) now hands {full_auto_offer}'s value to a terminal-typed /spec.new, which its own test requires of every spec.new token.
+
+_Captured: 2026-11-21 · 3 file change(s)_
+
+---
+

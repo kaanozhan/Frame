@@ -23066,7 +23066,7 @@
           ]
         }
       },
-      "sizeBytes": 16810,
+      "sizeBytes": 17218,
       "extraction": {
         "status": "parsed"
       },
@@ -29162,7 +29162,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 5562,
+      "sizeBytes": 6474,
       "extraction": {
         "status": "parsed"
       },
@@ -29958,7 +29958,7 @@
           "purpose": "A project with one spec, so getCommandPrompt has a status.json to read."
         }
       },
-      "sizeBytes": 8619,
+      "sizeBytes": 8814,
       "extraction": {
         "status": "parsed"
       },
@@ -37260,6 +37260,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "1cc291caa6312b535429e1ab8297a79a1433896460c5d48eeaa3b5257f985a7e"
+    "revision": "79b8b66fb21b7c518eebfa538fd36208694b1c4250f22167b21ce66083052c44"
   }
 }
