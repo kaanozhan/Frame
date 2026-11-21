@@ -396,7 +396,11 @@ function listSpecsCore(projectPath, tasksProject, locations, extraLists = []) {
       // spec without a report should cost the payload nothing — measured on
       // this project, an always-present pair of booleans grows SPEC_DATA by
       // ~22% where this grows it by ~4%.
-      ...(reports.length ? { reports } : {})
+      ...(reports.length ? { reports } : {}),
+      // Same payload rule as reports: only when the spec declares one. The
+      // renderer's full-auto trigger diffs this field between pushes
+      // (full-auto-spec-flow), so a change must change the payload.
+      ...(status_.flow_mode ? { flow_mode: status_.flow_mode } : {})
     });
   }
   // Tag each spec with its workspace (null = main) and keep listSpecs' order.

@@ -68,7 +68,7 @@ A spec written in a server workspace lives in that worktree and rides its branch
 - **Offline.** The board keeps the spec's last known name, marked offline, and opening it says the host is offline.
 - **Not yet.** Renaming or deleting a server spec from the desktop. Projects in `local` git-sharing mode (Frame files kept out of git) cannot run specs on a server, because an uncommitted spec would be lost with the workspace.
 
-Methods: `specs.list`, `specs.get`, `specs.report`, `specs.status` (phase and implement mode only), `specs.stage`, `specs.watch` / `specs.unwatch`; event `specs.changed { root }`. Every call names a server project and one of its workspaces (or the clone itself); anything else is refused.
+Methods: `specs.list`, `specs.get`, `specs.report`, `specs.status` (phase, implement mode and flow mode only), `specs.stage`, `specs.watch` / `specs.unwatch`; event `specs.changed { root }`. Every call names a server project and one of its workspaces (or the clone itself); anything else is refused.
 
 ## Security
 

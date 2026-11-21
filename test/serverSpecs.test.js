@@ -177,14 +177,21 @@ test('T02: specs.get and specs.report read from the server workspace', async () 
   assert.equal(report.html, '<html>server report</html>');
 });
 
-test('T02: specs.status changes only the phase and implement mode', async () => {
+test('T02: specs.status changes only the phase, implement mode and flow mode', async () => {
   const { projectPath, ws, dir } = await serverWorkspace();
   const r = await methods['specs.status']({ projectPath, root: ws, slug: 'on-server', partial: { implement_mode: 'guided', title: 'Hijacked' } });
   assert.equal(r.status.implement_mode, 'guided');
   const onDisk = JSON.parse(fs.readFileSync(path.join(dir, 'status.json'), 'utf8'));
   assert.equal(onDisk.title, 'On server', 'other keys are not written');
   const none = await methods['specs.status']({ projectPath, root: ws, slug: 'on-server', partial: { title: 'x' } });
-  assert.match(none.error, /phase and implement mode/);
+  assert.match(none.error, /phase, implement mode and flow mode/);
+});
+
+test('full-auto-spec-flow: specs.status records the flow mode', async () => {
+  const { projectPath, ws, dir } = await serverWorkspace();
+  const r = await methods['specs.status']({ projectPath, root: ws, slug: 'on-server', partial: { flow_mode: 'full-auto' } });
+  assert.equal(r.status.flow_mode, 'full-auto');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'status.json'), 'utf8')).flow_mode, 'full-auto');
 });
 
 test('T02: a folder that is not a server project or its workspace is refused', async () => {

@@ -9,7 +9,7 @@
  *                                                    tasks.md into the clone's tasks.json
  *   specs.get    { projectPath, root, slug }        getSpecIn
  *   specs.report { projectPath, root, slug, kind }  readSpecReportIn
- *   specs.status { projectPath, root, slug, partial } updateSpecStatusIn (phase, implement_mode)
+ *   specs.status { projectPath, root, slug, partial } updateSpecStatusIn (phase, implement_mode, flow_mode)
  *   specs.watch  { projectPath, roots }             watch each root's .frame/specs (replaces the set)
  *   specs.unwatch                                   stop watching
  *   specs.stage  { projectPath, root, slug, command, aiTool, description }
@@ -40,7 +40,7 @@ const COMMANDS = ['spec.new', 'spec.plan', 'spec.tasks', 'spec.implement'];
 const LOCAL_MODE = 'This project keeps Frame files out of git (local mode), so a spec on the server would be lost when the workspace is archived — write it in a local workspace.';
 const SLUG_RE = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
 // What the desktop may change on a server spec: what the spec flow needs.
-const STATUS_KEYS = ['phase', 'implement_mode'];
+const STATUS_KEYS = ['phase', 'implement_mode', 'flow_mode'];
 const CHANGE_DEBOUNCE_MS = 300;
 
 function setup({ registerMethods, broadcast }) {
@@ -120,7 +120,7 @@ function setup({ registerMethods, broadcast }) {
       for (const key of STATUS_KEYS) {
         if (partial && Object.prototype.hasOwnProperty.call(partial, key)) allowed[key] = partial[key];
       }
-      if (!Object.keys(allowed).length) return { error: 'Only the phase and implement mode of a server spec can be changed from the desktop.' };
+      if (!Object.keys(allowed).length) return { error: 'Only the phase, implement mode and flow mode of a server spec can be changed from the desktop.' };
       return specManager.updateSpecStatusIn(dir, needSlug(slug), allowed);
     },
     'specs.watch': async ({ projectPath, roots } = {}) => {
