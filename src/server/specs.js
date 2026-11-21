@@ -47,11 +47,8 @@ function setup({ registerMethods, broadcast }) {
   const specManager = require('../main/specManager');
   const fsSafe = require('../main/fsSafe');
   const frameStore = require('../main/frameStore');
-  const commandStaging = require('../main/commandStaging');
-  const structureBootstrap = require('../main/structureBootstrap');
-  const workspaceTooling = require('../main/workspaceTooling');
+  const { provisionTooling } = require('./tooling');
   const gitSharing = require('../main/gitSharing');
-  const specIndex = require('../../scripts/spec-index.js');
   const watchers = new Map(); // root → { watcher, timer }
   const projectRegistry = require('../main/projectRegistry');
   const workspaceRegistry = require('../shared/workspaceRegistry');
@@ -106,17 +103,8 @@ function setup({ registerMethods, broadcast }) {
     }
   }
 
-  /** Frame's gitignored tooling, in the clone from this package and then in the worktree. */
-  async function provision(projectPath, root) {
-    structureBootstrap.stageParserScripts(projectPath);
-    commandStaging.stageCommandFiles(projectPath);
-    try {
-      await specIndex.ensureFresh(projectPath);
-    } catch (err) {
-      console.warn(`[frame-server] spec index not refreshed for ${projectPath}: ${err.message}`);
-    }
-    if (root !== path.resolve(projectPath)) workspaceTooling.provision(projectPath, root);
-  }
+  /** Frame's gitignored tooling, in the clone from this package and then in the worktree (tooling.js). */
+  const provision = (projectPath, root) => provisionTooling(projectPath, root);
 
   registerMethods({
     'specs.list': async ({ projectPath, root } = {}) => {

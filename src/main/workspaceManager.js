@@ -757,12 +757,33 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.WORKSPACE_ARCHIVE, guarded(({ projectPath, id, ...opts }) => serialize(projectPath, () => archive(projectPath, id, opts))));
   ipcMain.handle(IPC.WORKSPACE_RESTORE, guarded(({ projectPath, id }) => serialize(projectPath, () => restore(projectPath, id))));
   ipcMain.handle(IPC.WORKSPACE_RENAME, guarded(({ projectPath, id, ...opts }) => serialize(projectPath, () => rename(projectPath, id, opts))));
-  ipcMain.handle(IPC.WORKSPACE_PROVISION, guarded(({ projectPath, id }) => {
-    const record = registry.findById(records(projectPath), id);
-    if (!record || record.archivedAt || !fs.existsSync(record.path)) return { error: null, copied: [] };
-    return { error: null, copied: tooling.provision(projectPath, record.path) };
-  }));
+  ipcMain.handle(IPC.WORKSPACE_PROVISION, guarded(({ projectPath, id }) => provision(projectPath, id)));
   ipcMain.handle(IPC.WORKSPACE_REMOVE_RECORD, guarded(({ projectPath, id }) => serialize(projectPath, () => removeRecord(projectPath, id))));
+}
+
+/**
+ * Refresh Frame's gitignored tooling in a workspace (on selection): copied
+ * from the main checkout for a local one; for a server one, its Frame Server
+ * stages it there (server-workspace-tooling). A Frame Server that predates
+ * `workspaces.provision`, or one that is down, is skipped quietly — the next
+ * spec command provisions again. The workspace list is not reloaded for it.
+ */
+async function provision(projectPath, id) {
+  const loc = serverLocation(id);
+  if (loc) {
+    const link = linkOfLocation(loc);
+    if (!link || !link.isConnected()) return { error: null, copied: [] };
+    try {
+      const res = await link.call('workspaces.provision', { projectPath: loc.serverProjectPath, id }, 60 * 1000);
+      return { error: null, copied: (res && Array.isArray(res.copied)) ? res.copied : [] };
+    } catch (err) {
+      if (!/Unknown method/i.test(err.message || '')) logger.warn('workspaces', `could not provision ${loc.name || id} on ${loc.host}: ${err.message}`);
+      return { error: null, copied: [] };
+    }
+  }
+  const record = registry.findById(records(projectPath), id);
+  if (!record || record.archivedAt || !fs.existsSync(record.path)) return { error: null, copied: [] };
+  return { error: null, copied: tooling.provision(projectPath, record.path) };
 }
 
 /** `archive` behind the per-project queue, for callers outside IPC (merge's archive-on-merge). */
@@ -777,6 +798,7 @@ module.exports = {
   list,
   serverLocation,
   serverRoots,
+  provision,
   status,
   baseForBranch,
   create,
