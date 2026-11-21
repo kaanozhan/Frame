@@ -10,7 +10,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 1514,
+      "sizeBytes": 1784,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -120,7 +120,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 13764,
+      "sizeBytes": 15901,
       "extraction": {
         "status": "parsed"
       },
@@ -32115,6 +32115,31 @@
         "description": "7899da73ee2127a3"
       }
     },
+    "test/repoHooks.test": {
+      "file": "test/repoHooks.test.js",
+      "description": "This repository's own Claude Code hooks (.claude/settings.json) run its",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "standIn": {
+          "line": 26
+        }
+      },
+      "sizeBytes": 3009,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "cd6cdd4b76e46e23"
+      }
+    },
     "test/retrievalEval.test": {
       "file": "test/retrievalEval.test.js",
       "description": "STR-03 retrieval benchmark: the frozen corpus and the metric/gate math.",
@@ -37020,7 +37045,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 412,
+        "parsed": 413,
         "unsupported": 92,
         "partial": 0
       }
@@ -37067,9 +37092,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 598,
+      "visitedEntries": 599,
       "traversedDirectories": 86,
-      "eligibleFiles": 504,
+      "eligibleFiles": 505,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -37086,7 +37111,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 504,
+      "indexedFiles": 505,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -37094,6 +37119,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "ed9a2406e0eaa04d6985b2aa7ba92f503750e0ebc2b866b58ce5570bcb5ee0be"
+    "revision": "9d067c01484314e248494a309d51a351d3f0c6e6ee2192e19ccd3b515c905bfd"
   }
 }
