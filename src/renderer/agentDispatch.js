@@ -44,6 +44,12 @@ let multiTerminalUI = null;
 // those flags.
 const launchedAutonomousLanes = new Map(); // Map<terminalId, boolean>
 
+// Lanes a full-auto run (`spec.auto`) was dispatched to (full-auto-spec-flow).
+// The next-action bar locks on these only, so an idle Spec Creator lane that
+// handed off — or never did — can never leave the button stuck. Cleared with
+// the terminal, like launchedAutonomousLanes.
+const fullAutoLanes = new Set(); // Set<terminalId>
+
 /**
  * Initialize with the MultiTerminalUI instance.
  */
@@ -66,6 +72,7 @@ function init(ui) {
   ipcRenderer.on(IPC.SPEC_DATA, (event, { specs }) => _onSpecData(specs));
   ipcRenderer.on(IPC.TERMINAL_DESTROYED, (event, { terminalId }) => {
     launchedAutonomousLanes.delete(terminalId);
+    fullAutoLanes.delete(terminalId);
     specCreatorLanes.delete(terminalId);
     for (const [slug, laneId] of specLanes) {
       if (laneId === terminalId) _notifySpecLane(slug);
@@ -755,6 +762,7 @@ async function _startFullAutoRun({ slug, projectPath, assignment, phase }) {
     flagsDroppedNote
   });
   if (result.success) {
+    fullAutoLanes.add(result.terminalId);
     specLanes.set(slug, result.terminalId);
     _notifySpecLane(slug);
     if (!phase || phase === 'specified') reportSection.expectReport(slug, 'plan');
@@ -1087,7 +1095,10 @@ function getSpecLaneInfo(slug) {
     // autonomous flags intact — the modal's gate for allowing autonomous
     // "Continue". Requires agentName so a dead-but-remembered lane never
     // reports a session that no longer exists.
-    launchedAutonomous: !!s.agentName && !!launchedAutonomousLanes.get(id)
+    launchedAutonomous: !!s.agentName && !!launchedAutonomousLanes.get(id),
+    // True while a live agent owns the lane a full-auto run was dispatched
+    // to — the next-action bar's full-auto lock (full-auto-spec-flow).
+    fullAuto: !!s.agentName && fullAutoLanes.has(id)
   };
 }
 

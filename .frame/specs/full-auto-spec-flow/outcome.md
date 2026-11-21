@@ -70,3 +70,11 @@ _Captured: 2026-11-21 · 1 file change(s)_
 
 ---
 
+## T10 — Resume Full Auto and the full-auto locked bar
+
+specNextAction.nextActionForPhase takes the spec's status and returns the full-auto resume action from specFlow; renderNextActionBar shows the full-auto lock from fullAutoStageLabel. specSection, specPanel and specsDashboard pass the status. Deviation: the lock keys on a new fullAuto flag in getSpecLaneInfo (agentDispatch tracks the lanes a full-auto run was dispatched to), so an idle Spec Creator lane never holds the button locked.
+
+_Captured: 2026-11-21 · 5 file change(s)_
+
+---
+

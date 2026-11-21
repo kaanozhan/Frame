@@ -9430,14 +9430,14 @@
       ],
       "functions": {
         "init": {
-          "line": 50,
+          "line": 56,
           "params": [
             "ui"
           ],
           "purpose": "Initialize with the MultiTerminalUI instance."
         },
         "dispatch": {
-          "line": 97,
+          "line": 104,
           "params": [
             "{ terminalId = null",
             "createNew = false",
@@ -9451,11 +9451,11 @@
           "purpose": "Deliver a prompt to an agent in a lane."
         },
         "startDefaultAgent": {
-          "line": 252,
+          "line": 259,
           "purpose": "Start the default agent (the active AI tool) from the sidebar shortcut —"
         },
         "_startAgentIn": {
-          "line": 287,
+          "line": 294,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -9463,7 +9463,7 @@
           "purpose": "Start the active tool's CLI in an existing lane. `fresh` allows a newly"
         },
         "_trackAgentRunWhenReady": {
-          "line": 312,
+          "line": 319,
           "params": [
             "terminalId",
             "toolId"
@@ -9471,17 +9471,17 @@
           "purpose": "`agent_run_started` means the CLI came up — the bar dispatch() already"
         },
         "_startAgentInNewFrame": {
-          "line": 321
+          "line": 328
         },
         "resumeClaudeSession": {
-          "line": 347,
+          "line": 354,
           "params": [
             "sessionId"
           ],
           "purpose": "Resume a Claude Code session from the sessions list."
         },
         "resumeAgentSession": {
-          "line": 374,
+          "line": 381,
           "params": [
             "tool",
             "sessionId",
@@ -9494,7 +9494,7 @@
           "purpose": "Resume a Claude Code or Codex session in a new terminal of `projectPath`"
         },
         "_askNewOrRestart": {
-          "line": 417,
+          "line": 424,
           "params": [
             "frameName",
             "hasAgent"
@@ -9502,11 +9502,11 @@
           "purpose": "\"Open a new Frame / Kill & restart here\" — asked when the focused Frame is"
         },
         "_selectedWorkspaceId": {
-          "line": 485,
+          "line": 492,
           "purpose": "The selected workspace's id, sent with BUILD_SPEC_COMMAND_FILE: for a"
         },
         "_selectSpecWorkspace": {
-          "line": 491,
+          "line": 498,
           "params": [
             "projectPath",
             "slug"
@@ -9514,14 +9514,14 @@
           "purpose": "Select the checkout a spec lives in; returns its root (main = projectPath)."
         },
         "_workspaceForNewSpec": {
-          "line": 514,
+          "line": 521,
           "params": [
             "projectPath"
           ],
           "purpose": "The workspace a new spec is written in: the selected one, or — from main —"
         },
         "dispatchSpecCommand": {
-          "line": 537,
+          "line": 544,
           "params": [
             "{ slug",
             "title = null",
@@ -9529,7 +9529,7 @@
           ]
         },
         "_dispatchStaged": {
-          "line": 579,
+          "line": 586,
           "params": [
             "{ slug",
             "title",
@@ -9541,7 +9541,7 @@
           "purpose": "Stage a phase command and dispatch it to the spec's lane — after asking"
         },
         "_recordStatus": {
-          "line": 635,
+          "line": 642,
           "params": [
             "projectPath",
             "slug",
@@ -9549,7 +9549,7 @@
           ]
         },
         "_dispatchWithFlowChoice": {
-          "line": 649,
+          "line": 656,
           "params": [
             "{ slug",
             "title",
@@ -9560,7 +9560,7 @@
           "purpose": "The flow modal → record flow_mode → run. From Generate Plan, step by step"
         },
         "dispatchFullAuto": {
-          "line": 691,
+          "line": 698,
           "params": [
             "{ slug",
             "title = null } = {}"
@@ -9568,7 +9568,7 @@
           "purpose": "Start a full-auto run of a spec: record flow_mode and the autonomous"
         },
         "_startFullAuto": {
-          "line": 705,
+          "line": 712,
           "params": [
             "{ slug",
             "projectPath",
@@ -9577,7 +9577,7 @@
           ]
         },
         "_startFullAutoRun": {
-          "line": 714,
+          "line": 721,
           "params": [
             "{ slug",
             "projectPath",
@@ -9586,7 +9586,7 @@
           ]
         },
         "_dispatchImplement": {
-          "line": 769,
+          "line": 777,
           "params": [
             "{ slug",
             "title",
@@ -9596,21 +9596,21 @@
           "purpose": "The spec.implement path: modal → record implement_mode → stage → dispatch."
         },
         "_isSpecCreatorLane": {
-          "line": 883,
+          "line": 891,
           "params": [
             "terminalId"
           ],
           "purpose": "Still open, and still carrying the transient name we gave it."
         },
         "_onSpecData": {
-          "line": 899,
+          "line": 907,
           "params": [
             "specs"
           ],
           "purpose": "A new slug appeared — attach it to the lane that produced it."
         },
         "_startFullAutoOnTransition": {
-          "line": 929,
+          "line": 937,
           "params": [
             "previousEntries",
             "nextEntries"
@@ -9618,93 +9618,93 @@
           "purpose": "The agent that wrote a spec in this window recorded full auto: start the"
         },
         "_bindSpecCreatorLane": {
-          "line": 945,
+          "line": 953,
           "params": [
             "terminalId",
             "slug"
           ]
         },
         "dispatchSpecNew": {
-          "line": 981,
+          "line": 989,
           "params": [
             "description"
           ],
           "purpose": "Hand the user's free-form text to the standard `spec.new` flow."
         },
         "getSpecLaneInfo": {
-          "line": 1076,
+          "line": 1084,
           "params": [
             "slug"
           ],
           "purpose": "Live info about the lane a spec is assigned to, or null when unassigned"
         },
         "getTaskLaneInfo": {
-          "line": 1100,
+          "line": 1111,
           "params": [
             "taskId"
           ],
           "purpose": "Live info about the lane working on a task, or null. Unlike specs there"
         },
         "specStatusDotHtml": {
-          "line": 1121,
+          "line": 1132,
           "params": [
             "slug"
           ],
           "purpose": "Activity dot for spec/task rows and detail headers: pulsing while the"
         },
         "taskStatusDotHtml": {
-          "line": 1125,
+          "line": 1136,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 1129,
+          "line": 1140,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 1146,
+          "line": 1157,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to spec-lane activity. Callback: (slug) — consumers re-read"
         },
         "_notifySpecLane": {
-          "line": 1154,
+          "line": 1165,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 1177,
+          "line": 1188,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to task-lane activity. Callback: (taskId|null) — null means"
         },
         "_notifyTaskLane": {
-          "line": 1185,
+          "line": 1196,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 1203,
+          "line": 1214,
           "params": [
             "slug"
           ],
           "purpose": "Assigned lane for a slug, validated against open terminals — a closed"
         },
         "_laneName": {
-          "line": 1213,
+          "line": 1224,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 1222,
+          "line": 1233,
           "params": [
             "frameName",
             "specName"
@@ -9712,14 +9712,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 1263,
+          "line": 1274,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 1292,
+          "line": 1303,
           "params": [
             "terminalId",
             "message"
@@ -9739,7 +9739,7 @@
           "SPEC_AGENT_ACTIVITY"
         ]
       },
-      "sizeBytes": 55105,
+      "sizeBytes": 55729,
       "extraction": {
         "status": "parsed"
       },
@@ -16768,18 +16768,20 @@
         "renderNextActionBar"
       ],
       "depends": [
-        "htmlUtils"
+        "htmlUtils",
+        "shared/specFlow"
       ],
       "functions": {
         "nextActionForPhase": {
-          "line": 40,
+          "line": 45,
           "params": [
-            "phase"
+            "phase",
+            "status = null"
           ],
           "purpose": "Base next-action per phase. Every phase carries a fixed label; the implement"
         },
         "taskCounts": {
-          "line": 65,
+          "line": 72,
           "params": [
             "allTasks",
             "slug"
@@ -16787,7 +16789,7 @@
           "purpose": "Count this spec's tasks from the full task list. Shared so all three"
         },
         "renderNextActionBar": {
-          "line": 89,
+          "line": 97,
           "params": [
             "{ action",
             "lane",
@@ -16798,7 +16800,7 @@
           "purpose": "Render the next-action bar."
         },
         "_lockedBar": {
-          "line": 143,
+          "line": 162,
           "params": [
             "{ heading",
             "sub",
@@ -16806,7 +16808,7 @@
           ]
         }
       },
-      "sizeBytes": 7334,
+      "sizeBytes": 8414,
       "extraction": {
         "status": "parsed"
       },
@@ -17017,7 +17019,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 33666,
+      "sizeBytes": 33674,
       "extraction": {
         "status": "parsed"
       },
@@ -17165,7 +17167,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 20325,
+      "sizeBytes": 20333,
       "extraction": {
         "status": "parsed"
       },
@@ -17429,7 +17431,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 36130,
+      "sizeBytes": 36138,
       "extraction": {
         "status": "parsed"
       },
@@ -37467,6 +37469,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "51c14a4962f6c1498c2a7ae781eb8ff3c1e810cb21f49f9839f4a4ea73414c66"
+    "revision": "96223e08d33008b27f0c1a041cc27cc2f4c2d2722d1242dadcb143dc27096158"
   }
 }
