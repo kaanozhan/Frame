@@ -10,6 +10,12 @@
  * reaches its first task with zero typed input.
  *
  *   node .frame/bin/implement-launch.js <slug>
+ *   node .frame/bin/implement-launch.js <slug> --full-auto
+ *
+ * `--full-auto` (full-auto-spec-flow) launches the whole rest of the spec
+ * instead: it records `flow_mode: "full-auto"` beside the autonomous mode,
+ * stages the plan, tasks and implement prompts plus the `spec.auto` prompt
+ * that runs them in order, and starts the session on `spec.auto`.
  *
  * Self-contained on purpose: `.frame/bin` scripts can't read app.asar, so the
  * allow/deny rule sets and the verification-command resolution are carried
@@ -39,6 +45,19 @@ const REPORT_GENERATOR_REL = path.posix.join(FRAME_DIR, 'runtime', 'commands', '
 // Frame staged into runtime/commands/ on project open / implement dispatch.
 const TEMPLATE_OVERRIDE_REL = path.posix.join(FRAME_DIR, 'templates', 'commands', 'claude-code', 'spec.implement.md');
 const TEMPLATE_STAGED_REL = path.posix.join(FRAME_DIR, 'runtime', 'commands', 'claude-code', 'spec.implement.md');
+
+// Full auto (full-auto-spec-flow): the phase prompts spec.auto reads in turn,
+// keyed by the variable that names each one inside spec.auto.md — the same
+// names specManager.stagePhasePrompts fills.
+const AUTO_PHASES = [
+  ['plan_prompt_path', 'spec.plan'],
+  ['tasks_prompt_path', 'spec.tasks'],
+  ['implement_prompt_path', 'spec.implement']
+];
+const REPORT_TEMPLATE_REL = path.posix.join(FRAME_DIR, 'runtime', 'commands', 'claude-code', 'plan-report-template.html');
+// Copy of scripts/toolVocabulary.js's Claude Code ask_mechanism — the one
+// dialect phrase the phase templates use outside a branch full auto skips.
+const ASK_MECHANISM = 'the `AskUserQuestion` tool';
 
 // Pushing and history rewrites other than the mode's own `commit --amend`.
 const IMPLEMENT_DENY = [
@@ -116,6 +135,49 @@ function resolveRawTemplatePath(projectRoot, existsFn = fs.existsSync) {
   return null;
 }
 
+// `<slug> [--full-auto]` in any order. Unknown flags are an error rather than
+// a silent no-op: a typo must not launch the wrong mode with elevated flags.
+function parseArgs(args) {
+  const out = { slug: '', fullAuto: false, error: null };
+  for (const arg of args) {
+    if (arg === '--full-auto') out.fullAuto = true;
+    else if (arg.startsWith('--')) out.error = `unknown option ${arg}`;
+    else if (!out.slug) out.slug = arg.trim();
+  }
+  if (!out.slug && !out.error) out.error = 'usage: implement-launch.js <slug> [--full-auto]';
+  return out;
+}
+
+// Where a staged prompt lands, per command.
+function promptRelFor(slug, command) {
+  return path.posix.join(FRAME_DIR, 'runtime', 'prompts', `${slug}__${command}.md`);
+}
+
+// A command's raw template: the project override, else the staged copy.
+function templateCandidates(projectRoot, command) {
+  return [
+    path.join(projectRoot, FRAME_DIR, 'templates', 'commands', 'claude-code', `${command}.md`),
+    path.join(projectRoot, FRAME_DIR, 'runtime', 'commands', 'claude-code', `${command}.md`)
+  ];
+}
+
+// The variables a full-auto run's prompts are filled with. Mirrors what
+// specManager.getCommandPrompt supplies for Claude Code.
+function autoPromptVars({ projectRoot, slug, title, tasksPath }) {
+  const vars = {
+    project_path: projectRoot,
+    slug,
+    title,
+    tasks_path: tasksPath,
+    tool_id: 'claude-code',
+    ask_mechanism: ASK_MECHANISM,
+    report_template_path: REPORT_TEMPLATE_REL,
+    report_generator_path: REPORT_GENERATOR_REL
+  };
+  for (const [key, command] of AUTO_PHASES) vars[key] = promptRelFor(slug, command);
+  return vars;
+}
+
 // ─── Impure: filesystem + exec ────────────────────────────────
 
 // Walk up from a starting dir to the nearest ancestor that holds a .frame/
@@ -150,6 +212,47 @@ function recordAutonomousMode(projectRoot, slug) {
   return true;
 }
 
+// Full auto records both modes: flow_mode for every later dispatch, and the
+// autonomous implement mode the run's implement phase resolves.
+function recordFullAutoMode(projectRoot, slug) {
+  const statusPath = path.join(projectRoot, STATUS_REL(slug));
+  const status = readJson(statusPath);
+  if (!status) return null;
+  status.flow_mode = 'full-auto';
+  status.implement_mode = 'autonomous';
+  status.updated_at = new Date().toISOString();
+  fs.writeFileSync(statusPath, JSON.stringify(status, null, 2) + '\n', 'utf8');
+  return status;
+}
+
+// Task state lives in the main checkout's tasks.json, also when this runs in
+// a Frame workspace (a linked worktree).
+function mainTasksPath(projectRoot) {
+  try {
+    const out = spawnSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'],
+      { cwd: projectRoot, encoding: 'utf8' });
+    const dir = (out.stdout || '').trim();
+    if (out.status === 0 && dir && path.basename(dir) === '.git') {
+      return path.join(path.dirname(dir), FRAME_DIR, 'tasks.json');
+    }
+  } catch (_) { /* not a git checkout */ }
+  return path.join(projectRoot, FRAME_DIR, 'tasks.json');
+}
+
+// Stage the three phase prompts and spec.auto's. Returns the auto prompt's
+// relative path, or an error message naming the missing template.
+function stageFullAuto(projectRoot, slug, title) {
+  const vars = autoPromptVars({ projectRoot, slug, title, tasksPath: mainTasksPath(projectRoot) });
+  for (const command of [...AUTO_PHASES.map(([, c]) => c), 'spec.auto']) {
+    const src = templateCandidates(projectRoot, command).find((p) => fs.existsSync(p));
+    if (!src) return { error: `no ${command} template on disk — open this project in Frame once so it stages the templates, then retry` };
+    const abs = path.join(projectRoot, promptRelFor(slug, command));
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, interpolate(fs.readFileSync(src, 'utf8'), vars), 'utf8');
+  }
+  return { relPath: promptRelFor(slug, 'spec.auto') };
+}
+
 function writePermissions(projectRoot) {
   const config = readJson(path.join(projectRoot, FRAME_DIR, CONFIG_FILE));
   const verification = resolveVerificationCommand(config);
@@ -165,14 +268,24 @@ function fail(message) {
 }
 
 function main(argv) {
-  const slug = (argv[2] || '').trim();
-  if (!slug) return fail('usage: implement-launch.js <slug>');
+  const parsed = parseArgs(argv.slice(2));
+  if (parsed.error) return fail(parsed.error);
+  const { slug } = parsed;
 
   const projectRoot = findProjectRoot(process.cwd());
   if (!projectRoot) return fail('no .frame/ found from the current directory — run this from inside a Frame project');
 
   const specDir = path.join(projectRoot, FRAME_DIR, 'specs', slug);
   if (!fs.existsSync(specDir)) return fail(`spec "${slug}" not found under .frame/specs/`);
+
+  if (parsed.fullAuto) {
+    const status = recordFullAutoMode(projectRoot, slug);
+    if (!status) return fail(`could not read ${STATUS_REL(slug)} — is this a valid spec?`);
+    const settings = writePermissions(projectRoot);
+    const staged = stageFullAuto(projectRoot, slug, status.title || slug);
+    if (staged.error) return fail(staged.error);
+    return launch(projectRoot, buildLaunchArgs(settings, staged.relPath));
+  }
 
   // Record autonomous first, so either entry path finds the mode.
   if (!recordAutonomousMode(projectRoot, slug)) {
@@ -197,7 +310,10 @@ function main(argv) {
   fs.mkdirSync(path.dirname(promptAbs), { recursive: true });
   fs.writeFileSync(promptAbs, prompt, 'utf8');
 
-  const args = buildLaunchArgs(settingsAbsPath, PROMPT_REL(slug));
+  return launch(projectRoot, buildLaunchArgs(settingsAbsPath, PROMPT_REL(slug)));
+}
+
+function launch(projectRoot, args) {
   const result = spawnSync('claude', args, { cwd: projectRoot, stdio: 'inherit' });
   if (result.error) {
     if (result.error.code === 'ENOENT') {
@@ -219,6 +335,11 @@ module.exports = {
   buildLaunchArgs,
   resolveRawTemplatePath,
   findProjectRoot,
+  parseArgs,
+  promptRelFor,
+  templateCandidates,
+  autoPromptVars,
+  AUTO_PHASES,
   IMPLEMENT_ALLOW,
   IMPLEMENT_DENY,
   REPORT_GENERATOR_REL,

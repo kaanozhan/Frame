@@ -26,6 +26,9 @@ const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
 const implementModeModal = require('./implementModeModal');
+const flowModeModal = require('./flowModeModal');
+const specNextAction = require('./specNextAction');
+const { FLOW_STEP_BY_STEP, FLOW_FULL_AUTO, shouldStartFullAuto } = require('../shared/specFlow');
 const reportSection = require('./reportSection');
 
 let multiTerminalUI = null;
@@ -40,6 +43,12 @@ let multiTerminalUI = null;
 // the autonomous mode, which only holds when the live session already carries
 // those flags.
 const launchedAutonomousLanes = new Map(); // Map<terminalId, boolean>
+
+// Lanes a full-auto run (`spec.auto`) was dispatched to (full-auto-spec-flow).
+// The next-action bar locks on these only, so an idle Spec Creator lane that
+// handed off — or never did — can never leave the button stuck. Cleared with
+// the terminal, like launchedAutonomousLanes.
+const fullAutoLanes = new Set(); // Set<terminalId>
 
 /**
  * Initialize with the MultiTerminalUI instance.
@@ -63,6 +72,7 @@ function init(ui) {
   ipcRenderer.on(IPC.SPEC_DATA, (event, { specs }) => _onSpecData(specs));
   ipcRenderer.on(IPC.TERMINAL_DESTROYED, (event, { terminalId }) => {
     launchedAutonomousLanes.delete(terminalId);
+    fullAutoLanes.delete(terminalId);
     specCreatorLanes.delete(terminalId);
     for (const [slug, laneId] of specLanes) {
       if (laneId === terminalId) _notifySpecLane(slug);
@@ -558,9 +568,22 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
     return implementResult;
   }
 
+  // Generate Plan and Resume Full Auto… open the flow modal first
+  // (full-auto-spec-flow): step by step runs the phase as before, full auto
+  // hands the rest of the spec to one new flagged session.
+  if (command === 'spec.plan' || command === 'spec.auto') {
+    return _dispatchWithFlowChoice({ slug, title, command, projectPath, assignment });
+  }
+
   // Every other spec command keeps the stage-first + continue-or-new flow;
   // these never carry launch flags (BUILD_SPEC_COMMAND_FILE returns them for
-  // spec.implement only), so _askContinueOrNew is unchanged here.
+  // spec.implement and spec.auto only), so _askContinueOrNew is unchanged here.
+  return _dispatchStaged({ slug, title, command, projectPath, assignment });
+}
+
+// Stage a phase command and dispatch it to the spec's lane — after asking
+// continue-or-new, unless the caller already knows the destination.
+async function _dispatchStaged({ slug, title, command, projectPath, assignment, destination = null }) {
   let staged;
   try {
     staged = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
@@ -583,6 +606,13 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
   let result;
   if (!assignedId) {
     result = await dispatch({ createNew: true, prompt: staged.instruction, assignment });
+  } else if (destination) {
+    result = await dispatch({
+      terminalId: destination === 'continue' ? assignedId : null,
+      createNew: destination !== 'continue',
+      prompt: staged.instruction,
+      assignment
+    });
   } else {
     const choice = await _askContinueOrNew(_laneName(assignedId), title || slug);
     if (choice === 'cancel') {
@@ -603,6 +633,140 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
     // /spec.plan writes plan-report.html at the end of its run. Say so now, so
     // the report opens in the foreground rather than as a background chip.
     if (command === 'spec.plan') reportSection.expectReport(slug, 'plan');
+  }
+  return result;
+}
+
+// ─── Flow mode: step by step or full auto (full-auto-spec-flow) ───
+
+async function _recordStatus(projectPath, slug, partial) {
+  try {
+    const res = await ipcRenderer.invoke(IPC.UPDATE_SPEC_STATUS, { projectPath, slug, partial });
+    if (res && res.error) throw new Error(res.error);
+    return true;
+  } catch (err) {
+    console.error('agentDispatch: recording spec status failed', err);
+    return false;
+  }
+}
+
+// The flow modal → record flow_mode → run. From Generate Plan, step by step
+// is spec.plan as before; from Resume Full Auto…, step by step runs whatever
+// the spec's current phase would run on its own button.
+async function _dispatchWithFlowChoice({ slug, title, command, projectPath, assignment }) {
+  let status = null;
+  try {
+    const spec = await ipcRenderer.invoke(IPC.GET_SPEC, { projectPath, slug });
+    status = (spec && spec.status) || null;
+  } catch (_) { /* no status — the modal defaults to step by step */ }
+  const assignedId = _assignedLane(slug);
+  const lane = assignedId ? getSpecLaneInfo(slug) : null;
+
+  const choice = await flowModeModal.open({
+    slug,
+    title,
+    current: command === 'spec.auto' ? FLOW_FULL_AUTO : (status && status.flow_mode) || null,
+    lane,
+    resume: command === 'spec.auto'
+  });
+  if (!choice) return { success: false, terminalId: null, error: null };
+
+  if (choice.flow === FLOW_FULL_AUTO) {
+    return _startFullAuto({ slug, title, projectPath, assignment, phase: status && status.phase });
+  }
+
+  if (!(await _recordStatus(projectPath, slug, { flow_mode: FLOW_STEP_BY_STEP }))) {
+    return _fail(null, 'Could not record the flow mode');
+  }
+  const base = specNextAction.nextActionForPhase(status ? status.phase : 'specified');
+  const next = command === 'spec.plan' ? 'spec.plan' : (base && base.command);
+  if (!next) return { success: false, terminalId: null, error: null };
+  if (next === 'spec.implement') {
+    const r = await _dispatchImplement({ slug, title, projectPath, assignment });
+    if (r && r.success) reportSection.expectReport(slug, 'implement');
+    return r;
+  }
+  return _dispatchStaged({ slug, title, command: next, projectPath, assignment, destination: choice.destination });
+}
+
+/**
+ * Start a full-auto run of a spec: record flow_mode and the autonomous
+ * implement mode, stage `spec.auto`, and dispatch it to a new lane launched
+ * with the autonomous permission flags. Used by the flow modal and by the
+ * live trigger when a spec's agent records full auto (`_onSpecData`).
+ */
+async function dispatchFullAuto({ slug, title = null } = {}) {
+  if (!multiTerminalUI) return _fail(null, 'Terminal system is not ready yet');
+  const projectPath = state.getProjectPath();
+  if (!projectPath) return _fail(null, 'Open a project first');
+  await _selectSpecWorkspace(projectPath, slug);
+  let phase = null;
+  try {
+    const spec = await ipcRenderer.invoke(IPC.GET_SPEC, { projectPath, slug });
+    phase = (spec && spec.status && spec.status.phase) || null;
+  } catch (_) { /* phase unknown — expect both reports */ }
+  const assignment = { kind: 'spec', label: `spec: ${slug}`, ref: slug };
+  return _startFullAuto({ slug, title, projectPath, assignment, phase });
+}
+
+async function _startFullAuto({ slug, projectPath, assignment, phase }) {
+  // Marked before the status write below: that write reaches _onSpecData as a
+  // full-auto transition on a bound slug, and must not start a second run.
+  fullAutoStarted.add(slug);
+  const result = await _startFullAutoRun({ slug, projectPath, assignment, phase });
+  if (!result || !result.success) fullAutoStarted.delete(slug);
+  return result;
+}
+
+async function _startFullAutoRun({ slug, projectPath, assignment, phase }) {
+  // Recorded before staging, like implement_mode in _dispatchImplement: the
+  // run's implement phase resolves the autonomous mode from status.json.
+  if (!(await _recordStatus(projectPath, slug, { flow_mode: FLOW_FULL_AUTO, implement_mode: 'autonomous' }))) {
+    return _fail(null, 'Could not record full auto');
+  }
+  ipcRenderer.send(IPC.ANALYTICS_TRACK, 'implement_mode_selected', { mode: 'autonomous' });
+
+  let staged;
+  try {
+    staged = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
+      projectPath,
+      slug,
+      command: 'spec.auto',
+      aiTool: 'claude-code',
+      workspaceId: _selectedWorkspaceId()
+    });
+  } catch (err) {
+    console.error('agentDispatch: full-auto staging failed', err);
+    staged = null;
+  }
+  if (!staged || !staged.success) {
+    return _fail(null, 'Could not stage prompt: ' + ((staged && staged.error) || 'unknown error'));
+  }
+
+  const launchFlags = staged.launchFlags || null;
+  const flagsDroppedNote = launchFlags && launchFlags.length
+    ? 'Frame note: this CLI refused the autonomous permission flags, so this '
+      + 'full-auto run continues without them. Keep the plan and tasks phases '
+      + 'exactly as full auto describes (no questions), and run the implement '
+      + 'phase in guided mode — the same task-by-task loop, report and one '
+      + 'commit per task, paced by the CLI’s own permission prompts. Do not ask '
+      + 'to re-dispatch.'
+    : null;
+
+  // Always a new lane: a running session cannot gain the permission flags.
+  const result = await dispatch({
+    createNew: true,
+    prompt: staged.instruction,
+    assignment,
+    launchFlags,
+    flagsDroppedNote
+  });
+  if (result.success) {
+    fullAutoLanes.add(result.terminalId);
+    specLanes.set(slug, result.terminalId);
+    _notifySpecLane(slug);
+    if (!phase || phase === 'specified') reportSection.expectReport(slug, 'plan');
+    reportSection.expectReport(slug, 'implement');
   }
   return result;
 }
@@ -716,6 +880,12 @@ const specCreatorLanes = new Map(); // Map<terminalId, {defaultName: string}>
 // spec in the new project as new.
 let knownSpecSlugs = null;
 let knownSpecProject = null;
+// The same push's entries by slug (full-auto-spec-flow): the full-auto
+// trigger diffs each spec's flow_mode against its previous entry.
+let knownSpecEntries = null; // Map<slug, entry>
+// Slugs a full-auto run was started for in this session, so a repeated push
+// of the same transition can never launch a second flagged lane.
+const fullAutoStarted = new Set();
 
 /** Still open, and still carrying the transient name we gave it. */
 function _isSpecCreatorLane(terminalId) {
@@ -738,8 +908,12 @@ function _onSpecData(specs) {
   const projectPath = state.getProjectPath();
   const incoming = new Set((specs || []).map((s) => s && s.slug).filter(Boolean));
   const previous = knownSpecProject === projectPath ? knownSpecSlugs : null;
+  const previousEntries = knownSpecProject === projectPath ? knownSpecEntries : null;
   knownSpecSlugs = incoming;
   knownSpecProject = projectPath;
+  knownSpecEntries = new Map((specs || []).filter((s) => s && s.slug).map((s) => [s.slug, s]));
+
+  if (previousEntries) _startFullAutoOnTransition(previousEntries, knownSpecEntries);
 
   // The opening snapshot has nothing to diff against: every spec in it already
   // existed, so none of them is "newly created".
@@ -752,6 +926,28 @@ function _onSpecData(specs) {
   if (waiting.length !== 1) return;
 
   _bindSpecCreatorLane(waiting[0], appeared[0]);
+}
+
+/**
+ * The agent that wrote a spec in this window recorded full auto: start the
+ * run (full-auto-spec-flow). Only a live transition on a slug bound to an open
+ * lane here counts — see specFlow.shouldStartFullAuto — so a pull, a project
+ * open or another window's write never launches a flagged session.
+ */
+function _startFullAutoOnTransition(previousEntries, nextEntries) {
+  for (const [slug, next] of nextEntries) {
+    if (fullAutoStarted.has(slug)) continue;
+    const bound = !!_assignedLane(slug);
+    if (!shouldStartFullAuto(previousEntries.get(slug) || null, next, bound)) continue;
+    // _startFullAuto marks the slug and unmarks it when the run never
+    // started, so Resume Full Auto… can retry.
+    dispatchFullAuto({ slug, title: next.title || slug })
+      .catch((err) => {
+        console.error('agentDispatch: full-auto start failed', err);
+        fullAutoStarted.delete(slug);
+        notify.error('Could not start the full-auto run');
+      });
+  }
 }
 
 function _bindSpecCreatorLane(terminalId, slug) {
@@ -899,7 +1095,10 @@ function getSpecLaneInfo(slug) {
     // autonomous flags intact — the modal's gate for allowing autonomous
     // "Continue". Requires agentName so a dead-but-remembered lane never
     // reports a session that no longer exists.
-    launchedAutonomous: !!s.agentName && !!launchedAutonomousLanes.get(id)
+    launchedAutonomous: !!s.agentName && !!launchedAutonomousLanes.get(id),
+    // True while a live agent owns the lane a full-auto run was dispatched
+    // to — the next-action bar's full-auto lock (full-auto-spec-flow).
+    fullAuto: !!s.agentName && fullAutoLanes.has(id)
   };
 }
 
@@ -1114,6 +1313,7 @@ module.exports = {
   resumeAgentSession,
   dispatchSpecCommand,
   dispatchSpecNew,
+  dispatchFullAuto,
   getSpecLaneInfo,
   getTaskLaneInfo,
   onSpecLaneActivity,

@@ -142,10 +142,12 @@ test('Codex and Claude Code prompts differ only in the dialect lines', () => {
     const differing = a.reduce((n, line, i) => (line === b[i] ? n : n + 1), 0);
     // The dialect is the only thing that may differ, and today that is one
     // line per template except spec.implement, whose autonomous handoff wraps
-    // to four. The ceiling is the count of dialect lines, not a round number:
+    // to four, and spec.new, whose closing question is five more. The ceiling is the count of dialect lines, not a round number:
     // a template that starts diverging beyond its dialect is the drift one
     // source was chosen to prevent, and it should fail here.
-    const ceiling = command === 'spec.implement' ? 4 : 1;
+    // spec.new carries the five-line full_auto_offer besides its
+    // ask_mechanism line (full-auto-spec-flow).
+    const ceiling = command === 'spec.implement' ? 4 : command === 'spec.new' ? 6 : 1;
     assert.ok(differing <= ceiling,
       `${command}: ${differing} lines differ, expected at most ${ceiling} — the templates are drifting apart`);
   }

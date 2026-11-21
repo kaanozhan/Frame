@@ -136,6 +136,26 @@ Say which slug you created, in one line, so the user can find it in the panel.
 Frame's watcher picks the new folder up on its own — there is nothing to
 refresh and no status to advance beyond the `"specified"` you already wrote.
 
+### How the rest of this spec runs
+
+{full_auto_offer}
+
+Record the answer in `.frame/specs/<slug>/status.json` as `flow_mode` —
+`"step-by-step"` or `"full-auto"` — merging into the object you wrote, every
+other key untouched. Then:
+
+- **Step by step** → stop. The user continues from the spec's page in Frame
+  (Generate Plan) or with `/spec.plan` when they are ready.
+- **Full auto** → also write `"implement_mode": "autonomous"`, then say in one
+  message: *"Frame starts the full-auto run in a new session now. Without Frame
+  open, run `node .frame/bin/implement-launch.js <slug> --full-auto` in a fresh
+  terminal."* Then stop. Do **not** start planning in this session: it was not
+  launched with the permission flags an uninterrupted run needs, and Frame
+  opens the session that has them.
+
+An unanswered question is a hard stop — leave `flow_mode` unset, which behaves
+exactly as step by step.
+
 ## Style
 
 - Be concise. The spec should be readable in under 90 seconds.

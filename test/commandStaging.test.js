@@ -79,3 +79,11 @@ test('the launch helper never resolves through the override dir', () => {
 test('available tools include claude-code', () => {
   assert.ok(staging.availableTools().includes('claude-code'));
 });
+
+test('full-auto-spec-flow T04: spec.auto.md is staged beside the four phase templates', () => {
+  assert.ok(staging.COMMAND_TEMPLATE_FILES.includes('spec.auto.md'));
+  const plan = staging.resolveStagingPlan(PROJECT, TOOL, () => false);
+  const entry = plan.find((e) => path.basename(e.dst) === 'spec.auto.md');
+  assert.ok(entry, 'spec.auto.md has a plan entry');
+  assert.equal(entry.dst, path.join(PROJECT, '.frame', 'runtime', 'commands', TOOL, 'spec.auto.md'));
+});
