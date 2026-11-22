@@ -202,6 +202,16 @@ function onServer(method, id, params) {
 }
 
 /**
+ * Resolves once no refresh is running or queued. Workspace actions start a
+ * refresh without awaiting it (workspaceManager's notify), and its git
+ * commands keep running in the workspaces afterwards — a caller about to
+ * remove those folders (a test's cleanup) waits here first.
+ */
+async function settled() {
+  while (inFlight.size) await Promise.all([...inFlight.values()]);
+}
+
+/**
  * Re-read and push the state of `projectPath`'s workspaces. Calls that land
  * while a read is running coalesce into one more read after it.
  */
@@ -494,5 +504,5 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.WORKSPACE_UPDATE_ABORT, guarded(({ projectPath, id }) => onServer('update.abort', id) || abortUpdate(projectPath, id)));
 }
 
-module.exports = { init, setupIPC, refresh, setWatched,
+module.exports = { init, setupIPC, refresh, settled, setWatched,
   watched, getState, activeWorkspaces, push, prDraft, prCreate, merge, updateFromBase, abortUpdate, PR_FIELDS };

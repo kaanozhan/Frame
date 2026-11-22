@@ -8378,6 +8378,7 @@
         "init",
         "setupIPC",
         "refresh",
+        "settled",
         "setWatched",
         "watched",
         "getState",
@@ -8492,40 +8493,44 @@
           ],
           "purpose": "Run a PR-flow action of a server workspace on its own server, or return null for a local one."
         },
+        "settled": {
+          "line": 210,
+          "purpose": "Resolves once no refresh is running or queued. Workspace actions start a"
+        },
         "refresh": {
-          "line": 208,
+          "line": 218,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-read and push the state of `projectPath`'s workspaces. Calls that land"
         },
         "setWatched": {
-          "line": 236,
+          "line": 246,
           "params": [
             "projectPath"
           ],
           "purpose": "Make `projectPath` the polled and pushed project (Frame Server's"
         },
         "watched": {
-          "line": 241,
+          "line": 251,
           "purpose": "The polled project, or null."
         },
         "getState": {
-          "line": 246,
+          "line": 256,
           "params": [
             "projectPath"
           ],
           "purpose": "The last state read for a project, or null."
         },
         "recordOf": {
-          "line": 255,
+          "line": 265,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "baseOf": {
-          "line": 263,
+          "line": 273,
           "params": [
             "projectPath",
             "ws"
@@ -8533,26 +8538,26 @@
           "purpose": "A workspace's base: the recorded one, else (records from before"
         },
         "settingsOf": {
-          "line": 268,
+          "line": 278,
           "params": [
             "projectPath"
           ]
         },
         "noRemote": {
-          "line": 280,
+          "line": 290,
           "params": [
             "cwd"
           ]
         },
         "push": {
-          "line": 289,
+          "line": 299,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "heldSpec": {
-          "line": 314,
+          "line": 324,
           "params": [
             "projectPath",
             "id"
@@ -8560,7 +8565,7 @@
           "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
         },
         "prDraft": {
-          "line": 328,
+          "line": 338,
           "params": [
             "projectPath",
             "id"
@@ -8568,7 +8573,7 @@
           "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
         },
         "prCreate": {
-          "line": 339,
+          "line": 349,
           "params": [
             "projectPath",
             "id",
@@ -8579,7 +8584,7 @@
           "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
         },
         "merge": {
-          "line": 367,
+          "line": 377,
           "params": [
             "projectPath",
             "id"
@@ -8587,14 +8592,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 417,
+          "line": 427,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 454,
+          "line": 464,
           "params": [
             "projectPath",
             "id"
@@ -8602,7 +8607,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 472,
+          "line": 482,
           "params": [
             "ipcMain"
           ]
@@ -8622,7 +8627,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 22476,
+      "sizeBytes": 22875,
       "extraction": {
         "status": "parsed"
       },
@@ -8642,6 +8647,7 @@
           "rowState": "114f885ae19483b9",
           "serverProjectsOf": "e2d28f5b919c60d9",
           "setWatched": "1b0ebe93abb317e0",
+          "settled": "924103a09437413a",
           "watched": "d802027afc129d5a"
         }
       }
@@ -33373,25 +33379,26 @@
         "child_process",
         "src/server/electronShim",
         "src/server/projects",
-        "src/server/specs"
+        "src/server/specs",
+        "src/main/workspaceGitState"
       ],
       "functions": {
         "write": {
-          "line": 50,
+          "line": 45,
           "params": [
             "file",
             "body"
           ]
         },
         "receive": {
-          "line": 61,
+          "line": 56,
           "params": [
             "{ frame }"
           ],
           "purpose": "A project received by the server; `frame` gives it .frame/config.json and Frame's .gitignore block."
         }
       },
-      "sizeBytes": 7696,
+      "sizeBytes": 7452,
       "extraction": {
         "status": "parsed"
       },
@@ -37583,6 +37590,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "d0cc92158c956cc6756e668ccaee07ec10a8401ff18c3d1d524b92361ad8aa0b"
+    "revision": "59982f5028448e065ceccd6231466e5659ed71731928e87d6a4e07be87c35368"
   }
 }
