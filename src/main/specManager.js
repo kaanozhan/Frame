@@ -689,6 +689,11 @@ function getCommandPrompt(projectPath, slug, command, aiTool, description, rootO
     // evaluation and slug disambiguation) — other templates carry no
     // {spec_catalog} token.
     spec_catalog: command === 'spec.new' ? buildSpecCatalog(projectPath) : '',
+    // What spec.new says after full auto is picked (#224). This prompt is
+    // staged for Frame's New spec, whose lane gets bound to the new spec, so
+    // Frame does start the run; a terminal-typed /spec.new gets the other
+    // text from spec-command-hint.
+    full_auto_handoff: command === 'spec.new' ? vocabulary.FULL_AUTO_HANDOFF.started : '',
     // spec.auto's phase prompt paths, staged by buildSpecCommandFile just
     // before this call. Absent for every other command.
     ...(extraVars || {})

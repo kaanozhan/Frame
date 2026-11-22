@@ -265,7 +265,26 @@ function dialect(cli) {
   return { ...DIALECT[CLAUDE], ...(DIALECT[cli] || {}) };
 }
 
+/**
+ * What spec.new tells the user after they pick full auto (issue #224). Which
+ * one is true depends on how the session started, not on the CLI, so these
+ * are not dialect values: Frame fills `started` when its New spec dispatched
+ * spec.new — that lane is bound to the new spec, and Frame starts the run on
+ * the transition — and spec-command-hint hands over `unbound` for a
+ * `/spec.new` typed into any other session, which Frame never starts on its
+ * own (full-auto-spec-flow D8).
+ */
+const FULL_AUTO_HANDOFF = {
+  started: '*"Frame starts the full-auto run in a new session now. Without Frame open, '
+    + 'run `node .frame/bin/implement-launch.js <slug> --full-auto` in a fresh terminal."*',
+  unbound: '*"This spec was written outside Frame\'s New spec, so Frame does not start the '
+    + 'run on its own. In Frame, open the spec\'s page and click **Resume Full Auto…**. '
+    + 'Without Frame open, run `node .frame/bin/implement-launch.js <slug> --full-auto` '
+    + 'in a fresh terminal."*'
+};
+
 module.exports = {
+  FULL_AUTO_HANDOFF,
   CLAUDE,
   CODEX,
   ROLES,

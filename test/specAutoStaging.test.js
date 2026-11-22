@@ -107,3 +107,10 @@ test('T04: spec.auto refuses a spec that does not exist', () => {
   const r = specManager.buildSpecCommandFile(projectPath, 'nope', 'spec.auto', 'claude-code');
   assert.equal(r.error, 'spec not found');
 });
+
+test('New spec\'s prompt says Frame starts the full-auto run — its lane is bound to the spec (#224)', () => {
+  const { prompt } = specManager.getCommandPrompt(projectPath, null, 'spec.new', 'claude-code', 'a thing');
+  assert.ok(!prompt.includes('{full_auto_handoff}'));
+  assert.ok(prompt.includes('Frame starts the full-auto run in a new session now.'));
+  assert.ok(!prompt.includes('Resume Full Auto'));
+});
