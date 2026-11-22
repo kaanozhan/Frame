@@ -23,6 +23,15 @@ fs.mkdirSync(process.env.HOME, { recursive: true });
 process.env.FRAME_SERVER_PROJECTS = path.join(SANDBOX, 'projects');
 process.env.FRAME_SERVER_HOME = path.join(SANDBOX, 'server-home');
 process.env.GIT_CONFIG_NOSYSTEM = '1';
+// Git 2.47+ runs auto-maintenance in a detached process after clone, commit
+// and fetch. On CI's newer git it was still writing into these repositories
+// when the after hook removed the sandbox, which then failed with ENOTEMPTY.
+// Every git child (ours and the server methods') inherits this env.
+Object.assign(process.env, {
+  GIT_CONFIG_COUNT: '2',
+  GIT_CONFIG_KEY_0: 'maintenance.auto', GIT_CONFIG_VALUE_0: 'false',
+  GIT_CONFIG_KEY_1: 'gc.auto', GIT_CONFIG_VALUE_1: '0'
+});
 const git = (args, cwd) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' } }).trim();
 
 const shim = require('../src/server/electronShim');
@@ -34,10 +43,7 @@ const specsPart = require('../src/server/specs').setup({ shim: handle, registerM
 
 test.after(() => {
   specsPart.idle();
-  // Retried: something the workspace methods started (likely a background git
-  // process) can still be writing under HOME when the suite ends, and the
-  // first rmdir then fails with ENOTEMPTY (it failed CI on main and on every
-  // PR after #219).
+  // Retried as well, in case anything else is still finishing a write.
   fs.rmSync(SANDBOX, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 });
 

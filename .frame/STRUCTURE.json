@@ -33377,21 +33377,21 @@
       ],
       "functions": {
         "write": {
-          "line": 44,
+          "line": 50,
           "params": [
             "file",
             "body"
           ]
         },
         "receive": {
-          "line": 55,
+          "line": 61,
           "params": [
             "{ frame }"
           ],
           "purpose": "A project received by the server; `frame` gives it .frame/config.json and Frame's .gitignore block."
         }
       },
-      "sizeBytes": 7394,
+      "sizeBytes": 7696,
       "extraction": {
         "status": "parsed"
       },
@@ -37583,6 +37583,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "cca44884cf8787d0dc063770b52dc768bea2a18c47f06eb98c527def6aed1aa0"
+    "revision": "d0cc92158c956cc6756e668ccaee07ec10a8401ff18c3d1d524b92361ad8aa0b"
   }
 }
