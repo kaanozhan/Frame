@@ -34,7 +34,11 @@ const specsPart = require('../src/server/specs').setup({ shim: handle, registerM
 
 test.after(() => {
   specsPart.idle();
-  fs.rmSync(SANDBOX, { recursive: true, force: true });
+  // Retried: something the workspace methods started (likely a background git
+  // process) can still be writing
+  // under HOME when the suite ends, and the first rmdir then fails with
+  // ENOTEMPTY (it failed CI on main and on every PR after #219).
+  fs.rmSync(SANDBOX, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 });
 
 function write(file, body) {
