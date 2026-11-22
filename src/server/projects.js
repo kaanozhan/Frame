@@ -9,9 +9,14 @@
  * names, branch prefix, fetched `origin/<base>`, archive rules.
  *
  * Methods: projects.ensure / projects.list,
- *          workspaces.list / status / create / archive / restore / rename,
+ *          workspaces.list / status / create / archive / restore / rename / provision,
  *          tools.check (is the agent CLI installed *here*?).
  * Event:   workspaces.updated { projectPath }
+ *
+ * A created or restored workspace of a Frame project gets Frame's gitignored
+ * tooling (spec templates, hook scripts, spec index), and `workspaces.provision`
+ * refreshes it when the desktop selects one (server-workspace-tooling): without
+ * it, an agent asked for a spec in the workspace's terminal finds no templates.
  */
 
 const fs = require('fs');
@@ -35,6 +40,8 @@ function projectsRoot() {
 function setup({ shim, registerMethods, broadcast }) {
   const projectRegistry = require('../main/projectRegistry');
   const workspaceManager = require('../main/workspaceManager');
+  const workspaceRegistry = require('../shared/workspaceRegistry');
+  const tooling = require('./tooling');
   const git = require('../main/gitBranchesManager');
   const aiToolManager = require('../main/aiToolManager');
   projectRegistry.init(null, shim.fakeWindow);
@@ -169,14 +176,33 @@ function setup({ shim, registerMethods, broadcast }) {
       return out;
     },
     'workspaces.list': async ({ projectPath } = {}) => workspaceManager.list(needProject(projectPath)),
-    'workspaces.create': async ({ projectPath, from, base, branch, copyFiles = null } = {}) => workspaceManager.create(needProject(projectPath), {
-      from, base, branch,
-      // The desktop's patterns (server-copy-files); only a list of strings is taken.
-      copyFiles: Array.isArray(copyFiles) ? copyFiles.filter((p) => typeof p === 'string') : null
-    }),
+    'workspaces.create': async ({ projectPath, from, base, branch, copyFiles = null } = {}) => {
+      const project = needProject(projectPath);
+      const res = await workspaceManager.create(project, {
+        from, base, branch,
+        // The desktop's patterns (server-copy-files); only a list of strings is taken.
+        copyFiles: Array.isArray(copyFiles) ? copyFiles.filter((p) => typeof p === 'string') : null
+      });
+      if (res && !res.error && res.workspace) await tooling.provisionIfFrame(project, res.workspace.path);
+      return res;
+    },
     'workspaces.status': async ({ projectPath, id } = {}) => workspaceManager.status(needProject(projectPath), id),
     // An archived workspace comes back from its branch (the desktop's Archived list).
-    'workspaces.restore': async ({ projectPath, id } = {}) => workspaceManager.restore(needProject(projectPath), id),
+    'workspaces.restore': async ({ projectPath, id } = {}) => {
+      const project = needProject(projectPath);
+      const res = await workspaceManager.restore(project, id);
+      if (res && !res.error && res.workspace) await tooling.provisionIfFrame(project, res.workspace.path);
+      return res;
+    },
+    // The desktop selected this workspace: bring Frame's tooling up to date in
+    // it, as the desktop does for a local one. An unknown, archived or missing
+    // workspace gets nothing.
+    'workspaces.provision': async ({ projectPath, id } = {}) => {
+      const project = needProject(projectPath);
+      const rec = workspaceRegistry.activeOf(projectRegistry.getWorkspaceRecords(project) || []).find((r) => r && r.id === id);
+      if (!rec || !rec.path || !fs.existsSync(rec.path)) return { copied: [] };
+      return { copied: await tooling.provisionIfFrame(project, rec.path) };
+    },
     'workspaces.archive': async ({ projectPath, id, action, message, rescue } = {}) => workspaceManager.archive(needProject(projectPath), id, { action, message, rescue: rescue === true }),
     'workspaces.rename': async ({ projectPath, id, name, branch } = {}) => workspaceManager.rename(needProject(projectPath), id, { name, branch }),
     'tools.check': async ({ toolId, tool = null, launchFlags = null, projectPath = null } = {}) => aiToolManager.checkToolAvailable({ toolId, tool, launchFlags, projectPath })

@@ -43,6 +43,11 @@ function fakeLink(key, host) {
         h.workspaces.push(w);
         return { error: null, workspace: w };
       }
+      if (method === 'workspaces.provision') {
+        // A Frame Server that predates server-workspace-tooling.
+        if (h.oldServer) throw new Error('Unknown method: workspaces.provision');
+        return { copied: ['.frame/bin', '.frame/runtime/commands', '.frame/index'] };
+      }
       throw new Error(`unexpected ${method}`);
     }
   };
@@ -111,5 +116,35 @@ test('while a server is down its archived rows stay listed, offline, and restore
     assert.match(String((await wm.restore(project, 'xa')).error), /Not connected to A/);
   } finally {
     linkA.up = true;
+  }
+});
+
+// ─── Selecting a server workspace provisions it there (server-workspace-tooling) ───
+
+test('selecting a server workspace asks its own server to provision it; an older or a down server is skipped quietly', async () => {
+  await wm.list(project);
+  linkA.calls.length = 0;
+  linkB.calls.length = 0;
+
+  const res = await wm.provision(project, 'wb');
+  assert.deepEqual(res, { error: null, copied: ['.frame/bin', '.frame/runtime/commands', '.frame/index'] });
+  assert.deepEqual(linkB.calls.map((c) => c.method), ['workspaces.provision']);
+  assert.deepEqual(linkB.calls[0].params, { projectPath: '/srv/b/app', id: 'wb' }, 'the server\'s own project path');
+  assert.equal(linkA.calls.length, 0, 'never the other server');
+
+  HOSTS.B.oldServer = true;
+  try {
+    assert.deepEqual(await wm.provision(project, 'wb'), { error: null, copied: [] }, 'an older server: no error');
+  } finally {
+    delete HOSTS.B.oldServer;
+  }
+
+  linkB.up = false;
+  linkB.calls.length = 0;
+  try {
+    assert.deepEqual(await wm.provision(project, 'wb'), { error: null, copied: [] }, 'a down server: no error');
+    assert.equal(linkB.calls.length, 0, 'and nothing is sent');
+  } finally {
+    linkB.up = true;
   }
 });

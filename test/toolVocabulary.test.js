@@ -173,3 +173,16 @@ test('the inline ceiling is per CLI, with Claude Code the safe default', () => {
   assert.equal(v.inlineCap('something-else'), 2000, 'an unknown CLI gets the tightest cap');
   assert.equal(v.inlineCap(undefined), 2000);
 });
+
+// ─── spec.new's closing question (full-auto-spec-flow) ────
+
+test('full auto is offered to Claude Code and withheld from Codex, in the same number of lines', () => {
+  const claude = v.dialect(v.CLAUDE).full_auto_offer;
+  const codex = v.dialect(v.CODEX).full_auto_offer;
+  assert.match(claude, /\*\*Full auto\*\*/);
+  assert.match(claude, /AskUserQuestion/);
+  assert.match(codex, /Do not offer full auto/);
+  assert.ok(!/AskUserQuestion/.test(codex), 'Codex has no structured-question tool');
+  assert.equal(claude.split('\n').length, codex.split('\n').length,
+    'equal line counts keep the rendered spec.new documents comparable line for line');
+});

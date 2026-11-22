@@ -177,14 +177,21 @@ test('T02: specs.get and specs.report read from the server workspace', async () 
   assert.equal(report.html, '<html>server report</html>');
 });
 
-test('T02: specs.status changes only the phase and implement mode', async () => {
+test('T02: specs.status changes only the phase, implement mode and flow mode', async () => {
   const { projectPath, ws, dir } = await serverWorkspace();
   const r = await methods['specs.status']({ projectPath, root: ws, slug: 'on-server', partial: { implement_mode: 'guided', title: 'Hijacked' } });
   assert.equal(r.status.implement_mode, 'guided');
   const onDisk = JSON.parse(fs.readFileSync(path.join(dir, 'status.json'), 'utf8'));
   assert.equal(onDisk.title, 'On server', 'other keys are not written');
   const none = await methods['specs.status']({ projectPath, root: ws, slug: 'on-server', partial: { title: 'x' } });
-  assert.match(none.error, /phase and implement mode/);
+  assert.match(none.error, /phase, implement mode and flow mode/);
+});
+
+test('full-auto-spec-flow: specs.status records the flow mode', async () => {
+  const { projectPath, ws, dir } = await serverWorkspace();
+  const r = await methods['specs.status']({ projectPath, root: ws, slug: 'on-server', partial: { flow_mode: 'full-auto' } });
+  assert.equal(r.status.flow_mode, 'full-auto');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'status.json'), 'utf8')).flow_mode, 'full-auto');
 });
 
 test('T02: a folder that is not a server project or its workspace is refused', async () => {
@@ -277,6 +284,17 @@ test('T04: spec.implement names the clone\'s tasks.json; spec.new stages without
   assert.equal(fresh.success, true, fresh.error);
   assert.match(fresh.relPath, /^\.frame\/runtime\/prompts\/spec\.new__.*\.md$/);
   assert.ok(fs.readFileSync(path.join(ws, fresh.relPath), 'utf8').includes('Make a thing'));
+});
+
+test('full-auto-spec-flow T04: specs.stage accepts spec.auto and stages its phase prompts on the server', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  const r = await methods['specs.stage']({ projectPath, root: ws, slug: 'on-server', command: 'spec.auto', aiTool: 'claude-code' });
+  assert.equal(r.success, true, r.error);
+  assert.equal(r.relPath, '.frame/runtime/prompts/on-server__spec.auto.md');
+  for (const cmd of ['spec.plan', 'spec.tasks', 'spec.implement']) {
+    assert.ok(fs.existsSync(path.join(ws, '.frame', 'runtime', 'prompts', `on-server__${cmd}.md`)), `${cmd} prompt staged in the worktree`);
+  }
+  assert.equal(r.launchFlags[0], '--settings');
 });
 
 test('T04: specs.stage refuses local-mode projects and unknown commands', async () => {
