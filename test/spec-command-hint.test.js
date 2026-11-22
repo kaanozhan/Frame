@@ -165,6 +165,14 @@ test('spec.new names {tool_id} with its value — unnamed, the agent guessed "cl
   for (const t of tokens) assert.ok(ctx.includes(t), `the hook names every token spec.new uses: ${t}`);
 });
 
+test('a terminal-typed spec.new hands over the Resume Full Auto hand-off, never "Frame starts the run" (#224)', () => {
+  const root = mkProject();
+  const ctx = ctxOf(ask(root, '/spec.new terminal colours'));
+  assert.match(ctx, /\{full_auto_handoff\} \(= the text between the second pair\)/);
+  assert.match(ctx, /Resume Full Auto…/);
+  assert.doesNotMatch(ctx, /Frame starts the full-auto run/);
+});
+
 // ─── the drift guard ──────────────────────────────────────
 
 test('the staged prompt is byte-identical to the one the button builds', () => {
