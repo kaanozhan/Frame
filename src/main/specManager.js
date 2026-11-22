@@ -127,10 +127,21 @@ function refreshSpecLocations(projectPath) {
   return map;
 }
 
-/** The checkout a slug lives in (main when unknown — where a new spec would go). */
+/**
+ * The checkout a slug lives in (main when unknown — where a new spec would go).
+ *
+ * A miss on a map built earlier is re-read once before falling back to main:
+ * the slug may have been written after the map was built. Start Work does
+ * exactly that — creating the workspace rebuilds the map, then the part's
+ * spec is written into it, and the workspace's specs watcher only catches up
+ * ~300 ms later. A map built by this call is not re-read.
+ */
 function specLocation(projectPath, slug) {
-  const map = specLocations.get(projectPath) || refreshSpecLocations(projectPath);
-  return map.get(slug) || { root: projectPath, workspace: null };
+  const cached = specLocations.get(projectPath);
+  const map = cached || refreshSpecLocations(projectPath);
+  let location = map.get(slug);
+  if (!location && cached && slug) location = refreshSpecLocations(projectPath).get(slug);
+  return location || { root: projectPath, workspace: null };
 }
 
 /** Root folder for a slug: its workspace's worktree, or the main checkout. */

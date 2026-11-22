@@ -10797,10 +10797,25 @@
       "createdAt": "2026-11-19T11:34:54.275Z",
       "updatedAt": "2026-11-19T12:06:26.333Z",
       "completedAt": "2026-11-19T12:06:26.333Z"
+    },
+    {
+      "id": "task-spec-location-cache-miss-refresh",
+      "title": "Re-read spec locations on a cache miss before falling back to main",
+      "description": "specManager keeps a slug → checkout map per project (specLocations). When workspaceManager.create finishes, notify → refreshWorkspaceWatchers deletes the map and pushSpecData rebuilds it at once. In Start Work that happens before cloudStart writes the part's spec.md + status.json into the new workspace, so the rebuilt map has no entry for the slug. Until the workspace's specs watcher fires (~300 ms later), specLocation falls back to the main checkout and getSpec / readStatus / buildSpecCommandFile answer 'spec not found'. The renderer's openBeginLane calls GET_SPEC and BUILD_SPEC_COMMAND_FILE inside that window, so the /spec.plan lane never opens. Fix: in specLocation (src/main/specManager.js:131), when the cached map has no entry for the slug, rebuild it once with refreshSpecLocations and look again; only then fall back to { root: projectPath, workspace: null }. Add a test in the specManager tests: build the map, write a spec folder into a registered workspace afterwards, and assert getSpec / readStatus find it without a watcher push.",
+      "userRequest": "User said: \"Bunla alakalı bir task ekler misin ?\" — after the diagnosis of: \"Brief'i shape ettim sonra içindeki spec'lerden birine start work dedim. Hata verdi ve işe başlayamadım, could not find spec vs gibi bişey dedi sanırım bir kontrol eder misin ?\"",
+      "acceptanceCriteria": "- specLocation re-reads the checkouts once when the slug is not in the cached map, and falls back to main only if it is still missing\n- Start Work on a spec part opens the /spec.plan lane (or the flow modal) in the new workspace without 'spec not found', with no retry\n- A test writes a spec into a workspace after the map was built and getSpec / readStatus resolve it to that workspace\n- A slug that exists nowhere still resolves to main, as today (spec.new and other new-spec writes are unchanged)\n- npm test passes",
+      "notes": "Seen 2026-11-22 07:11Z on frame-outreach, brief part app-store-collector: spec written at 07:11:15.373Z, workspace specs watcher fired at 07:11:15.683Z (~/.frame/activity/app-store-collector-*/activity.jsonl); the running build (started 2026-11-21, before the full-auto merge) showed \"Could not stage prompt: spec not found\". Branch, workspace and spec files were all in place; Generate Plan after the watcher push works. With the full-auto flow modal the race is mostly hidden because the modal waits for the user, but _selectSpecWorkspace and the modal's status read still get null in the window. Alternative considered: have cloudStartService call specManager.refreshWorkspaceWatchers after writeSpec. Rejected as the main fix because it only covers Start Work, while the miss-refresh covers any spec written into a checkout after the map was built. Misses are rare (new or unknown slugs) and a refresh is a few readdirs, so the cost is negligible. Work belongs on feat/frame-cloud-adaptor (Start Work lives there).",
+      "status": "completed",
+      "priority": "medium",
+      "category": "fix",
+      "context": "Session 2026-11-22 — Start Work on a shaped brief failed to open the spec.plan lane (frame-cloud-start-workspace follow-up)",
+      "createdAt": "2026-11-22T07:22:33.989Z",
+      "updatedAt": "2026-11-22T08:23:41.954Z",
+      "completedAt": "2026-11-22T08:23:41.954Z"
     }
   ],
   "lastUpdated": "2026-11-19T12:06:26.333Z",
   "metadata": {
-    "totalCreated": 854
+    "totalCreated": 855
   }
 }
