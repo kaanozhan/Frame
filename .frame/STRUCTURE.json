@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-21",
+  "lastUpdated": "2026-11-22",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -7631,17 +7631,25 @@
         "shared/frameTemplates"
       ],
       "functions": {
+        "writeIfChanged": {
+          "line": 111,
+          "params": [
+            "fsImpl",
+            "dst",
+            "content"
+          ],
+          "purpose": "Write `content` to `dst` only when it differs. Returns true when written."
+        },
         "stageFile": {
-          "line": 105,
+          "line": 119,
           "params": [
             "fsImpl",
             "src",
             "dst"
-          ],
-          "purpose": "Write `src` to `dst` only when the bytes differ, through a temporary file"
+          ]
         },
         "stageParserScripts": {
-          "line": 145,
+          "line": 159,
           "params": [
             "projectPath",
             "options = {}"
@@ -7649,61 +7657,61 @@
           "purpose": "Stage Frame's bundled scripts into the project's .frame/bin/."
         },
         "copyParserScripts": {
-          "line": 233,
+          "line": 259,
           "params": [
             "projectPath"
           ],
           "purpose": "Copy parser scripts from Frame's bundled scripts/ into the project's"
         },
         "hookLocation": {
-          "line": 244,
+          "line": 270,
           "params": [
             "projectPath"
           ],
           "purpose": "Where this checkout's `pre-commit` hook lives, asked of Git — a linked"
         },
         "detectHookSetup": {
-          "line": 278,
+          "line": 304,
           "params": [
             "projectPath"
           ],
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
         "writeHook": {
-          "line": 319,
+          "line": 345,
           "params": [
             "location"
           ]
         },
         "installPreCommitHook": {
-          "line": 339,
+          "line": 365,
           "params": [
             "projectPath"
           ],
           "purpose": "Install the pre-commit hook, but only where there is no hook to damage."
         },
         "upgradeStructureHook": {
-          "line": 414,
+          "line": 440,
           "params": [
             "projectPath"
           ],
           "purpose": "On project open: replace an unmodified earlier Frame template with the"
         },
         "scanTimeoutMs": {
-          "line": 434,
+          "line": 460,
           "params": [
             "projectPath"
           ]
         },
         "parseEnvelope": {
-          "line": 447,
+          "line": 473,
           "params": [
             "stdout"
           ],
           "purpose": "The single JSON envelope a `--json` run prints, or null."
         },
         "summarizeEnvelope": {
-          "line": 459,
+          "line": 485,
           "params": [
             "envelope",
             "code"
@@ -7711,7 +7719,7 @@
           "purpose": "Map a child result envelope onto the bootstrap's initialScan summary."
         },
         "runInitialFullScan": {
-          "line": 518,
+          "line": 544,
           "params": [
             "projectPath",
             "options = {}"
@@ -7719,7 +7727,7 @@
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 638,
+          "line": 664,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -7727,14 +7735,14 @@
           "purpose": "Top-level bootstrap orchestrator. Called from frameProject.js after the"
         },
         "ensureStructureHook": {
-          "line": 683,
+          "line": 709,
           "params": [
             "projectPath"
           ],
           "purpose": "Install the pre-commit hook for a project that opted into the module map"
         }
       },
-      "sizeBytes": 29737,
+      "sizeBytes": 31034,
       "extraction": {
         "status": "parsed"
       },
@@ -7748,10 +7756,10 @@
           "installPreCommitHook": "748f5e3e8d88f1b5",
           "parseEnvelope": "b20189a62e13bc20",
           "runInitialFullScan": "428669e2648a82bd",
-          "stageFile": "351d4019ce6a4dad",
           "stageParserScripts": "5834317416f84c7e",
           "summarizeEnvelope": "4fdc1da7b5ddb106",
-          "upgradeStructureHook": "a5bf8c8d0ca5f3c8"
+          "upgradeStructureHook": "a5bf8c8d0ca5f3c8",
+          "writeIfChanged": "febf4c7a1f0094b5"
         }
       }
     },
@@ -29958,7 +29966,7 @@
           "purpose": "Is a repo-relative path included by the whitelist? (the patterns it uses)"
         }
       },
-      "sizeBytes": 3240,
+      "sizeBytes": 3327,
       "extraction": {
         "status": "parsed"
       },
@@ -33965,29 +33973,29 @@
           "purpose": "Install the previous parser generation as if Frame had shipped it earlier."
         },
         "stagePackagedTree": {
-          "line": 151,
+          "line": 164,
           "params": [
             "dest"
           ],
           "purpose": "Stage the app the way electron-builder would: only `build.files`."
         },
         "fakeParser": {
-          "line": 203,
+          "line": 216,
           "params": [
             "body"
           ],
           "purpose": "A stand-in parser: `body` runs with the real env the bootstrap passes."
         },
         "hangingAfterPublish": {
-          "line": 282,
+          "line": 295,
           "purpose": "A parser that publishes through the real state layer, then hangs."
         },
         "previousTemplate": {
-          "line": 430,
+          "line": 443,
           "purpose": "The template Frame shipped before STR-02b, rebuilt from history (null in a shallow clone)."
         },
         "gitInit": {
-          "line": 444,
+          "line": 457,
           "params": [
             "dir"
           ]
@@ -34000,7 +34008,7 @@
           "purpose": "The last parser generation before STR-01, read from history."
         }
       },
-      "sizeBytes": 24451,
+      "sizeBytes": 25324,
       "extraction": {
         "status": "parsed"
       },
@@ -37503,6 +37511,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "3cc4eeb71873eb7af8207f435a666376215f32daaeeba7eb06ef9cdcb68e9d54"
+    "revision": "9924f5df34899ebc9111c95e7de369f6bbf6ef836bdbb1e3294e1bcad84f95cb"
   }
 }
