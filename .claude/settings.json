@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/spec-hint.js pre-edit"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null; node scripts/spec-hint.js pre-edit"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/module-hint.js search"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null; node scripts/module-hint.js search"
           }
         ]
       },
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/docs-hint.js pre-edit"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null; node scripts/docs-hint.js pre-edit"
           }
         ]
       }
@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/spec-hint.js prompt"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null; node scripts/spec-hint.js prompt"
           }
         ]
       },
@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/spec-command-hint.js prompt"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null; node scripts/spec-command-hint.js prompt"
           }
         ]
       }
@@ -52,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/docs-hint.js session-start"
+            "command": "cd \"${CLAUDE_PROJECT_DIR:-.}\" 2>/dev/null; node scripts/docs-hint.js session-start"
           }
         ]
       },

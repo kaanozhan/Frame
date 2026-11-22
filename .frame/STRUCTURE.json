@@ -10,7 +10,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 1514,
+      "sizeBytes": 1784,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -27165,15 +27165,23 @@
           "line": 978
         },
         "hintCommand": {
-          "line": 997,
+          "line": 1006,
           "params": [
             "script",
             "mode"
           ],
           "purpose": "The command of one Claude Code hint hook (server-linux-readiness)."
         },
+        "hintCommandBeforeProjectRoot": {
+          "line": 1012,
+          "params": [
+            "script",
+            "mode"
+          ],
+          "purpose": "hintCommand as shipped before hooks-run-from-project-root, without the `cd` — kept to recognise and upgrade it."
+        },
         "hintHooksFor": {
-          "line": 1131,
+          "line": 1146,
           "params": [
             "template",
             "{ structureMap = false } = {}"
@@ -27181,7 +27189,7 @@
           "purpose": "The hint hooks a project should get. The full sets above stay as they are —"
         },
         "sessionReportCommand": {
-          "line": 1175,
+          "line": 1198,
           "params": [
             "tool",
             "guard = ''"
@@ -27189,7 +27197,7 @@
           "purpose": "Session report hook (restore-ai-sessions-on-relaunch). On SessionStart the"
         },
         "getGenericWrapperTemplate": {
-          "line": 1210,
+          "line": 1233,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -27197,38 +27205,38 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 1256
+          "line": 1279
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1293,
+          "line": 1316,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "classifyStructureHook": {
-          "line": 1322,
+          "line": 1345,
           "params": [
             "text"
           ],
           "purpose": "'current' when `text` is today's template, 'previous' when it is an"
         },
         "getOrchBusHeader": {
-          "line": 1341,
+          "line": 1364,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1353,
+          "line": 1376,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1373
+          "line": 1396
         },
         "getOrchBinScripts": {
-          "line": 1391,
+          "line": 1414,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       },
-      "sizeBytes": 61208,
+      "sizeBytes": 62746,
       "extraction": {
         "status": "parsed"
       },
@@ -27251,6 +27259,7 @@
           "getStructureTemplate": "ae0768942621daa6",
           "getTasksTemplate": "51a7303c8276cb87",
           "hintCommand": "76c8c44d117b7c34",
+          "hintCommandBeforeProjectRoot": "27371c92321368ec",
           "hintHooksFor": "65fad3545aef86c6",
           "renderSpecSection": "7fd001cb3ae45a96",
           "sessionReportCommand": "2fb12d8e2b0bae69"
@@ -31113,20 +31122,20 @@
           "purpose": "Every file in the tree → sha256, excluding paths Frame is allowed to own."
         },
         "fakeWorkers": {
-          "line": 678,
+          "line": 679,
           "purpose": "A fake `--supervised` child that records what the supervisor sends."
         },
         "resetWorkers": {
-          "line": 703
+          "line": 704
         },
         "withoutStructureOverride": {
-          "line": 746,
+          "line": 747,
           "params": [
             "fn"
           ]
         }
       },
-      "sizeBytes": 40570,
+      "sizeBytes": 40692,
       "extraction": {
         "status": "parsed"
       },
@@ -31674,7 +31683,7 @@
           "line": 39
         }
       },
-      "sizeBytes": 6481,
+      "sizeBytes": 10648,
       "extraction": {
         "status": "parsed"
       },
@@ -31948,7 +31957,7 @@
           "purpose": "A project as Frame's pre-overlay init left it."
         }
       },
-      "sizeBytes": 32360,
+      "sizeBytes": 32499,
       "extraction": {
         "status": "parsed"
       },
@@ -32406,6 +32415,31 @@
       },
       "provenance": {
         "description": "7899da73ee2127a3"
+      }
+    },
+    "test/repoHooks.test": {
+      "file": "test/repoHooks.test.js",
+      "description": "This repository's own Claude Code hooks (.claude/settings.json) run its",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "standIn": {
+          "line": 26
+        }
+      },
+      "sizeBytes": 3009,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "cd6cdd4b76e46e23"
       }
     },
     "test/retrievalEval.test": {
@@ -37395,7 +37429,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 417,
+        "parsed": 418,
         "unsupported": 92,
         "partial": 0
       }
@@ -37442,9 +37476,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 603,
+      "visitedEntries": 604,
       "traversedDirectories": 86,
-      "eligibleFiles": 509,
+      "eligibleFiles": 510,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -37461,7 +37495,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 509,
+      "indexedFiles": 510,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -37469,6 +37503,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "96223e08d33008b27f0c1a041cc27cc2f4c2d2722d1242dadcb143dc27096158"
+    "revision": "3cc4eeb71873eb7af8207f435a666376215f32daaeeba7eb06ef9cdcb68e9d54"
   }
 }
