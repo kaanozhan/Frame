@@ -32,8 +32,13 @@ const register = (m) => Object.assign(methods, m);
 require('../src/server/projects').setup({ shim: handle, registerMethods: register, broadcast() {} });
 const specsPart = require('../src/server/specs').setup({ shim: handle, registerMethods: register, broadcast() {} });
 
-test.after(() => {
+test.after(async () => {
   specsPart.idle();
+  // Every workspace action starts a git-state refresh without awaiting it,
+  // and its git commands keep writing in the workspaces under HOME. Removing
+  // the sandbox under them failed with ENOTEMPTY on CI (main and every PR
+  // since #219); wait for them to finish first.
+  await require('../src/main/workspaceGitState').settled();
   fs.rmSync(SANDBOX, { recursive: true, force: true });
 });
 

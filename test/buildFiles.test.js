@@ -40,7 +40,8 @@ test('every script copied into .frame/bin/ is in build.files', () => {
     // app's own atomic writer, which is shipped from src/main (STR-01).
     const SOURCES = { 'fsSafe.js': 'src/main/fsSafe.js' };
     const shipped = copied
-      .filter((name) => name !== 'intent-map.json') // seeded per project, not copied
+      // Written per project, not copied: the curation seed and bin's module-type pin (#225).
+      .filter((name) => name !== 'intent-map.json' && name !== 'package.json')
       .map((name) => SOURCES[name] || `scripts/${name}`);
     const missing = shipped.filter((rel) => !packaged(rel));
     assert.deepEqual(missing, [], `add these to package.json build.files: ${missing.join(', ')}`);

@@ -373,6 +373,16 @@ function handleTaskAction(taskId, action) {
 function openRunFlow(task) {
   const projectPath = state.getProjectPath();
   if (!projectPath || !task) return;
+  // A board task cannot finish on a server yet (#226): the agent would run
+  // there, but the task's row lives only in this Mac's tasks.json, which
+  // Frame Server can neither read nor write — the board would show it
+  // in_progress forever. Every Run surface comes through here, so one guard
+  // covers them all until tasks get a home on the server.
+  const ws = require('./workspaceSection').selectedWorkspace();
+  if (ws && ws.location === 'server') {
+    notify.info(`Tasks run on this Mac for now — select the main checkout or a local workspace to run it. A task run on ${ws.host || 'the server'} could not mark itself done.`);
+    return;
+  }
   // Lazy-required to avoid load-order coupling with the renderer wiring.
   require('./taskRunModal').open(task, {
     onRun: async (opts) => {

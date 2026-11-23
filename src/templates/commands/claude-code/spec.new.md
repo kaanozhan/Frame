@@ -146,12 +146,12 @@ other key untouched. Then:
 
 - **Step by step** → stop. The user continues from the spec's page in Frame
   (Generate Plan) or with `/spec.plan` when they are ready.
-- **Full auto** → also write `"implement_mode": "autonomous"`, then say in one
-  message: *"Frame starts the full-auto run in a new session now. Without Frame
-  open, run `node .frame/bin/implement-launch.js <slug> --full-auto` in a fresh
-  terminal."* Then stop. Do **not** start planning in this session: it was not
-  launched with the permission flags an uninterrupted run needs, and Frame
-  opens the session that has them.
+- **Full auto** → also write `"implement_mode": "autonomous"`, then tell the
+  user, in one message, how the run starts (`<slug>` is this spec's slug):
+  {full_auto_handoff}
+  Then stop. Do **not** start planning in this session: it was not launched
+  with the permission flags an uninterrupted run needs — the run gets a
+  session of its own that has them.
 
 An unanswered question is a hard stop — leave `flow_mode` unset, which behaves
 exactly as step by step.

@@ -1362,17 +1362,26 @@ function _askContinueOrNew(frameName, specName) {
 // How long a cold-started CLI gets to reach its input box before the
 // dispatch aborts. Covers slow machines; a hung/failed launch fails loudly.
 const AGENT_READY_TIMEOUT_MS = 15000;
+// How long a CLI may sit on a dialog that waits for the user — Claude Code's
+// folder-trust question on a first launch — before the dispatch gives up.
+// The user is reading and answering it, so the 15 s budget would run out
+// under them and drop the prompt (#222); the budget starts over once the
+// dialog is gone.
+const AGENT_APPROVAL_TIMEOUT_MS = 5 * 60 * 1000;
 
 // Cold-start readiness gate: resolves true once laneStatus sees a known
 // agent in the foreground settled at its input box ('agent-input'), false
 // on timeout. 'agent-approval' deliberately does NOT count — injecting
 // into a permission dialog (e.g. Claude's trust-folder prompt) would feed
-// the prompt to a y/n chooser, so those lanes time out instead.
+// the prompt to a y/n chooser. While such a dialog is up the deadline is
+// AGENT_APPROVAL_TIMEOUT_MS instead, so a lane stuck on one still times out
+// without the prompt, but a user answering it is not raced.
 function _waitForAgentReady(terminalId) {
   return new Promise((resolve) => {
     let done = false;
     let timer = null;
     let unsubscribe = null;
+    let inApproval = false;
 
     const finish = (ready) => {
       if (done) return;
@@ -1382,18 +1391,31 @@ function _waitForAgentReady(terminalId) {
       resolve(ready);
     };
 
+    const arm = (ms) => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => finish(false), ms);
+    };
+
     const isReady = (s) => !!(s && s.agentName && s.status === 'agent-input');
+
+    const onStatus = (s) => {
+      if (isReady(s)) return finish(true);
+      const approval = !!(s && s.status === 'agent-approval');
+      if (approval === inApproval) return;
+      inApproval = approval;
+      arm(approval ? AGENT_APPROVAL_TIMEOUT_MS : AGENT_READY_TIMEOUT_MS);
+    };
 
     unsubscribe = laneStatus.onChange((id, payload) => {
       if (id !== terminalId) return;
-      if (isReady(payload)) finish(true);
+      onStatus(payload);
     });
 
-    timer = setTimeout(() => finish(false), AGENT_READY_TIMEOUT_MS);
+    arm(AGENT_READY_TIMEOUT_MS);
 
     // The lane may already be in the ready state (agent restarted by hand,
     // or a prior dispatch raced us) — don't wait for the next emission.
-    if (isReady(laneStatus.getStatus(terminalId))) finish(true);
+    onStatus(laneStatus.getStatus(terminalId));
   });
 }
 

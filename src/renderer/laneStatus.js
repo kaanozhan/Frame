@@ -57,7 +57,8 @@ const APPROVAL_PATTERNS = [
   /Do you want/i,        // Claude Code permission dialogs
   /\(y\/n\)/i,
   /❯\s*\d+\./,           // selected option in a numbered choice list
-  /Esc to cancel/i
+  /Esc to cancel/i,
+  /Yes, I trust this folder/i // Claude Code's folder-trust dialog (unnumbered since 2.1.330, #222)
 ];
 
 let manager = null;

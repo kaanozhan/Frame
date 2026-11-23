@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-22",
+  "lastUpdated": "2026-11-23",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -10,7 +10,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 1514,
+      "sizeBytes": 1784,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -4952,11 +4952,12 @@
         "fs",
         "path",
         "shared/ipcChannels",
+        "newProjectFolder",
         "frameStore"
       ],
       "functions": {
         "init": {
-          "line": 18,
+          "line": 19,
           "params": [
             "window",
             "callback"
@@ -4964,21 +4965,21 @@
           "purpose": "Initialize dialogs module"
         },
         "showFolderPicker": {
-          "line": 26,
+          "line": 27,
           "params": [
             "event"
           ],
           "purpose": "Show folder picker dialog"
         },
         "showNewProjectDialog": {
-          "line": 49,
+          "line": 52,
           "params": [
             "event"
           ],
-          "purpose": "Show new project dialog"
+          "purpose": "Show new project dialog: ask for the new project's name and location, make"
         },
         "cloneGithubRepo": {
-          "line": 73,
+          "line": 84,
           "params": [
             "event",
             "repoUrl"
@@ -4986,7 +4987,7 @@
           "purpose": "Clone a GitHub repo and initialize it as a Frame project"
         },
         "copyDirRecursive": {
-          "line": 121,
+          "line": 132,
           "params": [
             "src",
             "dst"
@@ -4994,18 +4995,18 @@
           "purpose": "Recursively copy a directory using node:fs reads + writes. Avoids"
         },
         "openSampleProject": {
-          "line": 143,
+          "line": 154,
           "params": [
             "event"
           ],
           "purpose": "Open the bundled sample project, copying it into the user's app-data"
         },
         "getSampleProjectPath": {
-          "line": 177,
+          "line": 188,
           "purpose": "Path used by the renderer to detect \"this is the sample project\" so"
         },
         "setupIPC": {
-          "line": 184,
+          "line": 195,
           "params": [
             "ipcMain"
           ],
@@ -5025,7 +5026,7 @@
           "CLONE_GITHUB_REPO_RESULT"
         ]
       },
-      "sizeBytes": 5894,
+      "sizeBytes": 6403,
       "extraction": {
         "status": "parsed"
       },
@@ -5039,7 +5040,7 @@
           "openSampleProject": "2aed40098940c35f",
           "setupIPC": "b41c7437e6910eb5",
           "showFolderPicker": "79a57e125f0a8d75",
-          "showNewProjectDialog": "d0b1b99b667764c9"
+          "showNewProjectDialog": "5a0bf29a71cf89f3"
         }
       }
     },
@@ -7958,6 +7959,33 @@
         }
       }
     },
+    "main/newProjectFolder": {
+      "file": "src/main/newProjectFolder.js",
+      "description": "newProjectFolder — make the folder \"Create a new project\" promises (#223).",
+      "exports": [
+        "createProjectFolder"
+      ],
+      "depends": [
+        "fs",
+        "path"
+      ],
+      "functions": {
+        "createProjectFolder": {
+          "line": 22,
+          "params": [
+            "target",
+            "fsImpl = fs"
+          ]
+        }
+      },
+      "sizeBytes": 2043,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "b9be17e7d1ef6e2f"
+      }
+    },
     "main/orchestrationManager": {
       "file": "src/main/orchestrationManager.js",
       "description": "Orchestration Manager",
@@ -10613,7 +10641,7 @@
           ]
         },
         "reportAssetRel": {
-          "line": 751,
+          "line": 756,
           "params": [
             "projectPath",
             "tool",
@@ -10622,34 +10650,34 @@
           "purpose": "Which staged report asset a tool's prompt should name."
         },
         "resolveVerificationCommand": {
-          "line": 818,
+          "line": 823,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 833,
+          "line": 838,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 851,
+          "line": 856,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 875,
+          "line": 880,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 891,
+          "line": 896,
           "params": [
             "projectPath",
             "slug",
@@ -10658,7 +10686,7 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "getAutoLaunchFlags": {
-          "line": 910,
+          "line": 915,
           "params": [
             "projectPath",
             "aiTool"
@@ -10666,7 +10694,7 @@
           "purpose": "The flags a full-auto run (`spec.auto`) launches with: always the"
         },
         "launchFlagsFor": {
-          "line": 917,
+          "line": 922,
           "params": [
             "projectPath",
             "slug",
@@ -10675,7 +10703,7 @@
           ]
         },
         "stagePhasePrompts": {
-          "line": 933,
+          "line": 938,
           "params": [
             "projectPath",
             "slug",
@@ -10686,21 +10714,21 @@
           ]
         },
         "specNewPromptFilename": {
-          "line": 950,
+          "line": 955,
           "params": [
             "date"
           ],
           "purpose": "A slug-less run has no stable name to key the prompt file on — `${slug}__`"
         },
         "uniquePromptFilename": {
-          "line": 955,
+          "line": 960,
           "params": [
             "promptsDir",
             "filename"
           ]
         },
         "buildSpecCommandFile": {
-          "line": 964,
+          "line": 969,
           "params": [
             "projectPath",
             "slug",
@@ -10712,32 +10740,32 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 1025,
+          "line": 1030,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 1051,
+          "line": 1056,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 1070,
+          "line": 1075,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "completedTaskIdsFromOutcome": {
-          "line": 1084,
+          "line": 1089,
           "params": [
             "content"
           ]
         },
         "initialTaskState": {
-          "line": 1091,
+          "line": 1096,
           "params": [
             "status",
             "outcomeIds",
@@ -10746,7 +10774,7 @@
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 1099,
+          "line": 1104,
           "params": [
             "projectPath",
             "slug",
@@ -10754,27 +10782,27 @@
           ]
         },
         "arraysEqual": {
-          "line": 1187,
+          "line": 1192,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 1194,
+          "line": 1199,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 1205,
+          "line": 1210,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "readSpecReport": {
-          "line": 1246,
+          "line": 1251,
           "params": [
             "projectPath",
             "slug",
@@ -10783,7 +10811,7 @@
           "purpose": "Read one of a spec's two generated HTML reports, for the in-app viewer."
         },
         "searchSpecs": {
-          "line": 1275,
+          "line": 1280,
           "params": [
             "projectPath",
             "query"
@@ -10791,7 +10819,7 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "updateSpecStatus": {
-          "line": 1288,
+          "line": 1293,
           "params": [
             "projectPath",
             "slug",
@@ -10799,14 +10827,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1312,
+          "line": 1317,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1331,
+          "line": 1336,
           "params": [
             "projectPath",
             "oldSlug",
@@ -10815,96 +10843,96 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "specsWatchHandler": {
-          "line": 1455,
+          "line": 1460,
           "params": [
             "projectPath"
           ],
           "purpose": "One handler for every specs folder of the watched project — main's and each"
         },
         "closeWorkspaceSpecWatchers": {
-          "line": 1484
+          "line": 1489
         },
         "refreshWorkspaceWatchers": {
-          "line": 1497,
+          "line": 1502,
           "params": [
             "projectPath"
           ],
           "purpose": "Watch each active workspace's `.frame/specs` alongside main's, then push"
         },
         "startWatching": {
-          "line": 1525,
+          "line": 1530,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1605
+          "line": 1610
         },
         "markSpecNewLaunch": {
-          "line": 1660,
+          "line": 1665,
           "params": [
             "projectPath"
           ]
         },
         "consumeSpecNewLaunch": {
-          "line": 1666,
+          "line": 1671,
           "params": [
             "projectPath"
           ]
         },
         "resolveSpecOrigin": {
-          "line": 1682,
+          "line": 1687,
           "params": [
             "projectPath"
           ],
           "purpose": "How this spec was started, from Frame's own state — never guessed from the"
         },
         "trackSpecLifecycle": {
-          "line": 1693,
+          "line": 1698,
           "params": [
             "projectPath",
             "specs"
           ]
         },
         "pushSpecData": {
-          "line": 1721,
+          "line": 1726,
           "params": [
             "projectPath"
           ]
         },
         "serverConn": {
-          "line": 1760
+          "line": 1765
         },
         "linkOf": {
-          "line": 1765,
+          "line": 1770,
           "params": [
             "serverKey"
           ],
           "purpose": "The connected link of a server key, or null (down, removed, or no key)."
         },
         "serverWorkspacesOf": {
-          "line": 1775,
+          "line": 1780,
           "params": [
             "projectPath"
           ],
           "purpose": "The watched project's server workspaces: `[{ id, root, host, serverKey, projectPath, serverProjectPath, name }]`."
         },
         "serverSpecLists": {
-          "line": 1788,
+          "line": 1793,
           "params": [
             "projectPath"
           ],
           "purpose": "`[{ workspace, specs }]` for mergeSpecLists — the cached server lists of `projectPath`."
         },
         "markServerSpecsOffline": {
-          "line": 1797,
+          "line": 1802,
           "params": [
             "serverKey = null"
           ],
           "purpose": "Tag the entries of one server (`serverKey`), or of every server, offline."
         },
         "refreshServerSpecs": {
-          "line": 1811,
+          "line": 1816,
           "params": [
             "projectPath",
             "onlyRoot = null"
@@ -10912,7 +10940,7 @@
           "purpose": "Re-list the server workspaces of `projectPath` (only `onlyRoot` when given),"
         },
         "remoteSpecEntry": {
-          "line": 1858,
+          "line": 1863,
           "params": [
             "projectPath",
             "slug"
@@ -10920,19 +10948,19 @@
           "purpose": "The server workspace entry that holds `slug` for `projectPath`, or null when"
         },
         "serverOffline": {
-          "line": 1871,
+          "line": 1876,
           "params": [
             "entry"
           ]
         },
         "offlineText": {
-          "line": 1875,
+          "line": 1880,
           "params": [
             "entry"
           ]
         },
         "serverSpecCall": {
-          "line": 1879,
+          "line": 1884,
           "params": [
             "entry",
             "method",
@@ -10940,7 +10968,7 @@
           ]
         },
         "getServerSpec": {
-          "line": 1884,
+          "line": 1889,
           "params": [
             "entry",
             "slug"
@@ -10948,7 +10976,7 @@
           "purpose": "GET_SPEC for a server spec: the server's getSpec, tagged with its workspace; `{ offline: host }` while unreachable."
         },
         "readServerSpecReport": {
-          "line": 1908,
+          "line": 1913,
           "params": [
             "entry",
             "slug",
@@ -10956,7 +10984,7 @@
           ]
         },
         "updateServerSpecStatus": {
-          "line": 1917,
+          "line": 1922,
           "params": [
             "entry",
             "slug",
@@ -10964,26 +10992,26 @@
           ]
         },
         "unwatchServerSpecs": {
-          "line": 1928
+          "line": 1933
         },
         "wireServerSpecs": {
-          "line": 1937
+          "line": 1942
         },
         "checkoutLocations": {
-          "line": 1984,
+          "line": 1989,
           "params": [
             "root"
           ]
         },
         "inCheckout": {
-          "line": 1990,
+          "line": 1995,
           "params": [
             "root",
             "fn"
           ]
         },
         "listSpecsIn": {
-          "line": 2003,
+          "line": 2008,
           "params": [
             "root",
             "tasksProject"
@@ -10991,14 +11019,14 @@
           "purpose": "listSpecs over one checkout; task counts come from `tasksProject`'s tasks.json."
         },
         "getSpecIn": {
-          "line": 2007,
+          "line": 2012,
           "params": [
             "root",
             "slug"
           ]
         },
         "readSpecReportIn": {
-          "line": 2011,
+          "line": 2016,
           "params": [
             "root",
             "slug",
@@ -11006,7 +11034,7 @@
           ]
         },
         "updateSpecStatusIn": {
-          "line": 2015,
+          "line": 2020,
           "params": [
             "root",
             "slug",
@@ -11014,7 +11042,7 @@
           ]
         },
         "syncSpecTasksIn": {
-          "line": 2020,
+          "line": 2025,
           "params": [
             "root",
             "tasksProject"
@@ -11022,7 +11050,7 @@
           "purpose": "Import every spec's tasks.md in `root` into `tasksProject`'s tasks.json."
         },
         "buildSpecCommandFileIn": {
-          "line": 2033,
+          "line": 2038,
           "params": [
             "root",
             "tasksProject",
@@ -11034,13 +11062,13 @@
           "purpose": "Stage a spec command's prompt in `root`, with `{tasks_path}` naming `tasksProject`'s tasks.json."
         },
         "init": {
-          "line": 2039,
+          "line": 2044,
           "params": [
             "window"
           ]
         },
         "handleGetSpec": {
-          "line": 2047,
+          "line": 2052,
           "params": [
             "projectPath",
             "slug"
@@ -11048,7 +11076,7 @@
           "purpose": "The spec IPC handlers route a server spec to Frame Server (server-specs"
         },
         "handleReadSpecReport": {
-          "line": 2052,
+          "line": 2057,
           "params": [
             "projectPath",
             "slug",
@@ -11056,7 +11084,7 @@
           ]
         },
         "handleUpdateSpecStatus": {
-          "line": 2057,
+          "line": 2062,
           "params": [
             "projectPath",
             "slug",
@@ -11064,7 +11092,7 @@
           ]
         },
         "serverStagingTarget": {
-          "line": 2071,
+          "line": 2076,
           "params": [
             "projectPath",
             "slug",
@@ -11073,7 +11101,7 @@
           "purpose": "Where a spec command for `workspaceId` / `slug` runs when that is a server"
         },
         "handleBuildSpecCommandFile": {
-          "line": 2086,
+          "line": 2091,
           "params": [
             "{ projectPath",
             "slug = null",
@@ -11086,7 +11114,7 @@
           "purpose": "BUILD_SPEC_COMMAND_FILE: stage locally, or — for a server workspace — have"
         },
         "setupIPC": {
-          "line": 2111,
+          "line": 2116,
           "params": [
             "ipcMain"
           ]
@@ -11113,7 +11141,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 96931,
+      "sizeBytes": 97286,
       "extraction": {
         "status": "parsed"
       },
@@ -11186,17 +11214,25 @@
         "shared/frameTemplates"
       ],
       "functions": {
+        "writeIfChanged": {
+          "line": 111,
+          "params": [
+            "fsImpl",
+            "dst",
+            "content"
+          ],
+          "purpose": "Write `content` to `dst` only when it differs. Returns true when written."
+        },
         "stageFile": {
-          "line": 105,
+          "line": 119,
           "params": [
             "fsImpl",
             "src",
             "dst"
-          ],
-          "purpose": "Write `src` to `dst` only when the bytes differ, through a temporary file"
+          ]
         },
         "stageParserScripts": {
-          "line": 145,
+          "line": 159,
           "params": [
             "projectPath",
             "options = {}"
@@ -11204,61 +11240,61 @@
           "purpose": "Stage Frame's bundled scripts into the project's .frame/bin/."
         },
         "copyParserScripts": {
-          "line": 233,
+          "line": 259,
           "params": [
             "projectPath"
           ],
           "purpose": "Copy parser scripts from Frame's bundled scripts/ into the project's"
         },
         "hookLocation": {
-          "line": 244,
+          "line": 270,
           "params": [
             "projectPath"
           ],
           "purpose": "Where this checkout's `pre-commit` hook lives, asked of Git — a linked"
         },
         "detectHookSetup": {
-          "line": 278,
+          "line": 304,
           "params": [
             "projectPath"
           ],
           "purpose": "Detect what kind of pre-commit hook setup the project has."
         },
         "writeHook": {
-          "line": 319,
+          "line": 345,
           "params": [
             "location"
           ]
         },
         "installPreCommitHook": {
-          "line": 339,
+          "line": 365,
           "params": [
             "projectPath"
           ],
           "purpose": "Install the pre-commit hook, but only where there is no hook to damage."
         },
         "upgradeStructureHook": {
-          "line": 414,
+          "line": 440,
           "params": [
             "projectPath"
           ],
           "purpose": "On project open: replace an unmodified earlier Frame template with the"
         },
         "scanTimeoutMs": {
-          "line": 434,
+          "line": 460,
           "params": [
             "projectPath"
           ]
         },
         "parseEnvelope": {
-          "line": 447,
+          "line": 473,
           "params": [
             "stdout"
           ],
           "purpose": "The single JSON envelope a `--json` run prints, or null."
         },
         "summarizeEnvelope": {
-          "line": 459,
+          "line": 485,
           "params": [
             "envelope",
             "code"
@@ -11266,7 +11302,7 @@
           "purpose": "Map a child result envelope onto the bootstrap's initialScan summary."
         },
         "runInitialFullScan": {
-          "line": 518,
+          "line": 544,
           "params": [
             "projectPath",
             "options = {}"
@@ -11274,7 +11310,7 @@
           "purpose": "Run the parser in full mode once so STRUCTURE.json gets populated with"
         },
         "bootstrapStructure": {
-          "line": 638,
+          "line": 664,
           "params": [
             "projectPath",
             "structureWasCreated"
@@ -11282,14 +11318,14 @@
           "purpose": "Top-level bootstrap orchestrator. Called from frameProject.js after the"
         },
         "ensureStructureHook": {
-          "line": 683,
+          "line": 709,
           "params": [
             "projectPath"
           ],
           "purpose": "Install the pre-commit hook for a project that opted into the module map"
         }
       },
-      "sizeBytes": 29737,
+      "sizeBytes": 31034,
       "extraction": {
         "status": "parsed"
       },
@@ -11303,10 +11339,10 @@
           "installPreCommitHook": "748f5e3e8d88f1b5",
           "parseEnvelope": "b20189a62e13bc20",
           "runInitialFullScan": "428669e2648a82bd",
-          "stageFile": "351d4019ce6a4dad",
           "stageParserScripts": "5834317416f84c7e",
           "summarizeEnvelope": "4fdc1da7b5ddb106",
-          "upgradeStructureHook": "a5bf8c8d0ca5f3c8"
+          "upgradeStructureHook": "a5bf8c8d0ca5f3c8",
+          "writeIfChanged": "febf4c7a1f0094b5"
         }
       }
     },
@@ -11897,6 +11933,7 @@
         "init",
         "setupIPC",
         "refresh",
+        "settled",
         "setWatched",
         "watched",
         "getState",
@@ -12011,40 +12048,44 @@
           ],
           "purpose": "Run a PR-flow action of a server workspace on its own server, or return null for a local one."
         },
+        "settled": {
+          "line": 210,
+          "purpose": "Resolves once no refresh is running or queued. Workspace actions start a"
+        },
         "refresh": {
-          "line": 208,
+          "line": 218,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-read and push the state of `projectPath`'s workspaces. Calls that land"
         },
         "setWatched": {
-          "line": 236,
+          "line": 246,
           "params": [
             "projectPath"
           ],
           "purpose": "Make `projectPath` the polled and pushed project (Frame Server's"
         },
         "watched": {
-          "line": 241,
+          "line": 251,
           "purpose": "The polled project, or null."
         },
         "getState": {
-          "line": 246,
+          "line": 256,
           "params": [
             "projectPath"
           ],
           "purpose": "The last state read for a project, or null."
         },
         "recordOf": {
-          "line": 255,
+          "line": 265,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "baseOf": {
-          "line": 263,
+          "line": 273,
           "params": [
             "projectPath",
             "ws"
@@ -12052,26 +12093,26 @@
           "purpose": "A workspace's base: the recorded one, else (records from before"
         },
         "settingsOf": {
-          "line": 268,
+          "line": 278,
           "params": [
             "projectPath"
           ]
         },
         "noRemote": {
-          "line": 280,
+          "line": 290,
           "params": [
             "cwd"
           ]
         },
         "push": {
-          "line": 289,
+          "line": 299,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "heldSpec": {
-          "line": 314,
+          "line": 324,
           "params": [
             "projectPath",
             "id"
@@ -12079,7 +12120,7 @@
           "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
         },
         "prDraft": {
-          "line": 328,
+          "line": 338,
           "params": [
             "projectPath",
             "id"
@@ -12087,7 +12128,7 @@
           "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
         },
         "prCreate": {
-          "line": 339,
+          "line": 349,
           "params": [
             "projectPath",
             "id",
@@ -12098,7 +12139,7 @@
           "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
         },
         "merge": {
-          "line": 367,
+          "line": 377,
           "params": [
             "projectPath",
             "id"
@@ -12106,14 +12147,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 417,
+          "line": 427,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 454,
+          "line": 464,
           "params": [
             "projectPath",
             "id"
@@ -12121,7 +12162,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 472,
+          "line": 482,
           "params": [
             "ipcMain"
           ]
@@ -12141,7 +12182,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 22476,
+      "sizeBytes": 22875,
       "extraction": {
         "status": "parsed"
       },
@@ -12161,6 +12202,7 @@
           "rowState": "114f885ae19483b9",
           "serverProjectsOf": "e2d28f5b919c60d9",
           "setWatched": "1b0ebe93abb317e0",
+          "settled": "924103a09437413a",
           "watched": "d802027afc129d5a"
         }
       }
@@ -13330,14 +13372,14 @@
           "purpose": "\"Continue in <Frame> / Open a new Frame\" — always asked when the spec"
         },
         "_waitForAgentReady": {
-          "line": 1371,
+          "line": 1379,
           "params": [
             "terminalId"
           ],
           "purpose": "Cold-start readiness gate: resolves true once laneStatus sees a known"
         },
         "_fail": {
-          "line": 1400,
+          "line": 1422,
           "params": [
             "terminalId",
             "message"
@@ -13357,7 +13399,7 @@
           "SPEC_AGENT_ACTIVITY"
         ]
       },
-      "sizeBytes": 59294,
+      "sizeBytes": 60185,
       "extraction": {
         "status": "parsed"
       },
@@ -20367,7 +20409,7 @@
         "../../agentDispatch"
       ],
       "functions": {},
-      "sizeBytes": 9878,
+      "sizeBytes": 10426,
       "extraction": {
         "status": "parsed"
       },
@@ -20717,28 +20759,28 @@
       ],
       "functions": {
         "init": {
-          "line": 73,
+          "line": 74,
           "params": [
             "terminalManager"
           ],
           "purpose": "Initialize with the TerminalManager (needed to read xterm buffers)."
         },
         "onChange": {
-          "line": 106,
+          "line": 107,
           "params": [
             "callback"
           ],
           "purpose": "Subscribe to status changes. Returns an unsubscribe function."
         },
         "getStatus": {
-          "line": 115,
+          "line": 116,
           "params": [
             "terminalId"
           ],
           "purpose": "Current status for a terminal."
         },
         "_agentNameFor": {
-          "line": 135,
+          "line": 136,
           "params": [
             "terminalId",
             "entry"
@@ -20746,7 +20788,7 @@
           "purpose": "Agent identity for a lane. Process name first (reliable on Unix). On Windows"
         },
         "detectAgentName": {
-          "line": 149,
+          "line": 150,
           "params": [
             "foreground",
             "commandLine"
@@ -20754,27 +20796,27 @@
           "purpose": "Which known agent (if any) the foreground process / command line names."
         },
         "remove": {
-          "line": 163,
+          "line": 164,
           "params": [
             "terminalId"
           ],
           "purpose": "Drop tracking for a closed terminal."
         },
         "_isShellProcess": {
-          "line": 188,
+          "line": 189,
           "params": [
             "processName",
             "shellName"
           ]
         },
         "_ensureEntry": {
-          "line": 195,
+          "line": 196,
           "params": [
             "terminalId"
           ]
         },
         "_isAgentMode": {
-          "line": 214,
+          "line": 215,
           "params": [
             "entry",
             "tail"
@@ -20782,13 +20824,13 @@
           "purpose": "Agent mode: the foreground process is a known agent, or (fallback)"
         },
         "_onOutput": {
-          "line": 225,
+          "line": 226,
           "params": [
             "terminalId"
           ]
         },
         "_armQuietTimer": {
-          "line": 253,
+          "line": 254,
           "params": [
             "terminalId",
             "entry"
@@ -20796,26 +20838,26 @@
           "purpose": "Quiet detection without per-chunk timer churn: `lastActivityAt` is the"
         },
         "_classifyQuiet": {
-          "line": 269,
+          "line": 270,
           "params": [
             "terminalId"
           ]
         },
         "_readBufferTail": {
-          "line": 295,
+          "line": 296,
           "params": [
             "terminalId"
           ]
         },
         "_emit": {
-          "line": 315,
+          "line": 316,
           "params": [
             "terminalId",
             "entry"
           ]
         },
         "statusLabel": {
-          "line": 366,
+          "line": 367,
           "params": [
             "status",
             "opts = {}"
@@ -20823,34 +20865,34 @@
           "purpose": "The status in words."
         },
         "attentionMark": {
-          "line": 378,
+          "line": 379,
           "params": [
             "status"
           ],
           "purpose": "The attention symbol for a status, or null when it wants no attention."
         },
         "cleanCommand": {
-          "line": 385,
+          "line": 386,
           "params": [
             "commandLine"
           ],
           "purpose": "\"/usr/local/bin/node /Users/x/proj/server.js --port 3000\""
         },
         "formatRelativeTime": {
-          "line": 394,
+          "line": 395,
           "params": [
             "ts"
           ]
         },
         "assignmentIcon": {
-          "line": 408,
+          "line": 409,
           "params": [
             "assignment"
           ],
           "purpose": "Assignment chip (what the terminal works on): the icon already says spec vs"
         },
         "assignmentText": {
-          "line": 417,
+          "line": 418,
           "params": [
             "assignment"
           ]
@@ -20864,7 +20906,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 16419,
+      "sizeBytes": 16520,
       "extraction": {
         "status": "parsed"
       },
@@ -26620,6 +26662,7 @@
         "tasks/runPrompt",
         "tasksDashboard",
         "taskInfoModal",
+        "workspaceSection",
         "taskRunModal",
         "agentDispatch",
         "taskConfirmModal"
@@ -26691,7 +26734,7 @@
           "purpose": "Open the run-config modal for a task and dispatch it on confirm."
         },
         "buildTaskPrompt": {
-          "line": 396,
+          "line": 406,
           "params": [
             "task",
             "opts = {}"
@@ -26699,7 +26742,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. The builder"
         },
         "runTaskWithOptions": {
-          "line": 410,
+          "line": 420,
           "params": [
             "task",
             "opts = {}"
@@ -26707,65 +26750,65 @@
           "purpose": "Send the task to an agent. Always a new Frame: agentDispatch creates"
         },
         "setClaudeRunning": {
-          "line": 427,
+          "line": 437,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 434,
+          "line": 444,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 443,
+          "line": 453,
           "params": [
             "taskId"
           ],
           "purpose": "Delete task — opens the shared confirm modal first; only dispatches the IPC"
         },
         "showAddTaskModal": {
-          "line": 460,
+          "line": 470,
           "purpose": "Show add task modal"
         },
         "showEditTaskModal": {
-          "line": 479,
+          "line": 489,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
         "hideTaskModal": {
-          "line": 505,
+          "line": 515,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 515,
+          "line": 525,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 553,
+          "line": 563,
           "purpose": "Setup modal event listeners"
         },
         "renderSourceChip": {
-          "line": 598,
+          "line": 608,
           "params": [
             "source"
           ],
           "purpose": "Render a small attribution chip for tasks that came from a Frame spec."
         },
         "formatDate": {
-          "line": 609,
+          "line": 619,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 626,
+          "line": 636,
           "purpose": "Initialize when DOM is ready"
         }
       },
@@ -26784,7 +26827,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 18734,
+      "sizeBytes": 19393,
       "extraction": {
         "status": "parsed"
       },
@@ -30223,7 +30266,7 @@
           ]
         }
       },
-      "sizeBytes": 17218,
+      "sizeBytes": 17783,
       "extraction": {
         "status": "parsed"
       },
@@ -32536,6 +32579,7 @@
       "file": "scripts/toolVocabulary.js",
       "description": "Tool vocabulary — what each CLI calls the things Frame's hooks care about.",
       "exports": [
+        "FULL_AUTO_HANDOFF",
         "CLAUDE",
         "CODEX",
         "ROLES",
@@ -32641,7 +32685,7 @@
           "purpose": "Phrase values for one CLI, falling back to Claude Code's."
         }
       },
-      "sizeBytes": 11167,
+      "sizeBytes": 12209,
       "extraction": {
         "status": "parsed"
       },
@@ -34242,15 +34286,23 @@
           "line": 978
         },
         "hintCommand": {
-          "line": 997,
+          "line": 1006,
           "params": [
             "script",
             "mode"
           ],
           "purpose": "The command of one Claude Code hint hook (server-linux-readiness)."
         },
+        "hintCommandBeforeProjectRoot": {
+          "line": 1012,
+          "params": [
+            "script",
+            "mode"
+          ],
+          "purpose": "hintCommand as shipped before hooks-run-from-project-root, without the `cd` — kept to recognise and upgrade it."
+        },
         "hintHooksFor": {
-          "line": 1131,
+          "line": 1146,
           "params": [
             "template",
             "{ structureMap = false } = {}"
@@ -34258,7 +34310,7 @@
           "purpose": "The hint hooks a project should get. The full sets above stay as they are —"
         },
         "sessionReportCommand": {
-          "line": 1175,
+          "line": 1198,
           "params": [
             "tool",
             "guard = ''"
@@ -34266,7 +34318,7 @@
           "purpose": "Session report hook (restore-ai-sessions-on-relaunch). On SessionStart the"
         },
         "getGenericWrapperTemplate": {
-          "line": 1210,
+          "line": 1233,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -34274,38 +34326,38 @@
           "purpose": "Generic AI tool wrapper template"
         },
         "getStructureHookSnippet": {
-          "line": 1256
+          "line": 1279
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 1293,
+          "line": 1316,
           "purpose": "Full pre-commit hook file content for the \"no existing hook\" case."
         },
         "classifyStructureHook": {
-          "line": 1322,
+          "line": 1345,
           "params": [
             "text"
           ],
           "purpose": "'current' when `text` is today's template, 'previous' when it is an"
         },
         "getOrchBusHeader": {
-          "line": 1341,
+          "line": 1364,
           "purpose": "Orchestration command-channel scripts (.frame/bin/)"
         },
         "getOrchRequestScript": {
-          "line": 1353,
+          "line": 1376,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 1373
+          "line": 1396
         },
         "getOrchBinScripts": {
-          "line": 1391,
+          "line": 1414,
           "purpose": "Map of filename → script body for the orchestration bin scripts. The"
         }
       },
-      "sizeBytes": 61208,
+      "sizeBytes": 62746,
       "extraction": {
         "status": "parsed"
       },
@@ -34328,6 +34380,7 @@
           "getStructureTemplate": "ae0768942621daa6",
           "getTasksTemplate": "51a7303c8276cb87",
           "hintCommand": "76c8c44d117b7c34",
+          "hintCommandBeforeProjectRoot": "27371c92321368ec",
           "hintHooksFor": "65fad3545aef86c6",
           "renderSpecSection": "7fd001cb3ae45a96",
           "sessionReportCommand": "2fb12d8e2b0bae69"
@@ -36583,7 +36636,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 6474,
+      "sizeBytes": 6406,
       "extraction": {
         "status": "parsed"
       },
@@ -37184,7 +37237,7 @@
           "purpose": "Is a repo-relative path included by the whitelist? (the patterns it uses)"
         }
       },
-      "sizeBytes": 3240,
+      "sizeBytes": 3327,
       "extraction": {
         "status": "parsed"
       },
@@ -38904,20 +38957,20 @@
           "purpose": "Every file in the tree → sha256, excluding paths Frame is allowed to own."
         },
         "fakeWorkers": {
-          "line": 678,
+          "line": 679,
           "purpose": "A fake `--supervised` child that records what the supervisor sends."
         },
         "resetWorkers": {
-          "line": 703
+          "line": 704
         },
         "withoutStructureOverride": {
-          "line": 746,
+          "line": 747,
           "params": [
             "fn"
           ]
         }
       },
-      "sizeBytes": 40570,
+      "sizeBytes": 40692,
       "extraction": {
         "status": "parsed"
       },
@@ -39465,7 +39518,7 @@
           "line": 39
         }
       },
-      "sizeBytes": 6481,
+      "sizeBytes": 10648,
       "extraction": {
         "status": "parsed"
       },
@@ -39739,7 +39792,7 @@
           "purpose": "A project as Frame's pre-overlay init left it."
         }
       },
-      "sizeBytes": 32360,
+      "sizeBytes": 32499,
       "extraction": {
         "status": "parsed"
       },
@@ -39975,6 +40028,31 @@
         "purposes": {
           "writeRuleFile": "dcd002bbe46a111c"
         }
+      }
+    },
+    "test/newProjectFolder.test": {
+      "file": "test/newProjectFolder.test.js",
+      "description": "newProjectFolder (#223): \"Create a new project\" makes <location>/<name>",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "src/main/newProjectFolder"
+      ],
+      "functions": {
+        "tmp": {
+          "line": 13
+        }
+      },
+      "sizeBytes": 2164,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "034e7f9d5ba9529f"
       }
     },
     "test/noticeTrayModel.test": {
@@ -40251,6 +40329,31 @@
       },
       "provenance": {
         "description": "7899da73ee2127a3"
+      }
+    },
+    "test/repoHooks.test": {
+      "file": "test/repoHooks.test.js",
+      "description": "This repository's own Claude Code hooks (.claude/settings.json) run its",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process"
+      ],
+      "functions": {
+        "standIn": {
+          "line": 26
+        }
+      },
+      "sizeBytes": 3009,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "cd6cdd4b76e46e23"
       }
     },
     "test/retrievalEval.test": {
@@ -41121,25 +41224,26 @@
         "child_process",
         "src/server/electronShim",
         "src/server/projects",
-        "src/server/specs"
+        "src/server/specs",
+        "src/main/workspaceGitState"
       ],
       "functions": {
         "write": {
-          "line": 40,
+          "line": 45,
           "params": [
             "file",
             "body"
           ]
         },
         "receive": {
-          "line": 51,
+          "line": 56,
           "params": [
             "{ frame }"
           ],
           "purpose": "A project received by the server; `frame` gives it .frame/config.json and Frame's .gitignore block."
         }
       },
-      "sizeBytes": 7108,
+      "sizeBytes": 7452,
       "extraction": {
         "status": "parsed"
       },
@@ -41308,7 +41412,7 @@
           "purpose": "A project with one spec in `phase`, and the command templates staged."
         }
       },
-      "sizeBytes": 12762,
+      "sizeBytes": 13168,
       "extraction": {
         "status": "parsed"
       },
@@ -41438,7 +41542,7 @@
           ]
         }
       },
-      "sizeBytes": 4984,
+      "sizeBytes": 5400,
       "extraction": {
         "status": "parsed"
       },
@@ -41812,29 +41916,29 @@
           "purpose": "Install the previous parser generation as if Frame had shipped it earlier."
         },
         "stagePackagedTree": {
-          "line": 151,
+          "line": 164,
           "params": [
             "dest"
           ],
           "purpose": "Stage the app the way electron-builder would: only `build.files`."
         },
         "fakeParser": {
-          "line": 203,
+          "line": 216,
           "params": [
             "body"
           ],
           "purpose": "A stand-in parser: `body` runs with the real env the bootstrap passes."
         },
         "hangingAfterPublish": {
-          "line": 282,
+          "line": 295,
           "purpose": "A parser that publishes through the real state layer, then hangs."
         },
         "previousTemplate": {
-          "line": 430,
+          "line": 443,
           "purpose": "The template Frame shipped before STR-02b, rebuilt from history (null in a shallow clone)."
         },
         "gitInit": {
-          "line": 444,
+          "line": 457,
           "params": [
             "dir"
           ]
@@ -41847,7 +41951,7 @@
           "purpose": "The last parser generation before STR-01, read from history."
         }
       },
-      "sizeBytes": 24451,
+      "sizeBytes": 25324,
       "extraction": {
         "status": "parsed"
       },
@@ -44862,6 +44966,18 @@
         "description": "workspaceNames — automatic short names for workspaces."
       }
     ],
+    "new": [
+      {
+        "module": "main/newProjectFolder",
+        "file": "src/main/newProjectFolder.js",
+        "description": "newProjectFolder — make the folder \"Create a new project\" promises (#223)."
+      },
+      {
+        "module": "renderer/newWorkspaceModal",
+        "file": "src/renderer/newWorkspaceModal.js",
+        "description": "New Workspace Modal (workspaces spec, T08)."
+      }
+    ],
     "onboarding": [
       {
         "module": "renderer/onboarding",
@@ -44965,6 +45081,11 @@
       }
     ],
     "project": [
+      {
+        "module": "main/newProjectFolder",
+        "file": "src/main/newProjectFolder.js",
+        "description": "newProjectFolder — make the folder \"Create a new project\" promises (#223)."
+      },
       {
         "module": "main/projectInsights",
         "file": "src/main/projectInsights.js",
@@ -45661,7 +45782,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 471,
+        "parsed": 474,
         "unsupported": 94,
         "partial": 0
       }
@@ -45708,9 +45829,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 660,
+      "visitedEntries": 663,
       "traversedDirectories": 87,
-      "eligibleFiles": 565,
+      "eligibleFiles": 568,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -45727,7 +45848,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 565,
+      "indexedFiles": 568,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -45735,6 +45856,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "9f0678cc580156fc8abe980fc52b96a502c0e3a82016d51c9d6d5ab8a29ed646"
+    "revision": "17135763e0e53498d7751304c091894f42511f5ad277624766c54f3bdb22b1d6"
   }
 }
