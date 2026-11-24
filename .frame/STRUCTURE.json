@@ -5496,6 +5496,11 @@
         "requestedShell",
         "serverTerminalInfo",
         "noteServerTerminal",
+        "pasteMode",
+        "noteUserInput",
+        "getLastUserInputAt",
+        "getForegroundName",
+        "getForegroundPid",
         "setupIPC"
       ],
       "depends": [
@@ -5508,6 +5513,8 @@
         "analytics",
         "pollGate",
         "sessionRestore",
+        "shared/programStatus",
+        "shared/leadRules",
         "child_process",
         "shared/serverRouting",
         "workspaceManager",
@@ -5515,36 +5522,43 @@
       ],
       "functions": {
         "flushOutput": {
-          "line": 29,
+          "line": 31,
           "params": [
             "terminalId"
           ],
           "purpose": "Flush a terminal's buffered output as one coalesced send."
         },
         "init": {
-          "line": 49,
+          "line": 51,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
         "getForegroundCommand": {
-          "line": 64,
+          "line": 66,
           "params": [
             "shellPid",
             "callback"
           ],
           "purpose": "Resolve the full command line of the terminal's foreground process."
         },
+        "foregroundPidOf": {
+          "line": 90,
+          "params": [
+            "shellPid"
+          ],
+          "purpose": "The pid of a shell's foreground process group (lead-agent T03): the CLI the"
+        },
         "availableShellsOnServer": {
-          "line": 91,
+          "line": 109,
           "params": [
             "loc"
           ],
           "purpose": "A server workspace's shells, from its own Frame Server (`loc.serverKey`); never rejects, never empty."
         },
         "defaultUnixShell": {
-          "line": 109,
+          "line": 127,
           "params": [
             "platform = process.platform",
             "env = process.env",
@@ -5553,7 +5567,7 @@
           "purpose": "The Unix shell to start when none was chosen (server-linux-readiness)."
         },
         "requestedShell": {
-          "line": 121,
+          "line": 139,
           "params": [
             "shellPath",
             "platform = process.platform",
@@ -5562,14 +5576,14 @@
           "purpose": "The shell a create asked for, or null to use the default. Off macOS and"
         },
         "getDefaultShell": {
-          "line": 131
+          "line": 149
         },
         "getAvailableShells": {
-          "line": 148,
+          "line": 166,
           "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 234,
+          "line": 252,
           "params": [
             "workingDir = null",
             "projectPath = null",
@@ -5579,29 +5593,80 @@
           ],
           "purpose": "Create a new terminal instance"
         },
+        "noteProgramStatus": {
+          "line": 412,
+          "params": [
+            "inst",
+            "data"
+          ],
+          "purpose": "Claude Code's OSC 7501 program status and the bracketed-paste mode, read"
+        },
+        "getForegroundName": {
+          "line": 430,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "The live foreground process name (node-pty), read now rather than from the gated poll."
+        },
+        "getForegroundPid": {
+          "line": 441,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "Pid of the program in the foreground of a terminal (a CLI the user started), or null."
+        },
+        "agentStatus": {
+          "line": 452,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "What a terminal is doing, for the Chief (leadRules.deriveStatus): agent"
+        },
+        "pasteMode": {
+          "line": 465,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "Whether the program in a terminal has bracketed paste on (D14)."
+        },
+        "noteUserInput": {
+          "line": 475,
+          "params": [
+            "terminalId",
+            "data"
+          ],
+          "purpose": "The user typed into a terminal (D15). Called from the input path only —"
+        },
+        "getLastUserInputAt": {
+          "line": 482,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "When the user last typed there (epoch ms), or null."
+        },
         "getTerminalsByProject": {
-          "line": 383,
+          "line": 492,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 398,
+          "line": 507,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 410,
+          "line": 519,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
         "writeToTerminal": {
-          "line": 418,
+          "line": 527,
           "params": [
             "terminalId",
             "data"
@@ -5609,7 +5674,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 428,
+          "line": 537,
           "params": [
             "terminalId",
             "cols",
@@ -5618,13 +5683,13 @@
           "purpose": "Resize specific terminal"
         },
         "wasDestroyedOnRequest": {
-          "line": 443,
+          "line": 552,
           "params": [
             "terminalId"
           ]
         },
         "destroyTerminal": {
-          "line": 451,
+          "line": 560,
           "params": [
             "terminalId",
             "{ teardown = false } = {}"
@@ -5632,56 +5697,56 @@
           "purpose": "Destroy specific terminal. `teardown` marks one that dies with its"
         },
         "destroyAll": {
-          "line": 472,
+          "line": 581,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 492,
+          "line": 601,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 499,
+          "line": 608,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 509,
+          "line": 618,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 519,
+          "line": 628,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "serverLocationOf": {
-          "line": 548,
+          "line": 657,
           "params": [
             "workspaceId"
           ]
         },
         "server": {
-          "line": 557
+          "line": 666
         },
         "connectedLink": {
-          "line": 562,
+          "line": 671,
           "params": [
             "key"
           ],
           "purpose": "The connected link of `key`, or null."
         },
         "routeOfTerminal": {
-          "line": 568,
+          "line": 677,
           "params": [
             "terminalId"
           ],
           "purpose": "`{ link, serverTerminalId }` a desktop id routes to, or null when its server is unknown."
         },
         "createServerTerminal": {
-          "line": 574,
+          "line": 683,
           "params": [
             "loc",
             "{ cwd",
@@ -5693,14 +5758,14 @@
           ]
         },
         "serverTerminalInfo": {
-          "line": 591,
+          "line": 700,
           "params": [
             "terminalId"
           ],
           "purpose": "Local project/workspace (and server) of a server terminal this window knows, or null."
         },
         "noteServerTerminal": {
-          "line": 596,
+          "line": 705,
           "params": [
             "terminalId",
             "info"
@@ -5708,10 +5773,10 @@
           "purpose": "Remember a server terminal found on reconnect (adopted by the renderer)."
         },
         "wireServerEvents": {
-          "line": 602
+          "line": 711
         },
         "adoptFrom": {
-          "line": 655,
+          "line": 764,
           "params": [
             "link",
             "projectPath",
@@ -5720,14 +5785,14 @@
           "purpose": "One connected server's live terminals of a local project, with a screen each; null when it cannot tell."
         },
         "adoptServerTerminals": {
-          "line": 699,
+          "line": 808,
           "params": [
             "projectPath"
           ],
           "purpose": "Every connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 729,
+          "line": 838,
           "params": [
             "ipcMain"
           ]
@@ -5750,7 +5815,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 34170,
+      "sizeBytes": 38601,
       "extraction": {
         "status": "parsed"
       },
@@ -5759,6 +5824,7 @@
         "purposes": {
           "adoptFrom": "40cb568fc83ec24e",
           "adoptServerTerminals": "e03187319ffc6b7e",
+          "agentStatus": "4bfc29eafacec050",
           "availableShellsOnServer": "bbe8ae95ca95e954",
           "connectedLink": "df7da417a391592b",
           "createTerminal": "b33d916178fe23ba",
@@ -5767,16 +5833,23 @@
           "destroyExcept": "2db42ba4367a26b0",
           "destroyTerminal": "1c5d8c995da929c7",
           "flushOutput": "862238b90ed7f8f0",
+          "foregroundPidOf": "8f9d17eea623b4f8",
           "getAvailableShells": "538bc64a26510be8",
           "getForegroundCommand": "7c0ce6301fb394c1",
+          "getForegroundName": "4e0a8ae44f8a95e9",
+          "getForegroundPid": "f06d551ae0e1910a",
           "getLastOutputAt": "4ad8bccf6ad1c484",
+          "getLastUserInputAt": "95cb38a9dfc47e83",
           "getTerminalCount": "946350489b072cc3",
           "getTerminalIds": "eb3fa4ee8efdd797",
           "getTerminalInfo": "daaf7eb3ca940c30",
           "getTerminalsByProject": "479a57ca5c66839c",
           "hasTerminal": "b3801ea1d7b0ad94",
           "init": "a7cc4fe0948dfdd7",
+          "noteProgramStatus": "7b8a5482a542ab7b",
           "noteServerTerminal": "34da8c9dde687e61",
+          "noteUserInput": "ef0a7c80f29ddcde",
+          "pasteMode": "5a0c772707885643",
           "requestedShell": "65b3ebb6642173f5",
           "resizeTerminal": "810c8f104494f695",
           "routeOfTerminal": "c04c4b8094dd649f",
@@ -28051,6 +28124,7 @@
         "createScanner",
         "parseReport",
         "bracketedPaste",
+        "isTerminalReplyOnly",
         "MAX_CARRY"
       ],
       "depends": [],
@@ -28078,15 +28152,22 @@
         "createScanner": {
           "line": 81
         },
+        "isTerminalReplyOnly": {
+          "line": 139,
+          "params": [
+            "data"
+          ],
+          "purpose": "Whether an input chunk is only the terminal answering the program (D15):"
+        },
         "bracketedPaste": {
-          "line": 131,
+          "line": 144,
           "params": [
             "text"
           ],
           "purpose": "Text wrapped as one bracketed paste (D14)."
         }
       },
-      "sizeBytes": 4772,
+      "sizeBytes": 5372,
       "extraction": {
         "status": "parsed"
       },
@@ -28095,6 +28176,7 @@
         "purposes": {
           "bracketedPaste": "a4c1a494d6ef6863",
           "carryStart": "edb91d22259168f2",
+          "isTerminalReplyOnly": "ac353bc171f9c4e4",
           "parseReport": "9966dc87b9c1ef66"
         }
       }
@@ -32959,7 +33041,7 @@
         "src/shared/programStatus"
       ],
       "functions": {},
-      "sizeBytes": 4532,
+      "sizeBytes": 5040,
       "extraction": {
         "status": "parsed"
       },
@@ -38354,6 +38436,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "81722d7508b9622a8ed65d48b61325ca2cf1d32607f1be150d9102d7f51a8850"
+    "revision": "c1172964878af682e87d7b6be9a7840a32c9a416c85eeab8d257e3d644ee7c64"
   }
 }

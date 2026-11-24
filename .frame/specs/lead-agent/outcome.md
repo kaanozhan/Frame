@@ -15,3 +15,11 @@ Added `src/shared/programStatus.js`: a per-terminal scanner that counts `ESC]750
 _Captured: 2026-11-25 · 2 file changes_
 
 ---
+
+## T03 — Read program status in ptyManager
+
+`src/main/ptyManager.js` now feeds every PTY chunk to a per-terminal scanner, answers Claude's `ESC]7501;?` probe from the PTY owner, and keeps the last main-session report and the DEC 2004 paste mode. It exports `agentStatus`, `pasteMode`, `noteUserInput` (stamped in the `TERMINAL_INPUT_ID` handler), `getLastUserInputAt`, `getForegroundName` and `getForegroundPid`. Beyond the plan: `isTerminalReplyOnly()` was added to `programStatus.js` so xterm's automatic answers do not count as typing. Verified live with real node-pty and Claude 2.1.331: `unknown` until the probe is answered, then `ready` 0.9 s later, then back to the shell with the stale state dropped. zsh also turns paste mode on, so multi-line text can go to shells too.
+
+_Captured: 2026-11-25 · 3 file changes_
+
+---

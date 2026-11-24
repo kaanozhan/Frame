@@ -91,6 +91,15 @@ test('parseReport ignores junk and needs a state', () => {
   assert.deepEqual(P.parseReport('state=idle:noequals:=x:progress=abc'), { state: 'idle' });
 });
 
+test('terminal replies are not the user typing; keys are', () => {
+  for (const reply of ['\x1b[12;5R', '\x1b[?62;22c', '\x1b[I', '\x1b[O', '\x1b[<0;10;5M', '\x1b]11;rgb:0000/0000/0000\x07', '\x1bP>|xterm.js(5.3.0)\x1b\\', '\x1b[3;1R\x1b[I']) {
+    assert.equal(P.isTerminalReplyOnly(reply), true, JSON.stringify(reply));
+  }
+  for (const key of ['a', 'hello', '\r', '\x1b[A', '\x1b[D', '\x7f', '\x03', '\x1b[12;5Rx', '']) {
+    assert.equal(P.isTerminalReplyOnly(key), false, JSON.stringify(key));
+  }
+});
+
 test('bracketedPaste wraps text and strips embedded paste markers', () => {
   assert.equal(P.bracketedPaste('a\nb'), '\x1b[200~a\nb\x1b[201~');
   assert.equal(P.bracketedPaste('x\x1b[201~rm -rf'), '\x1b[200~xrm -rf\x1b[201~', 'a payload cannot end the paste early');

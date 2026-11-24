@@ -127,9 +127,22 @@ function createScanner() {
   };
 }
 
+// What xterm sends on its own, not the user: cursor-position and device
+// reports, focus in/out, SGR mouse reports, OSC / DCS answers.
+const TERMINAL_REPLY = /^(?:\x1b\[\??[0-9;]*[Rc]|\x1b\[[IO]|\x1b\[<[0-9;]+[Mm]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1bP[^\x1b]*\x1b\\)+$/;
+
+/**
+ * Whether an input chunk is only the terminal answering the program (D15):
+ * such chunks must not count as the user typing. Keys — arrows included —
+ * are the user.
+ */
+function isTerminalReplyOnly(data) {
+  return typeof data === 'string' && data.length > 0 && TERMINAL_REPLY.test(data);
+}
+
 /** Text wrapped as one bracketed paste (D14). */
 function bracketedPaste(text) {
   return `\x1b[200~${String(text).replace(/\x1b\[20[01]~/g, '')}\x1b[201~`;
 }
 
-module.exports = { PROBE_ANSWER, createScanner, parseReport, bracketedPaste, MAX_CARRY };
+module.exports = { PROBE_ANSWER, createScanner, parseReport, bracketedPaste, isTerminalReplyOnly, MAX_CARRY };

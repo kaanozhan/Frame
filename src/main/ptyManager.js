@@ -12,6 +12,8 @@ const promptLogger = require('./promptLogger');
 const analytics = require('./analytics');
 const pollGate = require('./pollGate');
 const sessionRestore = require('./sessionRestore');
+const programStatus = require('../shared/programStatus');
+const leadRules = require('../shared/leadRules');
 
 // Store multiple PTY instances
 const ptyInstances = new Map(); // Map<terminalId, {pty, cwd, projectPath}>
@@ -76,6 +78,22 @@ function getForegroundCommand(shellPid, callback) {
     execFile('ps', ['-o', 'command=', '-p', tpgid], (err2, out2) => {
       const command = (out2 || '').trim();
       callback(err2 || !command ? null : command);
+    });
+  });
+}
+
+/**
+ * The pid of a shell's foreground process group (lead-agent T03): the CLI the
+ * user started there leads its own job, so this is its pid. null on Windows
+ * or when it cannot be told.
+ */
+function foregroundPidOf(shellPid) {
+  return new Promise((resolve) => {
+    if (process.platform === 'win32' || !shellPid) return resolve(null);
+    const { execFile } = require('child_process');
+    execFile('ps', ['-o', 'tpgid=', '-p', String(shellPid)], (err, out) => {
+      const tpgid = Number((out || '').trim());
+      resolve(err || !Number.isInteger(tpgid) || tpgid <= 0 || tpgid === shellPid ? null : tpgid);
     });
   });
 }
@@ -294,6 +312,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     const inst = ptyInstances.get(terminalId);
     if (!inst) return;
     inst.lastOutputAt = Date.now();
+    noteProgramStatus(inst, data);
     inst.outputChunks.push(data);
     inst.outputBytes += data.length;
     // Backpressure: past the high-water mark, pause the PTY until the next
@@ -368,11 +387,101 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     outputChunks: [],
     outputBytes: 0,
     flushTimer: null,
-    paused: false
+    paused: false,
+    // lead-agent (T03): what the program in it says about itself.
+    shellName: spawnedShellName,
+    statusScanner: programStatus.createScanner(),
+    agentState: null,      // last OSC 7501 report of the session, { state, kind?, msg? }
+    agentStateAt: null,
+    pasteMode: false,      // DEC 2004 (bracketed paste) as last set by the program
+    lastUserInputAt: null
   });
   console.log(`Created terminal ${terminalId} in ${cwd} (project: ${projectPath || 'global'})`);
 
   return terminalId;
+}
+
+/**
+ * Claude Code's OSC 7501 program status and the bracketed-paste mode, read
+ * from a PTY's output (lead-agent T03, plan D7/D14). The PTY owner answers
+ * the CLI's probe — here, so the desktop and Frame Server (which runs this
+ * same module) both do — and only the owner: the renderer's xterm ignores
+ * OSC 7501, so a terminal is never answered twice. The stream itself passes
+ * on unchanged.
+ */
+function noteProgramStatus(inst, data) {
+  let seen;
+  try {
+    seen = inst.statusScanner.feed(data);
+  } catch (_) {
+    return;
+  }
+  for (let i = 0; i < seen.probes; i++) {
+    try { inst.pty.write(programStatus.PROBE_ANSWER); } catch (_) { /* exiting */ }
+  }
+  if (seen.reports.length) {
+    inst.agentState = seen.reports[seen.reports.length - 1];
+    inst.agentStateAt = Date.now();
+  }
+  if (seen.pasteMode !== undefined) inst.pasteMode = seen.pasteMode;
+}
+
+/** The live foreground process name (node-pty), read now rather than from the gated poll. */
+function getForegroundName(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  if (!inst) return null;
+  try {
+    return inst.pty.process || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Pid of the program in the foreground of a terminal (a CLI the user started), or null. */
+function getForegroundPid(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  return inst ? foregroundPidOf(inst.pty.pid) : Promise.resolve(null);
+}
+
+/**
+ * What a terminal is doing, for the Chief (leadRules.deriveStatus): agent
+ * status from its last OSC 7501 report, or — for a plain shell — from the
+ * foreground process. A report from a CLI that has since exited is dropped
+ * here so a later CLI in the same terminal starts clean.
+ */
+function agentStatus(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  if (!inst) return { status: leadRules.STATUS.ENDED, agent: null };
+  const foreground = getForegroundName(terminalId);
+  const derived = leadRules.deriveStatus({ alive: true, foreground, shellName: inst.shellName, agentState: inst.agentState });
+  if (inst.agentState && derived.agent === null && derived.status === leadRules.STATUS.READY) {
+    inst.agentState = null;
+    inst.agentStateAt = null;
+  }
+  return { ...derived, foreground, at: inst.agentStateAt, msg: inst.agentState && inst.agentState.msg || null };
+}
+
+/** Whether the program in a terminal has bracketed paste on (D14). */
+function pasteMode(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  return !!(inst && inst.pasteMode);
+}
+
+/**
+ * The user typed into a terminal (D15). Called from the input path only —
+ * writes Frame makes itself (`writeToTerminal`) never stamp — and chunks that
+ * are only xterm answering the program are not typing.
+ */
+function noteUserInput(terminalId, data) {
+  const inst = ptyInstances.get(terminalId);
+  if (!inst || programStatus.isTerminalReplyOnly(data)) return;
+  inst.lastUserInputAt = Date.now();
+}
+
+/** When the user last typed there (epoch ms), or null. */
+function getLastUserInputAt(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  return inst ? inst.lastUserInputAt : null;
 }
 
 /**
@@ -847,6 +956,7 @@ function setupIPC(ipcMain) {
       if (route && route.link && route.link.isConnected()) route.link.send('terminals.input', { terminalId: route.serverTerminalId, data });
       return;
     }
+    noteUserInput(terminalId, data);
     writeToTerminal(terminalId, data);
     promptLogger.logInput(data);
   });
@@ -882,5 +992,12 @@ module.exports = {
   requestedShell,
   serverTerminalInfo,
   noteServerTerminal,
+  // lead-agent (T03)
+  agentStatus,
+  pasteMode,
+  noteUserInput,
+  getLastUserInputAt,
+  getForegroundName,
+  getForegroundPid,
   setupIPC
 };
