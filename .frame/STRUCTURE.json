@@ -30379,6 +30379,72 @@
         "reason": "no-extractor"
       }
     },
+    "templates/lead/CHIEF": {
+      "file": "src/templates/lead/CHIEF.md",
+      "description": "Role: Chief",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 2627,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "fd28191e0bf8ebce"
+      }
+    },
+    "templates/lead/lead-mcp": {
+      "file": "src/templates/lead/lead-mcp.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "net",
+        "path"
+      ],
+      "functions": {
+        "failAll": {
+          "line": 41,
+          "params": [
+            "message"
+          ]
+        },
+        "connect": {
+          "line": 46
+        },
+        "host": {
+          "line": 73,
+          "params": [
+            "type",
+            "extra = {}"
+          ],
+          "purpose": "One request to the host; resolves with its response object (never rejects)."
+        },
+        "send": {
+          "line": 89,
+          "params": [
+            "msg"
+          ]
+        },
+        "handleRequest": {
+          "line": 93,
+          "params": [
+            "id",
+            "method",
+            "params"
+          ]
+        }
+      },
+      "sizeBytes": 5274,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "purposes": {
+          "host": "8d941683036e5106"
+        }
+      }
+    },
     "templates/orchestration/CONDUCTOR": {
       "file": "src/templates/orchestration/CONDUCTOR.md",
       "description": "Conductor — orchestration protocol",
@@ -32927,6 +32993,55 @@
         "description": "5790fe1adbba090e",
         "purposes": {
           "makeLegacyProject": "9a1aa225d8467ffb"
+        }
+      }
+    },
+    "test/leadMcp.test": {
+      "file": "test/leadMcp.test.js",
+      "description": "lead-mcp.js — the Chief's stdio MCP server (lead-agent spec, T06).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "net",
+        "os",
+        "path",
+        "child_process",
+        "src/shared/leadProtocol"
+      ],
+      "functions": {
+        "sockPath": {
+          "line": 25,
+          "params": [
+            "tag"
+          ]
+        },
+        "stubHost": {
+          "line": 32,
+          "params": [
+            "file"
+          ],
+          "purpose": "A host that answers like leadHost, recording what it received."
+        },
+        "runMcp": {
+          "line": 50,
+          "params": [
+            "env",
+            "requests"
+          ],
+          "purpose": "Run lead-mcp.js, send `requests`, collect one response per request id."
+        }
+      },
+      "sizeBytes": 6595,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "ecc5b1d5cd5b84f7",
+        "purposes": {
+          "runMcp": "497e4e017e50b038",
+          "stubHost": "9974cadc0c5acaa8"
         }
       }
     },
@@ -37726,6 +37841,11 @@
         "module": "shared/leadTranscript",
         "file": "src/shared/leadTranscript.js",
         "description": "leadTranscript — what a Claude session has been doing, from its transcript"
+      },
+      {
+        "module": "templates/lead/lead-mcp",
+        "file": "src/templates/lead/lead-mcp.js",
+        "description": ""
       }
     ],
     "link": [
@@ -38663,7 +38783,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 433,
+        "parsed": 436,
         "unsupported": 92,
         "partial": 0
       }
@@ -38710,9 +38830,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 619,
-      "traversedDirectories": 86,
-      "eligibleFiles": 525,
+      "visitedEntries": 623,
+      "traversedDirectories": 87,
+      "eligibleFiles": 528,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -38729,7 +38849,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 525,
+      "indexedFiles": 528,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -38737,6 +38857,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "5651bf671414f87777b901ad002d3cb0d81212bc3121648fe6191eb53199436d"
+    "revision": "b5c927a3d994837f6dd20a9137a55e911e7c59b1530ab0e819d27f1b8355ea80"
   }
 }

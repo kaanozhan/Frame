@@ -39,3 +39,11 @@ Added the pure `src/shared/leadTranscript.js`. `summarize` returns the title, la
 _Captured: 2026-11-25 · 4 file changes_
 
 ---
+
+## T06 — Add the Chief's MCP server and role
+
+Added `src/templates/lead/lead-mcp.js`, a stdio MCP server that relays `initialize`, `tools/list` and `tools/call` over the host socket with the token. It reports an unreachable host instead of hanging. Added `src/templates/lead/CHIEF.md` (2,627 characters) with the roles-template sections and the context-hygiene rules. Deviation from plan: instructions come from the host's `hello` rather than being read by the MCP server, so the host can add live context (project, machine) and remains the single owner of the role. `test/leadMcp.test.js` spawns the real script against a stub socket host and also asserts the 4,096-character limit.
+
+_Captured: 2026-11-25 · 3 file changes_
+
+---
