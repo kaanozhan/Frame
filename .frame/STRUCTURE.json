@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-21",
+  "lastUpdated": "2026-11-24",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -28391,6 +28391,81 @@
         }
       }
     },
+    "shared/serverTasks": {
+      "file": "src/shared/serverTasks.js",
+      "description": "serverTasks — the rules behind tasks in server workspaces (server-tasks).",
+      "exports": [
+        "mergeTaskLists",
+        "isServerTask",
+        "taskChipLabel",
+        "homeOf",
+        "splitOrder",
+        "runTarget"
+      ],
+      "depends": [],
+      "functions": {
+        "mergeTaskLists": {
+          "line": 28,
+          "params": [
+            "macTasks",
+            "serverLists"
+          ],
+          "purpose": "The merged task list: the Mac's tasks first, unchanged, then each server"
+        },
+        "isServerTask": {
+          "line": 55,
+          "params": [
+            "task"
+          ]
+        },
+        "taskChipLabel": {
+          "line": 60,
+          "params": [
+            "task"
+          ],
+          "purpose": "The chip a server task shows: `host`, or `host · offline`. Null for a Mac task."
+        },
+        "homeOf": {
+          "line": 72,
+          "params": [
+            "taskId",
+            "merged"
+          ],
+          "purpose": "Where a task lives, by id in the merged list: `{ location: 'mac' }`,"
+        },
+        "splitOrder": {
+          "line": 86,
+          "params": [
+            "order",
+            "merged"
+          ],
+          "purpose": "A reorder over the merged list, split by home: each home gets its own"
+        },
+        "runTarget": {
+          "line": 116,
+          "params": [
+            "task",
+            "selected",
+            "serverWorkspaces"
+          ],
+          "purpose": "Where Play runs a task. A task runs where its `tasks.json` lives, so the"
+        }
+      },
+      "sizeBytes": 5538,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "35e8710cbafbcede",
+        "purposes": {
+          "homeOf": "e9bc5a585ba0013a",
+          "mergeTaskLists": "f1d2374fb27edb79",
+          "runTarget": "804525b4e1645dea",
+          "splitOrder": "e818b383e8db7bfa",
+          "taskChipLabel": "b50924a07d5de50d"
+        }
+      }
+    },
     "shared/specFlow": {
       "file": "src/shared/specFlow.js",
       "description": "specFlow — the rules behind a spec's flow mode (full-auto-spec-flow spec).",
@@ -33273,6 +33348,24 @@
         }
       }
     },
+    "test/serverTasksModel.test": {
+      "file": "test/serverTasksModel.test.js",
+      "description": "The rules behind tasks in server workspaces (server-tasks T01):",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/serverTasks"
+      ],
+      "functions": {},
+      "sizeBytes": 6068,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "909e7e98c9c811a2"
+      }
+    },
     "test/serverTerminalsHome.test": {
       "file": "test/serverTerminalsHome.test.js",
       "description": "Frame Server home terminals (server-onboarding T04): a terminal in the",
@@ -37043,6 +37136,11 @@
         "description": "serverSecurity — the few rules that keep Frame Server from becoming a"
       },
       {
+        "module": "shared/serverTasks",
+        "file": "src/shared/serverTasks.js",
+        "description": "serverTasks — the rules behind tasks in server workspaces (server-tasks)."
+      },
+      {
         "module": "templates/sample-project/src/api/server",
         "file": "src/templates/sample-project/src/api/server.js",
         "description": "Express server — app factory"
@@ -37429,7 +37527,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 418,
+        "parsed": 420,
         "unsupported": 92,
         "partial": 0
       }
@@ -37476,9 +37574,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 604,
+      "visitedEntries": 606,
       "traversedDirectories": 86,
-      "eligibleFiles": 510,
+      "eligibleFiles": 512,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -37495,7 +37593,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 510,
+      "indexedFiles": 512,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -37503,6 +37601,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "3cc4eeb71873eb7af8207f435a666376215f32daaeeba7eb06ef9cdcb68e9d54"
+    "revision": "c51751975f03f761d93e746fca0b424d8dd1fa7d0eafbb38b1df0b994a1f9061"
   }
 }

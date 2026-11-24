@@ -1,7 +1,7 @@
 {
   "slug": "server-tasks",
   "title": "Tasks in server workspaces",
-  "phase": "tasks_generated",
+  "phase": "implementing",
   "generated_task_ids": [
     "task-spec-server-tasks-T01",
     "task-spec-server-tasks-T02",
@@ -15,8 +15,8 @@
   ],
   "ai_tool": "claude-code",
   "created_at": "2026-11-24T12:47:26Z",
-  "updated_at": "2026-11-24T13:17:07.735Z",
-  "last_phase_at": "2026-11-24T13:17:07.436Z",
+  "updated_at": "2026-11-24T13:18:59.711Z",
+  "last_phase_at": "2026-11-24T13:18:59.711Z",
   "flow_mode": "step-by-step",
   "implement_mode": "guided"
 }
