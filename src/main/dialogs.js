@@ -8,6 +8,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
+const { createProjectFolder } = require('./newProjectFolder');
 
 let mainWindow = null;
 let onProjectSelected = null;
@@ -44,27 +45,37 @@ async function showFolderPicker(event) {
 }
 
 /**
- * Show new project dialog
+ * Show new project dialog: ask for the new project's name and location, make
+ * that folder, and open it (#223). A save dialog, because it is the native
+ * one that asks for both a name and a place.
  */
 async function showNewProjectDialog(event) {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory', 'createDirectory'],
-    title: 'Select Location for New Project',
-    buttonLabel: 'Create Project Here'
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: 'Create a New Project',
+    buttonLabel: 'Create Project',
+    nameFieldLabel: 'Project Name:',
+    defaultPath: path.join(app.getPath('home'), 'new-project'),
+    properties: ['createDirectory', 'showOverwriteConfirmation']
   });
 
-  if (!result.canceled && result.filePaths.length > 0) {
-    const selectedPath = result.filePaths[0];
+  if (result.canceled || !result.filePath) return null;
 
-    if (onProjectSelected) {
-      onProjectSelected(selectedPath);
-    }
-
-    event.sender.send(IPC.PROJECT_SELECTED, selectedPath);
-    return selectedPath;
+  const created = createProjectFolder(result.filePath);
+  if (created.error) {
+    await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      message: 'Could not create the project',
+      detail: created.error
+    });
+    return null;
   }
 
-  return null;
+  if (onProjectSelected) {
+    onProjectSelected(created.path);
+  }
+
+  event.sender.send(IPC.PROJECT_SELECTED, created.path);
+  return created.path;
 }
 
 /**

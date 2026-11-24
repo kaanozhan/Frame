@@ -380,7 +380,10 @@ function openRunFlow(task) {
   if (!projectPath || !task) return;
   // Where it runs (server-tasks): where its tasks.json lives — see
   // shared/serverTasks.runTarget. The dialog shows why and, for a server
-  // task run from elsewhere, offers that server's workspaces.
+  // task run from elsewhere, offers that server's workspaces. This replaces
+  // the #226 guard that refused Run in a server workspace "until tasks get a
+  // home on the server": a Mac task now runs in a Mac checkout, and a server
+  // task runs on its server with its own tasks.json, so either can finish.
   const { selected, serverWorkspaces } = workspaceContext();
   const target = runTarget(task, selected, serverWorkspaces);
   // Lazy-required to avoid load-order coupling with the renderer wiring.

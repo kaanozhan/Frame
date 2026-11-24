@@ -88,6 +88,19 @@ test('refreshing unchanged tools rewrites nothing and never runs the parser', ()
   assert.ok(!fs.existsSync(path.join(project, '.frame', 'STRUCTURE.json')), 'no scan on refresh');
 });
 
+test('the staged scripts run as CommonJS in a project whose package.json says "type": "module" (#225)', () => {
+  fs.writeFileSync(path.join(project, 'package.json'), '{"name":"esm-app","type":"module"}\n');
+  const report = stageParserScripts(project);
+  assert.deepEqual(report.failed, []);
+  assert.deepEqual(JSON.parse(fs.readFileSync(bin('package.json'), 'utf8')), { type: 'commonjs' });
+  for (const script of ['spec-context.js', 'find-module.js']) {
+    const res = spawnSync('node', [bin(script), 'widget'], { cwd: project, encoding: 'utf8', timeout: 30000 });
+    assert.doesNotMatch(res.stderr, /require is not defined|treated as an ES module/, `${script}: ${res.stderr}`);
+  }
+  const res = spawnSync('node', ['-e', `require(${JSON.stringify(bin('lang', 'javascript.js'))})`], { cwd: project, encoding: 'utf8' });
+  assert.equal(res.status, 0, res.stderr);
+});
+
 test('intent-map.json is seeded once and never overwritten', () => {
   stageParserScripts(project);
   fs.writeFileSync(bin('intent-map.json'), '{"mine":{"modules":["widget"]}}');

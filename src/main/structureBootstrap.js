@@ -102,6 +102,20 @@ const INTENT_MAP_SEED = {
  * and an atomic rename, so a reader never sees a half-written script.
  * Returns true when `dst` changed. Throws on failure.
  */
+// .frame/bin's own package.json: pins its scripts to CommonJS whatever the
+// project's package.json declares (stageParserScripts, step 0).
+const BIN_PACKAGE_FILE = 'package.json';
+const BIN_PACKAGE_JSON = JSON.stringify({ type: 'commonjs' }, null, 2) + '\n';
+
+/** Write `content` to `dst` only when it differs. Returns true when written. */
+function writeIfChanged(fsImpl, dst, content) {
+  let existing = null;
+  try { existing = fsImpl.readFileSync(dst, 'utf8'); } catch (_) { /* new file */ }
+  if (existing === content) return false;
+  fsImpl.writeFileSync(dst, content);
+  return true;
+}
+
 function stageFile(fsImpl, src, dst) {
   const content = fsImpl.readFileSync(src);
   let existing = null;
@@ -174,6 +188,18 @@ function stageParserScripts(projectPath, options = {}) {
   for (const rel of missing) {
     console.warn(`[frame] bundled asset missing: ${rel}`);
     report.failed.push({ file: rel, error: 'missing from Frame installation' });
+  }
+
+  // 0. Pin the module type. The scripts are CommonJS, and Node takes a `.js`
+  // file's module type from the nearest package.json — without this one that
+  // is the project's, and a project with `"type": "module"` makes every hook
+  // die on its first `require` (issue #225). It covers `lang/` and the other
+  // helpers written into .frame/bin too; the hook commands stay as they are.
+  try {
+    if (writeIfChanged(fsImpl, path.join(binDir, BIN_PACKAGE_FILE), BIN_PACKAGE_JSON)) report.copied.push(BIN_PACKAGE_FILE);
+  } catch (err) {
+    console.warn(`[frame] failed to write ${BIN_PACKAGE_FILE}: ${err.message}`);
+    report.failed.push({ file: BIN_PACKAGE_FILE, error: err.message });
   }
 
   // 1. Helpers and extractors.

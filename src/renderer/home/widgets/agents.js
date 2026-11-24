@@ -23,6 +23,12 @@ const homeData = require('./../homeData');
 
 const PLACEHOLDER = 'Give your prompt, e.g. Add a dark mode toggle';
 
+// What is in the composer, kept outside the widget: Home rebuilds its widgets
+// on every visit, so a textarea alone lost the prompt whenever Start failed
+// and the user came back to retype it from memory (#222). Cleared only once
+// the prompt reached the agent.
+let draft = '';
+
 module.exports = {
   id: 'agents',
   title: 'New agent',
@@ -67,6 +73,8 @@ module.exports = {
     this.inputEl = this.el.querySelector('.home-composer-input');
     this.toolEl = this.el.querySelector('.home-agent-tool');
     this.startEl = this.el.querySelector('.home-agent-start');
+    this.inputEl.value = draft;
+    this.inputEl.addEventListener('input', () => { draft = this.inputEl.value; });
 
     this.toolEl.addEventListener('change', () => this._setTool(this.toolEl.value));
     this.startEl.addEventListener('click', () => this._start());
@@ -113,7 +121,12 @@ module.exports = {
     // own failures; the prompt is only cleared once it actually got there.
     agentDispatch.dispatch({ createNew: true, toolId: this.toolEl.value || null, prompt })
       .then((result) => {
-        if (result && result.success && this.inputEl) this.inputEl.value = '';
+        if (result && result.success) {
+          draft = '';
+          if (this.inputEl) this.inputEl.value = '';
+        } else {
+          notify.info('Your prompt is still on Home — open Home to send it again.');
+        }
       })
       .catch(err => notify.error(`Could not start the agent: ${err.message || 'launch failed'}`))
       .finally(() => this._setStarting(false));
