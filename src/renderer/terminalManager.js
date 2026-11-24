@@ -969,6 +969,31 @@ class TerminalManager {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   }
 
+  /**
+   * The bottom `lines` of a terminal's screen as plain text, trailing blank
+   * lines dropped (lead-agent T09: the Chief reads local terminals from the
+   * xterm that already holds them, plan D5). null for an unknown terminal.
+   */
+  readScreenText(terminalId, lines = 60) {
+    const instance = this.terminals.get(terminalId);
+    if (!instance || !instance.terminal) return null;
+    try {
+      const term = instance.terminal;
+      const buf = term.buffer.active;
+      const bottom = buf.baseY + term.rows - 1;
+      const want = Math.max(1, Math.min(400, Number(lines) || 60));
+      const out = [];
+      for (let y = Math.max(0, bottom - want + 1); y <= bottom; y++) {
+        const line = buf.getLine(y);
+        out.push(line ? line.translateToString(true) : '');
+      }
+      while (out.length && !out[out.length - 1].trim()) out.pop();
+      return out.join('\n');
+    } catch (_) {
+      return null;
+    }
+  }
+
   _setupIPC() {
     // Init-once across instances: TerminalManager is a singleton; a second
     // construction must not silently double every IPC handler.
@@ -977,6 +1002,11 @@ class TerminalManager {
       return;
     }
     TerminalManager._ipcBound = true;
+
+    // The Chief asks for a local terminal's screen (lead-agent T09).
+    ipcRenderer.on(IPC.LEAD_SCREEN_REQUEST, (event, { requestId, terminalId, lines } = {}) => {
+      ipcRenderer.send(IPC.LEAD_SCREEN_REPLY, { requestId, text: this.readScreenText(terminalId, lines) });
+    });
 
     // Receive output from specific terminal
     ipcRenderer.on(IPC.TERMINAL_OUTPUT_ID, (event, { terminalId, data }) => {

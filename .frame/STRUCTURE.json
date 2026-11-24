@@ -3946,32 +3946,33 @@
         "analytics",
         "specManager",
         "orchestrationManager",
+        "leadManager",
         "structureLifecycle",
         "child_process",
         "sendFiles"
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 65,
+          "line": 66,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 83,
+          "line": 84,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 200
+          "line": 201
         },
         "setupAllIPC": {
-          "line": 230,
+          "line": 231,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 328,
+          "line": 332,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 376,
+          "line": 380,
           "params": [
             "window"
           ],
@@ -3994,7 +3995,7 @@
           "MAIN_PROCESS_ERROR"
         ]
       },
-      "sizeBytes": 17328,
+      "sizeBytes": 17532,
       "extraction": {
         "status": "parsed"
       },
@@ -4269,6 +4270,117 @@
       },
       "provenance": {
         "description": "0478bbc163c59a70"
+      }
+    },
+    "main/leadManager": {
+      "file": "src/main/leadManager.js",
+      "description": "leadManager — the desktop side of the Chief (lead-agent spec, T09).",
+      "exports": [
+        "init",
+        "setupIPC",
+        "getHost",
+        "shutdown",
+        "decideOnServer",
+        "_adapter"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "shared/ipcChannels",
+        "leadHost",
+        "shared/leadTranscript",
+        "ptyManager",
+        "sessionRestore",
+        "claudeSessionsManager",
+        "logger",
+        "orchestrationManager"
+      ],
+      "functions": {
+        "send": {
+          "line": 33,
+          "params": [
+            "channel",
+            "payload"
+          ]
+        },
+        "readScreen": {
+          "line": 38,
+          "params": [
+            "terminalId",
+            "lines"
+          ],
+          "purpose": "Plain screen text from the renderer's xterm (D5); null when it cannot answer."
+        },
+        "claudeConfigDir": {
+          "line": 48
+        },
+        "transcriptFor": {
+          "line": 53,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "A terminal's transcript: the SessionStart report, else ~/.claude/sessions/<pid>.json (D16)."
+        },
+        "orchestrationIds": {
+          "line": 72,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Conductor and worker lanes of a running orchestration session (read-only to the Chief)."
+        },
+        "init": {
+          "line": 96,
+          "params": [
+            "window"
+          ]
+        },
+        "getHost": {
+          "line": 106,
+          "purpose": "The desktop host (T12's server bridge and tests)."
+        },
+        "setupIPC": {
+          "line": 110,
+          "params": [
+            "ipcMain"
+          ]
+        },
+        "decideOnServer": {
+          "line": 151,
+          "purpose": "A server Chief's approval, decided on the desktop (T12 fills this in)."
+        },
+        "shutdown": {
+          "line": 155
+        }
+      },
+      "ipc": {
+        "listens": [
+          "LEAD_START",
+          "LEAD_STOP",
+          "LEAD_MODE_GET",
+          "LEAD_MODE_SET",
+          "LEAD_PENDING",
+          "LEAD_DECIDE",
+          "LEAD_SCREEN_REPLY"
+        ],
+        "emits": [
+          "channel"
+        ]
+      },
+      "sizeBytes": 6557,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "ed6873c56c723fb3",
+        "purposes": {
+          "decideOnServer": "481971afe0b1f410",
+          "getHost": "342291fb849308f9",
+          "orchestrationIds": "09cf2bc3a3a897fc",
+          "readScreen": "5efcaee08f663c39",
+          "transcriptFor": "5526c60a58c5e60f"
+        }
       }
     },
     "main/logger": {
@@ -5551,7 +5663,9 @@
         "requestedShell",
         "serverTerminalInfo",
         "noteServerTerminal",
-        "T08)\n  leadTerminalOf",
+        "T08",
+        "T09)\n  onTerminalExit",
+        "leadTerminalOf",
         "isLeadTerminal",
         "listTerminals",
         "agentStatus",
@@ -5654,63 +5768,70 @@
           "purpose": "Create a new terminal instance"
         },
         "noteProgramStatus": {
-          "line": 426,
+          "line": 429,
           "params": [
             "inst",
             "data"
           ],
           "purpose": "Claude Code's OSC 7501 program status and the bracketed-paste mode, read"
         },
+        "onTerminalExit": {
+          "line": 451,
+          "params": [
+            "fn"
+          ],
+          "purpose": "Call `fn(terminalId, exitCode)` when a local PTY exits; returns an unsubscribe."
+        },
         "leadTerminalOf": {
-          "line": 444,
+          "line": 457,
           "params": [
             "projectPath"
           ],
           "purpose": "The Chief terminal of a project on this machine, or null (lead-agent T08)."
         },
         "isLeadTerminal": {
-          "line": 451,
+          "line": 464,
           "params": [
             "terminalId"
           ]
         },
         "listTerminals": {
-          "line": 457,
+          "line": 470,
           "params": [
             "projectPath"
           ],
           "purpose": "This machine's terminals of a project, as the Chief host lists them."
         },
         "getForegroundName": {
-          "line": 467,
+          "line": 480,
           "params": [
             "terminalId"
           ],
           "purpose": "The live foreground process name (node-pty), read now rather than from the gated poll."
         },
         "getForegroundPid": {
-          "line": 478,
+          "line": 491,
           "params": [
             "terminalId"
           ],
           "purpose": "Pid of the program in the foreground of a terminal (a CLI the user started), or null."
         },
         "agentStatus": {
-          "line": 489,
+          "line": 502,
           "params": [
             "terminalId"
           ],
           "purpose": "What a terminal is doing, for the Chief (leadRules.deriveStatus): agent"
         },
         "pasteMode": {
-          "line": 502,
+          "line": 515,
           "params": [
             "terminalId"
           ],
           "purpose": "Whether the program in a terminal has bracketed paste on (D14)."
         },
         "noteUserInput": {
-          "line": 512,
+          "line": 525,
           "params": [
             "terminalId",
             "data"
@@ -5718,35 +5839,35 @@
           "purpose": "The user typed into a terminal (D15). Called from the input path only —"
         },
         "getLastUserInputAt": {
-          "line": 519,
+          "line": 532,
           "params": [
             "terminalId"
           ],
           "purpose": "When the user last typed there (epoch ms), or null."
         },
         "getTerminalsByProject": {
-          "line": 529,
+          "line": 542,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 544,
+          "line": 557,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 556,
+          "line": 569,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
         "writeToTerminal": {
-          "line": 564,
+          "line": 577,
           "params": [
             "terminalId",
             "data"
@@ -5754,7 +5875,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 574,
+          "line": 587,
           "params": [
             "terminalId",
             "cols",
@@ -5763,13 +5884,13 @@
           "purpose": "Resize specific terminal"
         },
         "wasDestroyedOnRequest": {
-          "line": 589,
+          "line": 602,
           "params": [
             "terminalId"
           ]
         },
         "destroyTerminal": {
-          "line": 597,
+          "line": 610,
           "params": [
             "terminalId",
             "{ teardown = false } = {}"
@@ -5777,56 +5898,56 @@
           "purpose": "Destroy specific terminal. `teardown` marks one that dies with its"
         },
         "destroyAll": {
-          "line": 618,
+          "line": 631,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 638,
+          "line": 651,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 645,
+          "line": 658,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 655,
+          "line": 668,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 665,
+          "line": 678,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "serverLocationOf": {
-          "line": 694,
+          "line": 707,
           "params": [
             "workspaceId"
           ]
         },
         "server": {
-          "line": 703
+          "line": 716
         },
         "connectedLink": {
-          "line": 708,
+          "line": 721,
           "params": [
             "key"
           ],
           "purpose": "The connected link of `key`, or null."
         },
         "routeOfTerminal": {
-          "line": 714,
+          "line": 727,
           "params": [
             "terminalId"
           ],
           "purpose": "`{ link, serverTerminalId }` a desktop id routes to, or null when its server is unknown."
         },
         "createServerTerminal": {
-          "line": 720,
+          "line": 733,
           "params": [
             "loc",
             "{ cwd",
@@ -5838,14 +5959,14 @@
           ]
         },
         "serverTerminalInfo": {
-          "line": 737,
+          "line": 750,
           "params": [
             "terminalId"
           ],
           "purpose": "Local project/workspace (and server) of a server terminal this window knows, or null."
         },
         "noteServerTerminal": {
-          "line": 742,
+          "line": 755,
           "params": [
             "terminalId",
             "info"
@@ -5853,10 +5974,10 @@
           "purpose": "Remember a server terminal found on reconnect (adopted by the renderer)."
         },
         "wireServerEvents": {
-          "line": 748
+          "line": 761
         },
         "adoptFrom": {
-          "line": 801,
+          "line": 814,
           "params": [
             "link",
             "projectPath",
@@ -5865,14 +5986,14 @@
           "purpose": "One connected server's live terminals of a local project, with a screen each; null when it cannot tell."
         },
         "adoptServerTerminals": {
-          "line": 845,
+          "line": 858,
           "params": [
             "projectPath"
           ],
           "purpose": "Every connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 875,
+          "line": 888,
           "params": [
             "ipcMain"
           ]
@@ -5895,7 +6016,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 40324,
+      "sizeBytes": 40846,
       "extraction": {
         "status": "parsed"
       },
@@ -5931,6 +6052,7 @@
           "noteProgramStatus": "7b8a5482a542ab7b",
           "noteServerTerminal": "34da8c9dde687e61",
           "noteUserInput": "ef0a7c80f29ddcde",
+          "onTerminalExit": "d896307ee2ab2a3f",
           "pasteMode": "5a0c772707885643",
           "requestedShell": "65b3ebb6642173f5",
           "resizeTerminal": "810c8f104494f695",
@@ -20485,6 +20607,7 @@
           "TERMINAL_CREATED",
           "TERMINAL_OUTPUT_ID",
           "AVAILABLE_SHELLS_DATA",
+          "LEAD_SCREEN_REQUEST",
           "TERMINAL_OUTPUT_ID",
           "TERMINAL_DESTROYED",
           "SERVER_STATUS_CHANGED"
@@ -20496,10 +20619,11 @@
           "SESSION_RESTORE_META",
           "SESSION_RESTORE_META",
           "TERMINAL_DESTROY",
-          "TERMINAL_RESIZE_ID"
+          "TERMINAL_RESIZE_ID",
+          "LEAD_SCREEN_REPLY"
         ]
       },
-      "sizeBytes": 43574,
+      "sizeBytes": 44793,
       "extraction": {
         "status": "parsed"
       },
@@ -37961,6 +38085,11 @@
         "description": "leadHost — the Chief's host, one per machine (lead-agent spec, T07)."
       },
       {
+        "module": "main/leadManager",
+        "file": "src/main/leadManager.js",
+        "description": "leadManager — the desktop side of the Chief (lead-agent spec, T09)."
+      },
+      {
         "module": "shared/leadProtocol",
         "file": "src/shared/leadProtocol.js",
         "description": "leadProtocol — the wire between the Chief's MCP server and its host"
@@ -38015,6 +38144,11 @@
         "module": "main/codexSessionsManager",
         "file": "src/main/codexSessionsManager.js",
         "description": "Codex Sessions Manager Module"
+      },
+      {
+        "module": "main/leadManager",
+        "file": "src/main/leadManager.js",
+        "description": "leadManager — the desktop side of the Chief (lead-agent spec, T09)."
       },
       {
         "module": "main/pluginsManager",
@@ -38916,7 +39050,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 437,
+        "parsed": 438,
         "unsupported": 92,
         "partial": 0
       }
@@ -38963,9 +39097,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 624,
+      "visitedEntries": 625,
       "traversedDirectories": 87,
-      "eligibleFiles": 529,
+      "eligibleFiles": 530,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -38982,7 +39116,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 529,
+      "indexedFiles": 530,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -38990,6 +39124,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "32bd23a7a21a02c8585ae56b3f04be22cb406ec7fef74a5ebc056dbd82a84c1a"
+    "revision": "2eb9e52eccbb1544ed868d913b0643b3967b13c97882fc4725c2d611a31257f0"
   }
 }

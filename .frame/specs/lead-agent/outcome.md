@@ -63,3 +63,11 @@ _Captured: 2026-11-25 · 1 file change_
 _Captured: 2026-11-25 · 2 file changes_
 
 ---
+
+## T09 — Wire the desktop adapter
+
+Added `src/main/leadManager.js`, which wires `leadHost` to local PTYs. It reads screens from the renderer's xterm over `LEAD_SCREEN_REQUEST` / `REPLY` with a 3 s timeout, treats conductor lanes as read-only via `orchestrationManager.getState`, and finds transcripts through sessionRestore, falling back to the pid file. It also serves the IPC for start (only for the project's Chief terminal), stop, mode, pending and decide. Wired into `src/main/index.js` with `shutdown()` on will-quit, and added `readScreenText(id, lines)` plus the screen-request listener to `terminalManager.js`. Beyond the plan: `ptyManager.onTerminalExit()` was needed so the host drops queues and approvals aimed at a closed terminal. Verified end to end with real ptyManager, leadManager, the MCP process and a real Claude: list excludes the Chief, Claude reads `ready` via OSC 7501, screen reads go through the renderer, and a closed terminal disappears.
+
+_Captured: 2026-11-25 · 5 file changes_
+
+---

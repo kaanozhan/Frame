@@ -354,6 +354,9 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
       if (inst.flushTimer) clearTimeout(inst.flushTimer);
     }
     ptyInstances.delete(terminalId);
+    for (const fn of exitListeners) {
+      try { fn(terminalId, exitCode); } catch (_) { /* a listener must not break teardown */ }
+    }
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send(IPC.TERMINAL_DESTROYED, { terminalId, exitCode });
     }
@@ -438,6 +441,16 @@ function noteProgramStatus(inst, data) {
     inst.agentStateAt = Date.now();
   }
   if (seen.pasteMode !== undefined) inst.pasteMode = seen.pasteMode;
+}
+
+// Main-process listeners for a local PTY's exit (lead-agent T09: the Chief
+// host drops queues and approvals aimed at a closed terminal).
+const exitListeners = new Set();
+
+/** Call `fn(terminalId, exitCode)` when a local PTY exits; returns an unsubscribe. */
+function onTerminalExit(fn) {
+  exitListeners.add(fn);
+  return () => exitListeners.delete(fn);
 }
 
 /** The Chief terminal of a project on this machine, or null (lead-agent T08). */
@@ -1034,7 +1047,8 @@ module.exports = {
   requestedShell,
   serverTerminalInfo,
   noteServerTerminal,
-  // lead-agent (T03, T08)
+  // lead-agent (T03, T08, T09)
+  onTerminalExit,
   leadTerminalOf,
   isLeadTerminal,
   listTerminals,
