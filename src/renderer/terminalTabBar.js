@@ -270,10 +270,11 @@ class TerminalTabBar {
   _terminalChip(state, current) {
     const name = state.customName || state.name;
     return `
-      <button class="lane-bar-section lane-bar-page lane-bar-terminal ${current ? 'current' : ''}" data-terminal-id="${escapeHtml(state.id)}" title="${escapeHtml(name)}">
+      <button class="lane-bar-section lane-bar-page lane-bar-terminal ${current ? 'current' : ''}${state.lead ? ' lane-bar-chief' : ''}" data-terminal-id="${escapeHtml(state.id)}" title="${escapeHtml(name)}">
         <span class="lane-status-dot ${laneStatus.getStatus(state.id).status}"></span>
         <span class="lane-bar-section-label">${escapeHtml(name)}</span>
-        <span class="lane-bar-section-close" title="Close terminal">${lucideIcon(X, 12)}</span>
+        ${state.leadPending ? `<span class="chief-pending-badge" title="Waiting for your approval">${state.leadPending}</span>` : ''}
+        ${state.lead ? '' : `<span class="lane-bar-section-close" title="Close terminal">${lucideIcon(X, 12)}</span>`}
       </button>
     `;
   }

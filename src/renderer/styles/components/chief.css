@@ -1,0 +1,208 @@
+/* ==================== CHIEF (lead-agent spec) ==================== */
+/* The project's permanent lead terminal: a Start overlay over the terminal
+   until its Claude session runs, a mode chip while it does, and approval
+   cards stacked at the top right. Tokens only — both themes follow. */
+
+.terminal-instance.chief-host {
+  position: relative;
+}
+
+.chief-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: var(--bg-primary);
+}
+
+.chief-overlay[hidden],
+.chief-mode-chip[hidden] {
+  display: none;
+}
+
+.chief-card {
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.chief-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.chief-lede,
+.chief-mode-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.chief-mode-hint {
+  color: var(--text-tertiary);
+  min-height: 3em;
+}
+
+.chief-modes {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-tertiary);
+}
+
+.chief-mode {
+  flex: 1;
+  padding: 6px var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chief-mode:hover {
+  background: var(--bg-hover);
+}
+
+.chief-mode.selected {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+}
+
+.chief-start {
+  align-self: flex-start;
+  padding: 7px var(--space-lg);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--accent-primary);
+  color: var(--bg-deep);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chief-start:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.chief-mode-chip {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-md);
+  z-index: 4;
+  padding: 2px var(--space-sm);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.chief-mode-chip.auto {
+  color: var(--warning-ink);
+  border-color: var(--warning);
+}
+
+.chief-approvals {
+  position: absolute;
+  top: calc(var(--space-xs) + 26px);
+  right: var(--space-md);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: min(380px, calc(100% - 2 * var(--space-md)));
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+}
+
+.chief-approval {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--accent-secondary);
+  border-radius: var(--radius-card);
+  background: var(--bg-elevated);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.chief-approval.deciding {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.chief-approval-head {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chief-approval-text {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: var(--space-sm);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.chief-approval-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.chief-approval-actions button {
+  padding: 5px var(--space-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chief-approval-actions .chief-approve {
+  border-color: transparent;
+  background: var(--accent-primary);
+  color: var(--bg-deep);
+  font-weight: 600;
+}
+
+.chief-pending-badge {
+  min-width: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--accent-primary);
+  color: var(--bg-deep);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}

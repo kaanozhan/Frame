@@ -10578,6 +10578,123 @@
         "description": "629c22fb058fd80e"
       }
     },
+    "renderer/chiefLane": {
+      "file": "src/renderer/chiefLane.js",
+      "description": "chiefLane — the Chief terminal in the renderer (lead-agent spec, T10).",
+      "exports": [
+        "init",
+        "ensure",
+        "_chiefs"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state",
+        "notify"
+      ],
+      "functions": {
+        "escapeHtml": {
+          "line": 35,
+          "params": [
+            "s"
+          ]
+        },
+        "chiefOf": {
+          "line": 39,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "ensure": {
+          "line": 46,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "decorate": {
+          "line": 67,
+          "params": [
+            "terminalId",
+            "projectPath"
+          ]
+        },
+        "render": {
+          "line": 120,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "setMode": {
+          "line": 138,
+          "params": [
+            "terminalId",
+            "mode"
+          ]
+        },
+        "start": {
+          "line": 147,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "stopped": {
+          "line": 170,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "The Chief's session left its terminal (back at the shell): show Start again."
+        },
+        "approvalTitle": {
+          "line": 180,
+          "params": [
+            "rec"
+          ],
+          "purpose": "\"Send to 1st Terminal (blue)\": the target as the user sees it, not its id."
+        },
+        "renderCards": {
+          "line": 188,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "onApprovals": {
+          "line": 223,
+          "params": [
+            "payload"
+          ],
+          "purpose": "main → renderer: a Chief's pending approvals changed."
+        },
+        "init": {
+          "line": 240,
+          "params": [
+            "multiTerminalUI"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TERMINAL_PROCESS_DATA",
+          "TERMINAL_DESTROYED",
+          "LEAD_APPROVALS"
+        ],
+        "emits": [
+          "LEAD_STOP",
+          "LEAD_STOP"
+        ]
+      },
+      "sizeBytes": 11236,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "80776c3e6c2c0c4a",
+        "purposes": {
+          "approvalTitle": "49608c30ed486d7d",
+          "onApprovals": "5314df977e368d65",
+          "stopped": "cb481a62921901ba"
+        }
+      }
+    },
     "renderer/commandPalette": {
       "file": "src/renderer/commandPalette.js",
       "description": "Command Palette",
@@ -14124,6 +14241,7 @@
         "tooltip",
         "ipcWatchdog",
         "../package.json",
+        "chiefLane",
         "reviewSection",
         "statusBar",
         "workspaceSection",
@@ -14139,34 +14257,34 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 390,
+          "line": 393,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 503,
+          "line": 506,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 634,
+          "line": 637,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 673,
+          "line": 676,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 699,
+          "line": 702,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1254,
+          "line": 1257,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1279,
+          "line": 1282,
           "params": [
             "err"
           ],
@@ -14187,7 +14305,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 47630,
+      "sizeBytes": 47748,
       "extraction": {
         "status": "parsed"
       },
@@ -19028,6 +19146,18 @@
         "reason": "no-extractor"
       }
     },
+    "renderer/styles/components/chief.css": {
+      "file": "src/renderer/styles/components/chief.css",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 4323,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     "renderer/styles/components/command-palette.css": {
       "file": "src/renderer/styles/components/command-palette.css",
       "description": "",
@@ -19430,7 +19560,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 3631,
+      "sizeBytes": 3663,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -20574,7 +20704,8 @@
         "terminalInput",
         "themes",
         "workspaceSection",
-        "os"
+        "os",
+        "notify"
       ],
       "functions": {
         "getTerminalTheme": {
@@ -20600,6 +20731,14 @@
         "closeCaller": {
           "line": 78,
           "purpose": "Where an unlabelled closeTerminal call came from: the first frames past"
+        },
+        "chiefFirst": {
+          "line": 85,
+          "params": [
+            "a",
+            "b"
+          ],
+          "purpose": "Oldest first, with a project's Chief(s) pinned ahead of every other terminal."
         }
       },
       "ipc": {
@@ -20623,13 +20762,14 @@
           "LEAD_SCREEN_REPLY"
         ]
       },
-      "sizeBytes": 44793,
+      "sizeBytes": 46382,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "5503a1b34dbada83",
         "purposes": {
+          "chiefFirst": "93def008bf1c17bb",
           "closeCaller": "dbe7ad2c35f80fff",
           "getTerminalTheme": "c1851af8b213ec21",
           "terminalName": "1c4c500d3f4e3dbd"
@@ -20680,7 +20820,7 @@
           "THEME_CHANGED"
         ]
       },
-      "sizeBytes": 22605,
+      "sizeBytes": 22800,
       "extraction": {
         "status": "parsed"
       },
@@ -20727,7 +20867,7 @@
           ]
         }
       },
-      "sizeBytes": 26847,
+      "sizeBytes": 27042,
       "extraction": {
         "status": "parsed"
       },
@@ -39050,8 +39190,8 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 438,
-        "unsupported": 92,
+        "parsed": 439,
+        "unsupported": 93,
         "partial": 0
       }
     },
@@ -39097,9 +39237,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 625,
+      "visitedEntries": 627,
       "traversedDirectories": 87,
-      "eligibleFiles": 530,
+      "eligibleFiles": 532,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -39116,7 +39256,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 530,
+      "indexedFiles": 532,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -39124,6 +39264,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "2eb9e52eccbb1544ed868d913b0643b3967b13c97882fc4725c2d611a31257f0"
+    "revision": "6b29b222a5b6327dc475ac6d5495dbcb7f7972c6ec225e362be448c9e36a33c6"
   }
 }

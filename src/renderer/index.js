@@ -105,6 +105,9 @@ function init() {
   // composes lanes + agentDispatch; opened from the command palette / Home.
   orchestrator.setHost(multiTerminalUI);
 
+  // Chief (lead-agent) — every project's permanent lead terminal.
+  require('./chiefLane').init(multiTerminalUI);
+
   // Workspace review (workspace-review) — a section tab over a workspace's changes.
   require('./reviewSection').setHost(multiTerminalUI);
 

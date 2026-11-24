@@ -71,3 +71,11 @@ Added `src/main/leadManager.js`, which wires `leadHost` to local PTYs. It reads 
 _Captured: 2026-11-25 · 5 file changes_
 
 ---
+
+## T10 — Local Chief UI
+
+Added `src/renderer/chiefLane.js` and `styles/components/chief.css` (imported from `main.css`). On every project change the module ensures one Chief terminal in `main` and draws the Start overlay with the user-guided / full-auto switch. It shows a mode chip while the session runs and brings Start back when the foreground returns to the shell. If the shell itself exits, it reopens a fresh Chief. Approval cards offer Approve, Reject and Edit-in-place, with a pending badge and a sticky toast. `terminalManager.js` pins the Chief first, keeps it out of the cap, numbering and focus-on-create, refuses to close it except when its PTY ended, and adds `setLeadPending`. Landing view: a project whose only terminal is the Chief still opens on Home. Deviations from the plan's Files: `terminalTabBar.js` (its chip × also closes terminals) and `src/renderer/index.js` (init) had to change. `readScreenText` from T09 was fixed to read up to the cursor line, because the bottom rows of a short shell screen are blank. Verified in an isolated Frame instance (temp HOME and user-data dir, driven over CDP): Chief pinned and unclosable, Start typed the launch command, a user-guided send raised a card plus toast plus badge and Approve delivered it, full auto delivered without a card, multi-line text went as one paste, and a renderer reload left exactly one Chief.
+
+_Captured: 2026-11-25 · 8 file changes_
+
+---
