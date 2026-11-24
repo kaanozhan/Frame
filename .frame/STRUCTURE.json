@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-22",
+  "lastUpdated": "2026-11-24",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 112874,
+      "sizeBytes": 113559,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -7586,7 +7586,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 96769,
+      "sizeBytes": 96788,
       "extraction": {
         "status": "parsed"
       },
@@ -7908,6 +7908,13 @@
       "description": "Tasks Manager Module",
       "exports": [
         "init",
+        "tasksPayload",
+        "refreshServerTasks",
+        "routeAdd",
+        "routeUpdate",
+        "routeDelete",
+        "routeReorder",
+        "resetServerTasksForTests",
         "setProjectPath",
         "loadTasks",
         "saveTasks",
@@ -7928,63 +7935,66 @@
         "activityLog",
         "shared/ipcChannels",
         "shared/frameConstants",
-        "analytics"
+        "shared/serverTasks",
+        "analytics",
+        "serverConnection",
+        "workspaceManager"
       ],
       "functions": {
         "cacheKeyFor": {
-          "line": 37,
+          "line": 38,
           "params": [
             "tasksPath"
           ]
         },
         "init": {
-          "line": 46,
+          "line": 47,
           "params": [
             "window"
           ]
         },
         "setProjectPath": {
-          "line": 50,
+          "line": 51,
           "params": [
             "projectPath"
           ]
         },
         "getTasksFilePath": {
-          "line": 57,
+          "line": 58,
           "params": [
             "projectPath"
           ],
           "purpose": "Where tasks.json lives is frameStore's answer, not ours: `.frame/tasks.json`"
         },
         "flattenLegacyTasks": {
-          "line": 68,
+          "line": 69,
           "params": [
             "legacy"
           ],
           "purpose": "Migrate the old nested shape ({ pending, inProgress, completed }) into a"
         },
         "dedupById": {
-          "line": 81,
+          "line": 82,
           "params": [
             "tasks"
           ]
         },
         "loadTasks": {
-          "line": 102,
+          "line": 103,
           "params": [
             "projectPath"
           ],
           "purpose": "Read tasks.json from disk, migrate/normalize, and return the canonical"
         },
         "saveTasks": {
-          "line": 168,
+          "line": 169,
           "params": [
             "projectPath",
             "tasksData"
           ]
         },
         "sendTasksFileError": {
-          "line": 187,
+          "line": 188,
           "params": [
             "projectPath",
             "info"
@@ -7992,17 +8002,17 @@
           "purpose": "Tell the renderer tasks.json is corrupt (or was auto-recovered from .bak)"
         },
         "generateTaskId": {
-          "line": 195
+          "line": 196
         },
         "addTask": {
-          "line": 199,
+          "line": 200,
           "params": [
             "projectPath",
             "task"
           ]
         },
         "updateTask": {
-          "line": 228,
+          "line": 229,
           "params": [
             "projectPath",
             "taskId",
@@ -8010,14 +8020,14 @@
           ]
         },
         "deleteTask": {
-          "line": 257,
+          "line": 258,
           "params": [
             "projectPath",
             "taskId"
           ]
         },
         "reorderTasks": {
-          "line": 278,
+          "line": 279,
           "params": [
             "projectPath",
             "order"
@@ -8025,42 +8035,179 @@
           "purpose": "Reorder tasks. The renderer sends an ordered list of { id, status? }"
         },
         "startWatching": {
-          "line": 336,
+          "line": 337,
           "params": [
             "projectPath"
           ]
         },
         "onMetaFileChange": {
-          "line": 385,
+          "line": 384,
           "params": [
             "listener"
           ]
         },
         "notifyMetaChange": {
-          "line": 389,
+          "line": 388,
           "params": [
             "projectPath",
             "filename"
           ]
         },
         "restartWatching": {
-          "line": 404,
+          "line": 403,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-arm the watcher on the project's current meta directory. Migration moves"
         },
         "stopWatching": {
-          "line": 409
+          "line": 408
+        },
+        "serverConn": {
+          "line": 439
+        },
+        "linkOf": {
+          "line": 444,
+          "params": [
+            "serverKey"
+          ],
+          "purpose": "The connected link of a server key, or null (down, removed, or no key)."
+        },
+        "serverProjectsOf": {
+          "line": 454,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The server projects holding `projectPath`: one per server and server project, from the server workspace rows."
+        },
+        "serverListsOf": {
+          "line": 467,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The cached server lists of `projectPath`, in the shape mergeTaskLists takes."
+        },
+        "serverNotesOf": {
+          "line": 477,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "`[{ host, kind: 'offline' | 'update' }]` for the board's notices."
+        },
+        "tasksPayload": {
+          "line": 493,
+          "params": [
+            "projectPath",
+            "macData"
+          ],
+          "purpose": "What every TASKS_DATA push carries: the Mac's file with its tasks merged"
+        },
+        "pushTasks": {
+          "line": 504,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Push the merged list of `projectPath` to the window."
+        },
+        "markServerTasksOffline": {
+          "line": 510,
+          "params": [
+            "serverKey = null"
+          ],
+          "purpose": "Tag one server's entries (or every server's) offline. Returns whether anything changed."
+        },
+        "refreshServerTasks": {
+          "line": 524,
+          "params": [
+            "projectPath",
+            "{ onlyKey = null } = {}"
+          ],
+          "purpose": "Re-read the server tasks of `projectPath` (only `onlyKey`'s server when"
+        },
+        "refreshOnce": {
+          "line": 574,
+          "params": [
+            "projectPath",
+            "opts"
+          ]
+        },
+        "refreshOnLoad": {
+          "line": 582,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "A surface asked for the tasks: refresh the servers' unless that just happened."
+        },
+        "wireServerTasks": {
+          "line": 591,
+          "purpose": "Follow the servers: their pushes, connects, drops and removal, and the server workspace set."
+        },
+        "mergedOf": {
+          "line": 634,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "serverHome": {
+          "line": 640,
+          "params": [
+            "home"
+          ],
+          "purpose": "The connected link for a server home, or `{ error }` with the host named."
+        },
+        "settleServer": {
+          "line": 646,
+          "params": [
+            "projectPath",
+            "serverKey"
+          ],
+          "purpose": "After a server change: re-read that server's list and push, so the board shows it at once."
+        },
+        "routeUpdate": {
+          "line": 651,
+          "params": [
+            "projectPath",
+            "taskId",
+            "updates"
+          ],
+          "purpose": "`{ success, task?, error? }` — an update for whichever home holds `taskId`."
+        },
+        "routeDelete": {
+          "line": 668,
+          "params": [
+            "projectPath",
+            "taskId"
+          ]
+        },
+        "routeReorder": {
+          "line": 683,
+          "params": [
+            "projectPath",
+            "order"
+          ],
+          "purpose": "Each home gets its part of the order; a down server's part is refused, the rest still applies."
+        },
+        "routeAdd": {
+          "line": 705,
+          "params": [
+            "projectPath",
+            "task",
+            "workspaceId"
+          ],
+          "purpose": "An add lands where the selected workspace lives: its server's clone, or the Mac."
+        },
+        "resetServerTasksForTests": {
+          "line": 726,
+          "purpose": "Test hook: forget every server entry and subscription."
         },
         "setupIPC": {
-          "line": 419,
+          "line": 735,
           "params": [
             "ipcMain"
           ]
         },
         "getLastSelfWriteAt": {
-          "line": 479,
+          "line": 800,
           "purpose": "Timestamp of this module's last tasks.json write — exported so other"
         }
       },
@@ -8078,7 +8225,7 @@
           "TASK_UPDATED"
         ]
       },
-      "sizeBytes": 16370,
+      "sizeBytes": 31433,
       "extraction": {
         "status": "parsed"
       },
@@ -8088,10 +8235,26 @@
           "flattenLegacyTasks": "64702a9ea7d6a83b",
           "getLastSelfWriteAt": "edca8f7c4c625263",
           "getTasksFilePath": "bf37f0ba6f662615",
+          "linkOf": "2965ebccf7a8ea0c",
           "loadTasks": "75961e36b0aa0c5e",
+          "markServerTasksOffline": "2fd8e4267c7214b9",
+          "pushTasks": "54d1d5db68bc6848",
+          "refreshOnLoad": "921b1d1993dbd5b6",
+          "refreshServerTasks": "61ca273f7fd2f179",
           "reorderTasks": "fad1821f6ffe5090",
+          "resetServerTasksForTests": "6d9796a7c5b8da00",
           "restartWatching": "a3e83c31810d67bd",
-          "sendTasksFileError": "9369701346948a50"
+          "routeAdd": "625816a20762f5d9",
+          "routeReorder": "31635b3ab125ee5a",
+          "routeUpdate": "c642198f644afbb1",
+          "sendTasksFileError": "9369701346948a50",
+          "serverHome": "64a7e328ab49e005",
+          "serverListsOf": "f2fc99244a54750c",
+          "serverNotesOf": "bc5354902c784f16",
+          "serverProjectsOf": "4bf2280fbd2d7434",
+          "settleServer": "eef523bea7420d07",
+          "tasksPayload": "e3404bb5e4f35e5e",
+          "wireServerTasks": "315ceb0a35f74b8b"
         }
       }
     },
@@ -18957,7 +19120,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 29532,
+      "sizeBytes": 30383,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -19081,29 +19244,39 @@
         "shared/ipcChannels",
         "aiToolSelector",
         "state",
-        "htmlUtils"
+        "htmlUtils",
+        "shared/serverTasks"
       ],
       "functions": {
         "init": {
-          "line": 35
+          "line": 49
         },
         "updateBranchChoiceUI": {
-          "line": 80
-        },
-        "getBranchChoice": {
-          "line": 88
-        },
-        "getCliChoice": {
-          "line": 93
-        },
-        "populateCliOptions": {
           "line": 98
         },
+        "getBranchChoice": {
+          "line": 106
+        },
+        "getCliChoice": {
+          "line": 111
+        },
+        "populateCliOptions": {
+          "line": 116
+        },
         "loadCurrentBranch": {
-          "line": 128
+          "line": 146
+        },
+        "renderWhere": {
+          "line": 163,
+          "params": [
+            "task",
+            "target",
+            "selected"
+          ],
+          "purpose": "Show where the task runs: the note, the workspace chooser, and the branch"
         },
         "open": {
-          "line": 148,
+          "line": 189,
           "params": [
             "task",
             "opts = {}"
@@ -19111,23 +19284,24 @@
           "purpose": "Open the modal for a given task."
         },
         "close": {
-          "line": 173
+          "line": 216
         },
         "confirm": {
-          "line": 181
+          "line": 225
         },
         "cancel": {
-          "line": 192
+          "line": 243
         }
       },
-      "sizeBytes": 6189,
+      "sizeBytes": 8854,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "89842ba948bd27c4",
         "purposes": {
-          "open": "4aae553672a18f02"
+          "open": "4aae553672a18f02",
+          "renderWhere": "df3a3eb101167e3e"
         }
       }
     },
@@ -19298,15 +19472,23 @@
           ],
           "purpose": "The readiness fields this task still lacks; always [] for a spec task."
         },
+        "taskFileRef": {
+          "line": 39,
+          "params": [
+            "opts"
+          ],
+          "purpose": "How the prompt names the task file: its absolute path when the caller knows"
+        },
         "formatStep": {
-          "line": 32,
+          "line": 43,
           "params": [
             "task",
-            "missing"
+            "missing",
+            "fileRef = 'tasks.json'"
           ]
         },
         "buildTaskPrompt": {
-          "line": 52,
+          "line": 63,
           "params": [
             "task",
             "opts = {}"
@@ -19314,7 +19496,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. A task missing"
         }
       },
-      "sizeBytes": 4178,
+      "sizeBytes": 4944,
       "extraction": {
         "status": "parsed"
       },
@@ -19322,7 +19504,8 @@
         "description": "92c1eacd599ba2cf",
         "purposes": {
           "buildTaskPrompt": "3be35129f2a0f17b",
-          "missingFields": "72708aa38392c272"
+          "missingFields": "72708aa38392c272",
+          "taskFileRef": "d49fb342dfb7e55d"
         }
       }
     },
@@ -19352,6 +19535,7 @@
         "state",
         "doneWindow",
         "tasks/listModel",
+        "shared/serverTasks",
         "agentDispatch",
         "taskInfoModal",
         "specsDashboard",
@@ -19360,69 +19544,73 @@
       ],
       "functions": {
         "init": {
-          "line": 111
+          "line": 115
         },
         "flatten": {
-          "line": 184,
+          "line": 189,
           "params": [
             "data"
           ]
         },
         "setInlineHost": {
-          "line": 204,
+          "line": 209,
           "params": [
             "host"
           ]
         },
         "mountInline": {
-          "line": 208,
+          "line": 213,
           "params": [
             "container"
           ]
         },
         "notifyDetached": {
-          "line": 217
+          "line": 222
         },
         "_load": {
-          "line": 230
+          "line": 235
         },
         "show": {
-          "line": 251
+          "line": 256
         },
         "hide": {
-          "line": 261
+          "line": 266
         },
         "toggle": {
-          "line": 274
+          "line": 279
         },
         "listModel": {
-          "line": 282
+          "line": 287
         },
         "render": {
-          "line": 295
+          "line": 300
         },
         "renderToolbar": {
-          "line": 312,
+          "line": 317,
           "params": [
             "model"
           ],
           "purpose": "The scope segments, Active's status chips and the spec-tasks checkbox,"
         },
+        "renderServerNotes": {
+          "line": 370,
+          "purpose": "One line per server whose tasks cannot be shown or changed right now."
+        },
         "renderList": {
-          "line": 364,
+          "line": 385,
           "params": [
             "model"
           ]
         },
         "openSpec": {
-          "line": 417,
+          "line": 439,
           "params": [
             "slug"
           ],
           "purpose": "Leave for the Specs screen with this spec in its drawer — the pair"
         },
         "sectionHeader": {
-          "line": 424,
+          "line": 446,
           "params": [
             "id",
             "label",
@@ -19430,7 +19618,7 @@
           ]
         },
         "appendSection": {
-          "line": 440,
+          "line": 462,
           "params": [
             "id",
             "label",
@@ -19439,21 +19627,21 @@
           "purpose": "A section heading plus its grid; returns the grid for the tiles."
         },
         "emptyState": {
-          "line": 454,
+          "line": 476,
           "params": [
             "message",
             "heading"
           ]
         },
         "renderOlderTile": {
-          "line": 469,
+          "line": 491,
           "params": [
             "count"
           ],
           "purpose": "The ghost tile closing Completed: \"N older done tasks · Show\"."
         },
         "renderTile": {
-          "line": 490,
+          "line": 512,
           "params": [
             "task",
             "{ playable = false } = {}"
@@ -19461,24 +19649,24 @@
           "purpose": "One task tile. `playable` puts the Play button on it — pending non-spec"
         },
         "renderPlayButton": {
-          "line": 576,
+          "line": 610,
           "params": [
             "task"
           ],
           "purpose": "Play starts the task through the shared run flow (run modal → Agent"
         },
         "startTask": {
-          "line": 591,
+          "line": 625,
           "params": [
             "task"
           ]
         },
         "syncAside": {
-          "line": 607,
+          "line": 641,
           "purpose": "Single owner of the aside's and the drawer's visibility. The aside exists"
         },
         "selectTask": {
-          "line": 633,
+          "line": 667,
           "params": [
             "taskId",
             "{ instant = false } = {}"
@@ -19486,55 +19674,59 @@
           "purpose": "Open a task in the drawer. `instant` is the top-bar chip path: the list"
         },
         "clearSelection": {
-          "line": 658,
+          "line": 692,
           "params": [
             "{ notify = true } = {}"
           ],
           "purpose": "Close the drawer. `notify: false` is for the host-driven teardown"
         },
         "resetAside": {
-          "line": 669,
+          "line": 703,
           "purpose": "Leaving the screen: no selection, no half-typed form waiting on return."
         },
         "isFormOpen": {
-          "line": 680
+          "line": 714
         },
         "setupForm": {
-          "line": 684
+          "line": 718
         },
         "showForm": {
-          "line": 698
+          "line": 732
         },
         "hideForm": {
-          "line": 713
+          "line": 747
         },
         "requestDeleteSelected": {
-          "line": 721
+          "line": 755
+        },
+        "selectedWorkspaceId": {
+          "line": 775,
+          "purpose": "The selected workspace's id, or null for the main checkout — where a new task goes."
         },
         "submitForm": {
-          "line": 740
+          "line": 780
         },
         "renderDetail": {
-          "line": 762,
+          "line": 803,
           "params": [
             "task"
           ]
         },
         "renderDetailActions": {
-          "line": 845,
+          "line": 886,
           "params": [
             "task"
           ]
         },
         "runDetailAction": {
-          "line": 880,
+          "line": 921,
           "params": [
             "taskId",
             "action"
           ]
         },
         "appendMetaPill": {
-          "line": 895,
+          "line": 936,
           "params": [
             "container",
             "text",
@@ -19542,7 +19734,7 @@
           ]
         },
         "setSection": {
-          "line": 902,
+          "line": 943,
           "params": [
             "textEl",
             "sectionEl",
@@ -19550,64 +19742,64 @@
           ]
         },
         "formatDate": {
-          "line": 913,
+          "line": 954,
           "params": [
             "isoString"
           ]
         },
         "isFilterActive": {
-          "line": 927
+          "line": 968
         },
         "filterMatches": {
-          "line": 931,
+          "line": 972,
           "params": [
             "task"
           ]
         },
         "setupFilter": {
-          "line": 937
+          "line": 978
         },
         "isFilterPopoverOpen": {
-          "line": 975
+          "line": 1016
         },
         "toggleFilterPopover": {
-          "line": 979
+          "line": 1020
         },
         "openFilterPopover": {
-          "line": 985
-        },
-        "closeFilterPopover": {
-          "line": 991
-        },
-        "clearFilters": {
-          "line": 997
-        },
-        "updateFilterUI": {
-          "line": 1009
-        },
-        "setupSort": {
           "line": 1026
         },
+        "closeFilterPopover": {
+          "line": 1032
+        },
+        "clearFilters": {
+          "line": 1038
+        },
+        "updateFilterUI": {
+          "line": 1050
+        },
+        "setupSort": {
+          "line": 1067
+        },
         "isSortPopoverOpen": {
-          "line": 1071
+          "line": 1112
         },
         "toggleSortPopover": {
-          "line": 1075
+          "line": 1116
         },
         "openSortPopover": {
-          "line": 1081
+          "line": 1122
         },
         "closeSortPopover": {
-          "line": 1087
+          "line": 1128
         },
         "resetSort": {
-          "line": 1093
+          "line": 1134
         },
         "updateSortUI": {
-          "line": 1106
+          "line": 1147
         },
         "commitSortToFile": {
-          "line": 1133,
+          "line": 1174,
           "purpose": "Commit the current sorted view to tasks.json. Ids only (tasks-list-view"
         }
       },
@@ -19624,7 +19816,7 @@
           "REORDER_TASKS"
         ]
       },
-      "sizeBytes": 41731,
+      "sizeBytes": 43645,
       "extraction": {
         "status": "parsed"
       },
@@ -19637,10 +19829,12 @@
           "openSpec": "5b89bd4a75cabfa5",
           "renderOlderTile": "430fa30a4a4f14f7",
           "renderPlayButton": "df7b9dbe108a97fb",
+          "renderServerNotes": "e21c5d536934d539",
           "renderTile": "1e3f0bb6063b9fc4",
           "renderToolbar": "e44131d971d4d088",
           "resetAside": "7dde6f0750e05609",
           "selectTask": "f3a10ec266d4ef67",
+          "selectedWorkspaceId": "8ad295bab901efd4",
           "syncAside": "c0c3dd8532f563e0"
         }
       }
@@ -19666,66 +19860,67 @@
         "htmlUtils",
         "notify",
         "tasks/runPrompt",
+        "shared/serverTasks",
         "tasksDashboard",
         "taskInfoModal",
-        "workspaceSection",
         "taskRunModal",
+        "workspaceSection",
         "agentDispatch",
         "taskConfirmModal"
       ],
       "functions": {
         "init": {
-          "line": 26,
+          "line": 28,
           "purpose": "Initialize tasks panel"
         },
         "setupEventListeners": {
-          "line": 42,
+          "line": 44,
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 84,
+          "line": 86,
           "purpose": "Setup IPC listeners"
         },
         "loadTasks": {
-          "line": 110,
+          "line": 115,
           "purpose": "Load tasks for current project"
         },
         "show": {
-          "line": 121,
+          "line": 126,
           "purpose": "Show tasks panel. If there's no active project, surface an info modal"
         },
         "hide": {
-          "line": 138,
+          "line": 143,
           "purpose": "Hide tasks panel"
         },
         "toggle": {
-          "line": 148,
+          "line": 153,
           "purpose": "Toggle tasks panel visibility"
         },
         "setFilter": {
-          "line": 159,
+          "line": 164,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredTasks": {
-          "line": 173,
+          "line": 178,
           "purpose": "Get filtered tasks"
         },
         "render": {
-          "line": 198,
+          "line": 203,
           "purpose": "Render tasks list"
         },
         "renderTaskItem": {
-          "line": 244,
+          "line": 249,
           "params": [
             "task"
           ],
           "purpose": "Render single task item"
         },
         "handleTaskAction": {
-          "line": 322,
+          "line": 327,
           "params": [
             "taskId",
             "action"
@@ -19733,14 +19928,25 @@
           "purpose": "Handle task action buttons"
         },
         "openRunFlow": {
-          "line": 373,
+          "line": 378,
           "params": [
             "task"
           ],
           "purpose": "Open the run-config modal for a task and dispatch it on confirm."
         },
+        "workspaceContext": {
+          "line": 408,
+          "purpose": "The selected workspace's record (null for the main checkout) and the project's server workspaces."
+        },
+        "selectRunWorkspace": {
+          "line": 421,
+          "params": [
+            "workspaceId"
+          ],
+          "purpose": "Select the workspace a run goes to before the lane opens there, the way"
+        },
         "buildTaskPrompt": {
-          "line": 406,
+          "line": 445,
           "params": [
             "task",
             "opts = {}"
@@ -19748,7 +19954,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. The builder"
         },
         "runTaskWithOptions": {
-          "line": 420,
+          "line": 459,
           "params": [
             "task",
             "opts = {}"
@@ -19756,65 +19962,65 @@
           "purpose": "Send the task to an agent. Always a new Frame: agentDispatch creates"
         },
         "setClaudeRunning": {
-          "line": 437,
+          "line": 478,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 444,
+          "line": 485,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 453,
+          "line": 494,
           "params": [
             "taskId"
           ],
           "purpose": "Delete task — opens the shared confirm modal first; only dispatches the IPC"
         },
         "showAddTaskModal": {
-          "line": 470,
+          "line": 511,
           "purpose": "Show add task modal"
         },
         "showEditTaskModal": {
-          "line": 489,
+          "line": 530,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
         "hideTaskModal": {
-          "line": 515,
+          "line": 556,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 525,
+          "line": 566,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 563,
+          "line": 607,
           "purpose": "Setup modal event listeners"
         },
         "renderSourceChip": {
-          "line": 608,
+          "line": 652,
           "params": [
             "source"
           ],
           "purpose": "Render a small attribution chip for tasks that came from a Frame spec."
         },
         "formatDate": {
-          "line": 619,
+          "line": 663,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 636,
+          "line": 680,
           "purpose": "Initialize when DOM is ready"
         }
       },
@@ -19833,7 +20039,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 19371,
+      "sizeBytes": 21615,
       "extraction": {
         "status": "parsed"
       },
@@ -19857,6 +20063,7 @@
           "renderSourceChip": "9af08c407d8854ff",
           "renderTaskItem": "aec63d138cdf6e0f",
           "runTaskWithOptions": "b8093ae46a18716d",
+          "selectRunWorkspace": "6dede9f489ab5ab9",
           "setClaudeRunning": "83a7b743fed905e2",
           "setFilter": "02a7ced4a971091c",
           "setupEventListeners": "208f9c90c23e3193",
@@ -19865,7 +20072,8 @@
           "show": "6bb82e87bcdcdc11",
           "showAddTaskModal": "6e4f5504591d8c5e",
           "showEditTaskModal": "141c034673750303",
-          "toggle": "aa012d4264de5d2c"
+          "toggle": "aa012d4264de5d2c",
+          "workspaceContext": "b7696b8ddeaff781"
         }
       }
     },
@@ -25979,6 +26187,7 @@
         "projects",
         "panels",
         "specs",
+        "tasks",
         "sendFiles",
         "doctor"
       ],
@@ -26077,7 +26286,7 @@
           "purpose": "An installed package carries its exact version (a dev build's is"
         }
       },
-      "sizeBytes": 11574,
+      "sizeBytes": 11642,
       "extraction": {
         "status": "parsed"
       },
@@ -26298,6 +26507,42 @@
       },
       "provenance": {
         "description": "4142b2f3632d43f3"
+      }
+    },
+    "server/tasks": {
+      "file": "src/server/tasks.js",
+      "description": "Frame Server — a server project's tasks (server-tasks).",
+      "exports": [
+        "setup",
+        "LOCAL_MODE",
+        "NO_FRAME"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "main/tasksManager",
+        "main/projectRegistry",
+        "main/frameStore",
+        "main/gitSharing",
+        "shared/frameConstants",
+        "tooling",
+        "main/fsSafe"
+      ],
+      "functions": {
+        "setup": {
+          "line": 41,
+          "params": [
+            "{ registerMethods",
+            "broadcast }"
+          ]
+        }
+      },
+      "sizeBytes": 6941,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "ad297e39aca4f76b"
       }
     },
     "server/terminals": {
@@ -28432,6 +28677,92 @@
           "checkUpgrade": "43f3ff871e2cce21",
           "generateToken": "85541e44695bec62",
           "tokensEqual": "9711a2c2a5362cd8"
+        }
+      }
+    },
+    "shared/serverTasks": {
+      "file": "src/shared/serverTasks.js",
+      "description": "serverTasks — the rules behind tasks in server workspaces (server-tasks).",
+      "exports": [
+        "mergeTaskLists",
+        "isServerTask",
+        "taskChipLabel",
+        "homeOf",
+        "splitOrder",
+        "runTarget",
+        "runTargetNote"
+      ],
+      "depends": [],
+      "functions": {
+        "mergeTaskLists": {
+          "line": 28,
+          "params": [
+            "macTasks",
+            "serverLists"
+          ],
+          "purpose": "The merged task list: the Mac's tasks first, unchanged, then each server"
+        },
+        "isServerTask": {
+          "line": 55,
+          "params": [
+            "task"
+          ]
+        },
+        "taskChipLabel": {
+          "line": 60,
+          "params": [
+            "task"
+          ],
+          "purpose": "The chip a server task shows: `host`, or `host · offline`. Null for a Mac task."
+        },
+        "homeOf": {
+          "line": 72,
+          "params": [
+            "taskId",
+            "merged"
+          ],
+          "purpose": "Where a task lives, by id in the merged list: `{ location: 'mac' }`,"
+        },
+        "splitOrder": {
+          "line": 86,
+          "params": [
+            "order",
+            "merged"
+          ],
+          "purpose": "A reorder over the merged list, split by home: each home gets its own"
+        },
+        "runTarget": {
+          "line": 116,
+          "params": [
+            "task",
+            "selected",
+            "serverWorkspaces"
+          ],
+          "purpose": "Where Play runs a task. A task runs where its `tasks.json` lives, so the"
+        },
+        "runTargetNote": {
+          "line": 136,
+          "params": [
+            "target",
+            "task",
+            "selected"
+          ],
+          "purpose": "What the Task Run dialog says about where a task runs, from runTarget's"
+        }
+      },
+      "sizeBytes": 6659,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "35e8710cbafbcede",
+        "purposes": {
+          "homeOf": "e9bc5a585ba0013a",
+          "mergeTaskLists": "f1d2374fb27edb79",
+          "runTarget": "804525b4e1645dea",
+          "runTargetNote": "a6f9211c1081499c",
+          "splitOrder": "e818b383e8db7bfa",
+          "taskChipLabel": "b50924a07d5de50d"
         }
       }
     },
@@ -33342,6 +33673,77 @@
         }
       }
     },
+    "test/serverTasks.test": {
+      "file": "test/serverTasks.test.js",
+      "description": "Frame Server's tasks methods (server-tasks T02): a server project's task",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "src/server/electronShim",
+        "src/server/projects",
+        "src/server/specs",
+        "src/server/tasks",
+        "src/main/workspaceGitState"
+      ],
+      "functions": {
+        "write": {
+          "line": 50,
+          "params": [
+            "file",
+            "body"
+          ]
+        },
+        "receive": {
+          "line": 62,
+          "params": [
+            "{ frame = true",
+            "mode = null } = {}"
+          ],
+          "purpose": "A project on \"the Mac\" received by the server. `frame`: a Frame project; `mode`: its gitSharing."
+        },
+        "waitFor": {
+          "line": 152,
+          "params": [
+            "pred",
+            "ms",
+            "what"
+          ]
+        }
+      },
+      "sizeBytes": 11973,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "f32ea4dc66a2cb13",
+        "purposes": {
+          "receive": "bb7b59aff5bba64a"
+        }
+      }
+    },
+    "test/serverTasksModel.test": {
+      "file": "test/serverTasksModel.test.js",
+      "description": "The rules behind tasks in server workspaces (server-tasks T01):",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/serverTasks"
+      ],
+      "functions": {},
+      "sizeBytes": 7187,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "909e7e98c9c811a2"
+      }
+    },
     "test/serverTerminalsHome.test": {
       "file": "test/serverTerminalsHome.test.js",
       "description": "Frame Server home terminals (server-onboarding T04): a terminal in the",
@@ -34622,7 +35024,7 @@
           "purpose": "The builder as it stood in tasksPanel.js before this spec, kept verbatim"
         }
       },
-      "sizeBytes": 6767,
+      "sizeBytes": 8244,
       "extraction": {
         "status": "parsed"
       },
@@ -34687,6 +35089,50 @@
       },
       "provenance": {
         "description": "494edc14d60ce825"
+      }
+    },
+    "test/tasksServerRouting.test": {
+      "file": "test/tasksServerRouting.test.js",
+      "description": "The desktop side of tasks in server workspaces (server-tasks T04, T05):",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "node:module",
+        "events",
+        "src/main/tasksManager",
+        "src/shared/ipcChannels"
+      ],
+      "functions": {
+        "resetHosts": {
+          "line": 23
+        },
+        "fakeLink": {
+          "line": 36,
+          "params": [
+            "key",
+            "host"
+          ]
+        },
+        "resetMac": {
+          "line": 117
+        },
+        "withServers": {
+          "line": 264
+        },
+        "lastPush": {
+          "line": 134
+        }
+      },
+      "sizeBytes": 20057,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "31a0a6a3b24b9367"
       }
     },
     "test/themes.test": {
@@ -37130,6 +37576,11 @@
         "description": "serverSecurity — the few rules that keep Frame Server from becoming a"
       },
       {
+        "module": "shared/serverTasks",
+        "file": "src/shared/serverTasks.js",
+        "description": "serverTasks — the rules behind tasks in server workspaces (server-tasks)."
+      },
+      {
         "module": "templates/sample-project/src/api/server",
         "file": "src/templates/sample-project/src/api/server.js",
         "description": "Express server — app factory"
@@ -37516,7 +37967,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 420,
+        "parsed": 425,
         "unsupported": 92,
         "partial": 0
       }
@@ -37563,9 +38014,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 606,
+      "visitedEntries": 611,
       "traversedDirectories": 86,
-      "eligibleFiles": 512,
+      "eligibleFiles": 517,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -37582,7 +38033,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 512,
+      "indexedFiles": 517,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -37590,6 +38041,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "59982f5028448e065ceccd6231466e5659ed71731928e87d6a4e07be87c35368"
+    "revision": "6381ea0899709878cb04fe00a0f43d559c1509c950977fa043ccc4a80b086756"
   }
 }

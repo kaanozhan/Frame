@@ -9,10 +9,12 @@ const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
 const runPrompt = require('./tasks/runPrompt');
+const { runTarget } = require('../shared/serverTasks');
 
 let isVisible = false;
 let currentFilter = 'all'; // all, pending, inProgress, completed
 let tasksData = null;
+let macTasksPath = null; // the Mac's tasks.json, absolute (TASKS_DATA)
 let claudeCodeRunning = false; // Track if Claude Code was started
 
 // DOM Elements
@@ -82,20 +84,23 @@ function setupEventListeners() {
  * Setup IPC listeners
  */
 function setupIPCListeners() {
-  ipcRenderer.on(IPC.TASKS_DATA, (event, { projectPath, tasks }) => {
+  ipcRenderer.on(IPC.TASKS_DATA, (event, { projectPath, tasks, tasksPath }) => {
+    // The Mac's tasks.json, absolute: Play names it for a Mac task (server-tasks B4).
+    if (tasksPath) macTasksPath = tasksPath;
     if (tasks) {
       tasksData = tasks;
       render();
     }
   });
 
-  ipcRenderer.on(IPC.TASK_UPDATED, (event, { action, task, success }) => {
+  ipcRenderer.on(IPC.TASK_UPDATED, (event, { action, task, success, error }) => {
     // On success the fresh tasks data is sent separately (TASKS_DATA) —
     // only failures need surfacing here, or a failed write to tasks.json
-    // looks identical to success.
+    // looks identical to success. A server task's refusal carries its
+    // reason (server-tasks), e.g. its host is offline.
     if (!success) {
-      const what = { create: 'create task', update: 'update task', delete: 'delete task' }[action] || 'save task change';
-      notify.error(`Failed to ${what} — tasks.json was not updated`);
+      const what = { add: 'add task', create: 'create task', update: 'update task', delete: 'delete task' }[action] || 'save task change';
+      notify.error(error ? `Failed to ${what} — ${error}` : `Failed to ${what} — tasks.json was not updated`);
     }
   });
 
@@ -373,19 +378,20 @@ function handleTaskAction(taskId, action) {
 function openRunFlow(task) {
   const projectPath = state.getProjectPath();
   if (!projectPath || !task) return;
-  // A board task cannot finish on a server yet (#226): the agent would run
-  // there, but the task's row lives only in this Mac's tasks.json, which
-  // Frame Server can neither read nor write — the board would show it
-  // in_progress forever. Every Run surface comes through here, so one guard
-  // covers them all until tasks get a home on the server.
-  const ws = require('./workspaceSection').selectedWorkspace();
-  if (ws && ws.location === 'server') {
-    notify.info(`Tasks run on this Mac for now — select the main checkout or a local workspace to run it. A task run on ${ws.host || 'the server'} could not mark itself done.`);
-    return;
-  }
+  // Where it runs (server-tasks): where its tasks.json lives — see
+  // shared/serverTasks.runTarget. The dialog shows why and, for a server
+  // task run from elsewhere, offers that server's workspaces. This replaces
+  // the #226 guard that refused Run in a server workspace "until tasks get a
+  // home on the server": a Mac task now runs in a Mac checkout, and a server
+  // task runs on its server with its own tasks.json, so either can finish.
+  const { selected, serverWorkspaces } = workspaceContext();
+  const target = runTarget(task, selected, serverWorkspaces);
   // Lazy-required to avoid load-order coupling with the renderer wiring.
   require('./taskRunModal').open(task, {
+    target,
+    selected,
     onRun: async (opts) => {
+      if (!(await selectRunWorkspace(opts.workspaceId))) return;
       const ok = await runTaskWithOptions(task, opts);
       if (!ok) return;
       ipcRenderer.send(IPC.UPDATE_TASK, {
@@ -396,6 +402,39 @@ function openRunFlow(task) {
       notify.info('Task sent');
     }
   });
+}
+
+/** The selected workspace's record (null for the main checkout) and the project's server workspaces. */
+function workspaceContext() {
+  let records = [];
+  try { records = require('./workspaceSection').getWorkspaces() || []; } catch (_) { records = []; }
+  const sel = state.getWorkspace();
+  const selected = sel && sel.id !== state.MAIN_WORKSPACE_ID ? (records.find((w) => w.id === sel.id) || { id: sel.id, location: 'local' }) : null;
+  return { selected, serverWorkspaces: records.filter((w) => w && w.location === 'server') };
+}
+
+/**
+ * Select the workspace a run goes to before the lane opens there, the way
+ * spec commands select their spec's workspace. `workspaceId` null keeps the
+ * selection. Returns false when the chosen workspace is gone.
+ */
+async function selectRunWorkspace(workspaceId) {
+  if (!workspaceId) return true;
+  const section = require('./workspaceSection');
+  const current = state.getWorkspace();
+  const currentId = current ? current.id : state.MAIN_WORKSPACE_ID;
+  if (workspaceId === currentId) return true;
+  if (workspaceId === 'main' || workspaceId === state.MAIN_WORKSPACE_ID) {
+    section.select(null);
+    return true;
+  }
+  const ws = (section.getWorkspaces() || []).find((w) => w.id === workspaceId);
+  if (!ws) {
+    notify.error('That workspace is no longer there — pick another one.');
+    return false;
+  }
+  section.select(ws);
+  return true;
 }
 
 /**
@@ -418,7 +457,9 @@ function buildTaskPrompt(task, opts = {}) {
  * show the "sent" toast.
  */
 async function runTaskWithOptions(task, opts = {}) {
-  const prompt = buildTaskPrompt(task, opts);
+  // The task's own file by absolute path: its server clone's for a server
+  // task, the Mac's main checkout's otherwise (server-tasks B4).
+  const prompt = buildTaskPrompt(task, { ...opts, tasksPath: task.tasksPath || macTasksPath || null });
 
   // Lazy-required to avoid load-order coupling with the terminal wiring.
   const agentDispatch = require('./agentDispatch');
@@ -545,7 +586,10 @@ function handleTaskFormSubmit(e) {
   }
 
   if (mode === 'add') {
-    ipcRenderer.send(IPC.ADD_TASK, { projectPath, task: taskData });
+    // Added in a server workspace, it lands on that server (server-tasks B1).
+    const ws = state.getWorkspace();
+    const workspaceId = ws && ws.id !== state.MAIN_WORKSPACE_ID ? ws.id : null;
+    ipcRenderer.send(IPC.ADD_TASK, { projectPath, task: taskData, workspaceId });
   } else if (mode === 'edit' && taskId) {
     ipcRenderer.send(IPC.UPDATE_TASK, {
       projectPath,

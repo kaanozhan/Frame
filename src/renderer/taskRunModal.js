@@ -5,7 +5,15 @@
  * button on a task. Running a task always opens a new Frame; the modal
  * lets them choose:
  *   - which AI CLI to launch
- *   - stay on current branch vs create a new branch (optional name)
+ *   - stay on current branch vs create a new branch (optional name) — only
+ *     for a run in the main checkout: a workspace keeps its own branch
+ *   - where it runs, when that is not simply where the user is
+ *     (server-tasks): a task runs where its tasks.json lives, so a server
+ *     task run from elsewhere picks one of its server's workspaces, and a
+ *     Mac task runs in the main checkout while a server workspace is selected
+ *
+ * The caller passes `target` (shared/serverTasks.runTarget) and the chosen
+ * `workspaceId` comes back with the options.
  *
  * Returns the chosen options to the caller via the `onRun` callback;
  * the caller is responsible for actually orchestrating the terminal
@@ -17,6 +25,7 @@ const { IPC } = require('../shared/ipcChannels');
 const aiToolSelector = require('./aiToolSelector');
 const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
+const { runTargetNote } = require('../shared/serverTasks');
 
 let modalEl = null;
 let titleEl = null;
@@ -26,6 +35,11 @@ let currentBranchEl = null;
 let newBranchNameInput = null;
 let runBtn = null;
 let cancelBtn = null;
+let whereEl = null;
+let whereNoteEl = null;
+let workspaceSelect = null;
+let branchSectionEl = null;
+let activeTarget = null;
 
 let initialized = false;
 let activeTask = null;
@@ -44,6 +58,10 @@ function init() {
   newBranchNameInput = document.getElementById('task-run-new-branch-name');
   runBtn = document.getElementById('task-run-confirm');
   cancelBtn = document.getElementById('task-run-cancel');
+  whereEl = document.getElementById('task-run-where');
+  whereNoteEl = document.getElementById('task-run-where-note');
+  workspaceSelect = document.getElementById('task-run-workspace');
+  branchSectionEl = document.getElementById('task-run-branch-section');
 
   // Toggle new-branch input enabled state based on branch choice
   branchRadios.forEach(r => r.addEventListener('change', updateBranchChoiceUI));
@@ -139,11 +157,34 @@ async function loadCurrentBranch() {
 }
 
 /**
+ * Show where the task runs: the note, the workspace chooser, and the branch
+ * choice only for a run in the main checkout. A blocking note disables Run.
+ */
+function renderWhere(task, target, selected) {
+  const note = runTargetNote(target, task, selected);
+  if (whereEl) whereEl.hidden = !note;
+  if (whereNoteEl) whereNoteEl.textContent = note ? note.text : '';
+  if (workspaceSelect) {
+    const choose = target && Array.isArray(target.choose) ? target.choose : null;
+    workspaceSelect.hidden = !choose;
+    workspaceSelect.innerHTML = choose
+      ? choose.map((w) => `<option value="${escapeHtml(w.id)}">${escapeHtml(w.branch || w.name || w.id)}${w.name && w.branch ? ` · ${escapeHtml(w.name)}` : ''}</option>`).join('')
+      : '';
+  }
+  // A workspace keeps its own branch: the choice is for the main checkout only.
+  const inMain = !target || target.workspaceId === 'main';
+  if (branchSectionEl) branchSectionEl.hidden = !inMain;
+  if (runBtn) runBtn.disabled = !!(note && note.blocking);
+}
+
+/**
  * Open the modal for a given task.
  * @param {object} task
  * @param {object} opts
  * @param {function} opts.onRun     - called with chosen options on confirm
  * @param {function} [opts.onCancel]
+ * @param {object}   [opts.target]  - shared/serverTasks.runTarget's answer; absent = run where the user is
+ * @param {object}   [opts.selected] - the selected workspace record, for the note's host
  */
 function open(task, opts = {}) {
   if (!initialized) init();
@@ -152,6 +193,7 @@ function open(task, opts = {}) {
   activeTask = task;
   activeOnRun = typeof opts.onRun === 'function' ? opts.onRun : null;
   activeOnCancel = typeof opts.onCancel === 'function' ? opts.onCancel : null;
+  activeTarget = opts.target || null;
 
   if (titleEl) {
     titleEl.textContent = task && task.title ? task.title : '';
@@ -164,6 +206,7 @@ function open(task, opts = {}) {
 
   populateCliOptions();
   loadCurrentBranch();
+  renderWhere(task, activeTarget, opts.selected || null);
 
   modalEl.classList.add('visible');
   // Focus Cancel so a blind Enter is safe; running requires Tab/click.
@@ -176,13 +219,21 @@ function close() {
   activeTask = null;
   activeOnRun = null;
   activeOnCancel = null;
+  activeTarget = null;
 }
 
 function confirm() {
+  if (runBtn && runBtn.disabled) return;
+  const target = activeTarget;
+  const inMain = !target || target.workspaceId === 'main';
   const options = {
     toolId: getCliChoice(),
-    branchMode: getBranchChoice(),
-    newBranchName: newBranchNameInput.value.trim() || null
+    // A workspace keeps its own branch (Frame never switches it).
+    branchMode: inMain ? getBranchChoice() : 'current',
+    newBranchName: inMain ? (newBranchNameInput.value.trim() || null) : null,
+    workspaceId: target
+      ? (Array.isArray(target.choose) ? (workspaceSelect && workspaceSelect.value) || null : target.workspaceId || null)
+      : null
   };
   const cb = activeOnRun;
   close();
