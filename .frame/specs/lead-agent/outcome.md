@@ -23,3 +23,11 @@ _Captured: 2026-11-25 · 2 file changes_
 _Captured: 2026-11-25 · 3 file changes_
 
 ---
+
+## T04 — Add the Chief's wire protocol
+
+Added `src/shared/leadProtocol.js`. It provides a JSON-lines reader that handles partial, bad and runaway lines, constant-time token checks, host request validation (`hello` / `list` / `call`) and the MCP JSON-RPC shapes: `initialize` with version negotiation and `instructions`, plus tool results. Changed from the plan: the module is self-contained, using node built-ins only, so the host can copy it next to `lead-mcp.js` and both processes share one framing. Also, the tool registry lives in the host, with `list` relayed, so later tools need no change in the MCP server. `test/leadProtocol.test.js` pins the shapes and the built-ins-only rule.
+
+_Captured: 2026-11-25 · 2 file changes_
+
+---

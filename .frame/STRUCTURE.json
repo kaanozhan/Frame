@@ -27708,6 +27708,143 @@
         "description": "30513a7499948b34"
       }
     },
+    "shared/leadProtocol": {
+      "file": "src/shared/leadProtocol.js",
+      "description": "leadProtocol — the wire between the Chief's MCP server and its host",
+      "exports": [
+        "MCP_VERSIONS",
+        "HOST_TYPES",
+        "RPC",
+        "MAX_LINE",
+        "createLineReader",
+        "encode",
+        "tokensEqual",
+        "generateToken",
+        "validateHostRequest",
+        "hostOk",
+        "hostError",
+        "rpcResult",
+        "rpcError",
+        "negotiateVersion",
+        "initializeResult",
+        "toolResult",
+        "classifyRpc"
+      ],
+      "depends": [
+        "crypto"
+      ],
+      "functions": {
+        "createLineReader": {
+          "line": 37,
+          "params": [
+            "onMessage",
+            "{ onError = ("
+          ],
+          "purpose": "Split a byte/string stream into JSON messages, one per line. Partial lines"
+        },
+        "encode": {
+          "line": 70,
+          "params": [
+            "msg"
+          ]
+        },
+        "tokensEqual": {
+          "line": 75,
+          "params": [
+            "a",
+            "b"
+          ],
+          "purpose": "Constant-time token comparison; false for anything but two equal non-empty strings."
+        },
+        "generateToken": {
+          "line": 83
+        },
+        "validateHostRequest": {
+          "line": 90,
+          "params": [
+            "msg",
+            "token"
+          ],
+          "purpose": "`{ ok: true, request }` or `{ ok: false, error }` for a message arriving at the host."
+        },
+        "hostOk": {
+          "line": 100,
+          "params": [
+            "id",
+            "result"
+          ]
+        },
+        "hostError": {
+          "line": 104,
+          "params": [
+            "id",
+            "code",
+            "message"
+          ]
+        },
+        "rpcResult": {
+          "line": 110,
+          "params": [
+            "id",
+            "result"
+          ]
+        },
+        "rpcError": {
+          "line": 114,
+          "params": [
+            "id",
+            "code",
+            "message"
+          ]
+        },
+        "negotiateVersion": {
+          "line": 119,
+          "params": [
+            "requested"
+          ],
+          "purpose": "The revision to answer `initialize` with: the client's when we speak it, else our newest."
+        },
+        "initializeResult": {
+          "line": 123,
+          "params": [
+            "{ requested",
+            "name",
+            "version",
+            "instructions }"
+          ]
+        },
+        "toolResult": {
+          "line": 134,
+          "params": [
+            "value",
+            "{ isError = false } = {}"
+          ],
+          "purpose": "A tool's outcome as MCP content: one text block holding JSON, flagged on error."
+        },
+        "classifyRpc": {
+          "line": 143,
+          "params": [
+            "msg"
+          ],
+          "purpose": "Classify an incoming MCP message."
+        }
+      },
+      "sizeBytes": 6527,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "15feb7f708ee1cd6",
+        "purposes": {
+          "classifyRpc": "3a25e1a8f5995e36",
+          "createLineReader": "bbc98e1c1e7ccabf",
+          "negotiateVersion": "890fd26cc125812b",
+          "tokensEqual": "c4571805f8789b82",
+          "toolResult": "a549b5d58b4ccd92",
+          "validateHostRequest": "73fdd08fc92621b1"
+        }
+      }
+    },
     "shared/leadRules": {
       "file": "src/shared/leadRules.js",
       "description": "leadRules — the rules behind the Chief (lead-agent spec, T01).",
@@ -32697,6 +32834,26 @@
         }
       }
     },
+    "test/leadProtocol.test": {
+      "file": "test/leadProtocol.test.js",
+      "description": "leadProtocol — framing and messages between the Chief's MCP server and its",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "path",
+        "src/shared/leadProtocol"
+      ],
+      "functions": {},
+      "sizeBytes": 5374,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "20b1df96aea9ec5b"
+      }
+    },
     "test/leadRules.test": {
       "file": "test/leadRules.test.js",
       "description": "leadRules — the Chief's rules (lead-agent spec, T01).",
@@ -37439,6 +37596,18 @@
         "description": "IPC Channel Constants"
       }
     ],
+    "lead": [
+      {
+        "module": "shared/leadProtocol",
+        "file": "src/shared/leadProtocol.js",
+        "description": "leadProtocol — the wire between the Chief's MCP server and its host"
+      },
+      {
+        "module": "shared/leadRules",
+        "file": "src/shared/leadRules.js",
+        "description": "leadRules — the rules behind the Chief (lead-agent spec, T01)."
+      }
+    ],
     "link": [
       {
         "module": "main/serverLink",
@@ -37766,6 +37935,18 @@
         "module": "renderer/projectStatusBadges",
         "file": "src/renderer/projectStatusBadges.js",
         "description": "Project Status Badges"
+      }
+    ],
+    "protocol": [
+      {
+        "module": "shared/leadProtocol",
+        "file": "src/shared/leadProtocol.js",
+        "description": "leadProtocol — the wire between the Chief's MCP server and its host"
+      },
+      {
+        "module": "shared/serverProtocol",
+        "file": "src/shared/serverProtocol.js",
+        "description": "serverProtocol — the messages between Frame desktop and Frame Server"
       }
     ],
     "rail": [
@@ -38362,7 +38543,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 429,
+        "parsed": 431,
         "unsupported": 92,
         "partial": 0
       }
@@ -38409,9 +38590,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 615,
+      "visitedEntries": 617,
       "traversedDirectories": 86,
-      "eligibleFiles": 521,
+      "eligibleFiles": 523,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -38428,7 +38609,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 521,
+      "indexedFiles": 523,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -38436,6 +38617,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "c1172964878af682e87d7b6be9a7840a32c9a416c85eeab8d257e3d644ee7c64"
+    "revision": "0a1c8da26d6c2ab683c8e84034f1f7d32e17bf2fa8409557599adf5359cb1c37"
   }
 }
