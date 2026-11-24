@@ -27635,6 +27635,222 @@
         "description": "30513a7499948b34"
       }
     },
+    "shared/leadRules": {
+      "file": "src/shared/leadRules.js",
+      "description": "leadRules — the rules behind the Chief (lead-agent spec, T01).",
+      "exports": [
+        "STATUS",
+        "MODES",
+        "DEFAULT_MODE",
+        "AGENT_PROCESSES",
+        "USER_QUIET_MS",
+        "mapProgramState",
+        "isAgentProcess",
+        "deriveStatus",
+        "scopeFilter",
+        "isMultiLine",
+        "sendRefusal",
+        "needsApproval",
+        "normalizeMode",
+        "createApprovals",
+        "requestApproval",
+        "decideApproval",
+        "cancelApprovals",
+        "pendingApprovals",
+        "pruneApprovals",
+        "deliveryGate",
+        "enqueue",
+        "head",
+        "dequeue",
+        "dropTarget"
+      ],
+      "depends": [],
+      "functions": {
+        "mapProgramState": {
+          "line": 47,
+          "params": [
+            "report"
+          ],
+          "purpose": "An OSC 7501 report (`{ state, kind?, msg? }`, see shared/programStatus) →"
+        },
+        "baseName": {
+          "line": 65,
+          "params": [
+            "name"
+          ]
+        },
+        "isAgentProcess": {
+          "line": 73,
+          "params": [
+            "name"
+          ]
+        },
+        "deriveStatus": {
+          "line": 88,
+          "params": [
+            "{ alive = true",
+            "foreground = null",
+            "shellName = null",
+            "agentState = null } = {}"
+          ],
+          "purpose": "What a terminal is doing."
+        },
+        "scopeFilter": {
+          "line": 110,
+          "params": [
+            "terminals",
+            "{ projectPath",
+            "machine",
+            "chiefId = null } = {}"
+          ],
+          "purpose": "The terminals a Chief may see: same project, same machine, no home"
+        },
+        "isMultiLine": {
+          "line": 120,
+          "params": [
+            "text"
+          ]
+        },
+        "sendRefusal": {
+          "line": 132,
+          "params": [
+            "target",
+            "{ chiefId = null",
+            "inScope = true",
+            "orchestrationIds = []",
+            "text = '' } = {}"
+          ],
+          "purpose": "Why a send must not go out, or null when it may (queued or not). Holds in"
+        },
+        "needsApproval": {
+          "line": 158,
+          "params": [
+            "action",
+            "mode = DEFAULT_MODE"
+          ],
+          "purpose": "Whether `action` needs the user's approval in `mode` (D19: each action declares it)."
+        },
+        "normalizeMode": {
+          "line": 163,
+          "params": [
+            "mode"
+          ]
+        },
+        "createApprovals": {
+          "line": 175,
+          "purpose": "A pure approval book. State is plain data so the host can persist or send"
+        },
+        "requestApproval": {
+          "line": 179,
+          "params": [
+            "state",
+            "{ id = null",
+            "action",
+            "target = null",
+            "summary = ''",
+            "payload = null",
+            "chiefId = null",
+            "at = 0 } = {}"
+          ]
+        },
+        "decideApproval": {
+          "line": 189,
+          "params": [
+            "state",
+            "id",
+            "{ decision",
+            "text = null",
+            "at = 0 } = {}"
+          ],
+          "purpose": "Apply a decision. The first one wins: a record that is no longer pending"
+        },
+        "cancelApprovals": {
+          "line": 202,
+          "params": [
+            "state",
+            "pred",
+            "{ at = 0 } = {}"
+          ],
+          "purpose": "Cancel every pending record matching `pred` (its target or its Chief went away)."
+        },
+        "pendingApprovals": {
+          "line": 213,
+          "params": [
+            "state"
+          ]
+        },
+        "pruneApprovals": {
+          "line": 218,
+          "params": [
+            "state",
+            "keep = 50"
+          ],
+          "purpose": "Drop decided records, keeping the book small; pending ones always stay."
+        },
+        "deliveryGate": {
+          "line": 230,
+          "params": [
+            "{ status",
+            "lastUserInputAt = null",
+            "now = 0",
+            "quietMs = USER_QUIET_MS } = {}"
+          ],
+          "purpose": "Whether the head of a target's queue may go out now, and if not, how long"
+        },
+        "enqueue": {
+          "line": 239,
+          "params": [
+            "queues",
+            "targetId",
+            "item"
+          ],
+          "purpose": "FIFO per target: enqueue keeps order; the head is the only deliverable item."
+        },
+        "head": {
+          "line": 245,
+          "params": [
+            "queues",
+            "targetId"
+          ]
+        },
+        "dequeue": {
+          "line": 250,
+          "params": [
+            "queues",
+            "targetId"
+          ]
+        },
+        "dropTarget": {
+          "line": 258,
+          "params": [
+            "queues",
+            "targetId"
+          ],
+          "purpose": "Remove every queued item for a target (it closed); returns the dropped items too."
+        }
+      },
+      "sizeBytes": 12088,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "a83625fbea567011",
+        "purposes": {
+          "cancelApprovals": "30a45ad8b0858b7e",
+          "createApprovals": "41652f36a07d5f1c",
+          "decideApproval": "dcd7a6ec11cd23a4",
+          "deliveryGate": "bf20a4b0b7ef9327",
+          "deriveStatus": "be103ca20dd21621",
+          "dropTarget": "7d18cb71ead93cc8",
+          "enqueue": "49bafa7baad59663",
+          "mapProgramState": "970d9bb8f743b489",
+          "needsApproval": "87b03064e68d0016",
+          "pruneApprovals": "fa36f60946a0f3b9",
+          "scopeFilter": "90ffd7db3c5e12a9",
+          "sendRefusal": "b482c90ef73af73e"
+        }
+      }
+    },
     "shared/prFlow": {
       "file": "src/shared/prFlow.js",
       "description": "prFlow — the rules behind a workspace's way out: push, pull request,",
@@ -32341,6 +32557,24 @@
         "purposes": {
           "makeLegacyProject": "9a1aa225d8467ffb"
         }
+      }
+    },
+    "test/leadRules.test": {
+      "file": "test/leadRules.test.js",
+      "description": "leadRules — the Chief's rules (lead-agent spec, T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/leadRules"
+      ],
+      "functions": {},
+      "sizeBytes": 10249,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "eb2941798a52182c"
       }
     },
     "test/logger.test": {
@@ -37967,7 +38201,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 425,
+        "parsed": 427,
         "unsupported": 92,
         "partial": 0
       }
@@ -38014,9 +38248,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 611,
+      "visitedEntries": 613,
       "traversedDirectories": 86,
-      "eligibleFiles": 517,
+      "eligibleFiles": 519,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -38033,7 +38267,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 517,
+      "indexedFiles": 519,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -38041,6 +38275,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "6381ea0899709878cb04fe00a0f43d559c1509c950977fa043ccc4a80b086756"
+    "revision": "bc9929d0ef3c6caa1225996213a5def6738472f730bcf6c4ab8f236e7810a6ba"
   }
 }
