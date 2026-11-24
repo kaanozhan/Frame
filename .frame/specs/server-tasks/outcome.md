@@ -30,3 +30,11 @@ _Captured: 2026-11-24 · 3 file change(s)_
 
 ---
 
+## T05 — Route changes to the task's home
+
+In `src/main/tasksManager.js` the task IPC handlers now route: update and delete by the task's home in the merged list (`homeOf`), reorder split by home (`splitOrder`) with a down server's part refused while the rest applies, and add by the selected `workspaceId` (`workspaceManager.serverLocation`). A server change goes through that server's link only and then re-lists that server so the board shows it at once; while the server is down, or when it answers with an error, the change is refused with the host named and nothing falls back to the Mac or another server. TASK_UPDATED keeps its shape and gains `error`; the renderer shows it in T09. Tests extend `test/tasksServerRouting.test.js`.
+
+_Captured: 2026-11-24 · 2 file change(s)_
+
+---
+

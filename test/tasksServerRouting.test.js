@@ -256,3 +256,133 @@ test('LOAD_TASKS replies at once with the merged list and refreshes the servers 
   assert.equal(linkBox.calls.filter((c) => c.method === 'tasks.list').length, 1, 'five surfaces opening, one refresh');
   tasksManager.stopWatching();
 });
+
+// ─── T05: each change goes to the task's home ───────────────────
+
+const macFile = () => JSON.parse(fs.readFileSync(macTasksPath, 'utf8')).tasks;
+const boxTasks = () => HOSTS.box.projects['/srv/app'].tasks;
+async function withServers() {
+  ROOTS = rootsFor(['b1', 'kb', 'box', '/srv/app'], ['g1', 'kg', 'gpu', '/home/me/app']);
+  await tasksManager.refreshServerTasks(project);
+  linkBox.calls.length = 0;
+  linkGpu.calls.length = 0;
+}
+const changeCalls = (link) => link.calls.filter((c) => /^tasks\.(add|update|delete|reorder)$/.test(c.method));
+
+test('an update goes to the Mac for a Mac task and to its server for a server task — never both', async () => {
+  await withServers();
+  let res = await tasksManager.routeUpdate(project, 'task-mac-1', { status: 'in_progress' });
+  assert.equal(res.success, true);
+  assert.equal(macFile().find((t) => t.id === 'task-mac-1').status, 'in_progress');
+  assert.equal(changeCalls(linkBox).length + changeCalls(linkGpu).length, 0, 'no server was asked');
+
+  const macBefore = fs.readFileSync(macTasksPath, 'utf8');
+  res = await tasksManager.routeUpdate(project, 'task-box-1', { status: 'completed' });
+  assert.equal(res.success, true, res.error);
+  assert.deepEqual(changeCalls(linkBox).map((c) => [c.method, c.params]), [['tasks.update', { projectPath: '/srv/app', taskId: 'task-box-1', updates: { status: 'completed' } }]]);
+  assert.equal(changeCalls(linkGpu).length, 0);
+  assert.equal(boxTasks().find((t) => t.id === 'task-box-1').status, 'completed');
+  assert.equal(fs.readFileSync(macTasksPath, 'utf8'), macBefore, 'the Mac\'s file is untouched');
+  assert.equal(lastPush().tasks.tasks.find((t) => t.id === 'task-box-1').status, 'completed', 'the board shows it at once');
+});
+
+test('the duplicate id goes home to the Mac', async () => {
+  await withServers();
+  const res = await tasksManager.routeUpdate(project, 'task-spec-merged-T01', { status: 'pending' });
+  assert.equal(res.success, true);
+  assert.equal(macFile().find((t) => t.id === 'task-spec-merged-T01').status, 'pending');
+  assert.equal(changeCalls(linkBox).length, 0);
+});
+
+test('a change to a down server\'s task is refused with its host named, and nothing is written anywhere', async () => {
+  await withServers();
+  linkBox.up = false;
+  fakeServer.emit('disconnected', {}, 'kb');
+  const macBefore = fs.readFileSync(macTasksPath, 'utf8');
+  for (const res of [
+    await tasksManager.routeUpdate(project, 'task-box-1', { status: 'completed' }),
+    await tasksManager.routeDelete(project, 'task-box-1')
+  ]) {
+    assert.equal(res.success, false);
+    assert.equal(res.error, 'box is offline — reconnect to change its tasks.');
+  }
+  assert.equal(changeCalls(linkBox).length, 0);
+  assert.equal(changeCalls(linkGpu).length, 0, 'never another server');
+  assert.equal(fs.readFileSync(macTasksPath, 'utf8'), macBefore, 'never the Mac');
+});
+
+test('a server error is reported, not retried on the Mac', async () => {
+  await withServers();
+  HOSTS.box.projects['/srv/app'].tasks = HOSTS.box.projects['/srv/app'].tasks.filter((t) => t.id !== 'task-box-1'); // gone on the server meanwhile
+  const macBefore = fs.readFileSync(macTasksPath, 'utf8');
+  const res = await tasksManager.routeUpdate(project, 'task-box-1', { status: 'completed' });
+  assert.equal(res.success, false);
+  assert.match(res.error, /^box: No such task/);
+  assert.equal(fs.readFileSync(macTasksPath, 'utf8'), macBefore);
+});
+
+test('a delete goes to the task\'s home', async () => {
+  await withServers();
+  assert.deepEqual(await tasksManager.routeDelete(project, 'task-box-1'), { success: true });
+  assert.ok(!boxTasks().some((t) => t.id === 'task-box-1'));
+  assert.ok(macFile().some((t) => t.id === 'task-mac-1'));
+  assert.deepEqual(await tasksManager.routeDelete(project, 'task-mac-1'), { success: true });
+  assert.ok(!macFile().some((t) => t.id === 'task-mac-1'));
+});
+
+test('a reorder over the merged list is split: each home gets its own part, a down server\'s part is refused', async () => {
+  await withServers();
+  boxTasks().push({ id: 'task-box-2', title: 'Second on box', status: 'pending' });
+  await tasksManager.refreshServerTasks(project);
+  linkBox.calls.length = 0;
+  let res = await tasksManager.routeReorder(project, [
+    { id: 'task-box-2' }, { id: 'task-spec-merged-T01' }, { id: 'task-gpu-1' }, { id: 'task-box-1' }, { id: 'task-mac-1' }
+  ]);
+  assert.equal(res.success, true, res.error);
+  assert.deepEqual(macFile().map((t) => t.id), ['task-spec-merged-T01', 'task-mac-1']);
+  assert.deepEqual(boxTasks().map((t) => t.id), ['task-box-2', 'task-box-1', 'task-spec-merged-T01']);
+  assert.deepEqual(changeCalls(linkGpu).map((c) => c.params.order.map((e) => e.id)), [['task-gpu-1']]);
+
+  linkGpu.up = false;
+  fakeServer.emit('disconnected', {}, 'kg');
+  res = await tasksManager.routeReorder(project, [{ id: 'task-mac-1' }, { id: 'task-gpu-1' }, { id: 'task-spec-merged-T01' }]);
+  assert.equal(res.success, false);
+  assert.match(res.error, /gpu is offline/);
+  assert.deepEqual(macFile().map((t) => t.id), ['task-mac-1', 'task-spec-merged-T01'], 'the Mac\'s part still applies');
+});
+
+test('an add lands where the selected workspace lives: its server, or the Mac', async () => {
+  await withServers();
+  const macBefore = fs.readFileSync(macTasksPath, 'utf8');
+  let res = await tasksManager.routeAdd(project, { title: 'Made in a box workspace' }, 'b1');
+  assert.equal(res.success, true, res.error);
+  assert.ok(boxTasks().some((t) => t.title === 'Made in a box workspace'));
+  assert.equal(fs.readFileSync(macTasksPath, 'utf8'), macBefore, 'not on the Mac');
+  assert.ok(lastPush().tasks.tasks.some((t) => t.title === 'Made in a box workspace' && t.location === 'server' && t.host === 'box'));
+
+  for (const workspaceId of [null, 'main', 'a-local-workspace']) {
+    res = await tasksManager.routeAdd(project, { title: `On the Mac (${workspaceId})` }, workspaceId);
+    assert.equal(res.success, true);
+    assert.ok(macFile().some((t) => t.title === `On the Mac (${workspaceId})`));
+  }
+
+  linkBox.up = false;
+  const n = boxTasks().length;
+  res = await tasksManager.routeAdd(project, { title: 'While box is down' }, 'b1');
+  assert.deepEqual(res, { success: false, error: 'box is offline — reconnect to change its tasks.' });
+  assert.equal(boxTasks().length, n);
+  assert.ok(!macFile().some((t) => t.title === 'While box is down'), 'never falls back to the Mac');
+});
+
+test('the IPC keeps its shape and carries the reason on a refusal', async () => {
+  await withServers();
+  linkBox.up = false;
+  fakeServer.emit('disconnected', {}, 'kb');
+  replies.length = 0;
+  await handlers[IPC.UPDATE_TASK](evt, { projectPath: project, taskId: 'task-box-1', updates: { status: 'completed' } });
+  const [ch, payload] = replies.find(([c]) => c === IPC.TASK_UPDATED);
+  assert.equal(ch, IPC.TASK_UPDATED);
+  assert.deepEqual({ action: payload.action, success: payload.success, error: payload.error }, { action: 'update', success: false, error: 'box is offline — reconnect to change its tasks.' });
+  assert.ok(replies.some(([c]) => c === IPC.TASKS_DATA), 'the merged list still follows');
+  tasksManager.stopWatching();
+});

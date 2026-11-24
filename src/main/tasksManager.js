@@ -14,7 +14,7 @@ const frameStore = require('./frameStore');
 const activityLog = require('./activityLog');
 const { IPC } = require('../shared/ipcChannels');
 const { FRAME_FILES } = require('../shared/frameConstants');
-const { mergeTaskLists } = require('../shared/serverTasks');
+const { mergeTaskLists, homeOf, splitOrder } = require('../shared/serverTasks');
 
 const VALID_STATUSES = ['pending', 'in_progress', 'completed'];
 const SELF_WRITE_GUARD_MS = 250;
@@ -621,6 +621,107 @@ function wireServerTasks() {
   });
 }
 
+// ─── Routing a change to the task's home (server-tasks T05) ─────
+//
+// The renderer keeps its IPC: update, delete and reorder name task ids, and
+// main finds each task's home in the merged list (homeOf / splitOrder); add
+// names the selected workspace. A server task's change goes to that server
+// only, through its own link; while the server is down the change is refused
+// with its host named — it never falls back to the Mac or another server.
+
+const offlineText = (host) => `${host || 'The server'} is offline — reconnect to change its tasks.`;
+
+function mergedOf(projectPath) {
+  const mac = loadTasks(projectPath);
+  return mergeTaskLists(mac && mac.tasks, serverListsOf(projectPath));
+}
+
+/** The connected link for a server home, or `{ error }` with the host named. */
+function serverHome(home) {
+  const link = !home.offline ? linkOf(home.serverKey) : null;
+  return link ? { link } : { error: offlineText(home.host) };
+}
+
+/** After a server change: re-read that server's list and push, so the board shows it at once. */
+async function settleServer(projectPath, serverKey) {
+  try { await refreshServerTasks(projectPath, { onlyKey: serverKey }); } catch (_) { /* reported inside */ }
+}
+
+/** `{ success, task?, error? }` — an update for whichever home holds `taskId`. */
+async function routeUpdate(projectPath, taskId, updates) {
+  const home = homeOf(taskId, mergedOf(projectPath));
+  if (!home || home.location === 'mac') {
+    const task = updateTask(projectPath, taskId, updates);
+    return { success: !!task, task };
+  }
+  const { link, error } = serverHome(home);
+  if (error) return { success: false, error };
+  try {
+    const res = await link.call('tasks.update', { projectPath: home.serverProjectPath, taskId, updates }, SERVER_CALL_MS);
+    await settleServer(projectPath, home.serverKey);
+    return { success: true, task: res && res.task };
+  } catch (err) {
+    return { success: false, error: `${home.host || 'The server'}: ${err.message}` };
+  }
+}
+
+async function routeDelete(projectPath, taskId) {
+  const home = homeOf(taskId, mergedOf(projectPath));
+  if (!home || home.location === 'mac') return { success: !!deleteTask(projectPath, taskId) };
+  const { link, error } = serverHome(home);
+  if (error) return { success: false, error };
+  try {
+    const res = await link.call('tasks.delete', { projectPath: home.serverProjectPath, taskId }, SERVER_CALL_MS);
+    await settleServer(projectPath, home.serverKey);
+    return { success: !!(res && res.success) };
+  } catch (err) {
+    return { success: false, error: `${home.host || 'The server'}: ${err.message}` };
+  }
+}
+
+/** Each home gets its part of the order; a down server's part is refused, the rest still applies. */
+async function routeReorder(projectPath, order) {
+  if (!Array.isArray(order)) return { success: false };
+  const split = splitOrder(order, mergedOf(projectPath));
+  let success = true;
+  const errors = [];
+  if (split.mac.length || !split.servers.length) success = !!reorderTasks(projectPath, split.mac) && success;
+  for (const part of split.servers) {
+    const { link, error } = serverHome(part);
+    if (error) { success = false; errors.push(error); continue; }
+    try {
+      const res = await link.call('tasks.reorder', { projectPath: part.serverProjectPath, order: part.order }, SERVER_CALL_MS);
+      if (!(res && res.success)) success = false;
+      await settleServer(projectPath, part.serverKey);
+    } catch (err) {
+      success = false;
+      errors.push(`${part.host || 'The server'}: ${err.message}`);
+    }
+  }
+  return errors.length ? { success, error: errors.join(' ') } : { success };
+}
+
+/** An add lands where the selected workspace lives: its server's clone, or the Mac. */
+async function routeAdd(projectPath, task, workspaceId) {
+  let loc = null;
+  if (workspaceId && workspaceId !== 'main') {
+    try { loc = require('./workspaceManager').serverLocation(workspaceId); } catch (_) { loc = null; }
+  }
+  if (!loc || loc.projectPath !== projectPath) {
+    const added = addTask(projectPath, task);
+    return { success: !!added, task: added };
+  }
+  const { link, error } = serverHome({ serverKey: loc.serverKey, host: loc.host, offline: false });
+  if (error) return { success: false, error };
+  try {
+    const res = await link.call('tasks.add', { projectPath: loc.serverProjectPath, task }, SERVER_CALL_MS);
+    await settleServer(projectPath, loc.serverKey);
+    return { success: !!(res && res.task), task: res && res.task };
+  } catch (err) {
+    return { success: false, error: `${loc.host || 'The server'}: ${err.message}` };
+  }
+}
+
 /** Test hook: forget every server entry and subscription. */
 function resetServerTasksForTests() {
   serverTasks.clear();
@@ -641,45 +742,51 @@ function setupIPC(ipcMain) {
     if (run) run.catch(() => { /* reported inside */ });
   });
 
-  ipcMain.on(IPC.ADD_TASK, (event, { projectPath, task }) => {
-    const newTask = addTask(projectPath, task);
+  // Each change goes to the task's home — the Mac's file or its server's
+  // clone (server-tasks T05). `error` names why a change was refused.
+  ipcMain.on(IPC.ADD_TASK, async (event, { projectPath, task, workspaceId = null }) => {
+    const res = await routeAdd(projectPath, task, workspaceId);
     event.sender.send(IPC.TASK_UPDATED, {
       projectPath,
       action: 'add',
-      task: newTask,
-      success: !!newTask
+      task: res.task || null,
+      success: res.success,
+      ...(res.error ? { error: res.error } : {})
     });
     event.sender.send(IPC.TASKS_DATA, tasksPayload(projectPath, loadTasks(projectPath)));
   });
 
-  ipcMain.on(IPC.UPDATE_TASK, (event, { projectPath, taskId, updates }) => {
-    const updatedTask = updateTask(projectPath, taskId, updates);
+  ipcMain.on(IPC.UPDATE_TASK, async (event, { projectPath, taskId, updates }) => {
+    const res = await routeUpdate(projectPath, taskId, updates);
     event.sender.send(IPC.TASK_UPDATED, {
       projectPath,
       action: 'update',
-      task: updatedTask,
-      success: !!updatedTask
+      task: res.task || null,
+      success: res.success,
+      ...(res.error ? { error: res.error } : {})
     });
     event.sender.send(IPC.TASKS_DATA, tasksPayload(projectPath, loadTasks(projectPath)));
   });
 
-  ipcMain.on(IPC.DELETE_TASK, (event, { projectPath, taskId }) => {
-    const success = deleteTask(projectPath, taskId);
+  ipcMain.on(IPC.DELETE_TASK, async (event, { projectPath, taskId }) => {
+    const res = await routeDelete(projectPath, taskId);
     event.sender.send(IPC.TASK_UPDATED, {
       projectPath,
       action: 'delete',
       taskId,
-      success
+      success: res.success,
+      ...(res.error ? { error: res.error } : {})
     });
     event.sender.send(IPC.TASKS_DATA, tasksPayload(projectPath, loadTasks(projectPath)));
   });
 
-  ipcMain.on(IPC.REORDER_TASKS, (event, { projectPath, order }) => {
-    const success = reorderTasks(projectPath, order);
+  ipcMain.on(IPC.REORDER_TASKS, async (event, { projectPath, order }) => {
+    const res = await routeReorder(projectPath, order);
     event.sender.send(IPC.TASK_UPDATED, {
       projectPath,
       action: 'reorder',
-      success
+      success: res.success,
+      ...(res.error ? { error: res.error } : {})
     });
     event.sender.send(IPC.TASKS_DATA, tasksPayload(projectPath, loadTasks(projectPath)));
   });
@@ -698,6 +805,10 @@ module.exports = {
   init,
   tasksPayload,
   refreshServerTasks,
+  routeAdd,
+  routeUpdate,
+  routeDelete,
+  routeReorder,
   resetServerTasksForTests,
   setProjectPath,
   loadTasks,

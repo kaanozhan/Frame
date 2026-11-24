@@ -7874,6 +7874,10 @@
         "init",
         "tasksPayload",
         "refreshServerTasks",
+        "routeAdd",
+        "routeUpdate",
+        "routeDelete",
+        "routeReorder",
         "resetServerTasksForTests",
         "setProjectPath",
         "loadTasks",
@@ -8102,18 +8106,72 @@
           "line": 591,
           "purpose": "Follow the servers: their pushes, connects, drops and removal, and the server workspace set."
         },
+        "mergedOf": {
+          "line": 634,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "serverHome": {
+          "line": 640,
+          "params": [
+            "home"
+          ],
+          "purpose": "The connected link for a server home, or `{ error }` with the host named."
+        },
+        "settleServer": {
+          "line": 646,
+          "params": [
+            "projectPath",
+            "serverKey"
+          ],
+          "purpose": "After a server change: re-read that server's list and push, so the board shows it at once."
+        },
+        "routeUpdate": {
+          "line": 651,
+          "params": [
+            "projectPath",
+            "taskId",
+            "updates"
+          ],
+          "purpose": "`{ success, task?, error? }` — an update for whichever home holds `taskId`."
+        },
+        "routeDelete": {
+          "line": 668,
+          "params": [
+            "projectPath",
+            "taskId"
+          ]
+        },
+        "routeReorder": {
+          "line": 683,
+          "params": [
+            "projectPath",
+            "order"
+          ],
+          "purpose": "Each home gets its part of the order; a down server's part is refused, the rest still applies."
+        },
+        "routeAdd": {
+          "line": 705,
+          "params": [
+            "projectPath",
+            "task",
+            "workspaceId"
+          ],
+          "purpose": "An add lands where the selected workspace lives: its server's clone, or the Mac."
+        },
         "resetServerTasksForTests": {
-          "line": 625,
+          "line": 726,
           "purpose": "Test hook: forget every server entry and subscription."
         },
         "setupIPC": {
-          "line": 634,
+          "line": 735,
           "params": [
             "ipcMain"
           ]
         },
         "getLastSelfWriteAt": {
-          "line": 693,
+          "line": 800,
           "purpose": "Timestamp of this module's last tasks.json write — exported so other"
         }
       },
@@ -8131,7 +8189,7 @@
           "TASK_UPDATED"
         ]
       },
-      "sizeBytes": 26310,
+      "sizeBytes": 31433,
       "extraction": {
         "status": "parsed"
       },
@@ -8150,10 +8208,15 @@
           "reorderTasks": "fad1821f6ffe5090",
           "resetServerTasksForTests": "6d9796a7c5b8da00",
           "restartWatching": "a3e83c31810d67bd",
+          "routeAdd": "625816a20762f5d9",
+          "routeReorder": "31635b3ab125ee5a",
+          "routeUpdate": "c642198f644afbb1",
           "sendTasksFileError": "9369701346948a50",
+          "serverHome": "64a7e328ab49e005",
           "serverListsOf": "f2fc99244a54750c",
           "serverNotesOf": "bc5354902c784f16",
           "serverProjectsOf": "4bf2280fbd2d7434",
+          "settleServer": "eef523bea7420d07",
           "tasksPayload": "e3404bb5e4f35e5e",
           "wireServerTasks": "315ceb0a35f74b8b"
         }
@@ -34930,11 +34993,14 @@
         "resetMac": {
           "line": 117
         },
+        "withServers": {
+          "line": 264
+        },
         "lastPush": {
           "line": 134
         }
       },
-      "sizeBytes": 12864,
+      "sizeBytes": 20057,
       "extraction": {
         "status": "parsed"
       },
@@ -37831,6 +37897,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "fd72d452e50039869f26dc6807a957b90a563e876a55ec43c944eeca4dc16eb3"
+    "revision": "3a9947403e80740fd54dbc68117697b66ca3f463e6b4461e397bc0d7e901cb0f"
   }
 }
