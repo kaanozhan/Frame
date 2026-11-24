@@ -7,3 +7,11 @@ Added `src/shared/leadRules.js`: OSC 7501 state → status mapping, `deriveStatu
 _Captured: 2026-11-25 · 2 file changes_
 
 ---
+
+## T02 — Add the OSC 7501 / bracketed-paste stream scanner
+
+Added `src/shared/programStatus.js`: a per-terminal scanner that counts `ESC]7501;?` probes, parses main-session `state=…` reports (drops subtask reports carrying `id`, base64-decodes `title`/`msg`, accepts BEL or ST) and tracks DEC mode 2004. It carries split sequences to the next chunk, bounded by `MAX_CARRY`. Also exports `PROBE_ANSWER` and `bracketedPaste()`; the latter strips embedded paste markers so a payload cannot end the paste early, which goes slightly beyond the plan. The test fixture uses the control sequences captured from a real 2.1.331 start, and one case checks every split point.
+
+_Captured: 2026-11-25 · 2 file changes_
+
+---

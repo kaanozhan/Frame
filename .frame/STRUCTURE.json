@@ -28043,6 +28043,62 @@
         }
       }
     },
+    "shared/programStatus": {
+      "file": "src/shared/programStatus.js",
+      "description": "programStatus — what Claude Code says about itself in the terminal stream",
+      "exports": [
+        "PROBE_ANSWER",
+        "createScanner",
+        "parseReport",
+        "bracketedPaste",
+        "MAX_CARRY"
+      ],
+      "depends": [],
+      "functions": {
+        "decodeB64": {
+          "line": 36,
+          "params": [
+            "v"
+          ]
+        },
+        "parseReport": {
+          "line": 45,
+          "params": [
+            "data"
+          ],
+          "purpose": "`state=working:app=claude-code:msg=…` → `{ state, app, kind?, id?, progress?, title?, msg? }`."
+        },
+        "carryStart": {
+          "line": 66,
+          "params": [
+            "s"
+          ],
+          "purpose": "Where an unfinished sequence of interest starts at the end of `s`, or -1."
+        },
+        "createScanner": {
+          "line": 81
+        },
+        "bracketedPaste": {
+          "line": 131,
+          "params": [
+            "text"
+          ],
+          "purpose": "Text wrapped as one bracketed paste (D14)."
+        }
+      },
+      "sizeBytes": 4772,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7c16fcc49c582dbd",
+        "purposes": {
+          "bracketedPaste": "a4c1a494d6ef6863",
+          "carryStart": "edb91d22259168f2",
+          "parseReport": "9966dc87b9c1ef66"
+        }
+      }
+    },
     "shared/reviewModel": {
       "file": "src/shared/reviewModel.js",
       "description": "reviewModel — the rules behind a workspace review (workspace-review spec).",
@@ -32891,6 +32947,24 @@
       },
       "provenance": {
         "description": "a50a1b013a69c595"
+      }
+    },
+    "test/programStatus.test": {
+      "file": "test/programStatus.test.js",
+      "description": "programStatus — Claude Code's OSC 7501 status reports and bracketed-paste",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/programStatus"
+      ],
+      "functions": {},
+      "sizeBytes": 4532,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "b91b62aa5e41e711"
       }
     },
     "test/projectAgnostic.test": {
@@ -37952,6 +38026,11 @@
         "module": "renderer/statusBar",
         "file": "src/renderer/statusBar.js",
         "description": "Status Bar Module"
+      },
+      {
+        "module": "shared/programStatus",
+        "file": "src/shared/programStatus.js",
+        "description": "programStatus — what Claude Code says about itself in the terminal stream"
       }
     ],
     "store": [
@@ -38201,7 +38280,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 427,
+        "parsed": 429,
         "unsupported": 92,
         "partial": 0
       }
@@ -38248,9 +38327,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 613,
+      "visitedEntries": 615,
       "traversedDirectories": 86,
-      "eligibleFiles": 519,
+      "eligibleFiles": 521,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -38267,7 +38346,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 519,
+      "indexedFiles": 521,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -38275,6 +38354,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "bc9929d0ef3c6caa1225996213a5def6738472f730bcf6c4ab8f236e7810a6ba"
+    "revision": "81722d7508b9622a8ed65d48b61325ca2cf1d32607f1be150d9102d7f51a8850"
   }
 }
