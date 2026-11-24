@@ -58,6 +58,32 @@ function createMirror({ cols = 80, rows = 24, scrollback = DEFAULT_SCROLLBACK } 
         });
       });
     },
+    /**
+     * The bottom `lines` of the screen as plain text, up to the cursor's
+     * line, after pending writes are parsed (lead-agent T11: what a server
+     * Chief reads).
+     */
+    text({ lines = 60 } = {}) {
+      if (disposed) return Promise.resolve('');
+      return new Promise((resolve) => {
+        term.write('', () => {
+          try {
+            const buf = term.buffer.active;
+            const bottom = buf.baseY + buf.cursorY;
+            const want = Math.max(1, Math.min(scrollback + term.rows, Number(lines) || 60));
+            const out = [];
+            for (let y = Math.max(0, bottom - want + 1); y <= bottom; y++) {
+              const line = buf.getLine(y);
+              out.push(line ? line.translateToString(true) : '');
+            }
+            while (out.length && !out[out.length - 1].trim()) out.pop();
+            resolve(out.join('\n'));
+          } catch (_) {
+            resolve('');
+          }
+        });
+      });
+    },
     dispose() {
       if (disposed) return;
       disposed = true;

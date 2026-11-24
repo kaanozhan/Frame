@@ -79,3 +79,11 @@ Added `src/renderer/chiefLane.js` and `styles/components/chief.css` (imported fr
 _Captured: 2026-11-25 · 8 file changes_
 
 ---
+
+## T11 — Frame Server side of the Chief
+
+Added `screenMirror.text({ lines })`, which reads up to the cursor line after pending writes. In `src/server/terminals.js`, `terminals.create` gained `lead` (one per server project path via ptyManager; never for home terminals), `describe` now carries `lead`, `terminals.input` stamps `noteUserInput`, and `setup()` exposes `terminalsOf` / `metaOf` / `ptyManager`. Added `src/server/lead.js`, which runs the same `leadHost` on server PTYs. Transcripts come from the pid file only, because Frame Server never initialises sessionRestore. It exposes `lead.start` / `stop` / `mode` / `pending` / `decide` with the server as approval authority, plus the `lead.approvals` event; it is wired in `src/server/index.js`. Verified against a real in-process Frame Server over the WebSocket protocol, with the real `lead-mcp.js`, in 14 checks: duplicate refused, scope excludes Chief and home, the approval event reaches the desktop, first decision wins, mirror screen read, the typing gate via `terminals.input`, and token revoked when the Chief closes.
+
+_Captured: 2026-11-25 · 4 file changes_
+
+---

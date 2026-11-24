@@ -26612,6 +26612,7 @@
         "net",
         "crypto",
         "terminals",
+        "lead",
         "projects",
         "panels",
         "specs",
@@ -26714,7 +26715,7 @@
           "purpose": "An installed package carries its exact version (a dev build's is"
         }
       },
-      "sizeBytes": 11642,
+      "sizeBytes": 11827,
       "extraction": {
         "status": "parsed"
       },
@@ -26728,6 +26729,43 @@
           "registerMethods": "ef386b7d3e2ed91b",
           "serverId": "110206541ac5ecf5"
         }
+      }
+    },
+    "server/lead": {
+      "file": "src/server/lead.js",
+      "description": "Server Chief — the Frame Server side of the Chief (lead-agent spec, T11).",
+      "exports": [
+        "setup"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/leadHost",
+        "shared/leadTranscript",
+        "main/claudeSessionsManager",
+        "terminals",
+        "main/logger"
+      ],
+      "functions": {
+        "claudeConfigDir": {
+          "line": 27
+        },
+        "setup": {
+          "line": 37,
+          "params": [
+            "{ registerMethods",
+            "broadcast",
+            "terminals }"
+          ]
+        }
+      },
+      "sizeBytes": 4352,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7a94f860bc6b67e1"
       }
     },
     "server/panels": {
@@ -26839,7 +26877,7 @@
           ]
         }
       },
-      "sizeBytes": 2654,
+      "sizeBytes": 3625,
       "extraction": {
         "status": "parsed"
       },
@@ -27009,7 +27047,7 @@
           "purpose": "An id of another boot names no terminal here."
         }
       },
-      "sizeBytes": 6944,
+      "sizeBytes": 7838,
       "extraction": {
         "status": "parsed"
       },
@@ -38230,6 +38268,11 @@
         "description": "leadManager — the desktop side of the Chief (lead-agent spec, T09)."
       },
       {
+        "module": "server/lead",
+        "file": "src/server/lead.js",
+        "description": "Server Chief — the Frame Server side of the Chief (lead-agent spec, T11)."
+      },
+      {
         "module": "shared/leadProtocol",
         "file": "src/shared/leadProtocol.js",
         "description": "leadProtocol — the wire between the Chief's MCP server and its host"
@@ -39190,7 +39233,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 439,
+        "parsed": 440,
         "unsupported": 93,
         "partial": 0
       }
@@ -39237,9 +39280,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 627,
+      "visitedEntries": 628,
       "traversedDirectories": 87,
-      "eligibleFiles": 532,
+      "eligibleFiles": 533,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -39256,7 +39299,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 532,
+      "indexedFiles": 533,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -39264,6 +39307,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "6b29b222a5b6327dc475ac6d5495dbcb7f7972c6ec225e362be448c9e36a33c6"
+    "revision": "1d72ddb4392e272e7bb0e759eb2b002fa20d7dd80679f93eedf8dd85779d28a3"
   }
 }
