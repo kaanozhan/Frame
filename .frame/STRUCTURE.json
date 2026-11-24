@@ -4217,6 +4217,60 @@
         }
       }
     },
+    "main/leadHost": {
+      "file": "src/main/leadHost.js",
+      "description": "leadHost — the Chief's host, one per machine (lead-agent spec, T07).",
+      "exports": [
+        "createLeadHost",
+        "shellQuote",
+        "ALLOWED_TOOLS",
+        "MCP_SERVER_KEY",
+        "INSTRUCTIONS_LIMIT"
+      ],
+      "depends": [
+        "fs",
+        "net",
+        "os",
+        "path",
+        "crypto",
+        "shared/leadRules",
+        "shared/leadProtocol",
+        "shared/programStatus",
+        "shared/leadTranscript"
+      ],
+      "functions": {
+        "shellQuote": {
+          "line": 59,
+          "params": [
+            "s",
+            "platform = process.platform"
+          ]
+        },
+        "readTail": {
+          "line": 64,
+          "params": [
+            "file",
+            "bytes = TRANSCRIPT_TAIL_BYTES"
+          ]
+        },
+        "createLeadHost": {
+          "line": 91,
+          "params": [
+            "{ machine",
+            "machineLabel = null",
+            "adapter",
+            "homeDir = os.homedir("
+          ]
+        }
+      },
+      "sizeBytes": 26612,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0478bbc163c59a70"
+      }
+    },
     "main/logger": {
       "file": "src/main/logger.js",
       "description": "Logger — rotating, redacted log file for the main process.",
@@ -37828,6 +37882,11 @@
     ],
     "lead": [
       {
+        "module": "main/leadHost",
+        "file": "src/main/leadHost.js",
+        "description": "leadHost — the Chief's host, one per machine (lead-agent spec, T07)."
+      },
+      {
         "module": "shared/leadProtocol",
         "file": "src/shared/leadProtocol.js",
         "description": "leadProtocol — the wire between the Chief's MCP server and its host"
@@ -38783,7 +38842,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 436,
+        "parsed": 437,
         "unsupported": 92,
         "partial": 0
       }
@@ -38830,9 +38889,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 623,
+      "visitedEntries": 624,
       "traversedDirectories": 87,
-      "eligibleFiles": 528,
+      "eligibleFiles": 529,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -38849,7 +38908,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 528,
+      "indexedFiles": 529,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -38857,6 +38916,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "b5c927a3d994837f6dd20a9137a55e911e7c59b1530ab0e819d27f1b8355ea80"
+    "revision": "cf30b28be202de32e9ca5081f86aeef71ffe381c293fc7629147d02abffbc496"
   }
 }

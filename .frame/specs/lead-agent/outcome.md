@@ -47,3 +47,11 @@ Added `src/templates/lead/lead-mcp.js`, a stdio MCP server that relays `initiali
 _Captured: 2026-11-25 · 3 file changes_
 
 ---
+
+## T07 — Add the machine-agnostic Chief host
+
+Added `src/main/leadHost.js`. It runs one socket per machine, with tokens mapped to Chiefs and an unauthorized response for revoked tokens. It holds a tool registry (`terminals_list`, `terminal_read`, `terminal_send`, `terminal_wait`) plus `register()` for later tools. Delivery is a FIFO per target, gated on ready and on the user's quiet period, and sends a bracketed paste, waits 350 ms, then Enter. Approvals are generic and wait for at most `wait` seconds, then return `pending_approval` and deliver later. Modes are stored in `~/.frame/lead.json`. `startChief` copies `lead-mcp.js` and `leadProtocol.js` to `~/.frame/run/`, writes a 0600 MCP config and returns `claude --mcp-config … --allowedTools 'mcp__frame-lead__*'`. Deviation: Unix socket paths longer than 100 bytes, which macOS silently truncates, fall back to a private directory under the system temp dir; an integration run hit exactly this. Verified with a scratch run against a real `lead-mcp.js` process (22 checks: scope, refusals, edited approvals, background delivery, the queue, the typing gate, token revocation). The plan has no unit test for this module.
+
+_Captured: 2026-11-25 · 1 file change_
+
+---
