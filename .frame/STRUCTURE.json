@@ -7558,7 +7558,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 96414,
+      "sizeBytes": 96433,
       "extraction": {
         "status": "parsed"
       },
@@ -7872,6 +7872,9 @@
       "description": "Tasks Manager Module",
       "exports": [
         "init",
+        "tasksPayload",
+        "refreshServerTasks",
+        "resetServerTasksForTests",
         "setProjectPath",
         "loadTasks",
         "saveTasks",
@@ -7892,63 +7895,66 @@
         "activityLog",
         "shared/ipcChannels",
         "shared/frameConstants",
-        "analytics"
+        "shared/serverTasks",
+        "analytics",
+        "serverConnection",
+        "workspaceManager"
       ],
       "functions": {
         "cacheKeyFor": {
-          "line": 37,
+          "line": 38,
           "params": [
             "tasksPath"
           ]
         },
         "init": {
-          "line": 46,
+          "line": 47,
           "params": [
             "window"
           ]
         },
         "setProjectPath": {
-          "line": 50,
+          "line": 51,
           "params": [
             "projectPath"
           ]
         },
         "getTasksFilePath": {
-          "line": 57,
+          "line": 58,
           "params": [
             "projectPath"
           ],
           "purpose": "Where tasks.json lives is frameStore's answer, not ours: `.frame/tasks.json`"
         },
         "flattenLegacyTasks": {
-          "line": 68,
+          "line": 69,
           "params": [
             "legacy"
           ],
           "purpose": "Migrate the old nested shape ({ pending, inProgress, completed }) into a"
         },
         "dedupById": {
-          "line": 81,
+          "line": 82,
           "params": [
             "tasks"
           ]
         },
         "loadTasks": {
-          "line": 102,
+          "line": 103,
           "params": [
             "projectPath"
           ],
           "purpose": "Read tasks.json from disk, migrate/normalize, and return the canonical"
         },
         "saveTasks": {
-          "line": 168,
+          "line": 169,
           "params": [
             "projectPath",
             "tasksData"
           ]
         },
         "sendTasksFileError": {
-          "line": 187,
+          "line": 188,
           "params": [
             "projectPath",
             "info"
@@ -7956,17 +7962,17 @@
           "purpose": "Tell the renderer tasks.json is corrupt (or was auto-recovered from .bak)"
         },
         "generateTaskId": {
-          "line": 195
+          "line": 196
         },
         "addTask": {
-          "line": 199,
+          "line": 200,
           "params": [
             "projectPath",
             "task"
           ]
         },
         "updateTask": {
-          "line": 228,
+          "line": 229,
           "params": [
             "projectPath",
             "taskId",
@@ -7974,14 +7980,14 @@
           ]
         },
         "deleteTask": {
-          "line": 257,
+          "line": 258,
           "params": [
             "projectPath",
             "taskId"
           ]
         },
         "reorderTasks": {
-          "line": 278,
+          "line": 279,
           "params": [
             "projectPath",
             "order"
@@ -7989,42 +7995,125 @@
           "purpose": "Reorder tasks. The renderer sends an ordered list of { id, status? }"
         },
         "startWatching": {
-          "line": 336,
+          "line": 337,
           "params": [
             "projectPath"
           ]
         },
         "onMetaFileChange": {
-          "line": 385,
+          "line": 384,
           "params": [
             "listener"
           ]
         },
         "notifyMetaChange": {
-          "line": 389,
+          "line": 388,
           "params": [
             "projectPath",
             "filename"
           ]
         },
         "restartWatching": {
-          "line": 404,
+          "line": 403,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-arm the watcher on the project's current meta directory. Migration moves"
         },
         "stopWatching": {
-          "line": 409
+          "line": 408
+        },
+        "serverConn": {
+          "line": 439
+        },
+        "linkOf": {
+          "line": 444,
+          "params": [
+            "serverKey"
+          ],
+          "purpose": "The connected link of a server key, or null (down, removed, or no key)."
+        },
+        "serverProjectsOf": {
+          "line": 454,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The server projects holding `projectPath`: one per server and server project, from the server workspace rows."
+        },
+        "serverListsOf": {
+          "line": 467,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The cached server lists of `projectPath`, in the shape mergeTaskLists takes."
+        },
+        "serverNotesOf": {
+          "line": 477,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "`[{ host, kind: 'offline' | 'update' }]` for the board's notices."
+        },
+        "tasksPayload": {
+          "line": 493,
+          "params": [
+            "projectPath",
+            "macData"
+          ],
+          "purpose": "What every TASKS_DATA push carries: the Mac's file with its tasks merged"
+        },
+        "pushTasks": {
+          "line": 504,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Push the merged list of `projectPath` to the window."
+        },
+        "markServerTasksOffline": {
+          "line": 510,
+          "params": [
+            "serverKey = null"
+          ],
+          "purpose": "Tag one server's entries (or every server's) offline. Returns whether anything changed."
+        },
+        "refreshServerTasks": {
+          "line": 524,
+          "params": [
+            "projectPath",
+            "{ onlyKey = null } = {}"
+          ],
+          "purpose": "Re-read the server tasks of `projectPath` (only `onlyKey`'s server when"
+        },
+        "refreshOnce": {
+          "line": 574,
+          "params": [
+            "projectPath",
+            "opts"
+          ]
+        },
+        "refreshOnLoad": {
+          "line": 582,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "A surface asked for the tasks: refresh the servers' unless that just happened."
+        },
+        "wireServerTasks": {
+          "line": 591,
+          "purpose": "Follow the servers: their pushes, connects, drops and removal, and the server workspace set."
+        },
+        "resetServerTasksForTests": {
+          "line": 625,
+          "purpose": "Test hook: forget every server entry and subscription."
         },
         "setupIPC": {
-          "line": 419,
+          "line": 634,
           "params": [
             "ipcMain"
           ]
         },
         "getLastSelfWriteAt": {
-          "line": 479,
+          "line": 693,
           "purpose": "Timestamp of this module's last tasks.json write — exported so other"
         }
       },
@@ -8042,7 +8131,7 @@
           "TASK_UPDATED"
         ]
       },
-      "sizeBytes": 16370,
+      "sizeBytes": 26310,
       "extraction": {
         "status": "parsed"
       },
@@ -8052,10 +8141,21 @@
           "flattenLegacyTasks": "64702a9ea7d6a83b",
           "getLastSelfWriteAt": "edca8f7c4c625263",
           "getTasksFilePath": "bf37f0ba6f662615",
+          "linkOf": "2965ebccf7a8ea0c",
           "loadTasks": "75961e36b0aa0c5e",
+          "markServerTasksOffline": "2fd8e4267c7214b9",
+          "pushTasks": "54d1d5db68bc6848",
+          "refreshOnLoad": "921b1d1993dbd5b6",
+          "refreshServerTasks": "61ca273f7fd2f179",
           "reorderTasks": "fad1821f6ffe5090",
+          "resetServerTasksForTests": "6d9796a7c5b8da00",
           "restartWatching": "a3e83c31810d67bd",
-          "sendTasksFileError": "9369701346948a50"
+          "sendTasksFileError": "9369701346948a50",
+          "serverListsOf": "f2fc99244a54750c",
+          "serverNotesOf": "bc5354902c784f16",
+          "serverProjectsOf": "4bf2280fbd2d7434",
+          "tasksPayload": "e3404bb5e4f35e5e",
+          "wireServerTasks": "315ceb0a35f74b8b"
         }
       }
     },
@@ -34801,6 +34901,47 @@
         "description": "494edc14d60ce825"
       }
     },
+    "test/tasksServerRouting.test": {
+      "file": "test/tasksServerRouting.test.js",
+      "description": "The desktop side of tasks in server workspaces (server-tasks T04, T05):",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "node:module",
+        "events",
+        "src/main/tasksManager",
+        "src/shared/ipcChannels"
+      ],
+      "functions": {
+        "resetHosts": {
+          "line": 23
+        },
+        "fakeLink": {
+          "line": 36,
+          "params": [
+            "key",
+            "host"
+          ]
+        },
+        "resetMac": {
+          "line": 117
+        },
+        "lastPush": {
+          "line": 134
+        }
+      },
+      "sizeBytes": 12864,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "31a0a6a3b24b9367"
+      }
+    },
     "test/themes.test": {
       "file": "test/themes.test.js",
       "description": "The theme registry (src/renderer/themes.js).",
@@ -37616,7 +37757,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 422,
+        "parsed": 423,
         "unsupported": 92,
         "partial": 0
       }
@@ -37663,9 +37804,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 608,
+      "visitedEntries": 609,
       "traversedDirectories": 86,
-      "eligibleFiles": 514,
+      "eligibleFiles": 515,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -37682,7 +37823,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 514,
+      "indexedFiles": 515,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -37690,6 +37831,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "d96285a6a483bb6fe7dcb427fc8d5abfe3b7710fa5975322475ba6d0b63bd96b"
+    "revision": "fd72d452e50039869f26dc6807a957b90a563e876a55ec43c944eeca4dc16eb3"
   }
 }

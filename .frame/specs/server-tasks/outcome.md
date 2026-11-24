@@ -22,3 +22,11 @@ _Captured: 2026-11-24 · 2 file change(s)_
 
 ---
 
+## T04 — Desktop cache and merged TASKS_DATA
+
+Added a desktop-only server-tasks section to `src/main/tasksManager.js`: one cache entry per serverKey + serverProjectPath (from `workspaceManager.serverRoots`), read with `tasks.list`, watched with `tasks.watch`, and followed through `tasks.changed`, connect, disconnect, removed and `workspaces.updated`. Every TASKS_DATA push — the five in tasksManager and the two in `specManager.js` — now goes through `tasksPayload`, which adds the merged list, the Mac's `tasksPath` and `serverNotes` (offline / update). Beyond the plan: LOAD_TASKS, which several surfaces send as they open, refreshes the servers at most once every 2 s with one refresh in flight, and a server that refuses (local mode there) is dropped without a note.
+
+_Captured: 2026-11-24 · 3 file change(s)_
+
+---
+

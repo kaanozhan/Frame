@@ -14,6 +14,7 @@ const frameStore = require('./frameStore');
 const activityLog = require('./activityLog');
 const { IPC } = require('../shared/ipcChannels');
 const { FRAME_FILES } = require('../shared/frameConstants');
+const { mergeTaskLists } = require('../shared/serverTasks');
 
 const VALID_STATUSES = ['pending', 'in_progress', 'completed'];
 const SELF_WRITE_GUARD_MS = 250;
@@ -362,9 +363,7 @@ function startWatching(projectPath) {
           triggered: 'push'
         });
         tasksFires = 0;
-        if (!mainWindow || mainWindow.isDestroyed()) return;
-        const tasks = loadTasks(projectPath);
-        mainWindow.webContents.send(IPC.TASKS_DATA, { projectPath, tasks });
+        pushTasks(projectPath);
       }, 50);
     });
     watchedPath = dir;
@@ -416,11 +415,230 @@ function stopWatching() {
   watchDebounceTimer = null;
 }
 
+// ─── Server projects' tasks (server-tasks T04) ────────────────
+//
+// A project on a Frame Server keeps its task state in that clone's
+// tasks.json (server-specs B1). The desktop lists those tasks next to the
+// Mac's: one cache entry per server and server project — every workspace of
+// the project on that server shares the clone's file — read with
+// `tasks.list`, followed with `tasks.watch` / `tasks.changed`, and merged
+// into every TASKS_DATA push by tasksPayload (shared/serverTasks). A down
+// server keeps its last list, tagged offline; a Frame Server without
+// `tasks.list` gets an "update" note instead of tasks. Desktop only: Frame
+// Server runs this module for the clone and never reaches this section.
+
+// `${serverKey}\u0000${serverProjectPath}` → { projectPath, serverKey, serverProjectPath, host, tasksPath, tasks, offline, unsupported }
+const serverTasks = new Map();
+let serverTasksWired = false;
+let serverRowsTimer = null;
+const SERVER_ROWS_SETTLE_MS = 1500;
+const SERVER_CALL_MS = 30 * 1000;
+
+const serverEntryKey = (serverKey, serverProjectPath) => `${serverKey}\u0000${serverProjectPath}`;
+
+function serverConn() {
+  return require('./serverConnection');
+}
+
+/** The connected link of a server key, or null (down, removed, or no key). */
+function linkOf(serverKey) {
+  try {
+    const link = serverKey ? serverConn().of(serverKey) : null;
+    return link && link.isConnected() ? link : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** The server projects holding `projectPath`: one per server and server project, from the server workspace rows. */
+function serverProjectsOf(projectPath) {
+  let roots = [];
+  try { roots = require('./workspaceManager').serverRoots() || []; } catch (_) { roots = []; }
+  const out = new Map();
+  for (const r of roots) {
+    if (!r || r.projectPath !== projectPath || !r.serverKey || !r.serverProjectPath) continue;
+    const key = serverEntryKey(r.serverKey, r.serverProjectPath);
+    if (!out.has(key)) out.set(key, { key, serverKey: r.serverKey, serverProjectPath: r.serverProjectPath, host: r.host || null });
+  }
+  return [...out.values()];
+}
+
+/** The cached server lists of `projectPath`, in the shape mergeTaskLists takes. */
+function serverListsOf(projectPath) {
+  const out = [];
+  for (const e of serverTasks.values()) {
+    if (e.projectPath !== projectPath || e.unsupported) continue;
+    out.push({ host: e.host, serverKey: e.serverKey, serverProjectPath: e.serverProjectPath, tasksPath: e.tasksPath, offline: e.offline, tasks: e.tasks });
+  }
+  return out;
+}
+
+/** `[{ host, kind: 'offline' | 'update' }]` for the board's notices. */
+function serverNotesOf(projectPath) {
+  const out = [];
+  for (const e of serverTasks.values()) {
+    if (e.projectPath !== projectPath) continue;
+    if (e.unsupported) out.push({ host: e.host, kind: 'update' });
+    else if (e.offline) out.push({ host: e.host, kind: 'offline' });
+  }
+  return out;
+}
+
+/**
+ * What every TASKS_DATA push carries: the Mac's file with its tasks merged
+ * with the cached server tasks, the Mac's tasks.json path (Play names it),
+ * and the server notes. A project without server workspaces gets the Mac's
+ * tasks exactly as before, plus `tasksPath` and an empty `serverNotes`.
+ */
+function tasksPayload(projectPath, macData) {
+  const lists = serverListsOf(projectPath);
+  const tasks = macData && Array.isArray(macData.tasks)
+    ? { ...macData, tasks: mergeTaskLists(macData.tasks, lists) }
+    : macData;
+  let tasksPath = null;
+  try { tasksPath = projectPath ? frameStore.resolvePath(projectPath, FRAME_FILES.TASKS) : null; } catch (_) { tasksPath = null; }
+  return { projectPath, tasks, tasksPath, serverNotes: serverNotesOf(projectPath) };
+}
+
+/** Push the merged list of `projectPath` to the window. */
+function pushTasks(projectPath) {
+  if (!projectPath || !mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send(IPC.TASKS_DATA, tasksPayload(projectPath, loadTasks(projectPath)));
+}
+
+/** Tag one server's entries (or every server's) offline. Returns whether anything changed. */
+function markServerTasksOffline(serverKey = null) {
+  let changed = false;
+  for (const e of serverTasks.values()) {
+    if (serverKey && e.serverKey !== serverKey) continue;
+    if (!e.offline && !e.unsupported) { e.offline = true; changed = true; }
+  }
+  return changed;
+}
+
+/**
+ * Re-read the server tasks of `projectPath` (only `onlyKey`'s server when
+ * given), ask each server to watch the project, and push when anything
+ * changed. Never throws: a server that fails keeps its last list.
+ */
+async function refreshServerTasks(projectPath, { onlyKey = null } = {}) {
+  if (!projectPath) return;
+  wireServerTasks();
+  const projects = serverProjectsOf(projectPath);
+  const wanted = new Set(projects.map((p) => p.key));
+  let changed = false;
+  // Server projects that left (workspace archived, server removed) leave the list.
+  for (const [key, e] of serverTasks) {
+    if (e.projectPath === projectPath && !wanted.has(key)) { serverTasks.delete(key); changed = true; }
+  }
+  for (const p of projects) {
+    if (onlyKey && p.serverKey !== onlyKey) continue;
+    const known = serverTasks.get(p.key);
+    const link = linkOf(p.serverKey);
+    if (!link) {
+      if (known) { if (!known.offline && !known.unsupported) { known.offline = true; changed = true; } }
+      else { serverTasks.set(p.key, { projectPath, ...p, tasksPath: null, tasks: [], offline: true, unsupported: false }); changed = true; }
+      continue;
+    }
+    try {
+      const res = await link.call('tasks.list', { projectPath: p.serverProjectPath }, SERVER_CALL_MS);
+      serverTasks.set(p.key, { projectPath, ...p, tasksPath: (res && res.tasksPath) || null, tasks: (res && Array.isArray(res.tasks)) ? res.tasks : [], offline: false, unsupported: false });
+      changed = true;
+      link.call('tasks.watch', { projectPath: p.serverProjectPath }).catch(() => { /* gone meanwhile — the next connect retries */ });
+    } catch (err) {
+      const msg = String((err && err.message) || err);
+      if (/Unknown method/i.test(msg)) {
+        serverTasks.set(p.key, { projectPath, ...p, tasksPath: null, tasks: [], offline: false, unsupported: true });
+      } else if (!link.isConnected()) {
+        if (known) known.offline = true;
+        else serverTasks.set(p.key, { projectPath, ...p, tasksPath: null, tasks: [], offline: true, unsupported: false });
+      } else {
+        // The server answered with a refusal (local mode, not a Frame
+        // project there): no tasks of its to list.
+        serverTasks.delete(p.key);
+        console.warn('tasksManager: tasks.list on', p.host, 'refused:', msg);
+      }
+      changed = true;
+    }
+  }
+  if (changed) pushTasks(projectPath);
+}
+
+// One refresh per project at a time; LOAD_TASKS (sent by several surfaces as
+// they open) refreshes at most every LOAD_REFRESH_MS. Server pushes, connects
+// and workspace changes are not throttled.
+const refreshing = new Map(); // projectPath → Promise
+const lastLoadRefresh = new Map(); // projectPath → ms
+const LOAD_REFRESH_MS = 2000;
+
+function refreshOnce(projectPath, opts) {
+  if (refreshing.has(projectPath)) return refreshing.get(projectPath);
+  const run = refreshServerTasks(projectPath, opts).finally(() => refreshing.delete(projectPath));
+  refreshing.set(projectPath, run);
+  return run;
+}
+
+/** A surface asked for the tasks: refresh the servers' unless that just happened. */
+function refreshOnLoad(projectPath) {
+  if (!projectPath) return null;
+  const last = lastLoadRefresh.get(projectPath) || 0;
+  if (Date.now() - last < LOAD_REFRESH_MS || refreshing.has(projectPath)) return refreshing.get(projectPath) || null;
+  lastLoadRefresh.set(projectPath, Date.now());
+  return refreshOnce(projectPath);
+}
+
+/** Follow the servers: their pushes, connects, drops and removal, and the server workspace set. */
+function wireServerTasks() {
+  if (serverTasksWired) return;
+  let sc;
+  try { sc = serverConn(); } catch (_) { return; }
+  serverTasksWired = true;
+  sc.on('tasks.changed', ({ projectPath: serverProjectPath } = {}, key) => {
+    if (!currentProjectPath) return;
+    const known = [...serverTasks.values()].some((e) => e.projectPath === currentProjectPath && e.serverKey === key && e.serverProjectPath === serverProjectPath);
+    if (known) refreshServerTasks(currentProjectPath, { onlyKey: key }).catch(() => { /* reported inside */ });
+  });
+  sc.on('connected', (status, key) => {
+    if (currentProjectPath) refreshServerTasks(currentProjectPath, { onlyKey: key || null }).catch(() => { /* reported inside */ });
+  });
+  sc.on('disconnected', (status, key) => {
+    if (markServerTasksOffline(key || null) && currentProjectPath) pushTasks(currentProjectPath);
+  });
+  sc.on('removed', (payload, key) => {
+    let changed = false;
+    for (const [k, e] of [...serverTasks]) if (e.serverKey === key) { serverTasks.delete(k); changed = true; }
+    if (changed && currentProjectPath) pushTasks(currentProjectPath);
+  });
+  // Server workspace rows reach workspaceManager when the renderer re-lists
+  // after this event; give that a moment, then follow the new set.
+  sc.on('workspaces.updated', () => {
+    if (serverRowsTimer) clearTimeout(serverRowsTimer);
+    serverRowsTimer = setTimeout(() => {
+      serverRowsTimer = null;
+      if (currentProjectPath) refreshServerTasks(currentProjectPath).catch(() => { /* reported inside */ });
+    }, SERVER_ROWS_SETTLE_MS);
+    if (typeof serverRowsTimer.unref === 'function') serverRowsTimer.unref();
+  });
+}
+
+/** Test hook: forget every server entry and subscription. */
+function resetServerTasksForTests() {
+  serverTasks.clear();
+  refreshing.clear();
+  lastLoadRefresh.clear();
+  serverTasksWired = false;
+  if (serverRowsTimer) clearTimeout(serverRowsTimer);
+  serverRowsTimer = null;
+}
+
 function setupIPC(ipcMain) {
   ipcMain.on(IPC.LOAD_TASKS, (event, projectPath) => {
     const tasks = loadTasks(projectPath);
-    event.sender.send(IPC.TASKS_DATA, { projectPath, tasks });
+    event.sender.send(IPC.TASKS_DATA, tasksPayload(projectPath, tasks));
     startWatching(projectPath);
+    // The server workspaces' tasks follow (server-tasks): pushed when they change.
+    const run = refreshOnLoad(projectPath);
+    if (run) run.catch(() => { /* reported inside */ });
   });
 
   ipcMain.on(IPC.ADD_TASK, (event, { projectPath, task }) => {
@@ -431,8 +649,7 @@ function setupIPC(ipcMain) {
       task: newTask,
       success: !!newTask
     });
-    const tasks = loadTasks(projectPath);
-    event.sender.send(IPC.TASKS_DATA, { projectPath, tasks });
+    event.sender.send(IPC.TASKS_DATA, tasksPayload(projectPath, loadTasks(projectPath)));
   });
 
   ipcMain.on(IPC.UPDATE_TASK, (event, { projectPath, taskId, updates }) => {
@@ -443,8 +660,7 @@ function setupIPC(ipcMain) {
       task: updatedTask,
       success: !!updatedTask
     });
-    const tasks = loadTasks(projectPath);
-    event.sender.send(IPC.TASKS_DATA, { projectPath, tasks });
+    event.sender.send(IPC.TASKS_DATA, tasksPayload(projectPath, loadTasks(projectPath)));
   });
 
   ipcMain.on(IPC.DELETE_TASK, (event, { projectPath, taskId }) => {
@@ -455,8 +671,7 @@ function setupIPC(ipcMain) {
       taskId,
       success
     });
-    const tasks = loadTasks(projectPath);
-    event.sender.send(IPC.TASKS_DATA, { projectPath, tasks });
+    event.sender.send(IPC.TASKS_DATA, tasksPayload(projectPath, loadTasks(projectPath)));
   });
 
   ipcMain.on(IPC.REORDER_TASKS, (event, { projectPath, order }) => {
@@ -466,8 +681,7 @@ function setupIPC(ipcMain) {
       action: 'reorder',
       success
     });
-    const tasks = loadTasks(projectPath);
-    event.sender.send(IPC.TASKS_DATA, { projectPath, tasks });
+    event.sender.send(IPC.TASKS_DATA, tasksPayload(projectPath, loadTasks(projectPath)));
   });
 }
 
@@ -482,6 +696,9 @@ function getLastSelfWriteAt() {
 
 module.exports = {
   init,
+  tasksPayload,
+  refreshServerTasks,
+  resetServerTasksForTests,
   setProjectPath,
   loadTasks,
   saveTasks,
