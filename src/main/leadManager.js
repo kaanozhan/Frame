@@ -7,8 +7,9 @@
  * transcripts (sessionRestore first, then Claude's own pid file, D16).
  *
  * Only local terminals: a server's terminals belong to that server's Chief
- * (spec C4). The server side of approvals reaches the renderer through
- * src/main/leadManager's server bridge in T12.
+ * (spec C4). For a server Chief this module is only a bridge (T12): Start,
+ * mode and decisions are forwarded to its server; that server's
+ * `lead.approvals` events come back as LEAD_APPROVALS with desktop ids.
  */
 
 const fs = require('fs');
@@ -22,6 +23,7 @@ const ptyManager = require('./ptyManager');
 const sessionRestore = require('./sessionRestore');
 const claudeSessionsManager = require('./claudeSessionsManager');
 const logger = require('./logger');
+const { isServerTerminalId, splitDesktopTerminalId, desktopTerminalId } = require('../shared/serverRouting');
 
 const SCREEN_TIMEOUT_MS = 3000;
 const MACHINE = 'desktop';
@@ -93,9 +95,61 @@ const adapter = {
   onApprovalsChanged: (chief, pending) => send(IPC.LEAD_APPROVALS, { ...chief, pending })
 };
 
+// ─── server Chiefs (T12) ───────────────────────────────────
+
+function server() {
+  return require('./serverConnection');
+}
+
+/** `{ link, serverTerminalId, info }` for a server Chief's desktop id, or null. */
+function serverRoute(terminalId) {
+  if (!isServerTerminalId(terminalId)) return null;
+  const split = splitDesktopTerminalId(terminalId);
+  const link = split && server().of(split.serverKey);
+  if (!link || !link.isConnected()) return null;
+  return { link, serverTerminalId: split.serverTerminalId, info: ptyManager.serverTerminalInfo(terminalId) || {} };
+}
+
+/** Server-local ids in an approval record → desktop ids, so the renderer can name the target. */
+function toDesktopRecord(rec, key) {
+  return { ...rec, chiefId: desktopTerminalId(key, rec.chiefId) || rec.chiefId, target: rec.target ? (desktopTerminalId(key, rec.target) || rec.target) : null, serverKey: key };
+}
+
+function forwardServerApprovals(payload, key) {
+  if (!payload || !payload.chiefId) return;
+  const chiefId = desktopTerminalId(key, payload.chiefId);
+  if (!chiefId) return;
+  send(IPC.LEAD_APPROVALS, {
+    chiefId,
+    machine: 'server',
+    serverKey: key,
+    pending: (payload.pending || []).map((r) => toDesktopRecord(r, key))
+  });
+}
+
+/** Connected servers that hold workspaces of this project, each with its clone path: where a server Chief belongs. */
+async function serverChiefTargets(projectPath) {
+  if (!projectPath) return [];
+  let rows = [];
+  try {
+    const listed = await require('./workspaceManager').list(projectPath);
+    rows = ((listed && listed.workspaces) || []).filter((w) => w.location === 'server' && w.serverProjectPath && !w.offline);
+  } catch (_) {
+    return [];
+  }
+  const seen = new Map();
+  for (const w of rows) {
+    const link = server().of(w.serverKey);
+    if (!link || !link.isConnected() || seen.has(w.serverKey)) continue;
+    seen.set(w.serverKey, { serverKey: w.serverKey, host: w.host || link.host, serverProjectPath: w.serverProjectPath });
+  }
+  return [...seen.values()];
+}
+
 function init(window) {
   mainWindow = window;
   if (host) return;
+  try { server().on('lead.approvals', (payload, key) => forwardServerApprovals(payload, key)); } catch (e) { logger.warn('lead', `server events not wired: ${e.message}`); }
   host = createLeadHost({ machine: MACHINE, machineLabel: 'this Mac', adapter, logger });
   ptyManager.onTerminalExit((terminalId) => {
     try { host.terminalGone(terminalId); } catch (e) { logger.warn('lead', `terminalGone failed: ${e.message}`); }
@@ -109,6 +163,16 @@ function getHost() {
 
 function setupIPC(ipcMain) {
   ipcMain.handle(IPC.LEAD_START, async (event, { projectPath, terminalId } = {}) => {
+    if (isServerTerminalId(terminalId)) {
+      const route = serverRoute(terminalId);
+      if (!route) return { ok: false, error: 'That server is not connected.' };
+      try {
+        const res = await route.link.call('lead.start', { terminalId: route.serverTerminalId });
+        return { ok: true, command: res.command, mode: res.mode };
+      } catch (e) {
+        return { ok: false, error: e.message };
+      }
+    }
     if (!host) return { ok: false, error: 'Chief host not ready' };
     if (!terminalId || !ptyManager.isLeadTerminal(terminalId) || ptyManager.leadTerminalOf(projectPath) !== terminalId) {
       return { ok: false, error: 'Not this project\'s Chief terminal' };
@@ -123,15 +187,41 @@ function setupIPC(ipcMain) {
   });
 
   ipcMain.on(IPC.LEAD_STOP, (event, { terminalId } = {}) => {
+    if (isServerTerminalId(terminalId)) {
+      const route = serverRoute(terminalId);
+      if (route) route.link.call('lead.stop', { terminalId: route.serverTerminalId }).catch(() => {});
+      return;
+    }
     if (host && terminalId) host.stopChief(terminalId, { reason: 'The Chief session ended.' });
   });
 
-  ipcMain.handle(IPC.LEAD_MODE_GET, (event, { projectPath } = {}) => (host ? host.getMode(projectPath) : 'user-guided'));
-  ipcMain.handle(IPC.LEAD_MODE_SET, (event, { projectPath, mode } = {}) => (host ? host.setMode(projectPath, mode) : 'user-guided'));
+  // Modes are per (project, machine): a server Chief's mode lives on its server.
+  ipcMain.handle(IPC.LEAD_MODE_GET, async (event, { projectPath, terminalId = null } = {}) => {
+    const route = terminalId ? serverRoute(terminalId) : null;
+    if (route) return route.link.call('lead.mode', { projectPath: route.info.serverProjectPath }).catch(() => 'user-guided');
+    return host ? host.getMode(projectPath) : 'user-guided';
+  });
+  ipcMain.handle(IPC.LEAD_MODE_SET, async (event, { projectPath, mode, terminalId = null } = {}) => {
+    const route = terminalId ? serverRoute(terminalId) : null;
+    if (route) return route.link.call('lead.mode', { projectPath: route.info.serverProjectPath, mode }).catch(() => 'user-guided');
+    return host ? host.setMode(projectPath, mode) : 'user-guided';
+  });
 
-  ipcMain.handle(IPC.LEAD_PENDING, (event, { projectPath } = {}) => {
-    if (!host) return [];
-    return host.chiefsFor(projectPath).map((c) => ({ ...c, pending: host.pending(c.chiefId) }));
+  ipcMain.handle(IPC.LEAD_SERVER_TARGETS, (event, { projectPath } = {}) => serverChiefTargets(projectPath));
+
+  // This project's Chiefs with what they wait on — local, plus every connected
+  // server's (a reconnect shows the approvals asked while the Mac was away).
+  ipcMain.handle(IPC.LEAD_PENDING, async (event, { projectPath } = {}) => {
+    const out = host ? host.chiefsFor(projectPath).map((c) => ({ ...c, pending: host.pending(c.chiefId) })) : [];
+    for (const t of await serverChiefTargets(projectPath)) {
+      try {
+        const list = await server().of(t.serverKey).call('lead.pending', { projectPath: t.serverProjectPath });
+        for (const c of list || []) {
+          out.push({ chiefId: desktopTerminalId(t.serverKey, c.chiefId), machine: 'server', serverKey: t.serverKey, pending: (c.pending || []).map((r) => toDesktopRecord(r, t.serverKey)) });
+        }
+      } catch (_) { /* that server cannot answer now */ }
+    }
+    return out;
   });
 
   ipcMain.handle(IPC.LEAD_DECIDE, (event, { approvalId, decision, text = null, serverKey = null } = {}) => {
@@ -147,9 +237,15 @@ function setupIPC(ipcMain) {
   });
 }
 
-/** A server Chief's approval, decided on the desktop (T12 fills this in). */
-async function decideOnServer() {
-  return { ok: false, error: 'Server Chiefs are not connected yet' };
+/** A server Chief's approval, decided here; the server applies the first decision only. */
+async function decideOnServer(serverKey, { approvalId, decision, text = null } = {}) {
+  const link = server().of(serverKey);
+  if (!link || !link.isConnected()) return { ok: false, error: 'That server is not connected.' };
+  try {
+    return await link.call('lead.decide', { approvalId, decision, text });
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
 }
 
 function shutdown() {

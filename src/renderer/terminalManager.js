@@ -81,9 +81,16 @@ function closeCaller() {
   return `unlabelled close from ${frames.join(' < ') || 'an unknown caller'}`;
 }
 
-/** Oldest first, with a project's Chief(s) pinned ahead of every other terminal. */
+/**
+ * Oldest first, with a project's Chiefs pinned ahead of every other terminal:
+ * this Mac's Chief, then each server's ("Chief · host").
+ */
 function chiefFirst(a, b) {
   if (!!a.lead !== !!b.lead) return a.lead ? -1 : 1;
+  if (a.lead) {
+    const aSrv = isServerTerminalId(a.id);
+    if (aSrv !== isServerTerminalId(b.id)) return aSrv ? 1 : -1;
+  }
   return a.createdAt - b.createdAt;
 }
 
@@ -421,6 +428,7 @@ class TerminalManager {
         shell: options.shell || null,
         extraEnv: options.extraEnv || null, // orchestration worker lanes pass FRAME_ORCH_* env
         ...(options.lead ? { lead: true } : {}), // the project's Chief (lead-agent)
+        ...(options.serverProjectPath ? { serverProjectPath: options.serverProjectPath } : {}), // a server Chief's clone (lead-agent T12)
         ...(options.location ? { location: options.location } : {}), // 'server-home' (server-onboarding)
         ...(options.serverKey ? { serverKey: options.serverKey } : {}) // which server (multi-server-connections)
       });
@@ -1125,7 +1133,7 @@ class TerminalManager {
     for (const t of list || []) {
       let inst = this.terminals.get(t.terminalId);
       if (!inst) {
-        this._initializeTerminal(t.terminalId, { projectPath: t.projectPath, workspaceId: t.workspaceId });
+        this._initializeTerminal(t.terminalId, { projectPath: t.projectPath, workspaceId: t.workspaceId, lead: !!t.lead, ...(t.lead ? { name: `Chief · ${t.host || this._serverOf(t.terminalId).host || 'server'}` } : {}) });
         inst = this.terminals.get(t.terminalId);
         added = true;
         if (inst && t.home && !inst.state.customName) inst.state.customName = `Server · ${t.host || this._serverOf(t.terminalId).host || 'server'}`;

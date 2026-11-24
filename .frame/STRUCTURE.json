@@ -4295,18 +4295,21 @@
         "sessionRestore",
         "claudeSessionsManager",
         "logger",
-        "orchestrationManager"
+        "shared/serverRouting",
+        "orchestrationManager",
+        "serverConnection",
+        "workspaceManager"
       ],
       "functions": {
         "send": {
-          "line": 33,
+          "line": 35,
           "params": [
             "channel",
             "payload"
           ]
         },
         "readScreen": {
-          "line": 38,
+          "line": 40,
           "params": [
             "terminalId",
             "lines"
@@ -4314,44 +4317,82 @@
           "purpose": "Plain screen text from the renderer's xterm (D5); null when it cannot answer."
         },
         "claudeConfigDir": {
-          "line": 48
+          "line": 50
         },
         "transcriptFor": {
-          "line": 53,
+          "line": 55,
           "params": [
             "terminalId"
           ],
           "purpose": "A terminal's transcript: the SessionStart report, else ~/.claude/sessions/<pid>.json (D16)."
         },
         "orchestrationIds": {
-          "line": 72,
+          "line": 74,
           "params": [
             "projectPath"
           ],
           "purpose": "Conductor and worker lanes of a running orchestration session (read-only to the Chief)."
         },
+        "server": {
+          "line": 100
+        },
+        "serverRoute": {
+          "line": 105,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "`{ link, serverTerminalId, info }` for a server Chief's desktop id, or null."
+        },
+        "toDesktopRecord": {
+          "line": 114,
+          "params": [
+            "rec",
+            "key"
+          ],
+          "purpose": "Server-local ids in an approval record → desktop ids, so the renderer can name the target."
+        },
+        "forwardServerApprovals": {
+          "line": 118,
+          "params": [
+            "payload",
+            "key"
+          ]
+        },
+        "serverChiefTargets": {
+          "line": 131,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Connected servers that hold workspaces of this project, each with its clone path: where a server Chief belongs."
+        },
         "init": {
-          "line": 96,
+          "line": 149,
           "params": [
             "window"
           ]
         },
         "getHost": {
-          "line": 106,
+          "line": 160,
           "purpose": "The desktop host (T12's server bridge and tests)."
         },
         "setupIPC": {
-          "line": 110,
+          "line": 164,
           "params": [
             "ipcMain"
           ]
         },
         "decideOnServer": {
-          "line": 151,
-          "purpose": "A server Chief's approval, decided on the desktop (T12 fills this in)."
+          "line": 241,
+          "params": [
+            "serverKey",
+            "{ approvalId",
+            "decision",
+            "text = null } = {}"
+          ],
+          "purpose": "A server Chief's approval, decided here; the server applies the first decision only."
         },
         "shutdown": {
-          "line": 155
+          "line": 251
         }
       },
       "ipc": {
@@ -4360,6 +4401,7 @@
           "LEAD_STOP",
           "LEAD_MODE_GET",
           "LEAD_MODE_SET",
+          "LEAD_SERVER_TARGETS",
           "LEAD_PENDING",
           "LEAD_DECIDE",
           "LEAD_SCREEN_REPLY"
@@ -4368,17 +4410,20 @@
           "channel"
         ]
       },
-      "sizeBytes": 6557,
+      "sizeBytes": 11262,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "ed6873c56c723fb3",
         "purposes": {
-          "decideOnServer": "481971afe0b1f410",
+          "decideOnServer": "95fb498338b936a5",
           "getHost": "342291fb849308f9",
           "orchestrationIds": "09cf2bc3a3a897fc",
           "readScreen": "5efcaee08f663c39",
+          "serverChiefTargets": "98889df6e9e29a4a",
+          "serverRoute": "da1c3ebd33df7df5",
+          "toDesktopRecord": "b0106d43a6535737",
           "transcriptFor": "5526c60a58c5e60f"
         }
       }
@@ -5986,14 +6031,14 @@
           "purpose": "One connected server's live terminals of a local project, with a screen each; null when it cannot tell."
         },
         "adoptServerTerminals": {
-          "line": 858,
+          "line": 863,
           "params": [
             "projectPath"
           ],
           "purpose": "Every connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 888,
+          "line": 893,
           "params": [
             "ipcMain"
           ]
@@ -6016,7 +6061,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 40846,
+      "sizeBytes": 42513,
       "extraction": {
         "status": "parsed"
       },
@@ -10594,80 +10639,101 @@
       ],
       "functions": {
         "escapeHtml": {
-          "line": 35,
+          "line": 44,
           "params": [
             "s"
           ]
         },
         "chiefOf": {
-          "line": 39,
+          "line": 48,
           "params": [
             "projectPath"
           ]
         },
         "ensure": {
-          "line": 46,
+          "line": 55,
           "params": [
             "projectPath"
           ]
+        },
+        "ensureServers": {
+          "line": 76,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "One Chief per connected server that holds this project's workspaces (T12)."
         },
         "decorate": {
-          "line": 67,
+          "line": 116,
           "params": [
             "terminalId",
-            "projectPath"
+            "projectPath",
+            "host = null"
           ]
         },
+        "refreshPending": {
+          "line": 173,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Approvals asked while this window could not see them (reload, a server reconnect)."
+        },
         "render": {
-          "line": 120,
+          "line": 180,
           "params": [
             "terminalId"
           ]
         },
         "setMode": {
-          "line": 138,
+          "line": 198,
           "params": [
             "terminalId",
             "mode"
           ]
         },
         "start": {
-          "line": 147,
+          "line": 207,
           "params": [
             "terminalId"
           ]
         },
         "stopped": {
-          "line": 170,
+          "line": 230,
           "params": [
             "terminalId"
           ],
           "purpose": "The Chief's session left its terminal (back at the shell): show Start again."
         },
         "approvalTitle": {
-          "line": 180,
+          "line": 240,
           "params": [
             "rec"
           ],
           "purpose": "\"Send to 1st Terminal (blue)\": the target as the user sees it, not its id."
         },
         "renderCards": {
-          "line": 188,
+          "line": 248,
           "params": [
             "terminalId"
           ]
         },
         "onApprovals": {
-          "line": 223,
+          "line": 283,
           "params": [
             "payload"
           ],
           "purpose": "main → renderer: a Chief's pending approvals changed."
         },
         "init": {
-          "line": 240,
+          "line": 300,
           "params": [
             "multiTerminalUI"
+          ]
+        },
+        "serverKeyOf": {
+          "line": 42,
+          "params": [
+            "id"
           ]
         }
       },
@@ -10675,6 +10741,7 @@
         "listens": [
           "TERMINAL_PROCESS_DATA",
           "TERMINAL_DESTROYED",
+          "SERVER_STATUS_CHANGED",
           "LEAD_APPROVALS"
         ],
         "emits": [
@@ -10682,7 +10749,7 @@
           "LEAD_STOP"
         ]
       },
-      "sizeBytes": 11236,
+      "sizeBytes": 14861,
       "extraction": {
         "status": "parsed"
       },
@@ -10690,7 +10757,9 @@
         "description": "80776c3e6c2c0c4a",
         "purposes": {
           "approvalTitle": "49608c30ed486d7d",
+          "ensureServers": "4e00771dbb6926c0",
           "onApprovals": "5314df977e368d65",
+          "refreshPending": "42dadb6ef3cbe71f",
           "stopped": "cb481a62921901ba"
         }
       }
@@ -20733,12 +20802,12 @@
           "purpose": "Where an unlabelled closeTerminal call came from: the first frames past"
         },
         "chiefFirst": {
-          "line": 85,
+          "line": 88,
           "params": [
             "a",
             "b"
           ],
-          "purpose": "Oldest first, with a project's Chief(s) pinned ahead of every other terminal."
+          "purpose": "Oldest first, with a project's Chiefs pinned ahead of every other terminal:"
         }
       },
       "ipc": {
@@ -20762,14 +20831,14 @@
           "LEAD_SCREEN_REPLY"
         ]
       },
-      "sizeBytes": 46382,
+      "sizeBytes": 46826,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "5503a1b34dbada83",
         "purposes": {
-          "chiefFirst": "93def008bf1c17bb",
+          "chiefFirst": "ac5fc0d6cb3158ee",
           "closeCaller": "dbe7ad2c35f80fff",
           "getTerminalTheme": "c1851af8b213ec21",
           "terminalName": "1c4c500d3f4e3dbd"
@@ -28093,7 +28162,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 20430,
+      "sizeBytes": 20612,
       "extraction": {
         "status": "parsed"
       },
@@ -37780,6 +37849,11 @@
         "name": "lead-screen-reply",
         "direction": "",
         "description": ""
+      },
+      "LEAD_SERVER_TARGETS": {
+        "name": "lead-server-targets",
+        "direction": "",
+        "description": ""
       }
     }
   },
@@ -39307,6 +39381,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "1d72ddb4392e272e7bb0e759eb2b002fa20d7dd80679f93eedf8dd85779d28a3"
+    "revision": "5dc17823e96f94251421a4f5da2de3b36d8f01325d5b6f2a9ddbec218bab2747"
   }
 }

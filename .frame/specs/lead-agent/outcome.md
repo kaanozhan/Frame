@@ -87,3 +87,13 @@ Added `screenMirror.text({ lines })`, which reads up to the cursor line after pe
 _Captured: 2026-11-25 · 4 file changes_
 
 ---
+
+## T12 — Server Chief on the desktop
+
+`ptyManager` handles `TERMINAL_CREATE` with `location: 'server-lead'`, creating the Chief in the project's server clone and mapping the server's duplicate refusal to `LEAD_EXISTS`. `adoptFrom` accepts lead terminals by server project path and brings them back into `main` with `lead` and `serverProjectPath`. `leadManager` bridges server Chiefs: `LEAD_START` / `LEAD_STOP` / mode / decide route to the terminal's server, `LEAD_PENDING` also asks every connected server, and server `lead.approvals` events become `LEAD_APPROVALS` with desktop ids. The new `LEAD_SERVER_TARGETS` channel lists the connected servers that hold the project's workspaces. In the renderer, `chiefLane` ensures one "Chief · host" per such server, on project open and two seconds after a server comes up. It adopts the existing Chief instead of opening a second one, and shows a running session rather than Start when the Chief was already running. `terminalManager` names adopted lead terminals "Chief · host" and orders the local Chief before server Chiefs. Verified main-side against a real Frame Server process, with only `serverConnection` and `workspaceManager` stubbed by a WebSocket link (11 checks). The renderer's server path was not run live, because no SSH host was available here.
+
+Followup: live-test a server Chief over a real SSH Frame Server connection (create, Start, approve while connected, close the laptop, reconnect).
+
+_Captured: 2026-11-25 · 5 file changes_
+
+---

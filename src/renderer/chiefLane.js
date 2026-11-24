@@ -12,6 +12,11 @@
  *     plus a pending count on the Chief's chip and pane and a sticky toast,
  *     so an approval asked for while you are elsewhere is not missed (D17).
  *
+ * Each connected Frame Server that holds the project's workspaces gets its
+ * own Chief too ("Chief · host", T12): it runs on that server, in the
+ * project's clone there, and keeps working while this Mac is away. Its
+ * approvals arrive the same way, tagged with the server.
+ *
  * Everything the Chief can do is decided in the main process (leadHost);
  * this module only shows state and relays the user's clicks.
  */
@@ -30,7 +35,11 @@ let ui = null;
 let manager = null;
 // terminalId → { projectPath, running, seenAgent, mode, pending: [], els }
 const chiefs = new Map();
-const ensuring = new Set(); // projectPaths with an ensure in flight
+const ensuring = new Set(); // projectPaths (and `projectPath#serverKey`) with an ensure in flight
+let serverTimer = null;
+
+const isServerId = (id) => String(id).startsWith('srv-');
+const serverKeyOf = (id) => { const m = /^srv-([0-9a-z]+)\./.exec(String(id)); return m ? m[1] : null; };
 
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -45,7 +54,7 @@ function chiefOf(projectPath) {
 
 async function ensure(projectPath) {
   if (!projectPath || ensuring.has(projectPath)) return;
-  const known = manager.getTerminalsInScope(projectPath, 'main').find((t) => t.lead && !String(t.id).startsWith('srv-'));
+  const known = manager.getTerminalsInScope(projectPath, 'main').find((t) => t.lead && !isServerId(t.id));
   if (known) {
     decorate(known.id, projectPath);
     return;
@@ -60,15 +69,55 @@ async function ensure(projectPath) {
   } finally {
     ensuring.delete(projectPath);
   }
+  ensureServers(projectPath);
+}
+
+/** One Chief per connected server that holds this project's workspaces (T12). */
+async function ensureServers(projectPath) {
+  let targets = [];
+  try {
+    targets = await ipcRenderer.invoke(IPC.LEAD_SERVER_TARGETS, { projectPath });
+  } catch (_) {
+    return;
+  }
+  for (const t of targets || []) {
+    const key = `${projectPath}#${t.serverKey}`;
+    if (ensuring.has(key)) continue;
+    const known = manager.getTerminalsInScope(projectPath, 'main').find((s) => s.lead && serverKeyOf(s.id) === t.serverKey);
+    if (known) {
+      decorate(known.id, projectPath, t.host);
+      continue;
+    }
+    ensuring.add(key);
+    try {
+      const id = await manager.createTerminal({
+        projectPath, workspaceId: 'main', lead: true, name: `Chief · ${t.host}`,
+        location: 'server-lead', serverKey: t.serverKey, serverProjectPath: t.serverProjectPath
+      });
+      if (id) decorate(id, projectPath, t.host);
+    } catch (err) {
+      // The server already runs one (opened from another window, or before a
+      // reload): bring it in rather than open a second.
+      if (err && err.code === 'LEAD_EXISTS') {
+        await manager.adoptServerTerminals(projectPath);
+        const adopted = manager.getTerminalsInScope(projectPath, 'main').find((s) => s.lead && serverKeyOf(s.id) === t.serverKey);
+        if (adopted) decorate(adopted.id, projectPath, t.host);
+      } else {
+        console.warn(`chiefLane: could not open the Chief on ${t.host}:`, err && err.message);
+      }
+    } finally {
+      ensuring.delete(key);
+    }
+  }
 }
 
 // ─── overlay + cards ──────────────────────────────────────
 
-function decorate(terminalId, projectPath) {
+function decorate(terminalId, projectPath, host = null) {
   if (chiefs.has(terminalId)) return;
   const instance = manager.getTerminal(terminalId);
   if (!instance) return;
-  const c = { projectPath, running: false, seenAgent: false, mode: 'user-guided', pending: [], els: {} };
+  const c = { projectPath, host, running: false, seenAgent: false, mode: 'user-guided', pending: [], els: {} };
   chiefs.set(terminalId, c);
 
   const root = instance.element;
@@ -79,7 +128,9 @@ function decorate(terminalId, projectPath) {
   overlay.innerHTML = `
     <div class="chief-card">
       <div class="chief-title">Chief</div>
-      <p class="chief-lede">Sees every terminal of this project on this Mac, tells you what each agent is doing, and passes your instructions to the right one.</p>
+      <p class="chief-lede">${host
+        ? `Runs on ${escapeHtml(host)} and sees this project's terminals there — it keeps working while this Mac is away. Tells you what each agent is doing and passes your instructions to the right one.`
+        : 'Sees every terminal of this project on this Mac, tells you what each agent is doing, and passes your instructions to the right one.'}</p>
       <div class="chief-modes" role="radiogroup" aria-label="Send mode">
         ${MODES.map((m) => `<button type="button" class="chief-mode" role="radio" data-mode="${m.id}" title="${escapeHtml(m.hint)}">${m.label}</button>`).join('')}
       </div>
@@ -113,8 +164,17 @@ function decorate(terminalId, projectPath) {
     start(terminalId);
   });
 
-  ipcRenderer.invoke(IPC.LEAD_MODE_GET, { projectPath }).then((mode) => { c.mode = mode || 'user-guided'; render(terminalId); }).catch(() => render(terminalId));
+  ipcRenderer.invoke(IPC.LEAD_MODE_GET, { projectPath, terminalId }).then((mode) => { c.mode = mode || 'user-guided'; render(terminalId); }).catch(() => render(terminalId));
   render(terminalId);
+  refreshPending(projectPath);
+}
+
+/** Approvals asked while this window could not see them (reload, a server reconnect). */
+async function refreshPending(projectPath) {
+  try {
+    const list = await ipcRenderer.invoke(IPC.LEAD_PENDING, { projectPath });
+    for (const c of list || []) onApprovals({ chiefId: c.chiefId, serverKey: c.serverKey || null, pending: c.pending });
+  } catch (_) { /* nothing to show */ }
 }
 
 function render(terminalId) {
@@ -139,7 +199,7 @@ async function setMode(terminalId, mode) {
   const c = chiefs.get(terminalId);
   if (!c) return;
   try {
-    c.mode = await ipcRenderer.invoke(IPC.LEAD_MODE_SET, { projectPath: c.projectPath, mode });
+    c.mode = await ipcRenderer.invoke(IPC.LEAD_MODE_SET, { projectPath: c.projectPath, mode, terminalId });
   } catch (_) { /* keep the old one */ }
   render(terminalId);
 }
@@ -225,12 +285,12 @@ function onApprovals(payload) {
   const c = id && chiefs.get(id);
   if (!c) return;
   const before = new Set(c.pending.map((r) => r.id));
-  c.pending = Array.isArray(payload.pending) ? payload.pending.map((r) => ({ ...r, serverKey: payload.serverKey || null })) : [];
+  c.pending = Array.isArray(payload.pending) ? payload.pending.map((r) => ({ ...r, serverKey: r.serverKey || payload.serverKey || null })) : [];
   manager.setLeadPending(id, c.pending.length);
   renderCards(id);
   const fresh = c.pending.filter((r) => !before.has(r.id));
   if (fresh.length) {
-    const project = c.projectPath.split(/[\\/]/).pop();
+    const project = `${c.projectPath.split(/[\\/]/).pop()}${c.host ? ` on ${c.host}` : ''}`;
     notify.info(`Chief (${project}) is waiting for your approval: ${approvalTitle(fresh[0])}. Open the Chief terminal to approve or reject.`, { sticky: true });
   }
 }
@@ -248,8 +308,18 @@ function init(multiTerminalUI) {
   // Session in / out of the Chief terminal, from the PTY's foreground process.
   ipcRenderer.on(IPC.TERMINAL_PROCESS_DATA, (event, data) => {
     const c = data && chiefs.get(data.terminalId);
-    if (!c || !c.running) return;
+    if (!c) return;
     const atShell = data.processName && data.shellName && data.processName === data.shellName;
+    if (!c.running) {
+      // Already running when this window found it (a server Chief after a
+      // reconnect — its session never stopped): show the session, not Start.
+      if (data.processName && !atShell) {
+        c.running = true;
+        c.seenAgent = true;
+        render(data.terminalId);
+      }
+      return;
+    }
     if (!atShell) c.seenAgent = true;
     else if (c.seenAgent) stopped(data.terminalId);
   });
@@ -260,8 +330,20 @@ function init(multiTerminalUI) {
     const c = chiefs.get(terminalId);
     if (!c) return;
     chiefs.delete(terminalId);
+    // A server Chief that went (server removed or its shell exited) comes
+    // back with the next connect / project open; a local one at once.
+    if (isServerId(terminalId)) return;
     ipcRenderer.send(IPC.LEAD_STOP, { terminalId });
     setTimeout(() => ensure(c.projectPath), 300);
+  });
+
+  // A server came up: once its terminals are adopted, make sure it has its Chief.
+  ipcRenderer.on(IPC.SERVER_STATUS_CHANGED, () => {
+    clearTimeout(serverTimer);
+    serverTimer = setTimeout(() => {
+      const p = state.getProjectPath && state.getProjectPath();
+      if (p) ensureServers(p);
+    }, 2000);
   });
 
   ipcRenderer.on(IPC.LEAD_APPROVALS, (event, payload) => onApprovals(payload));

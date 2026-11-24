@@ -815,15 +815,19 @@ async function adoptFrom(link, projectPath, rows) {
   const mineRows = rows.filter((w) => w.serverKey === link.key);
   if (mineRows.some((w) => w.offline)) return null;
   const serverIds = new Set(mineRows.map((w) => w.id));
+  // The project's server Chief lives in its server clone (lead-agent T12).
+  const serverProjects = new Set(mineRows.map((w) => w.serverProjectPath).filter(Boolean));
   // Workspace terminals by their server workspace; home terminals
   // (server-onboarding) by the desktop project they were opened for —
   // null for one opened with no project selected.
   const onServer = (await link.call('terminals.list', {})) || [];
-  const mine = (t) => (t.home ? (t.homeFor || null) === (projectPath || null) : serverIds.has(t.workspaceId));
+  const mine = (t) => (t.home ? (t.homeFor || null) === (projectPath || null)
+    : t.lead ? serverProjects.has(t.projectPath)
+    : serverIds.has(t.workspaceId));
   const live = onServer
     .map((t) => ({ ...t, serverTerminalId: t.terminalId, terminalId: desktopTerminalId(link.key, t.terminalId) }))
     .filter((t) => t.terminalId && mine(t) && !pendingDestroys.has(t.terminalId))
-    .map((t) => (t.home ? { ...t, workspaceId: t.homeWorkspace || 'main' } : t));
+    .map((t) => (t.home ? { ...t, workspaceId: t.homeWorkspace || 'main' } : t.lead ? { ...t, workspaceId: 'main', serverProjectPath: t.projectPath } : t));
   // Forget this project's terminals the server no longer has (a restart, a
   // close elsewhere): their ids must not route anywhere (T3).
   const known = [...serverTerminals]
@@ -840,8 +844,9 @@ async function adoptFrom(link, projectPath, rows) {
   for (const t of live) {
     try {
       const snap = await link.call('terminals.attach', { terminalId: t.serverTerminalId });
-      noteServerTerminal(t.terminalId, { projectPath, workspaceId: t.workspaceId, serverKey: link.key, ...(t.home ? { home: true } : {}) });
-      out.push({ terminalId: t.terminalId, projectPath, workspaceId: t.workspaceId, serverKey: link.key, host: link.host, ...(t.home ? { home: true } : {}), screen: snap.screen, cols: snap.cols, rows: snap.rows });
+      const extra = { ...(t.home ? { home: true } : {}), ...(t.lead ? { lead: true, serverProjectPath: t.serverProjectPath } : {}) };
+      noteServerTerminal(t.terminalId, { projectPath, workspaceId: t.workspaceId, serverKey: link.key, ...extra });
+      out.push({ terminalId: t.terminalId, projectPath, workspaceId: t.workspaceId, serverKey: link.key, host: link.host, ...extra, screen: snap.screen, cols: snap.cols, rows: snap.rows });
       if (snap.process) processes.push({ ...snap.process, terminalId: t.terminalId });
     } catch (err) {
       logger.warn('ptyManager', `could not attach ${t.terminalId}: ${err.message}`);
@@ -959,6 +964,29 @@ function setupIPC(ipcMain) {
             reply({ terminalId: id, success: true, serverKey: link.key, host: link.host });
           })
           .catch((err) => reply({ success: false, error: `Server terminal: ${err.message}` }));
+        return;
+      }
+
+      // A server Chief (lead-agent T12): in the project's clone on that
+      // server, shown in this project's main. One per (project, server),
+      // enforced by the server.
+      if (data && data.location === 'server-lead') {
+        const link = data.serverKey ? connectedLink(data.serverKey) : null;
+        const sp = data.serverProjectPath || null;
+        if (!link || !sp) {
+          reply({ success: false, error: 'That server is not connected.' });
+          return;
+        }
+        link.call('terminals.create', { lead: true, projectPath: sp, cwd: sp, workspaceId: 'main', shell: shellPath, cols: (data && data.cols) || 80, rows: (data && data.rows) || 24 })
+          .then((res) => {
+            const id = desktopTerminalId(link.key, res.terminalId);
+            serverTerminals.set(id, { projectPath, workspaceId: 'main', serverKey: link.key, lead: true, serverProjectPath: sp });
+            reply({ terminalId: id, success: true, lead: true, serverKey: link.key, host: link.host });
+          })
+          .catch((err) => {
+            const exists = /already has a Chief/.test(err.message || '');
+            reply({ success: false, error: `Server terminal: ${err.message}`, ...(exists ? { code: 'LEAD_EXISTS' } : {}) });
+          });
         return;
       }
 

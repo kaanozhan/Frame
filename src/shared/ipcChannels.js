@@ -232,6 +232,7 @@ const IPC = {
   LEAD_APPROVALS: 'lead-approvals',                  // main → renderer: { chiefId, projectPath, machine, pending[] } — cards to show
   LEAD_PENDING: 'lead-pending',                      // renderer → main (invoke): { projectPath } → [{ chiefId, machine, pending[] }]
   LEAD_DECIDE: 'lead-decide',                        // renderer → main (invoke): { approvalId, decision, text?, serverKey? } → { ok }
+  LEAD_SERVER_TARGETS: 'lead-server-targets',        // renderer → main (invoke): { projectPath } → [{ serverKey, host, serverProjectPath }] — servers that should have a Chief
   LEAD_SCREEN_REQUEST: 'lead-screen-request',        // main → renderer: { requestId, terminalId, lines } — plain screen text, please
   LEAD_SCREEN_REPLY: 'lead-screen-reply',            // renderer → main: { requestId, text } — the answer
 
