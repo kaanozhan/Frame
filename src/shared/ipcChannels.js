@@ -224,6 +224,17 @@ const IPC = {
   ORCH_REMOVE_WORKER: 'orch-remove-worker',          // renderer → main: cleanup a worker (worktree + branch)
   ORCH_RESUME_WORKER: 'orch-resume-worker',          // renderer → main: relaunch a recovered worker's lane in its existing worktree
 
+  // Chief (lead-agent spec) — one per project per machine
+  LEAD_START: 'lead-start',                          // renderer → main (invoke): { projectPath, terminalId } → { command, mode } — register the Chief, get its launch command
+  LEAD_STOP: 'lead-stop',                            // renderer → main: { terminalId } — the Chief session ended
+  LEAD_MODE_GET: 'lead-mode-get',                    // renderer → main (invoke): { projectPath } → 'user-guided' | 'full-auto'
+  LEAD_MODE_SET: 'lead-mode-set',                    // renderer → main (invoke): { projectPath, mode } → the stored mode
+  LEAD_APPROVALS: 'lead-approvals',                  // main → renderer: { chiefId, projectPath, machine, pending[] } — cards to show
+  LEAD_PENDING: 'lead-pending',                      // renderer → main (invoke): { projectPath } → [{ chiefId, machine, pending[] }]
+  LEAD_DECIDE: 'lead-decide',                        // renderer → main (invoke): { approvalId, decision, text?, serverKey? } → { ok }
+  LEAD_SCREEN_REQUEST: 'lead-screen-request',        // main → renderer: { requestId, terminalId, lines } — plain screen text, please
+  LEAD_SCREEN_REPLY: 'lead-screen-reply',            // renderer → main: { requestId, text } — the answer
+
   // Meta-file store (frameStore owns where .frame/ files live)
   LOAD_STRUCTURE_MAP: 'load-structure-map',          // renderer → main (invoke): parsed STRUCTURE.json, or { error }
 

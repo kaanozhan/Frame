@@ -249,16 +249,28 @@ function getAvailableShells() {
  * @param {string|null} shellPath - Shell to use (defaults to system default)
  * @returns {string} Terminal ID
  */
-function createTerminal(workingDir = null, projectPath = null, shellPath = null, extraEnv = null, workspaceId = 'main') {
+function createTerminal(workingDir = null, projectPath = null, shellPath = null, extraEnv = null, workspaceId = 'main', { lead = false } = {}) {
   // Per-workspace cap (workspaces spec; main counts as one). The renderer
   // keeps terminals from inactive projects and workspaces alive in its Map
   // for fast switch-back, so a wider count would surface here as a confusing
-  // "you have 3 visible but can't open a 4th".
+  // "you have 3 visible but can't open a 4th". The Chief (lead-agent) is
+  // Frame's own terminal and never counts.
   const ws = workspaceId || 'main';
-  const scopeCount = Array.from(ptyInstances.values())
-    .filter(p => p.projectPath === projectPath && (p.workspaceId || 'main') === ws).length;
-  if (scopeCount >= MAX_TERMINALS) {
-    throw new Error(`Maximum terminal limit (${MAX_TERMINALS}) reached for this workspace`);
+  if (lead) {
+    // One Chief per project on this machine, enforced by the PTY owner (plan D11).
+    const existing = leadTerminalOf(projectPath);
+    if (existing) {
+      const err = new Error('This project already has a Chief terminal');
+      err.code = 'LEAD_EXISTS';
+      err.terminalId = existing;
+      throw err;
+    }
+  } else {
+    const scopeCount = Array.from(ptyInstances.values())
+      .filter(p => !p.lead && p.projectPath === projectPath && (p.workspaceId || 'main') === ws).length;
+    if (scopeCount >= MAX_TERMINALS) {
+      throw new Error(`Maximum terminal limit (${MAX_TERMINALS}) reached for this workspace`);
+    }
   }
 
   const terminalId = `term-${++terminalCounter}`;
@@ -295,7 +307,8 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
       FRAME_NODE: process.execPath,
       // Session restore: lets a CLI's SessionStart hook report which
       // session runs in this terminal (sessionRestore, frameTemplates).
-      ...sessionRestore.envFor(terminalId),
+      // Not for the Chief: it is recreated fresh, never restored (D11).
+      ...(lead ? {} : sessionRestore.envFor(terminalId)),
       // Orchestration: FRAME_ORCH_BUS / FRAME_ORCH_SLUG let conductor + worker
       // terminals reach Frame's command bus from any worktree (see
       // orchestrationManager). Null for normal terminals.
@@ -326,7 +339,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     }
   });
 
-  sessionRestore.registerTerminal(terminalId, { projectPath, workspaceId: ws, shellPid: ptyProcess.pid });
+  if (!lead) sessionRestore.registerTerminal(terminalId, { projectPath, workspaceId: ws, shellPid: ptyProcess.pid });
 
   // Handle PTY exit
   ptyProcess.onExit(({ exitCode, signal }) => {
@@ -389,6 +402,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     flushTimer: null,
     paused: false,
     // lead-agent (T03): what the program in it says about itself.
+    lead: !!lead,
     shellName: spawnedShellName,
     statusScanner: programStatus.createScanner(),
     agentState: null,      // last OSC 7501 report of the session, { state, kind?, msg? }
@@ -424,6 +438,29 @@ function noteProgramStatus(inst, data) {
     inst.agentStateAt = Date.now();
   }
   if (seen.pasteMode !== undefined) inst.pasteMode = seen.pasteMode;
+}
+
+/** The Chief terminal of a project on this machine, or null (lead-agent T08). */
+function leadTerminalOf(projectPath) {
+  for (const [terminalId, inst] of ptyInstances) {
+    if (inst.lead && inst.projectPath === projectPath) return terminalId;
+  }
+  return null;
+}
+
+function isLeadTerminal(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  return !!(inst && inst.lead);
+}
+
+/** This machine's terminals of a project, as the Chief host lists them. */
+function listTerminals(projectPath) {
+  const out = [];
+  for (const [terminalId, inst] of ptyInstances) {
+    if (inst.projectPath !== projectPath) continue;
+    out.push({ id: terminalId, projectPath: inst.projectPath, workspace: inst.workspaceId || 'main', cwd: inst.cwd, lead: !!inst.lead });
+  }
+  return out;
 }
 
 /** The live foreground process name (node-pty), read now rather than from the gated poll. */
@@ -878,6 +915,7 @@ function setupIPC(ipcMain) {
       let shellPath = null;
       let extraEnv = null;
       let workspaceId = 'main';
+      const lead = !!(data && typeof data === 'object' && data.lead === true);
 
       if (typeof data === 'string') {
         // Legacy format: just working directory
@@ -918,9 +956,13 @@ function setupIPC(ipcMain) {
           .catch((err) => reply({ success: false, error: `Server terminal: ${err.message}` }));
         return;
       }
-      const terminalId = createTerminal(workingDir, projectPath, shellPath, extraEnv, workspaceId);
-      reply({ terminalId, success: true });
+      const terminalId = createTerminal(workingDir, projectPath, shellPath, extraEnv, workspaceId, { lead });
+      reply({ terminalId, success: true, ...(lead ? { lead: true } : {}) });
     } catch (error) {
+      if (error && error.code === 'LEAD_EXISTS') {
+        reply({ success: false, error: error.message, code: error.code, existingTerminalId: error.terminalId });
+        return;
+      }
       analytics.track('error_occurred', { category: 'terminal_create_failed' });
       reply({ success: false, error: error.message });
     }
@@ -992,7 +1034,10 @@ module.exports = {
   requestedShell,
   serverTerminalInfo,
   noteServerTerminal,
-  // lead-agent (T03)
+  // lead-agent (T03, T08)
+  leadTerminalOf,
+  isLeadTerminal,
+  listTerminals,
   agentStatus,
   pasteMode,
   noteUserInput,

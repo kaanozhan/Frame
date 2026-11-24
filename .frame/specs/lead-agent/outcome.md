@@ -55,3 +55,11 @@ Added `src/main/leadHost.js`. It runs one socket per machine, with tokens mapped
 _Captured: 2026-11-25 · 1 file change_
 
 ---
+
+## T08 — Add the lead terminal flag and Chief IPC channels
+
+`ptyManager.createTerminal` gained a `{ lead }` option. A second Chief for the same project throws `LEAD_EXISTS` naming the existing terminal. The Chief is skipped in the 9-terminal cap, gets no sessionRestore env, and is never registered for restore. `TERMINAL_CREATE` passes `lead` through and replies with `code` / `existingTerminalId` on a duplicate. New exports are `leadTerminalOf`, `isLeadTerminal` and `listTerminals` (which the adapter uses). Added `LEAD_*` channels to `src/shared/ipcChannels.js`: start, stop, mode get/set, approvals push, pending, decide, and screen request/reply. A real ptyManager run confirmed that a duplicate Chief is refused, 9 regular terminals fit beside a Chief, and a 10th is refused.
+
+_Captured: 2026-11-25 · 2 file changes_
+
+---
