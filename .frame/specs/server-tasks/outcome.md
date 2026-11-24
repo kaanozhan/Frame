@@ -62,3 +62,11 @@ _Captured: 2026-11-24 · 2 file change(s)_
 
 ---
 
+## T09 — Add sends the selected workspace; refusals show their reason
+
+`src/renderer/tasksDashboard.js` and `src/renderer/tasksPanel.js` send the selected `workspaceId` with ADD_TASK, so a task added in a server workspace lands on that server, and `tasksPanel`'s TASK_UPDATED handler shows main's `error` reason (e.g. "box is offline — reconnect to change its tasks.") instead of the generic tasks.json line. The live check of T07–T09 in an isolated app (synthetic server tasks on the board; the Run dialog for a Mac task, a server task with no workspace there, and one with a workspace to choose) found that `.task-run-section`'s display rule kept the hidden Branch and Where sections on screen; fixed with a `#task-run-modal` [hidden] rule in `workspaces.css`. Followup: `#nw-location-row` in the New Workspace dialog may have the same hidden-vs-display issue (not verified).
+
+_Captured: 2026-11-24 · 3 file change(s)_
+
+---
+

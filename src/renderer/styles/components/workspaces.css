@@ -503,6 +503,10 @@
   line-height: 17px;
 }
 .tasks-server-notes p { margin: 0; }
+/* The Run task dialog toggles these with the hidden attribute (server-tasks);
+   .task-run-section's display: flex would otherwise keep them on screen. */
+#task-run-modal .task-run-section[hidden],
+#task-run-modal .task-run-input[hidden] { display: none; }
 
 /* The spec a workspace holds, under its name (spec-in-workspace). */
 .ws-spec {

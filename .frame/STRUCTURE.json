@@ -19078,7 +19078,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 30125,
+      "sizeBytes": 30383,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -19657,30 +19657,34 @@
         "requestDeleteSelected": {
           "line": 755
         },
+        "selectedWorkspaceId": {
+          "line": 775,
+          "purpose": "The selected workspace's id, or null for the main checkout — where a new task goes."
+        },
         "submitForm": {
-          "line": 774
+          "line": 780
         },
         "renderDetail": {
-          "line": 796,
+          "line": 803,
           "params": [
             "task"
           ]
         },
         "renderDetailActions": {
-          "line": 879,
+          "line": 886,
           "params": [
             "task"
           ]
         },
         "runDetailAction": {
-          "line": 914,
+          "line": 921,
           "params": [
             "taskId",
             "action"
           ]
         },
         "appendMetaPill": {
-          "line": 929,
+          "line": 936,
           "params": [
             "container",
             "text",
@@ -19688,7 +19692,7 @@
           ]
         },
         "setSection": {
-          "line": 936,
+          "line": 943,
           "params": [
             "textEl",
             "sectionEl",
@@ -19696,64 +19700,64 @@
           ]
         },
         "formatDate": {
-          "line": 947,
+          "line": 954,
           "params": [
             "isoString"
           ]
         },
         "isFilterActive": {
-          "line": 961
+          "line": 968
         },
         "filterMatches": {
-          "line": 965,
+          "line": 972,
           "params": [
             "task"
           ]
         },
         "setupFilter": {
-          "line": 971
+          "line": 978
         },
         "isFilterPopoverOpen": {
-          "line": 1009
+          "line": 1016
         },
         "toggleFilterPopover": {
-          "line": 1013
+          "line": 1020
         },
         "openFilterPopover": {
-          "line": 1019
+          "line": 1026
         },
         "closeFilterPopover": {
-          "line": 1025
+          "line": 1032
         },
         "clearFilters": {
-          "line": 1031
+          "line": 1038
         },
         "updateFilterUI": {
-          "line": 1043
+          "line": 1050
         },
         "setupSort": {
-          "line": 1060
+          "line": 1067
         },
         "isSortPopoverOpen": {
-          "line": 1105
+          "line": 1112
         },
         "toggleSortPopover": {
-          "line": 1109
+          "line": 1116
         },
         "openSortPopover": {
-          "line": 1115
+          "line": 1122
         },
         "closeSortPopover": {
-          "line": 1121
+          "line": 1128
         },
         "resetSort": {
-          "line": 1127
+          "line": 1134
         },
         "updateSortUI": {
-          "line": 1140
+          "line": 1147
         },
         "commitSortToFile": {
-          "line": 1167,
+          "line": 1174,
           "purpose": "Commit the current sorted view to tasks.json. Ids only (tasks-list-view"
         }
       },
@@ -19770,7 +19774,7 @@
           "REORDER_TASKS"
         ]
       },
-      "sizeBytes": 43303,
+      "sizeBytes": 43645,
       "extraction": {
         "status": "parsed"
       },
@@ -19788,6 +19792,7 @@
           "renderToolbar": "e44131d971d4d088",
           "resetAside": "7dde6f0750e05609",
           "selectTask": "f3a10ec266d4ef67",
+          "selectedWorkspaceId": "8ad295bab901efd4",
           "syncAside": "c0c3dd8532f563e0"
         }
       }
@@ -19835,45 +19840,45 @@
           "purpose": "Setup IPC listeners"
         },
         "loadTasks": {
-          "line": 114,
+          "line": 115,
           "purpose": "Load tasks for current project"
         },
         "show": {
-          "line": 125,
+          "line": 126,
           "purpose": "Show tasks panel. If there's no active project, surface an info modal"
         },
         "hide": {
-          "line": 142,
+          "line": 143,
           "purpose": "Hide tasks panel"
         },
         "toggle": {
-          "line": 152,
+          "line": 153,
           "purpose": "Toggle tasks panel visibility"
         },
         "setFilter": {
-          "line": 163,
+          "line": 164,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredTasks": {
-          "line": 177,
+          "line": 178,
           "purpose": "Get filtered tasks"
         },
         "render": {
-          "line": 202,
+          "line": 203,
           "purpose": "Render tasks list"
         },
         "renderTaskItem": {
-          "line": 248,
+          "line": 249,
           "params": [
             "task"
           ],
           "purpose": "Render single task item"
         },
         "handleTaskAction": {
-          "line": 326,
+          "line": 327,
           "params": [
             "taskId",
             "action"
@@ -19881,25 +19886,25 @@
           "purpose": "Handle task action buttons"
         },
         "openRunFlow": {
-          "line": 377,
+          "line": 378,
           "params": [
             "task"
           ],
           "purpose": "Open the run-config modal for a task and dispatch it on confirm."
         },
         "workspaceContext": {
-          "line": 404,
+          "line": 405,
           "purpose": "The selected workspace's record (null for the main checkout) and the project's server workspaces."
         },
         "selectRunWorkspace": {
-          "line": 417,
+          "line": 418,
           "params": [
             "workspaceId"
           ],
           "purpose": "Select the workspace a run goes to before the lane opens there, the way"
         },
         "buildTaskPrompt": {
-          "line": 441,
+          "line": 442,
           "params": [
             "task",
             "opts = {}"
@@ -19907,7 +19912,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. The builder"
         },
         "runTaskWithOptions": {
-          "line": 455,
+          "line": 456,
           "params": [
             "task",
             "opts = {}"
@@ -19915,65 +19920,65 @@
           "purpose": "Send the task to an agent. Always a new Frame: agentDispatch creates"
         },
         "setClaudeRunning": {
-          "line": 474,
+          "line": 475,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 481,
+          "line": 482,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 490,
+          "line": 491,
           "params": [
             "taskId"
           ],
           "purpose": "Delete task — opens the shared confirm modal first; only dispatches the IPC"
         },
         "showAddTaskModal": {
-          "line": 507,
+          "line": 508,
           "purpose": "Show add task modal"
         },
         "showEditTaskModal": {
-          "line": 526,
+          "line": 527,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
         "hideTaskModal": {
-          "line": 552,
+          "line": 553,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 562,
+          "line": 563,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 600,
+          "line": 604,
           "purpose": "Setup modal event listeners"
         },
         "renderSourceChip": {
-          "line": 645,
+          "line": 649,
           "params": [
             "source"
           ],
           "purpose": "Render a small attribution chip for tasks that came from a Frame spec."
         },
         "formatDate": {
-          "line": 656,
+          "line": 660,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 673,
+          "line": 677,
           "purpose": "Initialize when DOM is ready"
         }
       },
@@ -19992,7 +19997,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 21001,
+      "sizeBytes": 21369,
       "extraction": {
         "status": "parsed"
       },
@@ -37949,6 +37954,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "14abe95ca79eafbe5c7781124e4e177dd8cafd7f07d2cd0c01ccc22db5a1bae5"
+    "revision": "262efa89e4b9342012cc4cd1fe6f4957dff8e4c77f1fde97cd05d14206cdb314"
   }
 }

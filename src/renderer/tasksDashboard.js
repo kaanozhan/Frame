@@ -771,6 +771,12 @@ function requestDeleteSelected() {
   });
 }
 
+/** The selected workspace's id, or null for the main checkout — where a new task goes. */
+function selectedWorkspaceId() {
+  const ws = state.getWorkspace();
+  return ws && ws.id !== state.MAIN_WORKSPACE_ID ? ws.id : null;
+}
+
 function submitForm() {
   const projectPath = state.getProjectPath();
   if (!projectPath || !detailFormEl) return;
@@ -789,7 +795,8 @@ function submitForm() {
   };
   if (request.trim()) task.userRequest = request;
 
-  ipcRenderer.send(IPC.ADD_TASK, { projectPath, task });
+  // Added in a server workspace, it lands on that server (server-tasks B1).
+  ipcRenderer.send(IPC.ADD_TASK, { projectPath, task, workspaceId: selectedWorkspaceId() });
   hideForm();
 }
 

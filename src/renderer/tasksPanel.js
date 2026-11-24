@@ -93,13 +93,14 @@ function setupIPCListeners() {
     }
   });
 
-  ipcRenderer.on(IPC.TASK_UPDATED, (event, { action, task, success }) => {
+  ipcRenderer.on(IPC.TASK_UPDATED, (event, { action, task, success, error }) => {
     // On success the fresh tasks data is sent separately (TASKS_DATA) —
     // only failures need surfacing here, or a failed write to tasks.json
-    // looks identical to success.
+    // looks identical to success. A server task's refusal carries its
+    // reason (server-tasks), e.g. its host is offline.
     if (!success) {
-      const what = { create: 'create task', update: 'update task', delete: 'delete task' }[action] || 'save task change';
-      notify.error(`Failed to ${what} — tasks.json was not updated`);
+      const what = { add: 'add task', create: 'create task', update: 'update task', delete: 'delete task' }[action] || 'save task change';
+      notify.error(error ? `Failed to ${what} — ${error}` : `Failed to ${what} — tasks.json was not updated`);
     }
   });
 
@@ -582,7 +583,10 @@ function handleTaskFormSubmit(e) {
   }
 
   if (mode === 'add') {
-    ipcRenderer.send(IPC.ADD_TASK, { projectPath, task: taskData });
+    // Added in a server workspace, it lands on that server (server-tasks B1).
+    const ws = state.getWorkspace();
+    const workspaceId = ws && ws.id !== state.MAIN_WORKSPACE_ID ? ws.id : null;
+    ipcRenderer.send(IPC.ADD_TASK, { projectPath, task: taskData, workspaceId });
   } else if (mode === 'edit' && taskId) {
     ipcRenderer.send(IPC.UPDATE_TASK, {
       projectPath,
