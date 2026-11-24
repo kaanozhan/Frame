@@ -19078,7 +19078,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 29532,
+      "sizeBytes": 30125,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -19493,6 +19493,7 @@
         "state",
         "doneWindow",
         "tasks/listModel",
+        "shared/serverTasks",
         "agentDispatch",
         "taskInfoModal",
         "specsDashboard",
@@ -19501,69 +19502,73 @@
       ],
       "functions": {
         "init": {
-          "line": 111
+          "line": 115
         },
         "flatten": {
-          "line": 184,
+          "line": 189,
           "params": [
             "data"
           ]
         },
         "setInlineHost": {
-          "line": 204,
+          "line": 209,
           "params": [
             "host"
           ]
         },
         "mountInline": {
-          "line": 208,
+          "line": 213,
           "params": [
             "container"
           ]
         },
         "notifyDetached": {
-          "line": 217
+          "line": 222
         },
         "_load": {
-          "line": 230
+          "line": 235
         },
         "show": {
-          "line": 251
+          "line": 256
         },
         "hide": {
-          "line": 261
+          "line": 266
         },
         "toggle": {
-          "line": 274
+          "line": 279
         },
         "listModel": {
-          "line": 282
+          "line": 287
         },
         "render": {
-          "line": 295
+          "line": 300
         },
         "renderToolbar": {
-          "line": 312,
+          "line": 317,
           "params": [
             "model"
           ],
           "purpose": "The scope segments, Active's status chips and the spec-tasks checkbox,"
         },
+        "renderServerNotes": {
+          "line": 370,
+          "purpose": "One line per server whose tasks cannot be shown or changed right now."
+        },
         "renderList": {
-          "line": 364,
+          "line": 385,
           "params": [
             "model"
           ]
         },
         "openSpec": {
-          "line": 417,
+          "line": 439,
           "params": [
             "slug"
           ],
           "purpose": "Leave for the Specs screen with this spec in its drawer — the pair"
         },
         "sectionHeader": {
-          "line": 424,
+          "line": 446,
           "params": [
             "id",
             "label",
@@ -19571,7 +19576,7 @@
           ]
         },
         "appendSection": {
-          "line": 440,
+          "line": 462,
           "params": [
             "id",
             "label",
@@ -19580,21 +19585,21 @@
           "purpose": "A section heading plus its grid; returns the grid for the tiles."
         },
         "emptyState": {
-          "line": 454,
+          "line": 476,
           "params": [
             "message",
             "heading"
           ]
         },
         "renderOlderTile": {
-          "line": 469,
+          "line": 491,
           "params": [
             "count"
           ],
           "purpose": "The ghost tile closing Completed: \"N older done tasks · Show\"."
         },
         "renderTile": {
-          "line": 490,
+          "line": 512,
           "params": [
             "task",
             "{ playable = false } = {}"
@@ -19602,24 +19607,24 @@
           "purpose": "One task tile. `playable` puts the Play button on it — pending non-spec"
         },
         "renderPlayButton": {
-          "line": 576,
+          "line": 610,
           "params": [
             "task"
           ],
           "purpose": "Play starts the task through the shared run flow (run modal → Agent"
         },
         "startTask": {
-          "line": 591,
+          "line": 625,
           "params": [
             "task"
           ]
         },
         "syncAside": {
-          "line": 607,
+          "line": 641,
           "purpose": "Single owner of the aside's and the drawer's visibility. The aside exists"
         },
         "selectTask": {
-          "line": 633,
+          "line": 667,
           "params": [
             "taskId",
             "{ instant = false } = {}"
@@ -19627,55 +19632,55 @@
           "purpose": "Open a task in the drawer. `instant` is the top-bar chip path: the list"
         },
         "clearSelection": {
-          "line": 658,
+          "line": 692,
           "params": [
             "{ notify = true } = {}"
           ],
           "purpose": "Close the drawer. `notify: false` is for the host-driven teardown"
         },
         "resetAside": {
-          "line": 669,
+          "line": 703,
           "purpose": "Leaving the screen: no selection, no half-typed form waiting on return."
         },
         "isFormOpen": {
-          "line": 680
+          "line": 714
         },
         "setupForm": {
-          "line": 684
+          "line": 718
         },
         "showForm": {
-          "line": 698
+          "line": 732
         },
         "hideForm": {
-          "line": 713
+          "line": 747
         },
         "requestDeleteSelected": {
-          "line": 721
+          "line": 755
         },
         "submitForm": {
-          "line": 740
+          "line": 774
         },
         "renderDetail": {
-          "line": 762,
+          "line": 796,
           "params": [
             "task"
           ]
         },
         "renderDetailActions": {
-          "line": 845,
+          "line": 879,
           "params": [
             "task"
           ]
         },
         "runDetailAction": {
-          "line": 880,
+          "line": 914,
           "params": [
             "taskId",
             "action"
           ]
         },
         "appendMetaPill": {
-          "line": 895,
+          "line": 929,
           "params": [
             "container",
             "text",
@@ -19683,7 +19688,7 @@
           ]
         },
         "setSection": {
-          "line": 902,
+          "line": 936,
           "params": [
             "textEl",
             "sectionEl",
@@ -19691,64 +19696,64 @@
           ]
         },
         "formatDate": {
-          "line": 913,
+          "line": 947,
           "params": [
             "isoString"
           ]
         },
         "isFilterActive": {
-          "line": 927
+          "line": 961
         },
         "filterMatches": {
-          "line": 931,
+          "line": 965,
           "params": [
             "task"
           ]
         },
         "setupFilter": {
-          "line": 937
+          "line": 971
         },
         "isFilterPopoverOpen": {
-          "line": 975
-        },
-        "toggleFilterPopover": {
-          "line": 979
-        },
-        "openFilterPopover": {
-          "line": 985
-        },
-        "closeFilterPopover": {
-          "line": 991
-        },
-        "clearFilters": {
-          "line": 997
-        },
-        "updateFilterUI": {
           "line": 1009
         },
+        "toggleFilterPopover": {
+          "line": 1013
+        },
+        "openFilterPopover": {
+          "line": 1019
+        },
+        "closeFilterPopover": {
+          "line": 1025
+        },
+        "clearFilters": {
+          "line": 1031
+        },
+        "updateFilterUI": {
+          "line": 1043
+        },
         "setupSort": {
-          "line": 1026
+          "line": 1060
         },
         "isSortPopoverOpen": {
-          "line": 1071
+          "line": 1105
         },
         "toggleSortPopover": {
-          "line": 1075
+          "line": 1109
         },
         "openSortPopover": {
-          "line": 1081
+          "line": 1115
         },
         "closeSortPopover": {
-          "line": 1087
+          "line": 1121
         },
         "resetSort": {
-          "line": 1093
+          "line": 1127
         },
         "updateSortUI": {
-          "line": 1106
+          "line": 1140
         },
         "commitSortToFile": {
-          "line": 1133,
+          "line": 1167,
           "purpose": "Commit the current sorted view to tasks.json. Ids only (tasks-list-view"
         }
       },
@@ -19765,7 +19770,7 @@
           "REORDER_TASKS"
         ]
       },
-      "sizeBytes": 41731,
+      "sizeBytes": 43303,
       "extraction": {
         "status": "parsed"
       },
@@ -19778,6 +19783,7 @@
           "openSpec": "5b89bd4a75cabfa5",
           "renderOlderTile": "430fa30a4a4f14f7",
           "renderPlayButton": "df7b9dbe108a97fb",
+          "renderServerNotes": "e21c5d536934d539",
           "renderTile": "1e3f0bb6063b9fc4",
           "renderToolbar": "e44131d971d4d088",
           "resetAside": "7dde6f0750e05609",
@@ -37943,6 +37949,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "e2802a03cd0555e64642a6129ae43f51d65dad014a84b1cf5e81e9d1118564a6"
+    "revision": "14abe95ca79eafbe5c7781124e4e177dd8cafd7f07d2cd0c01ccc22db5a1bae5"
   }
 }

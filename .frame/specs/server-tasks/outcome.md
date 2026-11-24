@@ -54,3 +54,11 @@ _Captured: 2026-11-24 · 5 file change(s)_
 
 ---
 
+## T08 — Server tasks on the board
+
+`src/renderer/tasksDashboard.js` keeps `serverNotes` from TASKS_DATA and renders them above the list (an update-Frame-Server line for an older server, an offline line for a down one), marks a server task's tile with a host chip from `taskChipLabel` (the spec chip's `ws-chip` look, muted while offline) and dims an offline tile. Styles in `src/renderer/styles/components/workspaces.css`. DOM only: checked live after T09.
+
+_Captured: 2026-11-24 · 2 file change(s)_
+
+---
+

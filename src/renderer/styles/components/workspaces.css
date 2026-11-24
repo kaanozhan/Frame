@@ -486,6 +486,24 @@
   background: currentColor;
 }
 
+/* A server project's task on the Tasks board (server-tasks): the spec chip's
+   look, muted while its server is offline — the tile is then as last seen. */
+.ws-chip.offline { background: var(--bg-hover); color: var(--text-tertiary); }
+.tasks-tile.offline { opacity: 0.7; }
+.tasks-server-notes {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 17px;
+}
+.tasks-server-notes p { margin: 0; }
+
 /* The spec a workspace holds, under its name (spec-in-workspace). */
 .ws-spec {
   align-self: flex-start;

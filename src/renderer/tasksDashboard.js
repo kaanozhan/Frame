@@ -39,6 +39,7 @@ const { IPC } = require('../shared/ipcChannels');
 const state = require('./state');
 const doneWindow = require('./doneWindow');
 const { SECTIONS, ACTIVE_STATUSES, isSpecTask, specSlugOf, buildListModel } = require('./tasks/listModel');
+const { taskChipLabel } = require('../shared/serverTasks');
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -61,6 +62,9 @@ const EMPTY_STATUS = {
 
 let isVisible = false;
 let tasks = [];
+// Notes about server workspaces' tasks (server-tasks): a server that is down,
+// or one whose Frame Server predates tasks — `[{ host, kind }]` from TASKS_DATA.
+let serverNotes = [];
 let selectedTaskId = null;
 let dashboardEl = null;
 let filtersEl = null;        // toolbar: scope segments
@@ -168,8 +172,9 @@ function init() {
     }
   });
 
-  ipcRenderer.on(IPC.TASKS_DATA, (event, { tasks: data }) => {
+  ipcRenderer.on(IPC.TASKS_DATA, (event, { tasks: data, serverNotes: notes }) => {
     tasks = flatten(data);
+    serverNotes = Array.isArray(notes) ? notes : [];
     if (isVisible) render();
   });
 
@@ -361,9 +366,26 @@ function renderToolbar(model) {
   }
 }
 
+/** One line per server whose tasks cannot be shown or changed right now. */
+function renderServerNotes() {
+  const lines = serverNotes.map((n) => (n.kind === 'update'
+    ? `Update Frame Server on ${n.host || 'the server'} to see its tasks here (Servers ▸ Update).`
+    : `${n.host || 'A server'} is offline — its tasks are shown as last seen and can't be changed until it reconnects.`));
+  if (!lines.length) return;
+  const box = document.createElement('div');
+  box.className = 'tasks-server-notes';
+  for (const line of lines) {
+    const p = document.createElement('p');
+    p.textContent = line;
+    box.appendChild(p);
+  }
+  listEl.appendChild(box);
+}
+
 function renderList(model) {
   if (!listEl) return;
   listEl.innerHTML = '';
+  renderServerNotes();
 
   const days = doneWindow.get().tasks;
   let listed = 0;
@@ -491,6 +513,7 @@ function renderTile(task, { playable = false } = {}) {
   const tile = document.createElement('div');
   tile.className = `specs-card tasks-tile priority-${task.priority || 'medium'}`;
   tile.dataset.taskId = task.id;
+  if (task.offline) tile.classList.add('offline');
   if (task.id === selectedTaskId) tile.classList.add('selected');
 
   const top = document.createElement('div');
@@ -518,6 +541,17 @@ function renderTile(task, { playable = false } = {}) {
     cat.className = 'tasks-tile-category';
     cat.textContent = task.category;
     badges.appendChild(cat);
+  }
+  // A server project's task names its host, as a server spec does (server-tasks).
+  const host = taskChipLabel(task);
+  if (host) {
+    const chip = document.createElement('span');
+    chip.className = `ws-chip tasks-tile-host${task.offline ? ' offline' : ''}`;
+    chip.textContent = host;
+    chip.title = task.offline
+      ? `On ${task.host} — offline: shown as last seen, can't be changed until it reconnects`
+      : `On ${task.host} — kept in that server's task list`;
+    badges.appendChild(chip);
   }
   top.appendChild(badges);
   if (playable) top.appendChild(renderPlayButton(task));
