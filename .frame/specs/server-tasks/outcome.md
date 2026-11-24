@@ -46,3 +46,11 @@ _Captured: 2026-11-24 · 3 file change(s)_
 
 ---
 
+## T07 — Play runs a task where its tasks.json lives
+
+`src/renderer/tasksPanel.js` resolves Play's target with `runTarget` (selected workspace record and the project's server workspaces from `workspaceSection.getWorkspaces`), passes it to the dialog, and selects the chosen workspace before the lane opens, as spec commands do. `src/renderer/taskRunModal.js` with `index.html` gains a Where section (the note and, for a server task run from elsewhere, a chooser of that server's workspaces), hides the branch choice unless the run is in the main checkout, and disables Run when the target is offline or has no workspace. Beyond the plan's file list: the dialog's note text is a pure `runTargetNote` in `src/shared/serverTasks.js`, tested in `test/serverTasksModel.test.js`. The DOM is checked live after T09.
+
+_Captured: 2026-11-24 · 5 file change(s)_
+
+---
+

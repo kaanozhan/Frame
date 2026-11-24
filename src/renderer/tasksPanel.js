@@ -9,6 +9,7 @@ const state = require('./state');
 const { escapeHtml } = require('./htmlUtils');
 const notify = require('./notify');
 const runPrompt = require('./tasks/runPrompt');
+const { runTarget } = require('../shared/serverTasks');
 
 let isVisible = false;
 let currentFilter = 'all'; // all, pending, inProgress, completed
@@ -376,9 +377,17 @@ function handleTaskAction(taskId, action) {
 function openRunFlow(task) {
   const projectPath = state.getProjectPath();
   if (!projectPath || !task) return;
+  // Where it runs (server-tasks): where its tasks.json lives — see
+  // shared/serverTasks.runTarget. The dialog shows why and, for a server
+  // task run from elsewhere, offers that server's workspaces.
+  const { selected, serverWorkspaces } = workspaceContext();
+  const target = runTarget(task, selected, serverWorkspaces);
   // Lazy-required to avoid load-order coupling with the renderer wiring.
   require('./taskRunModal').open(task, {
+    target,
+    selected,
     onRun: async (opts) => {
+      if (!(await selectRunWorkspace(opts.workspaceId))) return;
       const ok = await runTaskWithOptions(task, opts);
       if (!ok) return;
       ipcRenderer.send(IPC.UPDATE_TASK, {
@@ -389,6 +398,39 @@ function openRunFlow(task) {
       notify.info('Task sent');
     }
   });
+}
+
+/** The selected workspace's record (null for the main checkout) and the project's server workspaces. */
+function workspaceContext() {
+  let records = [];
+  try { records = require('./workspaceSection').getWorkspaces() || []; } catch (_) { records = []; }
+  const sel = state.getWorkspace();
+  const selected = sel && sel.id !== state.MAIN_WORKSPACE_ID ? (records.find((w) => w.id === sel.id) || { id: sel.id, location: 'local' }) : null;
+  return { selected, serverWorkspaces: records.filter((w) => w && w.location === 'server') };
+}
+
+/**
+ * Select the workspace a run goes to before the lane opens there, the way
+ * spec commands select their spec's workspace. `workspaceId` null keeps the
+ * selection. Returns false when the chosen workspace is gone.
+ */
+async function selectRunWorkspace(workspaceId) {
+  if (!workspaceId) return true;
+  const section = require('./workspaceSection');
+  const current = state.getWorkspace();
+  const currentId = current ? current.id : state.MAIN_WORKSPACE_ID;
+  if (workspaceId === currentId) return true;
+  if (workspaceId === 'main' || workspaceId === state.MAIN_WORKSPACE_ID) {
+    section.select(null);
+    return true;
+  }
+  const ws = (section.getWorkspaces() || []).find((w) => w.id === workspaceId);
+  if (!ws) {
+    notify.error('That workspace is no longer there — pick another one.');
+    return false;
+  }
+  section.select(ws);
+  return true;
 }
 
 /**

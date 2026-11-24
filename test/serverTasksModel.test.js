@@ -106,3 +106,14 @@ test('Play: a server task runs in the selected workspace when it is on that serv
   assert.deepEqual(S.runTarget(onBox, null, []), { error: 'no-workspace' });
   assert.deepEqual(S.runTarget(merged.find((t) => t.id === 'task-3'), null, wsBox), { error: 'offline' });
 });
+
+test('the Run dialog\'s note: why a task runs where it runs, and when it cannot', () => {
+  const task = { id: 't', location: 'server', host: 'box' };
+  assert.deepEqual(S.runTargetNote({ error: 'offline' }, task, null), { text: 'box is offline — reconnect to run this task.', blocking: true });
+  assert.deepEqual(S.runTargetNote({ error: 'no-workspace' }, task, null), { text: 'box has no workspace of this project — create one there to run this task.', blocking: true });
+  assert.deepEqual(S.runTargetNote({ choose: [{ id: 'b1' }] }, task, null), { text: 'This task lives on box. Pick its workspace there to run it in.', blocking: false });
+  assert.deepEqual(S.runTargetNote({ workspaceId: 'main', note: 'mac-task-on-server' }, { id: 'm' }, { id: 'sw', host: 'gpu' }),
+    { text: 'This task lives on this Mac, so it runs in the main checkout — an agent on gpu could not update this Mac\'s task list.', blocking: false });
+  assert.equal(S.runTargetNote({ workspaceId: 'w1' }, { id: 'm' }, null), null, 'runs where the user is: nothing to say');
+  assert.equal(S.runTargetNote(null, task, null), null);
+});

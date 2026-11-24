@@ -127,4 +127,23 @@ function runTarget(task, selected, serverWorkspaces) {
   return { choose };
 }
 
-module.exports = { mergeTaskLists, isServerTask, taskChipLabel, homeOf, splitOrder, runTarget };
+/**
+ * What the Task Run dialog says about where a task runs, from runTarget's
+ * answer: `{ text, blocking }`, or null when there is nothing to say (the
+ * task runs where the user is). `blocking` disables Run. `selected` is the
+ * selected workspace record (for its host).
+ */
+function runTargetNote(target, task, selected) {
+  if (!target) return null;
+  const host = (task && task.host) || 'the server';
+  if (target.error === 'offline') return { text: `${host} is offline — reconnect to run this task.`, blocking: true };
+  if (target.error === 'no-workspace') return { text: `${host} has no workspace of this project — create one there to run this task.`, blocking: true };
+  if (target.choose) return { text: `This task lives on ${host}. Pick its workspace there to run it in.`, blocking: false };
+  if (target.note === 'mac-task-on-server') {
+    const there = (selected && selected.host) || 'the server';
+    return { text: `This task lives on this Mac, so it runs in the main checkout — an agent on ${there} could not update this Mac's task list.`, blocking: false };
+  }
+  return null;
+}
+
+module.exports = { mergeTaskLists, isServerTask, taskChipLabel, homeOf, splitOrder, runTarget, runTargetNote };

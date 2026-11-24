@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 112874,
+      "sizeBytes": 113559,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -19202,29 +19202,39 @@
         "shared/ipcChannels",
         "aiToolSelector",
         "state",
-        "htmlUtils"
+        "htmlUtils",
+        "shared/serverTasks"
       ],
       "functions": {
         "init": {
-          "line": 35
+          "line": 49
         },
         "updateBranchChoiceUI": {
-          "line": 80
-        },
-        "getBranchChoice": {
-          "line": 88
-        },
-        "getCliChoice": {
-          "line": 93
-        },
-        "populateCliOptions": {
           "line": 98
         },
+        "getBranchChoice": {
+          "line": 106
+        },
+        "getCliChoice": {
+          "line": 111
+        },
+        "populateCliOptions": {
+          "line": 116
+        },
         "loadCurrentBranch": {
-          "line": 128
+          "line": 146
+        },
+        "renderWhere": {
+          "line": 163,
+          "params": [
+            "task",
+            "target",
+            "selected"
+          ],
+          "purpose": "Show where the task runs: the note, the workspace chooser, and the branch"
         },
         "open": {
-          "line": 148,
+          "line": 189,
           "params": [
             "task",
             "opts = {}"
@@ -19232,23 +19242,24 @@
           "purpose": "Open the modal for a given task."
         },
         "close": {
-          "line": 173
+          "line": 216
         },
         "confirm": {
-          "line": 181
+          "line": 225
         },
         "cancel": {
-          "line": 192
+          "line": 243
         }
       },
-      "sizeBytes": 6189,
+      "sizeBytes": 8854,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "89842ba948bd27c4",
         "purposes": {
-          "open": "4aae553672a18f02"
+          "open": "4aae553672a18f02",
+          "renderWhere": "df3a3eb101167e3e"
         }
       }
     },
@@ -19796,65 +19807,67 @@
         "htmlUtils",
         "notify",
         "tasks/runPrompt",
+        "shared/serverTasks",
         "tasksDashboard",
         "taskInfoModal",
         "taskRunModal",
+        "workspaceSection",
         "agentDispatch",
         "taskConfirmModal"
       ],
       "functions": {
         "init": {
-          "line": 27,
+          "line": 28,
           "purpose": "Initialize tasks panel"
         },
         "setupEventListeners": {
-          "line": 43,
+          "line": 44,
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 85,
+          "line": 86,
           "purpose": "Setup IPC listeners"
         },
         "loadTasks": {
-          "line": 113,
+          "line": 114,
           "purpose": "Load tasks for current project"
         },
         "show": {
-          "line": 124,
+          "line": 125,
           "purpose": "Show tasks panel. If there's no active project, surface an info modal"
         },
         "hide": {
-          "line": 141,
+          "line": 142,
           "purpose": "Hide tasks panel"
         },
         "toggle": {
-          "line": 151,
+          "line": 152,
           "purpose": "Toggle tasks panel visibility"
         },
         "setFilter": {
-          "line": 162,
+          "line": 163,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredTasks": {
-          "line": 176,
+          "line": 177,
           "purpose": "Get filtered tasks"
         },
         "render": {
-          "line": 201,
+          "line": 202,
           "purpose": "Render tasks list"
         },
         "renderTaskItem": {
-          "line": 247,
+          "line": 248,
           "params": [
             "task"
           ],
           "purpose": "Render single task item"
         },
         "handleTaskAction": {
-          "line": 325,
+          "line": 326,
           "params": [
             "taskId",
             "action"
@@ -19862,14 +19875,25 @@
           "purpose": "Handle task action buttons"
         },
         "openRunFlow": {
-          "line": 376,
+          "line": 377,
           "params": [
             "task"
           ],
           "purpose": "Open the run-config modal for a task and dispatch it on confirm."
         },
+        "workspaceContext": {
+          "line": 404,
+          "purpose": "The selected workspace's record (null for the main checkout) and the project's server workspaces."
+        },
+        "selectRunWorkspace": {
+          "line": 417,
+          "params": [
+            "workspaceId"
+          ],
+          "purpose": "Select the workspace a run goes to before the lane opens there, the way"
+        },
         "buildTaskPrompt": {
-          "line": 399,
+          "line": 441,
           "params": [
             "task",
             "opts = {}"
@@ -19877,7 +19901,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. The builder"
         },
         "runTaskWithOptions": {
-          "line": 413,
+          "line": 455,
           "params": [
             "task",
             "opts = {}"
@@ -19885,65 +19909,65 @@
           "purpose": "Send the task to an agent. Always a new Frame: agentDispatch creates"
         },
         "setClaudeRunning": {
-          "line": 432,
+          "line": 474,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 439,
+          "line": 481,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 448,
+          "line": 490,
           "params": [
             "taskId"
           ],
           "purpose": "Delete task — opens the shared confirm modal first; only dispatches the IPC"
         },
         "showAddTaskModal": {
-          "line": 465,
+          "line": 507,
           "purpose": "Show add task modal"
         },
         "showEditTaskModal": {
-          "line": 484,
+          "line": 526,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
         "hideTaskModal": {
-          "line": 510,
+          "line": 552,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 520,
+          "line": 562,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 558,
+          "line": 600,
           "purpose": "Setup modal event listeners"
         },
         "renderSourceChip": {
-          "line": 603,
+          "line": 645,
           "params": [
             "source"
           ],
           "purpose": "Render a small attribution chip for tasks that came from a Frame spec."
         },
         "formatDate": {
-          "line": 614,
+          "line": 656,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 631,
+          "line": 673,
           "purpose": "Initialize when DOM is ready"
         }
       },
@@ -19962,7 +19986,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 19126,
+      "sizeBytes": 21001,
       "extraction": {
         "status": "parsed"
       },
@@ -19986,6 +20010,7 @@
           "renderSourceChip": "9af08c407d8854ff",
           "renderTaskItem": "aec63d138cdf6e0f",
           "runTaskWithOptions": "b8093ae46a18716d",
+          "selectRunWorkspace": "6dede9f489ab5ab9",
           "setClaudeRunning": "83a7b743fed905e2",
           "setFilter": "02a7ced4a971091c",
           "setupEventListeners": "208f9c90c23e3193",
@@ -19994,7 +20019,8 @@
           "show": "6bb82e87bcdcdc11",
           "showAddTaskModal": "6e4f5504591d8c5e",
           "showEditTaskModal": "141c034673750303",
-          "toggle": "aa012d4264de5d2c"
+          "toggle": "aa012d4264de5d2c",
+          "workspaceContext": "b7696b8ddeaff781"
         }
       }
     },
@@ -28609,7 +28635,8 @@
         "taskChipLabel",
         "homeOf",
         "splitOrder",
-        "runTarget"
+        "runTarget",
+        "runTargetNote"
       ],
       "depends": [],
       "functions": {
@@ -28658,9 +28685,18 @@
             "serverWorkspaces"
           ],
           "purpose": "Where Play runs a task. A task runs where its `tasks.json` lives, so the"
+        },
+        "runTargetNote": {
+          "line": 136,
+          "params": [
+            "target",
+            "task",
+            "selected"
+          ],
+          "purpose": "What the Task Run dialog says about where a task runs, from runTarget's"
         }
       },
-      "sizeBytes": 5538,
+      "sizeBytes": 6659,
       "extraction": {
         "status": "parsed"
       },
@@ -28670,6 +28706,7 @@
           "homeOf": "e9bc5a585ba0013a",
           "mergeTaskLists": "f1d2374fb27edb79",
           "runTarget": "804525b4e1645dea",
+          "runTargetNote": "a6f9211c1081499c",
           "splitOrder": "e818b383e8db7bfa",
           "taskChipLabel": "b50924a07d5de50d"
         }
@@ -33619,7 +33656,7 @@
         "src/shared/serverTasks"
       ],
       "functions": {},
-      "sizeBytes": 6068,
+      "sizeBytes": 7187,
       "extraction": {
         "status": "parsed"
       },
@@ -37906,6 +37943,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "726662934efbe9a8b38e1fe2fd4fb1eb2f758221094144eb145a342e3279fc41"
+    "revision": "e2802a03cd0555e64642a6129ae43f51d65dad014a84b1cf5e81e9d1118564a6"
   }
 }
