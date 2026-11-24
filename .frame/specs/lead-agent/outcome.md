@@ -31,3 +31,11 @@ Added `src/shared/leadProtocol.js`. It provides a JSON-lines reader that handles
 _Captured: 2026-11-25 · 2 file changes_
 
 ---
+
+## T05 — Summarise a session's transcript
+
+Added the pure `src/shared/leadTranscript.js`. `summarize` returns the title, last prompt, last 10 events, files changed versus files read, and a truncated flag. `parseLines` parses a tail read and drops its partial first line. `transcriptPathFromSession` handles the `~/.claude/sessions/<pid>.json` fallback and only accepts a UUID session id. Exported `transcriptFor` from `sessionRestore.js` and `projectsDir` / `encodeProjectPath` from `claudeSessionsManager.js`. Verified on a live 4.9 MB transcript by reading only its last 256 KB through the pid file.
+
+_Captured: 2026-11-25 · 4 file changes_
+
+---

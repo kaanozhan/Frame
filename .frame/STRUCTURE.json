@@ -1012,7 +1012,8 @@
       "exports": [
         "init",
         "setupIPC",
-        "getSessionsForProject"
+        "getSessionsForProject",
+        "encodeProjectPath"
       ],
       "depends": [
         "fs",
@@ -1091,7 +1092,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 8886,
+      "sizeBytes": 8997,
       "extraction": {
         "status": "parsed"
       },
@@ -6521,6 +6522,7 @@
       "exports": [
         "init",
         "envFor",
+        "transcriptFor",
         "registerTerminal",
         "onForeground",
         "onClose",
@@ -6542,25 +6544,32 @@
           "line": 55,
           "purpose": "Create the report directory, drop last run's leftovers (their terminals"
         },
+        "transcriptFor": {
+          "line": 83,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "The transcript of the session running in a terminal, as its SessionStart"
+        },
         "envFor": {
-          "line": 80,
+          "line": 89,
           "params": [
             "terminalId"
           ],
           "purpose": "The env a PTY needs so its CLIs can report. Empty when init failed."
         },
         "writeStore": {
-          "line": 87
+          "line": 96
         },
         "persist": {
-          "line": 100,
+          "line": 109,
           "params": [
             "projectPath"
           ],
           "purpose": "Rewrite one project's record from its live terminals."
         },
         "registerTerminal": {
-          "line": 112,
+          "line": 121,
           "params": [
             "terminalId",
             "{ projectPath = null",
@@ -6569,7 +6578,7 @@
           ]
         },
         "onForeground": {
-          "line": 119,
+          "line": 128,
           "params": [
             "terminalId",
             "processName",
@@ -6577,24 +6586,24 @@
           ]
         },
         "onClose": {
-          "line": 125,
+          "line": 134,
           "params": [
             "terminalId"
           ],
           "purpose": "The user closed the terminal or its shell exited."
         },
         "freeze": {
-          "line": 132,
+          "line": 141,
           "purpose": "App teardown: keep every record exactly as it is."
         },
         "scheduleScan": {
-          "line": 138
+          "line": 147
         },
         "scanReports": {
-          "line": 146
+          "line": 155
         },
         "isForegroundJob": {
-          "line": 178,
+          "line": 187,
           "params": [
             "pid",
             "shellPid",
@@ -6603,30 +6612,30 @@
           "purpose": "Is `pid` the terminal's foreground job? A CLI started from inside a"
         },
         "take": {
-          "line": 201,
+          "line": 210,
           "params": [
             "projectPath"
           ],
           "purpose": "A project's restore plan. Holds the project's record until the renderer"
         },
         "restoreDone": {
-          "line": 210,
+          "line": 219,
           "params": [
             "projectPath"
           ]
         },
         "launchProject": {
-          "line": 222,
+          "line": 231,
           "purpose": "The project to open on launch instead of the default one: the project the"
         },
         "setLastActiveProject": {
-          "line": 229,
+          "line": 238,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 236,
+          "line": 245,
           "params": [
             "ipcMain"
           ]
@@ -6643,7 +6652,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 9322,
+      "sizeBytes": 9678,
       "extraction": {
         "status": "parsed"
       },
@@ -6657,7 +6666,8 @@
           "launchProject": "11a50d0b9f2e3a19",
           "onClose": "4eedc38351ae9028",
           "persist": "5e8a9c379af7ca5c",
-          "take": "d506f8cc1cf5a1ec"
+          "take": "d506f8cc1cf5a1ec",
+          "transcriptFor": "f61a82a828b2527c"
         }
       }
     },
@@ -28061,6 +28071,92 @@
         }
       }
     },
+    "shared/leadTranscript": {
+      "file": "src/shared/leadTranscript.js",
+      "description": "leadTranscript — what a Claude session has been doing, from its transcript",
+      "exports": [
+        "DEFAULT_EVENTS",
+        "summarize",
+        "parseLines",
+        "transcriptPathFromSession",
+        "userText"
+      ],
+      "depends": [],
+      "functions": {
+        "excerpt": {
+          "line": 23,
+          "params": [
+            "text",
+            "n = TEXT_EXCERPT"
+          ]
+        },
+        "isScaffolding": {
+          "line": 28,
+          "params": [
+            "text"
+          ]
+        },
+        "userText": {
+          "line": 34,
+          "params": [
+            "record"
+          ],
+          "purpose": "The user's own words in a user record, or null."
+        },
+        "fileOf": {
+          "line": 44,
+          "params": [
+            "input"
+          ]
+        },
+        "toolLabel": {
+          "line": 50,
+          "params": [
+            "name",
+            "input"
+          ]
+        },
+        "summarize": {
+          "line": 62,
+          "params": [
+            "records",
+            "{ maxEvents = DEFAULT_EVENTS } = {}"
+          ],
+          "purpose": "Records (oldest first) → `{ title, lastPrompt, events, filesChanged, filesRead, truncated }`."
+        },
+        "parseLines": {
+          "line": 112,
+          "params": [
+            "text",
+            "{ fromMiddle = false } = {}"
+          ],
+          "purpose": "JSON lines → records. A tail read starts mid-line, so the first line is"
+        },
+        "transcriptPathFromSession": {
+          "line": 136,
+          "params": [
+            "sessionFile",
+            "{ projectsDir",
+            "encodeProjectPath",
+            "join }"
+          ],
+          "purpose": "The transcript path a Claude CLI's session file points to (plan D16"
+        }
+      },
+      "sizeBytes": 5752,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "4380adc1ae08f15a",
+        "purposes": {
+          "parseLines": "bfe2ba2ec1d2f216",
+          "summarize": "82b195b5782035ed",
+          "transcriptPathFromSession": "49e2409273689ca5",
+          "userText": "c930d7c976580fd2"
+        }
+      }
+    },
     "shared/prFlow": {
       "file": "src/shared/prFlow.js",
       "description": "prFlow — the rules behind a workspace's way out: push, pull request,",
@@ -32872,6 +32968,25 @@
         "description": "eb2941798a52182c"
       }
     },
+    "test/leadTranscript.test": {
+      "file": "test/leadTranscript.test.js",
+      "description": "leadTranscript — a compact activity summary of a Claude session for the",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "path",
+        "src/shared/leadTranscript"
+      ],
+      "functions": {},
+      "sizeBytes": 4399,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "46201c19fbf0ef58"
+      }
+    },
     "test/logger.test": {
       "file": "test/logger.test.js",
       "description": "Redaction tests: no secret shape may survive into a persisted log, and",
@@ -37606,6 +37721,11 @@
         "module": "shared/leadRules",
         "file": "src/shared/leadRules.js",
         "description": "leadRules — the rules behind the Chief (lead-agent spec, T01)."
+      },
+      {
+        "module": "shared/leadTranscript",
+        "file": "src/shared/leadTranscript.js",
+        "description": "leadTranscript — what a Claude session has been doing, from its transcript"
       }
     ],
     "link": [
@@ -38543,7 +38663,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 431,
+        "parsed": 433,
         "unsupported": 92,
         "partial": 0
       }
@@ -38590,9 +38710,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 617,
+      "visitedEntries": 619,
       "traversedDirectories": 86,
-      "eligibleFiles": 523,
+      "eligibleFiles": 525,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -38609,7 +38729,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 523,
+      "indexedFiles": 525,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -38617,6 +38737,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "0a1c8da26d6c2ab683c8e84034f1f7d32e17bf2fa8409557599adf5359cb1c37"
+    "revision": "5651bf671414f87777b901ad002d3cb0d81212bc3121648fe6191eb53199436d"
   }
 }
