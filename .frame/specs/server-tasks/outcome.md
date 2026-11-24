@@ -14,3 +14,11 @@ _Captured: 2026-11-24 · 3 file change(s)_
 
 ---
 
+## T03 — Frame Server tasks watch
+
+Added `tasks.watch { projectPath }` and `tasks.unwatch` to `src/server/tasks.js`: the server watches the clone's `.frame` folder, not the file, because `tasks.json` is written atomically (tmp file then rename), and pushes a 300 ms debounced `tasks.changed { projectPath }` only for `tasks.json`. A new watch replaces the old one (the desktop follows one project), and `idle`/`stop` drop every watch when the last desktop leaves. A project without Frame watches nothing. Tests in `test/serverTasks.test.js` cover a desktop change, an agent's atomic write, another file ignored, replacement, unwatch and idle.
+
+_Captured: 2026-11-24 · 2 file change(s)_
+
+---
+

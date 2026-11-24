@@ -25935,6 +25935,7 @@
         "projects",
         "panels",
         "specs",
+        "tasks",
         "sendFiles",
         "doctor"
       ],
@@ -26033,7 +26034,7 @@
           "purpose": "An installed package carries its exact version (a dev build's is"
         }
       },
-      "sizeBytes": 11574,
+      "sizeBytes": 11642,
       "extraction": {
         "status": "parsed"
       },
@@ -26254,6 +26255,42 @@
       },
       "provenance": {
         "description": "4142b2f3632d43f3"
+      }
+    },
+    "server/tasks": {
+      "file": "src/server/tasks.js",
+      "description": "Frame Server — a server project's tasks (server-tasks).",
+      "exports": [
+        "setup",
+        "LOCAL_MODE",
+        "NO_FRAME"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "main/tasksManager",
+        "main/projectRegistry",
+        "main/frameStore",
+        "main/gitSharing",
+        "shared/frameConstants",
+        "tooling",
+        "main/fsSafe"
+      ],
+      "functions": {
+        "setup": {
+          "line": 41,
+          "params": [
+            "{ registerMethods",
+            "broadcast }"
+          ]
+        }
+      },
+      "sizeBytes": 6941,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "ad297e39aca4f76b"
       }
     },
     "server/terminals": {
@@ -33348,6 +33385,58 @@
         }
       }
     },
+    "test/serverTasks.test": {
+      "file": "test/serverTasks.test.js",
+      "description": "Frame Server's tasks methods (server-tasks T02): a server project's task",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "src/server/electronShim",
+        "src/server/projects",
+        "src/server/specs",
+        "src/server/tasks"
+      ],
+      "functions": {
+        "write": {
+          "line": 39,
+          "params": [
+            "file",
+            "body"
+          ]
+        },
+        "receive": {
+          "line": 51,
+          "params": [
+            "{ frame = true",
+            "mode = null } = {}"
+          ],
+          "purpose": "A project on \"the Mac\" received by the server. `frame`: a Frame project; `mode`: its gitSharing."
+        },
+        "waitFor": {
+          "line": 141,
+          "params": [
+            "pred",
+            "ms",
+            "what"
+          ]
+        }
+      },
+      "sizeBytes": 11324,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "f32ea4dc66a2cb13",
+        "purposes": {
+          "receive": "bb7b59aff5bba64a"
+        }
+      }
+    },
     "test/serverTasksModel.test": {
       "file": "test/serverTasksModel.test.js",
       "description": "The rules behind tasks in server workspaces (server-tasks T01):",
@@ -37527,7 +37616,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 420,
+        "parsed": 422,
         "unsupported": 92,
         "partial": 0
       }
@@ -37574,9 +37663,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 606,
+      "visitedEntries": 608,
       "traversedDirectories": 86,
-      "eligibleFiles": 512,
+      "eligibleFiles": 514,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -37593,7 +37682,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 512,
+      "indexedFiles": 514,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -37601,6 +37690,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "c51751975f03f761d93e746fca0b424d8dd1fa7d0eafbb38b1df0b994a1f9061"
+    "revision": "d96285a6a483bb6fe7dcb427fc8d5abfe3b7710fa5975322475ba6d0b63bd96b"
   }
 }

@@ -134,3 +134,70 @@ test('a project in local sharing mode is refused', async () => {
   await assert.rejects(methods['tasks.list']({ projectPath }), new RegExp(LOCAL_MODE.slice(0, 30).replace(/[()]/g, '\\$&')));
   await assert.rejects(methods['tasks.add']({ projectPath, task: { title: 'x' } }), /local mode/);
 });
+
+// ─── T03: tasks.watch ─────────────────────────────────────────
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function waitFor(pred, ms, what) {
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    if (pred()) return;
+    await sleep(25);
+  }
+  assert.fail(`timed out waiting for ${what}`);
+}
+const changedFor = (projectPath) => events.filter(([name, p]) => name === 'tasks.changed' && p && p.projectPath === projectPath).length;
+
+test('tasks.watch pushes one debounced tasks.changed for a desktop change and for an agent writing the file', async () => {
+  const { projectPath } = await receive();
+  const res = await methods['tasks.watch']({ projectPath });
+  assert.deepEqual(res.watching, [projectPath]);
+
+  await methods['tasks.update']({ projectPath, taskId: 'task-a', updates: { status: 'in_progress' } });
+  await waitFor(() => changedFor(projectPath) === 1, 3000, 'the push after a desktop change');
+  await sleep(500);
+  assert.equal(changedFor(projectPath), 1, 'debounced: one push');
+
+  // An agent edits tasks.json the way fsSafe does: a tmp file, then a rename.
+  const file = path.join(projectPath, '.frame', 'tasks.json');
+  const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+  data.tasks[1].status = 'completed';
+  fs.writeFileSync(`${file}.tmp`, JSON.stringify(data, null, 2));
+  fs.renameSync(`${file}.tmp`, file);
+  await waitFor(() => changedFor(projectPath) === 2, 3000, 'the push after an agent write');
+
+  // Another file in .frame is not the tasks file.
+  fs.writeFileSync(path.join(projectPath, '.frame', 'notes.txt'), 'x');
+  await sleep(600);
+  assert.equal(changedFor(projectPath), 2, 'no push for other files');
+  await methods['tasks.unwatch']();
+});
+
+test('a new watch replaces the old one; unwatch and the last desktop leaving stop it', async () => {
+  const a = await receive();
+  const b = await receive();
+  await methods['tasks.watch']({ projectPath: a.projectPath });
+  const res = await methods['tasks.watch']({ projectPath: b.projectPath });
+  assert.deepEqual(res.watching, [b.projectPath], 'only the desktop\'s current project');
+  await methods['tasks.update']({ projectPath: a.projectPath, taskId: 'task-a', updates: { status: 'completed' } });
+  await sleep(600);
+  assert.equal(changedFor(a.projectPath), 0, 'the replaced watch is gone');
+
+  await methods['tasks.unwatch']();
+  await methods['tasks.update']({ projectPath: b.projectPath, taskId: 'task-a', updates: { status: 'completed' } });
+  await sleep(600);
+  assert.equal(changedFor(b.projectPath), 0, 'unwatched');
+
+  await methods['tasks.watch']({ projectPath: b.projectPath });
+  tasksPart.idle(); // the last desktop disconnected
+  await methods['tasks.update']({ projectPath: b.projectPath, taskId: 'task-b', updates: { status: 'completed' } });
+  await sleep(600);
+  assert.equal(changedFor(b.projectPath), 0, 'stopped when no desktop is connected');
+});
+
+test('watching a project without Frame watches nothing and creates nothing', async () => {
+  const { projectPath } = await receive({ frame: false });
+  assert.deepEqual(await methods['tasks.watch']({ projectPath }), { watching: [] });
+  assert.equal(fs.existsSync(path.join(projectPath, '.frame')), false);
+  await assert.rejects(methods['tasks.watch']({ projectPath: path.join(SANDBOX, 'elsewhere') }), /not on the server/);
+});

@@ -12,6 +12,16 @@
  *   tasks.update  { projectPath, taskId, updates } → { task }
  *   tasks.delete  { projectPath, taskId }          → { success }
  *   tasks.reorder { projectPath, order }           → { success }
+ *   tasks.watch   { projectPath } / tasks.unwatch
+ *   event: tasks.changed { projectPath }
+ *
+ * The watch mirrors `specs.watch`: the server watches the clone's `.frame`
+ * folder (tasks.json is written atomically — tmp file, then rename — so the
+ * file itself cannot be watched) and pushes a debounced `tasks.changed` when
+ * tasks.json changes, whoever wrote it: an agent, `/spec.tasks`' sync, or a
+ * change sent from the desktop. The desktop never polls. Watching follows the
+ * desktop's project (a new watch replaces the old one) and stops on unwatch
+ * and when the last desktop disconnects.
  *
  * Every call names a project in the server's registry. A project without
  * Frame (no `.frame/config.json`) lists no tasks and takes no change, so the
@@ -20,18 +30,56 @@
  * the clone holds no task file worth trusting.
  */
 
+const fs = require('fs');
 const path = require('path');
+
+const CHANGE_DEBOUNCE_MS = 300;
 
 const LOCAL_MODE = 'This project keeps Frame files out of git (local mode), so its tasks cannot live on the server — keep them in a local workspace.';
 const NO_FRAME = 'This project has no Frame setup on the server, so it has no tasks there.';
 
-function setup({ registerMethods }) {
+function setup({ registerMethods, broadcast }) {
   const tasksManager = require('../main/tasksManager');
   const projectRegistry = require('../main/projectRegistry');
   const frameStore = require('../main/frameStore');
   const gitSharing = require('../main/gitSharing');
   const { FRAME_FILES } = require('../shared/frameConstants');
   const { isFrameProject } = require('./tooling');
+  const fsSafe = require('../main/fsSafe');
+  const watchers = new Map(); // projectPath → { watcher, timer }
+
+  function unwatch(projectPath) {
+    const entry = watchers.get(projectPath);
+    if (!entry) return;
+    if (entry.timer) clearTimeout(entry.timer);
+    try { entry.watcher.close(); } catch (_) { /* already closed */ }
+    watchers.delete(projectPath);
+  }
+
+  function unwatchAll() {
+    for (const p of Array.from(watchers.keys())) unwatch(p);
+  }
+
+  function watch(projectPath) {
+    if (watchers.has(projectPath)) return;
+    const dir = frameStore.metaDir(projectPath);
+    const file = path.basename(frameStore.resolvePath(projectPath, FRAME_FILES.TASKS));
+    try {
+      const entry = { watcher: null, timer: null };
+      entry.watcher = fsSafe.safeWatch(dir, {}, (event, name) => {
+        // No name (some platforms) may be tasks.json too; a tmp file is not.
+        if (name && String(name) !== file) return;
+        if (entry.timer) clearTimeout(entry.timer);
+        entry.timer = setTimeout(() => {
+          entry.timer = null;
+          if (typeof broadcast === 'function') broadcast('tasks.changed', { projectPath });
+        }, CHANGE_DEBOUNCE_MS);
+      }, () => { watchers.delete(projectPath); });
+      watchers.set(projectPath, entry);
+    } catch (err) {
+      console.warn(`[frame-server] could not watch tasks in ${projectPath}: ${err.message}`);
+    }
+  }
 
   /** The project a call names, once it is known to be a server project of Frame's, not in local mode. */
   function project(projectPath) {
@@ -84,10 +132,23 @@ function setup({ registerMethods }) {
       const dir = needFrame(project(projectPath));
       if (!Array.isArray(order)) throw new Error('Missing order.');
       return { success: !!tasksManager.reorderTasks(dir, order) };
-    }
+    },
+    // Watch this project's tasks.json, and only this one: the desktop
+    // follows one project at a time.
+    'tasks.watch': async ({ projectPath } = {}) => {
+      const dir = project(projectPath);
+      for (const p of Array.from(watchers.keys())) if (p !== dir) unwatch(p);
+      if (isFrameProject(dir)) watch(dir);
+      return { watching: Array.from(watchers.keys()) };
+    },
+    'tasks.unwatch': async () => { unwatchAll(); return null; }
   });
 
-  return { stop() {} };
+  return {
+    stop: unwatchAll,
+    // No desktop is connected: nobody receives tasks.changed.
+    idle: unwatchAll
+  };
 }
 
 module.exports = { setup, LOCAL_MODE, NO_FRAME };
