@@ -33687,18 +33687,19 @@
         "src/server/electronShim",
         "src/server/projects",
         "src/server/specs",
-        "src/server/tasks"
+        "src/server/tasks",
+        "src/main/workspaceGitState"
       ],
       "functions": {
         "write": {
-          "line": 39,
+          "line": 50,
           "params": [
             "file",
             "body"
           ]
         },
         "receive": {
-          "line": 51,
+          "line": 62,
           "params": [
             "{ frame = true",
             "mode = null } = {}"
@@ -33706,7 +33707,7 @@
           "purpose": "A project on \"the Mac\" received by the server. `frame`: a Frame project; `mode`: its gitSharing."
         },
         "waitFor": {
-          "line": 141,
+          "line": 152,
           "params": [
             "pred",
             "ms",
@@ -33714,7 +33715,7 @@
           ]
         }
       },
-      "sizeBytes": 11324,
+      "sizeBytes": 11973,
       "extraction": {
         "status": "parsed"
       },
@@ -38040,6 +38041,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "bbd53d2aad190fab2b8241100ed8661eda6aea60c9467042a430c24bec53fd29"
+    "revision": "6381ea0899709878cb04fe00a0f43d559c1509c950977fa043ccc4a80b086756"
   }
 }

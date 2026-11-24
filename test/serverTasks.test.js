@@ -18,6 +18,14 @@ fs.mkdirSync(process.env.HOME, { recursive: true });
 process.env.FRAME_SERVER_PROJECTS = path.join(SANDBOX, 'projects');
 process.env.FRAME_SERVER_HOME = path.join(SANDBOX, 'server-home');
 process.env.GIT_CONFIG_NOSYSTEM = '1';
+// As serverWorkspaceTooling.test.js (#232): git 2.47+ auto-maintenance runs
+// detached after clone and commit and was still writing when the sandbox was
+// removed on CI (ENOTEMPTY). Every git child inherits this env.
+Object.assign(process.env, {
+  GIT_CONFIG_COUNT: '2',
+  GIT_CONFIG_KEY_0: 'maintenance.auto', GIT_CONFIG_VALUE_0: 'false',
+  GIT_CONFIG_KEY_1: 'gc.auto', GIT_CONFIG_VALUE_1: '0'
+});
 const git = (args, cwd) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' } }).trim();
 
 const shim = require('../src/server/electronShim');
@@ -30,10 +38,13 @@ const specsPart = require('../src/server/specs').setup({ shim: handle, registerM
 const tasksPart = require('../src/server/tasks').setup({ shim: handle, registerMethods: register, broadcast: (...a) => events.push(a) });
 const { LOCAL_MODE, NO_FRAME } = require('../src/server/tasks');
 
-test.after(() => {
+test.after(async () => {
   specsPart.idle();
   if (tasksPart.idle) tasksPart.idle();
-  fs.rmSync(SANDBOX, { recursive: true, force: true });
+  // Workspace actions start git-state refreshes without awaiting them; let
+  // them finish before the sandbox goes (#232), and retry the removal.
+  await require('../src/main/workspaceGitState').settled();
+  fs.rmSync(SANDBOX, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 });
 
 function write(file, body) {
