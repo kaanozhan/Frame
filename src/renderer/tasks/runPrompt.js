@@ -29,12 +29,23 @@ function missingFields(task) {
   return READY_FIELDS.filter(field => !filled(task[field]));
 }
 
-function formatStep(task, missing) {
+/**
+ * How the prompt names the task file: its absolute path when the caller knows
+ * it (server-tasks B4) — the Mac's main checkout for a Mac task, the server
+ * clone for a server task — so an agent in a workspace never edits the
+ * worktree's tracked copy and puts task state on the branch. Without a path,
+ * plain "tasks.json", as before.
+ */
+function taskFileRef(opts) {
+  return opts && typeof opts.tasksPath === 'string' && opts.tasksPath ? `the task list at ${opts.tasksPath}` : 'tasks.json';
+}
+
+function formatStep(task, missing, fileRef = 'tasks.json') {
   const fields = missing.map(f => `\`${f}\``).join(' and ');
   // The entry in tasks.json is where the agent finds the user's original
   // request (`userRequest`) when the New Task form recorded one.
   return `this task is not ready yet: its ${fields} ${missing.length > 1 ? 'are' : 'is'} empty.`
-    + ` Read this task in tasks.json (task id: ${task.id}) and the code it concerns, then write ${missing.length > 1 ? 'them' : 'it'} into that entry.`
+    + ` Read this task in ${fileRef} (task id: ${task.id}) and the code it concerns, then write ${missing.length > 1 ? 'them' : 'it'} into that entry.`
     + ` Never add or change \`userRequest\`.`
     + ` Show me the acceptance criteria and wait for my confirmation before continuing`;
 }
@@ -57,7 +68,8 @@ function buildTaskPrompt(task, opts = {}) {
 
   const steps = [];
   const missing = missingFields(task);
-  if (missing.length > 0) steps.push(formatStep(task, missing));
+  const fileRef = taskFileRef(opts);
+  if (missing.length > 0) steps.push(formatStep(task, missing, fileRef));
 
   if (opts.branchMode === 'new') {
     const branchStep = opts.newBranchName
@@ -77,7 +89,10 @@ function buildTaskPrompt(task, opts = {}) {
   // when it's genuinely done; the tasks watcher pushes the change straight
   // back into the UI. Terminal-side signals can't tell "done" from
   // "stopped", so this stays the only auto-completion path.
-  prompt += ` When the task is fully complete, update this task's status to "completed" in tasks.json (task id: ${task.id}).`;
+  prompt += ` When the task is fully complete, update this task's status to "completed" in ${fileRef} (task id: ${task.id}).`;
+  if (fileRef !== 'tasks.json') {
+    prompt += ` Use exactly that file — it can be outside your working folder; never edit a .frame/tasks.json inside the working folder instead.`;
+  }
 
   return prompt;
 }

@@ -13,6 +13,7 @@ const runPrompt = require('./tasks/runPrompt');
 let isVisible = false;
 let currentFilter = 'all'; // all, pending, inProgress, completed
 let tasksData = null;
+let macTasksPath = null; // the Mac's tasks.json, absolute (TASKS_DATA)
 let claudeCodeRunning = false; // Track if Claude Code was started
 
 // DOM Elements
@@ -82,7 +83,9 @@ function setupEventListeners() {
  * Setup IPC listeners
  */
 function setupIPCListeners() {
-  ipcRenderer.on(IPC.TASKS_DATA, (event, { projectPath, tasks }) => {
+  ipcRenderer.on(IPC.TASKS_DATA, (event, { projectPath, tasks, tasksPath }) => {
+    // The Mac's tasks.json, absolute: Play names it for a Mac task (server-tasks B4).
+    if (tasksPath) macTasksPath = tasksPath;
     if (tasks) {
       tasksData = tasks;
       render();
@@ -408,7 +411,9 @@ function buildTaskPrompt(task, opts = {}) {
  * show the "sent" toast.
  */
 async function runTaskWithOptions(task, opts = {}) {
-  const prompt = buildTaskPrompt(task, opts);
+  // The task's own file by absolute path: its server clone's for a server
+  // task, the Mac's main checkout's otherwise (server-tasks B4).
+  const prompt = buildTaskPrompt(task, { ...opts, tasksPath: task.tasksPath || macTasksPath || null });
 
   // Lazy-required to avoid load-order coupling with the terminal wiring.
   const agentDispatch = require('./agentDispatch');

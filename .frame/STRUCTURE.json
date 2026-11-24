@@ -19419,15 +19419,23 @@
           ],
           "purpose": "The readiness fields this task still lacks; always [] for a spec task."
         },
+        "taskFileRef": {
+          "line": 39,
+          "params": [
+            "opts"
+          ],
+          "purpose": "How the prompt names the task file: its absolute path when the caller knows"
+        },
         "formatStep": {
-          "line": 32,
+          "line": 43,
           "params": [
             "task",
-            "missing"
+            "missing",
+            "fileRef = 'tasks.json'"
           ]
         },
         "buildTaskPrompt": {
-          "line": 52,
+          "line": 63,
           "params": [
             "task",
             "opts = {}"
@@ -19435,7 +19443,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. A task missing"
         }
       },
-      "sizeBytes": 4178,
+      "sizeBytes": 4944,
       "extraction": {
         "status": "parsed"
       },
@@ -19443,7 +19451,8 @@
         "description": "92c1eacd599ba2cf",
         "purposes": {
           "buildTaskPrompt": "3be35129f2a0f17b",
-          "missingFields": "72708aa38392c272"
+          "missingFields": "72708aa38392c272",
+          "taskFileRef": "d49fb342dfb7e55d"
         }
       }
     },
@@ -19795,57 +19804,57 @@
       ],
       "functions": {
         "init": {
-          "line": 26,
+          "line": 27,
           "purpose": "Initialize tasks panel"
         },
         "setupEventListeners": {
-          "line": 42,
+          "line": 43,
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 84,
+          "line": 85,
           "purpose": "Setup IPC listeners"
         },
         "loadTasks": {
-          "line": 110,
+          "line": 113,
           "purpose": "Load tasks for current project"
         },
         "show": {
-          "line": 121,
+          "line": 124,
           "purpose": "Show tasks panel. If there's no active project, surface an info modal"
         },
         "hide": {
-          "line": 138,
+          "line": 141,
           "purpose": "Hide tasks panel"
         },
         "toggle": {
-          "line": 148,
+          "line": 151,
           "purpose": "Toggle tasks panel visibility"
         },
         "setFilter": {
-          "line": 159,
+          "line": 162,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredTasks": {
-          "line": 173,
+          "line": 176,
           "purpose": "Get filtered tasks"
         },
         "render": {
-          "line": 198,
+          "line": 201,
           "purpose": "Render tasks list"
         },
         "renderTaskItem": {
-          "line": 244,
+          "line": 247,
           "params": [
             "task"
           ],
           "purpose": "Render single task item"
         },
         "handleTaskAction": {
-          "line": 322,
+          "line": 325,
           "params": [
             "taskId",
             "action"
@@ -19853,14 +19862,14 @@
           "purpose": "Handle task action buttons"
         },
         "openRunFlow": {
-          "line": 373,
+          "line": 376,
           "params": [
             "task"
           ],
           "purpose": "Open the run-config modal for a task and dispatch it on confirm."
         },
         "buildTaskPrompt": {
-          "line": 396,
+          "line": 399,
           "params": [
             "task",
             "opts = {}"
@@ -19868,7 +19877,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. The builder"
         },
         "runTaskWithOptions": {
-          "line": 410,
+          "line": 413,
           "params": [
             "task",
             "opts = {}"
@@ -19876,65 +19885,65 @@
           "purpose": "Send the task to an agent. Always a new Frame: agentDispatch creates"
         },
         "setClaudeRunning": {
-          "line": 427,
+          "line": 432,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 434,
+          "line": 439,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 443,
+          "line": 448,
           "params": [
             "taskId"
           ],
           "purpose": "Delete task — opens the shared confirm modal first; only dispatches the IPC"
         },
         "showAddTaskModal": {
-          "line": 460,
+          "line": 465,
           "purpose": "Show add task modal"
         },
         "showEditTaskModal": {
-          "line": 479,
+          "line": 484,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
         "hideTaskModal": {
-          "line": 505,
+          "line": 510,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 515,
+          "line": 520,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 553,
+          "line": 558,
           "purpose": "Setup modal event listeners"
         },
         "renderSourceChip": {
-          "line": 598,
+          "line": 603,
           "params": [
             "source"
           ],
           "purpose": "Render a small attribution chip for tasks that came from a Frame spec."
         },
         "formatDate": {
-          "line": 609,
+          "line": 614,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 626,
+          "line": 631,
           "purpose": "Initialize when DOM is ready"
         }
       },
@@ -19953,7 +19962,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 18712,
+      "sizeBytes": 19126,
       "extraction": {
         "status": "parsed"
       },
@@ -34897,7 +34906,7 @@
           "purpose": "The builder as it stood in tasksPanel.js before this spec, kept verbatim"
         }
       },
-      "sizeBytes": 6767,
+      "sizeBytes": 8244,
       "extraction": {
         "status": "parsed"
       },
@@ -37897,6 +37906,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "3a9947403e80740fd54dbc68117697b66ca3f463e6b4461e397bc0d7e901cb0f"
+    "revision": "726662934efbe9a8b38e1fe2fd4fb1eb2f758221094144eb145a342e3279fc41"
   }
 }

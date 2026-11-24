@@ -134,3 +134,26 @@ test('the completion line closes every prompt', () => {
     assert.ok(buildTaskPrompt(ready({ description: '' }), opts).endsWith(tail));
   }
 });
+
+// ─── The task file by absolute path (server-tasks T06) ───────────
+
+test('with the task file known, the prompt names it by absolute path — both where it reads and where it completes the task', () => {
+  const { buildTaskPrompt } = require('../src/renderer/tasks/runPrompt');
+  const unready = { id: 'task-9', title: 'Tidy', description: '', acceptanceCriteria: '' };
+  for (const tasksPath of ['/Users/me/app/.frame/tasks.json', '/home/me/frame/projects/app/.frame/tasks.json']) {
+    const p = buildTaskPrompt(unready, { tasksPath });
+    assert.ok(p.includes(`Read this task in the task list at ${tasksPath} (task id: task-9)`), p);
+    assert.ok(p.includes(`update this task's status to "completed" in the task list at ${tasksPath} (task id: task-9).`), p);
+    assert.ok(p.endsWith('never edit a .frame/tasks.json inside the working folder instead.'), 'the worktree\'s copy is ruled out');
+    assert.ok(!/ in tasks\.json /.test(p), 'no bare tasks.json left');
+  }
+});
+
+test('without a task file the prompt is exactly as before', () => {
+  const { buildTaskPrompt } = require('../src/renderer/tasks/runPrompt');
+  const ready = { id: 'task-1', title: 'Ship', description: 'Do it', acceptanceCriteria: 'Done' };
+  for (const opts of [{}, { tasksPath: '' }, { tasksPath: null }]) {
+    const p = buildTaskPrompt(ready, opts);
+    assert.ok(p.endsWith('update this task\'s status to "completed" in tasks.json (task id: task-1).'), p);
+  }
+});

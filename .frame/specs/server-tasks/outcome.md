@@ -38,3 +38,11 @@ _Captured: 2026-11-24 · 2 file change(s)_
 
 ---
 
+## T06 — Play names the task file by absolute path
+
+`src/renderer/tasks/runPrompt.js` names the task file through `taskFileRef(opts)`: with `opts.tasksPath` the prompt reads and completes the task in "the task list at <absolute path>" and adds that the file can be outside the working folder and the worktree's `.frame/tasks.json` must not be edited; without it the prompt is byte-for-byte as before. `src/renderer/tasksPanel.js` keeps the Mac's `tasksPath` from TASKS_DATA and passes `task.tasksPath` (a server task's clone) or it to the builder. Tests in `test/taskRunPrompt.test.js`; the new one fails on main.
+
+_Captured: 2026-11-24 · 3 file change(s)_
+
+---
+
