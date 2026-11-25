@@ -131,7 +131,8 @@ test('mergeQueues tags homes; homeOf routes by id', () => {
 
 test('worktreeKey uses slug or task id and avoids taken branches', () => {
   assert.strictEqual(q.worktreeKey({ kind: 'spec', ref: 'work-queue' }), 'work-queue');
-  assert.strictEqual(q.worktreeKey({ kind: 'task', ref: 'task-ABC_1' }), 'task-task-abc-1');
+  assert.strictEqual(q.worktreeKey({ kind: 'task', ref: 'task-ABC_1' }), 'task-abc-1');
+  assert.strictEqual(q.worktreeKey({ kind: 'task', ref: '1700000000' }), 'task-1700000000');
   assert.strictEqual(q.worktreeKey({ kind: 'spec', ref: 'x' }, ['frame/queue/x', 'frame/queue/x-2']), 'x-3');
   assert.strictEqual(q.queueBranch('x'), 'frame/queue/x');
   assert.strictEqual(q.queueWorktreeRel('x'), '.frame/worktrees/queue-x');

@@ -293,12 +293,15 @@ function slugPart(s) {
 }
 
 /**
- * The worktree key of an item (plan D14): the spec slug, or `task-<id>`, with
+ * The worktree key of an item (plan D14): the spec slug, or the task id
+ * (prefixed `task-` when it is not already), with
  * `-2`, `-3`… while `frame/queue/<key>` is in `takenBranches`.
  */
 function worktreeKey(item, takenBranches = []) {
   const taken = takenBranches instanceof Set ? takenBranches : new Set(list(takenBranches));
-  const base = (item && item.kind === KINDS.TASK ? `task-${slugPart(item.ref)}` : slugPart(item && item.ref)) || 'item';
+  const ref = slugPart(item && item.ref);
+  // Task ids already read `task-…`; don't say it twice.
+  const base = (item && item.kind === KINDS.TASK && !ref.startsWith('task-') ? `task-${ref}` : ref) || 'item';
   let key = base;
   for (let n = 2; taken.has(queueBranch(key)); n++) key = `${base}-${n}`;
   return key;

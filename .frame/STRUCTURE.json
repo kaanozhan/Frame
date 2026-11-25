@@ -2697,6 +2697,8 @@
         "removeWorktree",
         "isWorkingTreeClean",
         "setupIPC",
+        "queueBranches",
+        "createQueueWorktree",
         "localBranchExists",
         "defaultRemoteBranch",
         "fetchBranch",
@@ -3041,28 +3043,59 @@
           ],
           "purpose": "`git merge --abort` → `{ error }`."
         },
+        "queueWorktreePath": {
+          "line": 772,
+          "params": [
+            "checkout",
+            "key"
+          ]
+        },
+        "queueBranches": {
+          "line": 777,
+          "params": [
+            "checkout"
+          ],
+          "purpose": "Local branches under frame/queue/ — the names a new key must avoid."
+        },
+        "isWorktreeOf": {
+          "line": 787,
+          "params": [
+            "checkout",
+            "dir"
+          ],
+          "purpose": "Whether `dir` is a live worktree of `checkout`."
+        },
+        "createQueueWorktree": {
+          "line": 799,
+          "params": [
+            "checkout",
+            "{ key",
+            "existing = null } = {}"
+          ],
+          "purpose": "The worktree a queue item runs in: `existing` when it is still a worktree"
+        },
         "orchWorktreePath": {
-          "line": 770,
+          "line": 819,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getHeadSha": {
-          "line": 774,
+          "line": 823,
           "params": [
             "projectPath"
           ]
         },
         "branchExists": {
-          "line": 783,
+          "line": 832,
           "params": [
             "projectPath",
             "branchName"
           ]
         },
         "createOrchWorktree": {
-          "line": 797,
+          "line": 846,
           "params": [
             "projectPath",
             "slug"
@@ -3070,7 +3103,7 @@
           "purpose": "Create a fresh worker worktree for a spec, branched from current HEAD."
         },
         "removeOrchWorktree": {
-          "line": 818,
+          "line": 867,
           "params": [
             "projectPath",
             "slug",
@@ -3079,7 +3112,7 @@
           "purpose": "Remove a spec's worker worktree (force). Optionally delete its work branch."
         },
         "worktreeChangedFiles": {
-          "line": 833,
+          "line": 882,
           "params": [
             "projectPath",
             "slug",
@@ -3088,7 +3121,7 @@
           "purpose": "Files actually changed on a spec's work branch relative to a base ref."
         },
         "mergeWorkToIntegration": {
-          "line": 850,
+          "line": 899,
           "params": [
             "projectPath",
             "slug"
@@ -3096,7 +3129,7 @@
           "purpose": "Merge a spec's work branch into its per-spec integration branch. Because the"
         },
         "isWorkMerged": {
-          "line": 869,
+          "line": 918,
           "params": [
             "projectPath",
             "slug"
@@ -3104,14 +3137,14 @@
           "purpose": "Whether a spec's work branch has been merged (its integration branch exists"
         },
         "listOrchBranches": {
-          "line": 885,
+          "line": 934,
           "params": [
             "projectPath"
           ],
           "purpose": "List orchestration branches present in the repo, grouped by slug. Used for"
         },
         "setupIPC": {
-          "line": 905,
+          "line": 954,
           "params": [
             "ipcMain"
           ],
@@ -3133,7 +3166,7 @@
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
       },
-      "sizeBytes": 38088,
+      "sizeBytes": 40564,
       "extraction": {
         "status": "parsed"
       },
@@ -3149,6 +3182,7 @@
           "createBranch": "b25c5d90b1a1893a",
           "createBundle": "137125c05b40b858",
           "createOrchWorktree": "360f17a3e8ed35d7",
+          "createQueueWorktree": "441b40474a80810a",
           "defaultRemoteBranch": "2b8cac1668d02128",
           "deleteBranch": "558fdff79656691b",
           "discardAll": "0a14d294029f8935",
@@ -3159,6 +3193,7 @@
           "init": "4ed6c1db9529d664",
           "isWorkMerged": "39ca7ffa9b37d991",
           "isWorkingTreeClean": "077fc8ab2e75ee0d",
+          "isWorktreeOf": "691ba4cc986c9efa",
           "listIgnoredCandidates": "8363d4cd5adc577f",
           "listIgnoredIn": "6778c318a1168739",
           "listOrchBranches": "b6e87043dfe78d4c",
@@ -3170,6 +3205,7 @@
           "mergeRef": "2e98a7d4780d893c",
           "mergeWorkToIntegration": "5fdd31c529fff0f9",
           "pushBranch": "ddd89a5237603350",
+          "queueBranches": "100b678bfb6fcef9",
           "removeOrchWorktree": "ee09f7af04806f80",
           "removeWorkspaceWorktree": "3f14e3547c30a6c2",
           "removeWorktree": "679ea312f5b749d1",
@@ -6373,6 +6409,114 @@
         }
       }
     },
+    "main/queueRunner": {
+      "file": "src/main/queueRunner.js",
+      "description": "queueRunner — gets one queue item ready to run (work-queue spec, T08).",
+      "exports": [
+        "prepare",
+        "AI_TOOL",
+        "_copySpecIn"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/queueRules",
+        "renderer/tasks/runPrompt",
+        "frameStore",
+        "specManager",
+        "gitBranchesManager",
+        "shared/frameConstants",
+        "tasksManager",
+        "workspaceTooling"
+      ],
+      "functions": {
+        "specDirIn": {
+          "line": 33,
+          "params": [
+            "root",
+            "slug"
+          ]
+        },
+        "readStatusAt": {
+          "line": 37,
+          "params": [
+            "root",
+            "slug"
+          ]
+        },
+        "workspaceRootOf": {
+          "line": 46,
+          "params": [
+            "checkout",
+            "slug"
+          ],
+          "purpose": "The checkout a spec already lives in when that is a Frame workspace, else null (D18)."
+        },
+        "copySpecIn": {
+          "line": 56,
+          "params": [
+            "checkout",
+            "worktree",
+            "slug"
+          ],
+          "purpose": "Copies main's spec folder into the worktree when the worktree has none (D15)."
+        },
+        "worktreeFor": {
+          "line": 65,
+          "params": [
+            "checkout",
+            "item"
+          ]
+        },
+        "tasksPathOf": {
+          "line": 74,
+          "params": [
+            "checkout"
+          ]
+        },
+        "findTask": {
+          "line": 80,
+          "params": [
+            "checkout",
+            "taskId"
+          ]
+        },
+        "prepareSpec": {
+          "line": 86,
+          "params": [
+            "checkout",
+            "item"
+          ]
+        },
+        "prepareTask": {
+          "line": 109,
+          "params": [
+            "checkout",
+            "item"
+          ]
+        },
+        "prepare": {
+          "line": 123,
+          "params": [
+            "checkout",
+            "item"
+          ],
+          "purpose": "Everything a queue item needs before its agent starts. Throws with a"
+        }
+      },
+      "sizeBytes": 5675,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "bf735bfa00aba11e",
+        "purposes": {
+          "copySpecIn": "af0959e48bf25819",
+          "prepare": "d59fcd1d5c3c70a7",
+          "workspaceRootOf": "1c903bb90d2bf557"
+        }
+      }
+    },
     "main/queueStore": {
       "file": "src/main/queueStore.js",
       "description": "queueStore — one checkout's `.frame/runtime/queue.json` (work-queue spec, T02).",
@@ -8252,7 +8396,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 96918,
+      "sizeBytes": 97023,
       "extraction": {
         "status": "parsed"
       },
@@ -29806,35 +29950,35 @@
           ]
         },
         "worktreeKey": {
-          "line": 299,
+          "line": 300,
           "params": [
             "item",
             "takenBranches = []"
           ],
-          "purpose": "The worktree key of an item (plan D14): the spec slug, or `task-<id>`, with"
+          "purpose": "The worktree key of an item (plan D14): the spec slug, or the task id"
         },
         "queueBranch": {
-          "line": 307,
+          "line": 310,
           "params": [
             "key"
           ]
         },
         "queueWorktreeRel": {
-          "line": 312,
+          "line": 315,
           "params": [
             "key"
           ],
           "purpose": "`.frame/worktrees/queue-<key>`, relative to the checkout (posix)."
         },
         "nextPhaseCommand": {
-          "line": 317,
+          "line": 320,
           "params": [
             "phase"
           ],
           "purpose": "The next single phase for step-by-step (D20); null when nothing is left."
         },
         "startCommand": {
-          "line": 331,
+          "line": 334,
           "params": [
             "item",
             "phase"
@@ -29842,7 +29986,7 @@
           "purpose": "The spec command an item starts with: `spec.auto` in full auto, the next"
         }
       },
-      "sizeBytes": 14038,
+      "sizeBytes": 14174,
       "extraction": {
         "status": "parsed"
       },
@@ -29866,7 +30010,7 @@
           "setFlowMode": "b2a4594ca8024e1b",
           "setState": "c307d483ef40319d",
           "startCommand": "fa4fe9e23a4a6bd8",
-          "worktreeKey": "42899ff8af51dcdf"
+          "worktreeKey": "db8c2800601e6ca5"
         }
       }
     },
@@ -35030,7 +35174,7 @@
           ]
         }
       },
-      "sizeBytes": 8914,
+      "sizeBytes": 9002,
       "extraction": {
         "status": "parsed"
       }
@@ -39856,6 +40000,11 @@
         "description": "queueManager — the desktop side of the work queue (work-queue spec, T03)."
       },
       {
+        "module": "main/queueRunner",
+        "file": "src/main/queueRunner.js",
+        "description": "queueRunner — gets one queue item ready to run (work-queue spec, T08)."
+      },
+      {
         "module": "main/queueStore",
         "file": "src/main/queueStore.js",
         "description": "queueStore — one checkout's `.frame/runtime/queue.json` (work-queue spec, T02)."
@@ -40492,7 +40641,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 448,
+        "parsed": 449,
         "unsupported": 94,
         "partial": 0
       }
@@ -40539,9 +40688,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 637,
+      "visitedEntries": 638,
       "traversedDirectories": 87,
-      "eligibleFiles": 542,
+      "eligibleFiles": 543,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -40558,7 +40707,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 542,
+      "indexedFiles": 543,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -40566,6 +40715,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "e31869bf456679dbc3036ba711b21b5b1d361f06dd3addfb6f2f4ee551cf27dd"
+    "revision": "c1f6e621fc7c24204f5fbf97a72024f1d38295f4fb27c759ad389b105a39c08f"
   }
 }

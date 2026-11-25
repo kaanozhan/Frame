@@ -54,3 +54,11 @@ _Captured: 2026-11-25 · 4 file change(s)_
 
 ---
 
+## T08 — Queue worktrees and item preparation
+
+Added createQueueWorktree and friends to gitBranchesManager.js and src/main/queueRunner.js (prepare for specs and tasks), and exported getAutoLaunchFlags from specManager.js. Changed worktreeKey so a task id that already reads task-… is not prefixed again (queueRules.js and its test). Smoke-tested on a temp git repo; the staged implement prompt names the main checkout's tasks.json. A spec copied into a worktree is copied only when the worktree has none, so a resumed item keeps its own progress.
+
+_Captured: 2026-11-25 · 5 file change(s)_
+
+---
+

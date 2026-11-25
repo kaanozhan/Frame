@@ -2214,5 +2214,7 @@ module.exports = {
   parseTasksMarkdown,
   syncTasksFromMarkdown,
   parseFootprintMarkdown,
-  getSpecFootprint
+  getSpecFootprint,
+  // The work queue starts a queued task with the full-auto flags (work-queue D2).
+  getAutoLaunchFlags
 };
