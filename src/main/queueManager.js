@@ -63,8 +63,28 @@ function macQueue(projectPath) {
 function macChange(projectPath, fn) {
   if (!projectPath) return { refused: 'not-found' };
   const res = store.update(projectPath, fn);
-  if (!res.refused) push(projectPath);
+  if (!res.refused) {
+    push(projectPath);
+    followWorktrees(projectPath, res.queue);
+  }
   return res;
+}
+
+// ─── spec visibility (T09, plan D16) ────────────────────────
+// specManager asks which queue worktrees are live; when that set changes it
+// re-reads where each spec lives and watches the new worktrees.
+
+const worktreeSig = new Map(); // projectPath → signature of its live worktree roots
+
+function liveRoots(projectPath) {
+  return rules.worktreeRoots(macQueue(projectPath).items);
+}
+
+function followWorktrees(projectPath, queue) {
+  const sig = rules.worktreeRoots(queue.items).map((r) => r.root).sort().join('\n');
+  if (worktreeSig.get(projectPath) === sig) return;
+  worktreeSig.set(projectPath, sig);
+  try { require('./specManager').refreshWorkspaceWatchers(projectPath); } catch (e) { logger.warn('queue', `spec watch refresh failed: ${e.message}`); }
 }
 
 /** What every QUEUE_DATA push carries: the Mac's queue, then each server's. */
@@ -192,7 +212,12 @@ function wireServers() {
   sc.on('queue.changed', ({ projectPath: serverProjectPath } = {}, key) => {
     if (!currentProjectPath) return;
     const known = [...serverQueues.values()].some((e) => e.projectPath === currentProjectPath && e.serverKey === key && e.serverProjectPath === serverProjectPath);
-    if (known) refreshServerQueues(currentProjectPath, { onlyKey: key }).catch(() => {});
+    if (known) {
+      refreshServerQueues(currentProjectPath, { onlyKey: key }).catch(() => {});
+      // A server item's spec runs in a queue worktree there; its phase reaches
+      // the server's main listing (D16) — re-read it.
+      try { require('./specManager').refreshServerSpecs(currentProjectPath).catch(() => {}); } catch (_) { /* not loaded */ }
+    }
   });
   sc.on('connected', (status, key) => {
     if (currentProjectPath) refreshServerQueues(currentProjectPath, { onlyKey: key || null }).catch(() => {});
@@ -342,6 +367,7 @@ function okOnly(r) {
 
 function init(window) {
   mainWindow = window;
+  try { require('./specManager').setQueueRootsProvider(liveRoots); } catch (e) { logger.warn('queue', `spec provider not set: ${e.message}`); }
 }
 
 function setupIPC(ipcMain) {

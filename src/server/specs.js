@@ -64,6 +64,12 @@ function setup({ registerMethods, broadcast }) {
     let rows = [];
     try { rows = workspaceRegistry.activeOf(projectRegistry.getWorkspaceRecords(projectPath) || []); } catch (_) { rows = []; }
     if (rows.some((r) => r && r.path && path.resolve(r.path) === want)) return want;
+    // A queue item's worktree (work-queue D16) is a checkout of this project too.
+    try {
+      const rules = require('../shared/queueRules');
+      const { load } = require('../main/queueStore');
+      if (rules.worktreeRoots(load(projectPath).items).some((r) => path.resolve(r.root) === want)) return want;
+    } catch (_) { /* no queue: not a queue worktree */ }
     throw new Error('That folder is not a workspace of this project on the server.');
   }
 

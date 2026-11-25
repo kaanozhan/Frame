@@ -45,8 +45,10 @@ function readStatusAt(root, slug) {
 /** The checkout a spec already lives in when that is a Frame workspace, else null (D18). */
 function workspaceRootOf(checkout, slug) {
   try {
-    const root = require('./specManager').specRoot(checkout, slug);
-    return root && path.resolve(root) !== path.resolve(checkout) ? root : null;
+    const loc = require('./specManager').specLocation(checkout, slug);
+    // A queue worktree (D16) is not a workspace: the item keeps its worktree.
+    if (!loc || !loc.workspace || loc.workspace.queue) return null;
+    return loc.root && path.resolve(loc.root) !== path.resolve(checkout) ? loc.root : null;
   } catch (_) {
     return null;
   }

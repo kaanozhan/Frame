@@ -41,6 +41,12 @@ function setup({ registerMethods, broadcast }) {
   const { isFrameProject } = require('./tooling');
   const watchers = new Map(); // projectPath → { watcher, timer }
 
+  // The live queue worktrees of a clone (work-queue D16): specManager lists
+  // their spec copies in place of main's, and specs.* accepts them as roots.
+  try { require('../main/specManager').setQueueRootsProvider((checkout) => rules.worktreeRoots(store.load(checkout).items)); } catch (err) {
+    console.warn(`[frame-server] queue worktrees not shared with specs: ${err.message}`);
+  }
+
   function unwatch(projectPath) {
     const entry = watchers.get(projectPath);
     if (!entry) return;

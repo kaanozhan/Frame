@@ -316,6 +316,20 @@ function queueWorktreeRel(key) {
   return `.frame/worktrees/queue-${key}`;
 }
 
+/**
+ * The worktrees whose spec copies are live (plan D16): every item that has
+ * one and is not done. `[{ root, branch, key, itemId }]`.
+ */
+function worktreeRoots(items) {
+  const out = [];
+  for (const it of list(items)) {
+    if (!it || !it.worktree || !it.worktree.path || it.state === STATES.DONE) continue;
+    const base = String(it.worktree.path).split(/[\\/]/).pop() || '';
+    out.push({ root: it.worktree.path, branch: it.worktree.branch || null, key: base.replace(/^queue-/, ''), itemId: it.id });
+  }
+  return out;
+}
+
 /** The next single phase for step-by-step (D20); null when nothing is left. */
 function nextPhaseCommand(phase) {
   switch (phase) {
@@ -371,5 +385,6 @@ module.exports = {
   queueBranch,
   queueWorktreeRel,
   nextPhaseCommand,
-  startCommand
+  startCommand,
+  worktreeRoots
 };

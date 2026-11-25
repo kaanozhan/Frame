@@ -62,3 +62,11 @@ _Captured: 2026-11-25 · 5 file change(s)_
 
 ---
 
+## T09 — Specs running in queue worktrees stay visible
+
+Added the queue-roots provider to specManager.js (registered by queueManager.js and src/server/queue.js), queue worktrees as accepted roots in src/server/specs.js, and queueRules.worktreeRoots. Deviations: src/shared/workspaceSpecs.js mergeSpecLists now keeps serverKey, serverProjectPath and a queue flag (it dropped them, which broke T07's server-spec routing), src/renderer/workspaceSection.js skips selecting a queue worktree, and test/specManagerServer.test.js's pinned workspace shape gained the two server fields; none of the three files was in the plan. A server spec always lives in a server workspace (server-specs), so on servers only tasks get queue worktrees.
+
+_Captured: 2026-11-25 · 9 file change(s)_
+
+---
+
