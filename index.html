@@ -1447,7 +1447,18 @@
           <p class="task-run-hint">Runs in a new Frame with the selected CLI.</p>
         </div>
 
-        <div class="task-run-section">
+        <!-- Where the task runs (server-tasks): a task runs where its
+             tasks.json lives; the note says why, and a server task run from
+             elsewhere picks one of its server's workspaces. -->
+        <div id="task-run-where" class="task-run-section" hidden>
+          <label class="task-run-section-label" for="task-run-workspace">Where</label>
+          <p id="task-run-where-note" class="task-run-hint"></p>
+          <select id="task-run-workspace" class="task-run-input" hidden></select>
+        </div>
+
+        <!-- Only for a run in the main checkout: a workspace keeps its own
+             branch (Frame never switches it). -->
+        <div id="task-run-branch-section" class="task-run-section">
           <label class="task-run-section-label">Branch</label>
           <div class="task-run-radio-list" role="radiogroup" aria-label="Branch">
             <label class="task-run-radio">

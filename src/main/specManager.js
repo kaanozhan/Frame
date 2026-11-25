@@ -1183,7 +1183,7 @@ function syncTasksFromMarkdown(projectPath, slug, tasksProject) {
   // Push a fresh TASKS_DATA so any open Tasks panel / Kanban dashboard
   // picks up the new rows without needing a manual reload.
   if ((added > 0 || updated > 0) && mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(IPC.TASKS_DATA, { projectPath: tasksHome, tasks: tasksData });
+    mainWindow.webContents.send(IPC.TASKS_DATA, tasksManager.tasksPayload(tasksHome, tasksData));
   }
 
   return { synced: parsed.length, added, updated, unchanged };
@@ -1416,7 +1416,7 @@ function renameSpec(projectPath, oldSlug, opts) {
         if (touched > 0) {
           tasksManager.saveTasks(projectPath, tasksData);
           if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send(IPC.TASKS_DATA, { projectPath, tasks: tasksData });
+            mainWindow.webContents.send(IPC.TASKS_DATA, tasksManager.tasksPayload(projectPath, tasksData));
           }
         }
 

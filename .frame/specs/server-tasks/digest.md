@@ -1,0 +1,11 @@
+---
+keywords: tasks, server workspace, frame server, tasks board, play, tasks.json, self-hosted, routing
+related: server-specs, spec-in-workspace, tasks-list-view, multi-server-connections, agent-dispatch
+---
+Tasks now work in server workspaces the way server specs do. Frame Server gained `tasks.list/add/update/delete/reorder` over the clone's `.frame/tasks.json` (registered projects only; local sharing mode and projects without Frame refused, no `.frame` written into them) and `tasks.watch` → debounced `tasks.changed` (folder watch, because tasks.json is written atomically; stops on unwatch and when the last desktop leaves).
+The desktop's `tasksManager` caches each server project's tasks (one entry per serverKey + serverProjectPath, shared by its workspaces), and every TASKS_DATA push — tasksManager's and specManager's — goes through `tasksPayload`: the merged list (Mac first, server tasks tagged with host/tasksPath/offline, the Mac copy wins a duplicate spec-task id), the Mac's `tasksPath` and `serverNotes` (offline / update Frame Server). Changes route by task id (`homeOf`), reorder splits by home, add goes to the selected workspace's home; a down server refuses with its host named and nothing falls back to the Mac or another server.
+Play names the task's tasks.json by absolute path in every workspace (this also stopped local workspaces from putting task state on the branch), runs a task where its file lives (`runTarget`: a server task off its server picks one of that server's workspaces; a Mac task runs in the main checkout while a server workspace is selected), and hides "new branch" in any workspace. The board shows a host chip, dims offline tasks and lists the server notes.
+Why: one writer per task file (server-specs B1) and no fallback (multi-server-connections); merging in main kept all eight renderer consumers on their IPC. Rejected: mirroring server tasks into the Mac's file, a group per server on the board, polling.
+Rules for later work: send every TASKS_DATA through tasksPayload; route task changes through route*; the Run task dialog's hidden sections need `#task-run-modal … [hidden] { display: none }` because `.task-run-section` sets display.
+
+Chain: spec.md → plan.md → tasks.md → outcome.md
