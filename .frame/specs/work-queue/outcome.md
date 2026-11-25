@@ -30,3 +30,11 @@ _Captured: 2026-11-25 · 7 file change(s)_
 
 ---
 
+## T05 — Queue view and sidebar row
+
+Added src/renderer/queueView.js and queue.css, the 'queue' view mode (multiTerminalUI.showQueue/_renderQueueView, terminalManager comment), the Queue row with its count in projectListUI's Work group, and 'Go to Queue' in paletteSources. Checked in an isolated Frame instance: rows, the missing state, the Step toggle written to queue.json, reorder, Remove and Open spec all worked. The view adds a header note ('Start it from the Chief'); the Start queue button itself is T12.
+
+_Captured: 2026-11-25 · 7 file change(s)_
+
+---
+

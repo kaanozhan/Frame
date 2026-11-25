@@ -99,7 +99,7 @@ class TerminalManager {
     this._createSeq = 0; // request ids for TERMINAL_CREATE
     this.terminals = new Map(); // Map<id, {terminal, fitAddon, element, state}>
     this.activeTerminalId = null;
-    this.viewMode = 'board'; // 'board' (default) | 'terminals' | 'specs' | 'tasks' | 'panel'
+    this.viewMode = 'board'; // 'board' (default) | 'terminals' | 'specs' | 'tasks' | 'queue' | 'panel'
     this.maxTerminals = 9;
     this.onStateChange = null;
     this.currentProjectPath = null; // Current active project (null = global)

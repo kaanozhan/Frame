@@ -15163,7 +15163,8 @@
         "sessionsPanel",
         "specsDashboard",
         "tasksDashboard",
-        "projectListUI"
+        "projectListUI",
+        "queueView"
       ],
       "functions": {},
       "ipc": {
@@ -15172,7 +15173,7 @@
           "SESSION_RESTORE_SET_LAST_PROJECT"
         ]
       },
-      "sizeBytes": 36111,
+      "sizeBytes": 36981,
       "extraction": {
         "status": "parsed"
       },
@@ -15826,7 +15827,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 4160,
+      "sizeBytes": 4212,
       "extraction": {
         "status": "parsed"
       },
@@ -16031,6 +16032,7 @@
         "shared/ipcChannels",
         "terminal",
         "laneStatus",
+        "queueView",
         "orchestrator",
         "commandRegistry",
         "projectStatusBadges"
@@ -16125,66 +16127,66 @@
           "purpose": "Setup IPC listeners"
         },
         "applyAgentStatuses": {
-          "line": 234,
+          "line": 241,
           "params": [
             "map"
           ],
           "purpose": "Per-project agent status counts (from projectStatusBadges). Stored for the"
         },
         "getAgentStatus": {
-          "line": 240,
+          "line": 247,
           "params": [
             "projectPath"
           ],
           "purpose": "{ approval, input } counts for one project, or undefined."
         },
         "selectNextProject": {
-          "line": 247,
+          "line": 254,
           "purpose": "Select next project in list"
         },
         "selectPrevProject": {
-          "line": 258,
+          "line": 265,
           "purpose": "Select previous project in list"
         },
         "focus": {
-          "line": 269,
+          "line": 276,
           "purpose": "\"Focus Project List\" now means: open the switcher dropdown."
         },
         "blur": {
-          "line": 274,
+          "line": 281,
           "purpose": "No list rows to blur anymore — kept for callers."
         },
         "getProjects": {
-          "line": 280,
+          "line": 287,
           "purpose": "Snapshot of the registered projects (switcher menu, file panels). Copy so"
         },
         "loadCollapsedGroups": {
-          "line": 344
+          "line": 355
         },
         "saveCollapsedGroups": {
-          "line": 353,
+          "line": 364,
           "params": [
             "state"
           ]
         },
         "buildProjectNav": {
-          "line": 361
+          "line": 372
         },
         "revealNavItem": {
-          "line": 430,
+          "line": 441,
           "params": [
             "view"
           ],
           "purpose": "Make a nav row reachable without changing the user's saved layout: expand"
         },
         "placeProjectNav": {
-          "line": 443
+          "line": 454
         },
         "refreshProjectNav": {
-          "line": 455
+          "line": 466
         },
         "updateProjectNav": {
-          "line": 533,
+          "line": 546,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -16202,7 +16204,7 @@
           "REMOVE_PROJECT_FROM_REGISTRY"
         ]
       },
-      "sizeBytes": 21320,
+      "sizeBytes": 21975,
       "extraction": {
         "status": "parsed"
       },
@@ -16643,6 +16645,231 @@
           "setupIPC": "4c49f7443d20ad7c",
           "show": "33bff978cc5d9acd",
           "toggle": "d26536144643972f"
+        }
+      }
+    },
+    "renderer/queueView": {
+      "file": "src/renderer/queueView.js",
+      "description": "queueView — the Queue center view (work-queue spec, T05).",
+      "exports": [
+        "SOURCE_MIME",
+        "init",
+        "load",
+        "mountInline",
+        "notifyDetached",
+        "isInlineMounted",
+        "onChange",
+        "count",
+        "items",
+        "current",
+        "isQueued",
+        "addSource",
+        "removeItem",
+        "setItem",
+        "setParallel",
+        "setDragSource",
+        "acceptDrops"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state",
+        "notify",
+        "dnd/reorder",
+        "terminal",
+        "tasksDashboard",
+        "specsDashboard"
+      ],
+      "functions": {
+        "escapeHtml": {
+          "line": 48,
+          "params": [
+            "s"
+          ]
+        },
+        "init": {
+          "line": 54
+        },
+        "apply": {
+          "line": 70,
+          "params": [
+            "data"
+          ]
+        },
+        "load": {
+          "line": 82
+        },
+        "emit": {
+          "line": 93
+        },
+        "onChange": {
+          "line": 100,
+          "params": [
+            "fn"
+          ],
+          "purpose": "Subscribe to queue changes (the sidebar row's count, the Chief lane)."
+        },
+        "count": {
+          "line": 106,
+          "purpose": "Items not done: the sidebar count."
+        },
+        "items": {
+          "line": 110
+        },
+        "current": {
+          "line": 114
+        },
+        "isQueued": {
+          "line": 119,
+          "params": [
+            "kind",
+            "ref"
+          ],
+          "purpose": "Whether a task id / spec slug is queued (not done) — the spec card's icon."
+        },
+        "addSource": {
+          "line": 129,
+          "params": [
+            "source"
+          ],
+          "purpose": "Adds a source: `{ kind, ref, title, status?, source?, phase?, malformed?, home? }`."
+        },
+        "call": {
+          "line": 144,
+          "params": [
+            "channel",
+            "args",
+            "failText"
+          ]
+        },
+        "ui": {
+          "line": 163
+        },
+        "openSource": {
+          "line": 167,
+          "params": [
+            "item"
+          ]
+        },
+        "openTerminal": {
+          "line": 179,
+          "params": [
+            "item"
+          ]
+        },
+        "carriesSource": {
+          "line": 187,
+          "params": [
+            "e"
+          ],
+          "purpose": "True when a drag carries a queue source (task tile / spec card)."
+        },
+        "setDragSource": {
+          "line": 193,
+          "params": [
+            "e",
+            "source"
+          ],
+          "purpose": "Put a queue source on a drag (T06/T07 call this from their dragstart)."
+        },
+        "acceptDrops": {
+          "line": 202,
+          "params": [
+            "el"
+          ],
+          "purpose": "Makes `el` a drop target that queues a dragged task or spec."
+        },
+        "mountInline": {
+          "line": 235,
+          "params": [
+            "container"
+          ]
+        },
+        "notifyDetached": {
+          "line": 254
+        },
+        "render": {
+          "line": 264
+        },
+        "renderEmpty": {
+          "line": 287
+        },
+        "actionsFor": {
+          "line": 296,
+          "params": [
+            "it"
+          ]
+        },
+        "renderRow": {
+          "line": 308,
+          "params": [
+            "it",
+            "i"
+          ]
+        },
+        "renderMode": {
+          "line": 337,
+          "params": [
+            "it"
+          ]
+        },
+        "itemOf": {
+          "line": 344,
+          "params": [
+            "el"
+          ]
+        },
+        "onClick": {
+          "line": 349,
+          "params": [
+            "e"
+          ]
+        },
+        "onDragStart": {
+          "line": 372,
+          "params": [
+            "e"
+          ]
+        },
+        "onDragOver": {
+          "line": 381,
+          "params": [
+            "e"
+          ]
+        },
+        "onDrop": {
+          "line": 392,
+          "params": [
+            "e"
+          ]
+        },
+        "clearDropMarks": {
+          "line": 414,
+          "params": [
+            "endDrag = true"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "QUEUE_DATA"
+        ],
+        "emits": []
+      },
+      "sizeBytes": 17153,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "85e0f28f004958bd",
+        "purposes": {
+          "acceptDrops": "b796ef793ca62890",
+          "addSource": "8df9afc3d3d04c63",
+          "carriesSource": "be8013f6778ac798",
+          "count": "2e8c1c804ae27520",
+          "isQueued": "cd2df3256ed324cc",
+          "onChange": "4784d58088436a23",
+          "setDragSource": "6747cea8c4c39a78"
         }
       }
     },
@@ -19816,6 +20043,18 @@
         "reason": "no-extractor"
       }
     },
+    "renderer/styles/components/queue.css": {
+      "file": "src/renderer/styles/components/queue.css",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 4816,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     "renderer/styles/components/report-section.css": {
       "file": "src/renderer/styles/components/report-section.css",
       "description": "",
@@ -20026,7 +20265,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 3663,
+      "sizeBytes": 3695,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -21228,7 +21467,7 @@
           "LEAD_SCREEN_REPLY"
         ]
       },
-      "sizeBytes": 46826,
+      "sizeBytes": 46836,
       "extraction": {
         "status": "parsed"
       },
@@ -39578,6 +39817,11 @@
         "description": "queueStore — one checkout's `.frame/runtime/queue.json` (work-queue spec, T02)."
       },
       {
+        "module": "renderer/queueView",
+        "file": "src/renderer/queueView.js",
+        "description": "queueView — the Queue center view (work-queue spec, T05)."
+      },
+      {
         "module": "server/queue",
         "file": "src/server/queue.js",
         "description": "Frame Server — a server project's work queue (work-queue spec, T04)."
@@ -40105,6 +40349,11 @@
         "description": "Decisions View Module"
       },
       {
+        "module": "renderer/queueView",
+        "file": "src/renderer/queueView.js",
+        "description": "queueView — the Queue center view (work-queue spec, T05)."
+      },
+      {
         "module": "renderer/terminalsView",
         "file": "src/renderer/terminalsView.js",
         "description": "Terminals View Module"
@@ -40199,8 +40448,8 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 447,
-        "unsupported": 93,
+        "parsed": 448,
+        "unsupported": 94,
         "partial": 0
       }
     },
@@ -40246,9 +40495,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 635,
+      "visitedEntries": 637,
       "traversedDirectories": 87,
-      "eligibleFiles": 540,
+      "eligibleFiles": 542,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -40265,7 +40514,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 540,
+      "indexedFiles": 542,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -40273,6 +40522,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "dc3090257a3b7fea17a15339b42a8d7fbdc93908a74ef689b5b456d4dbbf9b0a"
+    "revision": "641afbad29f61ff6b973e8cfd3868b165c7f730b0ae827a86c60c16a0b70679f"
   }
 }
