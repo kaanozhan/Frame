@@ -86,3 +86,11 @@ _Captured: 2026-11-25 · 1 file change(s)_
 
 ---
 
+## T11 — Server Chief opens queue terminals
+
+Server queue terminals: create() extracted in src/server/terminals.js with createQueueTerminal; the server Chief's createTerminal/queue/setTaskStatus adapter and lead.terminalOpened in src/server/lead.js; adoption of queue terminals in ptyManager.adoptFrom; LEAD_TERMINAL_OPENED forwarding (leadManager.js, ipcChannels.js) and re-adopt in terminalManager.js. Verified against a real Frame Server process with a real Claude; the live SSH path stays the lead-agent follow-up.
+
+_Captured: 2026-11-25 · 6 file change(s)_
+
+---
+

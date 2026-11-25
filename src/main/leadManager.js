@@ -175,7 +175,12 @@ async function serverChiefTargets(projectPath) {
 function init(window) {
   mainWindow = window;
   if (host) return;
-  try { server().on('lead.approvals', (payload, key) => forwardServerApprovals(payload, key)); } catch (e) { logger.warn('lead', `server events not wired: ${e.message}`); }
+  try {
+    server().on('lead.approvals', (payload, key) => forwardServerApprovals(payload, key));
+    // A server Chief opened a queue item's terminal (work-queue T11): the
+    // window adopts it like the server's other terminals of the project.
+    server().on('lead.terminalOpened', (payload, key) => send(IPC.LEAD_TERMINAL_OPENED, { serverKey: key }));
+  } catch (e) { logger.warn('lead', `server events not wired: ${e.message}`); }
   host = createLeadHost({ machine: MACHINE, machineLabel: 'this Mac', adapter, logger });
   ptyManager.onTerminalExit((terminalId) => {
     try { host.terminalGone(terminalId); } catch (e) { logger.warn('lead', `terminalGone failed: ${e.message}`); }

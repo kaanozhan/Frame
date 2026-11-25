@@ -821,13 +821,14 @@ async function adoptFrom(link, projectPath, rows) {
   // (server-onboarding) by the desktop project they were opened for —
   // null for one opened with no project selected.
   const onServer = (await link.call('terminals.list', {})) || [];
+  // A queue item's terminal (work-queue T11) belongs to the clone too, under main.
   const mine = (t) => (t.home ? (t.homeFor || null) === (projectPath || null)
-    : t.lead ? serverProjects.has(t.projectPath)
+    : (t.lead || t.queue) ? serverProjects.has(t.projectPath)
     : serverIds.has(t.workspaceId));
   const live = onServer
     .map((t) => ({ ...t, serverTerminalId: t.terminalId, terminalId: desktopTerminalId(link.key, t.terminalId) }))
     .filter((t) => t.terminalId && mine(t) && !pendingDestroys.has(t.terminalId))
-    .map((t) => (t.home ? { ...t, workspaceId: t.homeWorkspace || 'main' } : t.lead ? { ...t, workspaceId: 'main', serverProjectPath: t.projectPath } : t));
+    .map((t) => (t.home ? { ...t, workspaceId: t.homeWorkspace || 'main' } : (t.lead || t.queue) ? { ...t, workspaceId: 'main', serverProjectPath: t.projectPath } : t));
   // Forget this project's terminals the server no longer has (a restart, a
   // close elsewhere): their ids must not route anywhere (T3).
   const known = [...serverTerminals]
@@ -844,7 +845,7 @@ async function adoptFrom(link, projectPath, rows) {
   for (const t of live) {
     try {
       const snap = await link.call('terminals.attach', { terminalId: t.serverTerminalId });
-      const extra = { ...(t.home ? { home: true } : {}), ...(t.lead ? { lead: true, serverProjectPath: t.serverProjectPath } : {}) };
+      const extra = { ...(t.home ? { home: true } : {}), ...(t.lead ? { lead: true, serverProjectPath: t.serverProjectPath } : {}), ...(t.queue ? { queue: true, name: t.name || null } : {}) };
       noteServerTerminal(t.terminalId, { projectPath, workspaceId: t.workspaceId, serverKey: link.key, ...extra });
       out.push({ terminalId: t.terminalId, projectPath, workspaceId: t.workspaceId, serverKey: link.key, host: link.host, ...extra, screen: snap.screen, cols: snap.cols, rows: snap.rows });
       if (snap.process) processes.push({ ...snap.process, terminalId: t.terminalId });

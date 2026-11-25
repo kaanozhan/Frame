@@ -4425,17 +4425,17 @@
           ]
         },
         "getHost": {
-          "line": 186,
+          "line": 191,
           "purpose": "The desktop host (T12's server bridge and tests)."
         },
         "setupIPC": {
-          "line": 190,
+          "line": 195,
           "params": [
             "ipcMain"
           ]
         },
         "decideOnServer": {
-          "line": 274,
+          "line": 279,
           "params": [
             "serverKey",
             "{ approvalId",
@@ -4445,7 +4445,7 @@
           "purpose": "A server Chief's approval, decided here; the server applies the first decision only."
         },
         "shutdown": {
-          "line": 284
+          "line": 289
         }
       },
       "ipc": {
@@ -4464,7 +4464,7 @@
           "channel"
         ]
       },
-      "sizeBytes": 12817,
+      "sizeBytes": 13082,
       "extraction": {
         "status": "parsed"
       },
@@ -6086,14 +6086,14 @@
           "purpose": "One connected server's live terminals of a local project, with a screen each; null when it cannot tell."
         },
         "adoptServerTerminals": {
-          "line": 863,
+          "line": 864,
           "params": [
             "projectPath"
           ],
           "purpose": "Every connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 893,
+          "line": 894,
           "params": [
             "ipcMain"
           ]
@@ -6116,7 +6116,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 42513,
+      "sizeBytes": 42682,
       "extraction": {
         "status": "parsed"
       },
@@ -21690,6 +21690,7 @@
           "TERMINAL_OUTPUT_ID",
           "AVAILABLE_SHELLS_DATA",
           "LEAD_OPEN_TERMINAL_REQUEST",
+          "LEAD_TERMINAL_OPENED",
           "LEAD_SCREEN_REQUEST",
           "TERMINAL_OUTPUT_ID",
           "TERMINAL_DESTROYED",
@@ -21708,7 +21709,7 @@
           "LEAD_SCREEN_REPLY"
         ]
       },
-      "sizeBytes": 47706,
+      "sizeBytes": 48002,
       "extraction": {
         "status": "parsed"
       },
@@ -27692,14 +27693,16 @@
         "shared/leadTranscript",
         "main/claudeSessionsManager",
         "terminals",
-        "main/logger"
+        "main/logger",
+        "main/queueStore",
+        "main/tasksManager"
       ],
       "functions": {
         "claudeConfigDir": {
-          "line": 27
+          "line": 34
         },
         "setup": {
-          "line": 37,
+          "line": 44,
           "params": [
             "{ registerMethods",
             "broadcast",
@@ -27707,7 +27710,7 @@
           ]
         }
       },
-      "sizeBytes": 4352,
+      "sizeBytes": 5546,
       "extraction": {
         "status": "parsed"
       },
@@ -28034,7 +28037,7 @@
           "purpose": "An id of another boot names no terminal here."
         }
       },
-      "sizeBytes": 7838,
+      "sizeBytes": 8597,
       "extraction": {
         "status": "parsed"
       },
@@ -29080,7 +29083,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 21955,
+      "sizeBytes": 22117,
       "extraction": {
         "status": "parsed"
       },
@@ -39167,6 +39170,11 @@
         "name": "lead-open-terminal-reply",
         "direction": "",
         "description": ""
+      },
+      "LEAD_TERMINAL_OPENED": {
+        "name": "lead-terminal-opened",
+        "direction": "",
+        "description": ""
       }
     },
     "queue": {
@@ -40790,6 +40798,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "85d8f859e67676fceb284fc23e84142283c5e571346f350817ece229803c7b77"
+    "revision": "92292976d41d0abab8d4bf753b1a098412fc5de7fc54c6497e679c545ae7181b"
   }
 }

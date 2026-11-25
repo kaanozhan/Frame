@@ -1056,6 +1056,11 @@ class TerminalManager {
       }
     });
 
+    // A server Chief opened a queue terminal (work-queue T11): adopt it now.
+    ipcRenderer.on(IPC.LEAD_TERMINAL_OPENED, () => {
+      if (this.currentProjectPath && this._anyServerConnected()) this.adoptServerTerminals(this.currentProjectPath);
+    });
+
     // The Chief asks for a local terminal's screen (lead-agent T09).
     ipcRenderer.on(IPC.LEAD_SCREEN_REQUEST, (event, { requestId, terminalId, lines } = {}) => {
       ipcRenderer.send(IPC.LEAD_SCREEN_REPLY, { requestId, text: this.readScreenText(terminalId, lines) });
@@ -1147,7 +1152,7 @@ class TerminalManager {
     for (const t of list || []) {
       let inst = this.terminals.get(t.terminalId);
       if (!inst) {
-        this._initializeTerminal(t.terminalId, { projectPath: t.projectPath, workspaceId: t.workspaceId, lead: !!t.lead, ...(t.lead ? { name: `Chief · ${t.host || this._serverOf(t.terminalId).host || 'server'}` } : {}) });
+        this._initializeTerminal(t.terminalId, { projectPath: t.projectPath, workspaceId: t.workspaceId, lead: !!t.lead, ...(t.lead ? { name: `Chief · ${t.host || this._serverOf(t.terminalId).host || 'server'}` } : t.queue && t.name ? { name: t.name } : {}) });
         inst = this.terminals.get(t.terminalId);
         added = true;
         if (inst && t.home && !inst.state.customName) inst.state.customName = `Server · ${t.host || this._serverOf(t.terminalId).host || 'server'}`;

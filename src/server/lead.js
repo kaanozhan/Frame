@@ -13,6 +13,12 @@
  *
  * Methods: lead.start · lead.stop · lead.mode · lead.pending · lead.decide
  * Event:   lead.approvals { chiefId, projectPath, machine, pending[] }
+ *          lead.terminalOpened { projectPath } — the Chief opened a queue
+ *          item's terminal; a connected desktop re-adopts the project's terminals
+ *
+ * The work queue (work-queue T11): this server's queue of a project lives in
+ * its clone (queueStore); the Chief opens queue terminals here, so the queue
+ * keeps moving while no desktop is connected.
  */
 
 const fs = require('fs');
@@ -23,6 +29,7 @@ const transcript = require('../shared/leadTranscript');
 const claudeSessionsManager = require('../main/claudeSessionsManager');
 const { toServerId, toLocalId } = require('./terminals');
 const logger = require('../main/logger');
+const queueStore = require('../main/queueStore');
 
 function claudeConfigDir() {
   return process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
@@ -67,7 +74,16 @@ function setup({ registerMethods, broadcast, terminals }) {
     transcriptFor,
     write: (id, data) => pty.writeToTerminal(toLocalId(id), data),
     orchestrationIds: () => [], // no conductor runs on a server
-    createTerminal: null,       // the work-queue spec (D19)
+    createTerminal: async ({ projectPath, cwd, name = null } = {}) => {
+      const terminalId = terminals.createQueueTerminal({ projectPath, cwd, name });
+      broadcast('lead.terminalOpened', { projectPath, terminalId });
+      return terminalId;
+    },
+    queue: {
+      load: (projectPath) => queueStore.load(projectPath),
+      change: (projectPath, fn) => queueStore.update(projectPath, fn) // queue.watch tells the desktops
+    },
+    setTaskStatus: (projectPath, taskId, status) => require('../main/tasksManager').updateTask(projectPath, taskId, { status }),
     onApprovalsChanged: (chief, pending) => broadcast('lead.approvals', { ...chief, pending })
   };
 
@@ -81,6 +97,8 @@ function setup({ registerMethods, broadcast, terminals }) {
     'lead.start': async ({ terminalId } = {}) => {
       const m = terminals.metaOf(terminalId);
       if (!m || !m.lead) throw new Error('Not a Chief terminal on this server');
+      // Items whose terminal is gone (a server restart) are interrupted (D19).
+      try { queueStore.reconcile(m.projectPath, new Set(terminals.terminalsOf(m.projectPath).map((t) => t.id))); } catch (e) { logger.warn('lead', `queue reconcile failed: ${e.message}`); }
       const res = await host.startChief({ chiefId: terminalId, projectPath: m.projectPath, platform: process.platform });
       return { command: res.command, mode: res.mode };
     },
