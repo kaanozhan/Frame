@@ -239,6 +239,8 @@ function start(argv = process.argv.slice(2)) {
     require('./panels').setup({ shim, registerMethods, broadcast }),
     require('./specs').setup({ shim, registerMethods, broadcast }),
     require('./tasks').setup({ shim, registerMethods, broadcast }),
+    // The work queue (work-queue): this server's queue of a project.
+    require('./queue').setup({ shim, registerMethods, broadcast }),
     require('./sendFiles').setup({ shim, registerMethods, broadcast }),
     require('./doctor').setup({ shim, registerMethods, broadcast })
   ];

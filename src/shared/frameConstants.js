@@ -69,9 +69,6 @@ const FRAME_FILE_CLASSES = {
     'migration-backup/',
     'bin/',
     'implement-permissions.json',
-    // The work queue (work-queue spec, D9): terminal ids and worktree paths
-    // of this machine — committing it would also dirty a server clone.
-    'queue.json',
     '*.bak',
     '*.tmp',
     '*.corrupt-*'

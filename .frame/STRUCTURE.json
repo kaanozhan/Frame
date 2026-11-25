@@ -6122,7 +6122,10 @@
         "removeItem",
         "reorderItems",
         "setItem",
-        "setParallel"
+        "setParallel",
+        "refreshServerQueues",
+        "serverListsOf",
+        "_resetForTests"
       ],
       "depends": [
         "crypto",
@@ -6131,38 +6134,40 @@
         "queueStore",
         "logger",
         "tasksManager",
-        "specManager"
+        "specManager",
+        "serverConnection",
+        "workspaceManager"
       ],
       "functions": {
         "send": {
-          "line": 22,
+          "line": 30,
           "params": [
             "channel",
             "payload"
           ]
         },
         "newId": {
-          "line": 26
+          "line": 34
         },
         "nowIso": {
-          "line": 30
+          "line": 38
         },
         "macSources": {
-          "line": 35,
+          "line": 43,
           "params": [
             "projectPath"
           ],
           "purpose": "The Mac's task ids and spec slugs, for deriving `missing` (S18); null when unknown."
         },
         "macQueue": {
-          "line": 50,
+          "line": 58,
           "params": [
             "projectPath"
           ],
           "purpose": "The Mac's queue as stored."
         },
         "macChange": {
-          "line": 55,
+          "line": 63,
           "params": [
             "projectPath",
             "fn"
@@ -6170,55 +6175,132 @@
           "purpose": "Applies one rule to the Mac's queue, saves, pushes. Returns the rule result."
         },
         "queuePayload": {
-          "line": 63,
+          "line": 71,
           "params": [
             "projectPath"
           ],
-          "purpose": "What every QUEUE_DATA push carries. The servers' queues join in T04."
+          "purpose": "What every QUEUE_DATA push carries: the Mac's queue, then each server's."
+        },
+        "serverConn": {
+          "line": 96
+        },
+        "linkOf": {
+          "line": 100,
+          "params": [
+            "serverKey"
+          ]
+        },
+        "serverProjectsOf": {
+          "line": 110,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The server projects holding `projectPath`, one per server and server project."
+        },
+        "serverListsOf": {
+          "line": 122,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "serverNotesOf": {
+          "line": 131,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "markOffline": {
+          "line": 141,
+          "params": [
+            "serverKey = null"
+          ]
+        },
+        "refreshServerQueues": {
+          "line": 151,
+          "params": [
+            "projectPath",
+            "{ onlyKey = null } = {}"
+          ],
+          "purpose": "Re-read the server queues of `projectPath` (only `onlyKey`'s when given), watch them, push. Never throws."
+        },
+        "wireServers": {
+          "line": 187
+        },
+        "itemHome": {
+          "line": 221,
+          "params": [
+            "projectPath",
+            "itemId"
+          ],
+          "purpose": "The home of an item id in the merged list: `{ location:'mac' }`, a server home, or null."
+        },
+        "onServer": {
+          "line": 226,
+          "params": [
+            "projectPath",
+            "home",
+            "method",
+            "args"
+          ],
+          "purpose": "Calls `method` on a server home and re-reads that server's queue; `{ ok, res }` or `{ ok:false, error }`."
+        },
+        "sourceHome": {
+          "line": 239,
+          "params": [
+            "source"
+          ],
+          "purpose": "The server home a source names (its task or spec lives on that server), or null for the Mac."
+        },
+        "cleanSource": {
+          "line": 246,
+          "params": [
+            "source"
+          ]
         },
         "push": {
-          "line": 75,
+          "line": 251,
           "params": [
             "projectPath"
           ]
         },
         "errorOf": {
-          "line": 84,
+          "line": 260,
           "params": [
             "res"
           ]
         },
         "reply": {
-          "line": 88,
+          "line": 264,
           "params": [
             "res",
             "extra = {}"
           ]
         },
         "addSource": {
-          "line": 95,
+          "line": 275,
           "params": [
             "projectPath",
             "source"
           ],
-          "purpose": "`source` = { kind, ref, title, status?, source?, phase?, malformed? } (+ location fields from T04)."
+          "purpose": "`source` = { kind, ref, title, status?, source?, phase?, malformed?, home? }."
         },
         "removeItem": {
-          "line": 100,
+          "line": 285,
           "params": [
             "projectPath",
             "itemId"
           ]
         },
         "reorderItems": {
-          "line": 104,
+          "line": 292,
           "params": [
             "projectPath",
             "ids"
-          ]
+          ],
+          "purpose": "Each home gets its own part of the order; a move never crosses homes."
         },
         "setItem": {
-          "line": 109,
+          "line": 315,
           "params": [
             "projectPath",
             "itemId",
@@ -6228,20 +6310,28 @@
           "purpose": "Done (review → done), Continue (needs-you → queued), Reset (→ queued), flow mode."
         },
         "setParallel": {
-          "line": 120,
+          "line": 326,
           "params": [
             "projectPath",
-            "n"
+            "n",
+            "serverKey = null"
+          ],
+          "purpose": "One machine's parallel limit: the Mac's, or `serverKey`'s for its server project."
+        },
+        "okOnly": {
+          "line": 337,
+          "params": [
+            "r"
           ]
         },
         "init": {
-          "line": 127,
+          "line": 343,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 131,
+          "line": 347,
           "params": [
             "ipcMain"
           ]
@@ -6260,25 +6350,32 @@
           "channel"
         ]
       },
-      "sizeBytes": 5481,
+      "sizeBytes": 16083,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "e0297a72f3631625",
         "purposes": {
-          "addSource": "774d0a26b7fa5a73",
+          "addSource": "b829bf40e12eb3ab",
+          "itemHome": "360224a7f1ba6464",
           "macChange": "04eb3663f3cab14c",
           "macQueue": "40a47c4ece0ddcd8",
           "macSources": "05bdfeaf4c7ed3c4",
-          "queuePayload": "559cf3a093ee2f25",
-          "setItem": "07c71b97d0415c53"
+          "onServer": "f59e253571454140",
+          "queuePayload": "8f906f667f40a47c",
+          "refreshServerQueues": "cb8ff05fbbfb1854",
+          "reorderItems": "020959477131b491",
+          "serverProjectsOf": "509cbc43be447245",
+          "setItem": "07c71b97d0415c53",
+          "setParallel": "4f62fe6ff3b4a242",
+          "sourceHome": "bd2ddf6e161f1c09"
         }
       }
     },
     "main/queueStore": {
       "file": "src/main/queueStore.js",
-      "description": "queueStore — one checkout's `.frame/queue.json` (work-queue spec, T02).",
+      "description": "queueStore — one checkout's `.frame/runtime/queue.json` (work-queue spec, T02).",
       "exports": [
         "FILE",
         "queuePath",
@@ -6296,27 +6393,27 @@
       ],
       "functions": {
         "queuePath": {
-          "line": 22,
+          "line": 26,
           "params": [
             "checkout"
           ]
         },
         "load": {
-          "line": 27,
+          "line": 31,
           "params": [
             "checkout"
           ],
           "purpose": "The checkout's queue, cleaned; an absent or unreadable file is an empty queue."
         },
         "save": {
-          "line": 33,
+          "line": 37,
           "params": [
             "checkout",
             "queue"
           ]
         },
         "update": {
-          "line": 46,
+          "line": 50,
           "params": [
             "checkout",
             "fn"
@@ -6324,7 +6421,7 @@
           "purpose": "Applies one rule to the stored queue and saves when it changed something."
         },
         "reconcile": {
-          "line": 59,
+          "line": 63,
           "params": [
             "checkout",
             "liveIds"
@@ -6332,12 +6429,12 @@
           "purpose": "Running items whose terminal is not among `liveIds` become interrupted"
         }
       },
-      "sizeBytes": 2288,
+      "sizeBytes": 2510,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
-        "description": "6adcc69260daf275",
+        "description": "93265df5a58a3c84",
         "purposes": {
           "load": "d1d0d1042785e46d",
           "reconcile": "eaff94c1722ffaa7",
@@ -26986,6 +27083,7 @@
         "panels",
         "specs",
         "tasks",
+        "queue",
         "sendFiles",
         "doctor"
       ],
@@ -27084,7 +27182,7 @@
           "purpose": "An installed package carries its exact version (a dev build's is"
         }
       },
-      "sizeBytes": 11827,
+      "sizeBytes": 11965,
       "extraction": {
         "status": "parsed"
       },
@@ -27219,6 +27317,43 @@
         "purposes": {
           "uploadsDir": "c862c9bfa77aafd5"
         }
+      }
+    },
+    "server/queue": {
+      "file": "src/server/queue.js",
+      "description": "Frame Server — a server project's work queue (work-queue spec, T04).",
+      "exports": [
+        "setup",
+        "LOCAL_MODE",
+        "NO_FRAME"
+      ],
+      "depends": [
+        "path",
+        "crypto",
+        "main/projectRegistry",
+        "main/frameStore",
+        "main/gitSharing",
+        "main/fsSafe",
+        "main/queueStore",
+        "shared/queueRules",
+        "tooling",
+        "fs"
+      ],
+      "functions": {
+        "setup": {
+          "line": 34,
+          "params": [
+            "{ registerMethods",
+            "broadcast }"
+          ]
+        }
+      },
+      "sizeBytes": 6639,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0a0731735c299bb0"
       }
     },
     "server/screenMirror": {
@@ -28145,7 +28280,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 5742,
+      "sizeBytes": 5573,
       "extraction": {
         "status": "parsed"
       },
@@ -34636,7 +34771,7 @@
           "line": 10
         }
       },
-      "sizeBytes": 2963,
+      "sizeBytes": 3156,
       "extraction": {
         "status": "parsed"
       }
@@ -35272,6 +35407,50 @@
       },
       "provenance": {
         "description": "53feb2bccb916eff"
+      }
+    },
+    "test/serverQueue.test": {
+      "file": "test/serverQueue.test.js",
+      "description": "Frame Server's queue methods (work-queue T04): a server project's queue",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "src/server/electronShim",
+        "src/server/projects",
+        "src/server/queue",
+        "src/main/workspaceGitState"
+      ],
+      "functions": {
+        "write": {
+          "line": 48,
+          "params": [
+            "file",
+            "body"
+          ]
+        },
+        "receive": {
+          "line": 60,
+          "params": [
+            "{ frame = true",
+            "mode = null } = {}"
+          ],
+          "purpose": "A project on \"the Mac\" received by the server. `frame`: a Frame project; `mode`: its gitSharing."
+        }
+      },
+      "sizeBytes": 8228,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "b52b8e981404f89d",
+        "purposes": {
+          "receive": "bb7b59aff5bba64a"
+        }
       }
     },
     "test/serverRestoreWorkspace.test": {
@@ -39396,7 +39575,12 @@
       {
         "module": "main/queueStore",
         "file": "src/main/queueStore.js",
-        "description": "queueStore — one checkout's `.frame/queue.json` (work-queue spec, T02)."
+        "description": "queueStore — one checkout's `.frame/runtime/queue.json` (work-queue spec, T02)."
+      },
+      {
+        "module": "server/queue",
+        "file": "src/server/queue.js",
+        "description": "Frame Server — a server project's work queue (work-queue spec, T04)."
       },
       {
         "module": "shared/queueRules",
@@ -39772,7 +39956,7 @@
       {
         "module": "main/queueStore",
         "file": "src/main/queueStore.js",
-        "description": "queueStore — one checkout's `.frame/queue.json` (work-queue spec, T02)."
+        "description": "queueStore — one checkout's `.frame/runtime/queue.json` (work-queue spec, T02)."
       },
       {
         "module": "main/sessionRestoreStore",
@@ -40015,7 +40199,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 445,
+        "parsed": 447,
         "unsupported": 93,
         "partial": 0
       }
@@ -40062,9 +40246,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 633,
+      "visitedEntries": 635,
       "traversedDirectories": 87,
-      "eligibleFiles": 538,
+      "eligibleFiles": 540,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -40081,7 +40265,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 538,
+      "indexedFiles": 540,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -40089,6 +40273,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "c5b1540b2ff20c8d9906f97df55ec135af4b95b341aed852cbc22f6fa1081e04"
+    "revision": "dc3090257a3b7fea17a15339b42a8d7fbdc93908a74ef689b5b456d4dbbf9b0a"
   }
 }

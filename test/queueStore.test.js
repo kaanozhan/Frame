@@ -15,14 +15,15 @@ function checkout() {
 
 const task = (ref) => ({ kind: 'task', ref, title: ref, status: 'pending' });
 
-test('queue.json is machine-local (runtime class)', () => {
-  assert.ok(FRAME_FILE_CLASSES.runtime.includes('queue.json'));
+test('queue.json lives in the ignored runtime folder', () => {
+  assert.ok(FRAME_FILE_CLASSES.runtime.includes('runtime/'));
+  assert.strictEqual(path.dirname(store.queuePath('/p')), path.join('/p', '.frame', 'runtime'));
 });
 
 test('an absent file loads as an empty queue', () => {
   const dir = checkout();
   assert.deepStrictEqual(store.load(dir), rules.emptyQueue());
-  assert.strictEqual(store.queuePath(dir), path.join(dir, '.frame', 'queue.json'));
+  assert.strictEqual(store.queuePath(dir), path.join(dir, '.frame', 'runtime', 'queue.json'));
 });
 
 test('update round-trips through the file and keeps order', () => {
@@ -50,9 +51,10 @@ test('a refused change does not write', () => {
 
 test('a corrupt file is set aside and reads as empty', () => {
   const dir = checkout();
+  fs.mkdirSync(path.dirname(store.queuePath(dir)), { recursive: true });
   fs.writeFileSync(store.queuePath(dir), '{ not json');
   assert.deepStrictEqual(store.load(dir).items, []);
-  assert.ok(fs.readdirSync(path.join(dir, '.frame')).some((f) => f.startsWith('queue.json.corrupt-')));
+  assert.ok(fs.readdirSync(path.join(dir, '.frame', 'runtime')).some((f) => f.startsWith('queue.json.corrupt-')));
 });
 
 test('reconcile marks running items without a live terminal interrupted', () => {

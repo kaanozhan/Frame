@@ -1,8 +1,11 @@
 /**
- * queueStore — one checkout's `.frame/queue.json` (work-queue spec, T02).
+ * queueStore — one checkout's `.frame/runtime/queue.json` (work-queue spec, T02).
  *
  * One file per machine (plan D5): the Mac's main checkout, or a server clone.
- * It is machine-local (`runtime` class, D9) and written atomically. Every
+ * It is machine-local (D9), so it lives in `.frame/runtime/`, which every
+ * Frame project already ignores — a file of its own at `.frame/queue.json`
+ * would show as untracked in any clone whose `.frame/.gitignore` predates it.
+ * Written atomically. Every
  * change is a synchronous read → rule → write, so two callers in the same
  * process can never interleave on one file. The rules live in
  * shared/queueRules; this module only reads and writes.
@@ -18,9 +21,10 @@ const fsSafe = require('./fsSafe');
 const frameStore = require('./frameStore');
 
 const FILE = 'queue.json';
+const DIR = 'runtime';
 
 function queuePath(checkout) {
-  return path.join(frameStore.metaDir(checkout), FILE);
+  return path.join(frameStore.metaDir(checkout), DIR, FILE);
 }
 
 /** The checkout's queue, cleaned; an absent or unreadable file is an empty queue. */

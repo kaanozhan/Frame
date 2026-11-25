@@ -22,3 +22,11 @@ _Captured: 2026-11-25 · 3 file change(s)_
 
 ---
 
+## T04 — Server queue and desktop merge
+
+Added src/server/queue.js and test/serverQueue.test.js (5 tests), and the server merge/routing in src/main/queueManager.js (refreshServerQueues, per-home add/remove/reorder/set/parallel, offline refusal 'host is offline — reconnect to change its queue.'). Deviation from plan D9: the queue file is .frame/runtime/queue.json, not .frame/queue.json, because a new gitignore entry would not reach existing clones; the queue.json entry added to FRAME_FILE_CLASSES in T02 was removed. A source names its server home with source.home = { location:'server', serverKey, serverProjectPath, host }.
+
+_Captured: 2026-11-25 · 7 file change(s)_
+
+---
+
