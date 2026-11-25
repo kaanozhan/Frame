@@ -78,3 +78,11 @@ _Captured: 2026-11-25 · 7 file change(s)_
 
 ---
 
+## T10 — follow-up: Claude's trust question in queue worktrees
+
+The end-to-end run showed Claude asks "trust this folder?" in every new queue worktree, defaulting to "No, exit". By the user's decision, startAgent now answers Yes (↓ ⏎) only for a queue worktree under the project's .frame/worktrees/ and only when Claude already trusts the project folder or a parent (read-only check of ~/.claude.json); otherwise the item stays started-waiting and the prompt follows once the user answers. Verified end to end: trusted parent → "started", hello.txt written unattended; untrusted folder → "started-waiting", no answer sent. Recorded in PROJECT_NOTES.md.
+
+_Captured: 2026-11-25 · 1 file change(s)_
+
+---
+

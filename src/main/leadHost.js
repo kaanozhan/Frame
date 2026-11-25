@@ -546,13 +546,26 @@ function createLeadHost({ machine, machineLabel = null, adapter, homeDir = os.ho
    * through the same gated, bracketed delivery terminal_send uses.
    * `{ ok, status }` or `{ ok:false, reason }`.
    */
-  async function startAgent(chief, terminalId, { command, prompt }) {
+  async function startAgent(chief, terminalId, { command, prompt, trustedRoot = null }) {
     await waitFor(() => !!adapter.pasteMode(terminalId), SHELL_READY_MAX_MS);
     adapter.write(terminalId, `${command}\r`);
-    const ready = await waitFor(() => {
-      const s = statusOf(terminalId);
-      return s.status === rules.STATUS.READY && !!s.agent || s.status === rules.STATUS.APPROVAL || s.status === rules.STATUS.ENDED;
-    }, AGENT_READY_MAX_MS);
+    const settled = () => {
+      const x = statusOf(terminalId);
+      return (x.status === rules.STATUS.READY && !!x.agent) || x.status === rules.STATUS.APPROVAL || x.status === rules.STATUS.ENDED;
+    };
+    let ready = await waitFor(settled, AGENT_READY_MAX_MS);
+    // Claude asks "trust this folder?" in every new worktree. For a queue
+    // worktree of a project the user already trusts in Claude, Frame answers
+    // Yes (user's decision, 2026-11-25) — this question only, at start, never
+    // another agent's prompt. The choice list opens on "No, exit": ↓ then ⏎.
+    const first = statusOf(terminalId);
+    if (ready && trustedRoot && first.status === rules.STATUS.APPROVAL && /trust this folder/i.test(first.msg || '') && claudeTrusts(trustedRoot)) {
+      adapter.write(terminalId, '\x1b[B');
+      await sleep(400);
+      adapter.write(terminalId, '\r');
+      await waitFor(() => statusOf(terminalId).status !== rules.STATUS.APPROVAL, 10000);
+      ready = await waitFor(settled, AGENT_READY_MAX_MS);
+    }
     const s = statusOf(terminalId);
     if (!ready || s.status === rules.STATUS.ENDED) return { ok: false, reason: s.status === rules.STATUS.ENDED ? 'The terminal closed before the agent started.' : 'The agent did not become ready in time.' };
     if (s.status === rules.STATUS.APPROVAL) {
@@ -568,6 +581,27 @@ function createLeadHost({ machine, machineLabel = null, adapter, homeDir = os.ho
     if (!res) return { ok: false, reason: 'The prompt is still waiting to be delivered.', waiting: true };
     if (res.outcome !== 'delivered') return { ok: false, reason: res.reason || `Prompt ${res.outcome}.` };
     return { ok: true, status: statusOf(terminalId).status };
+  }
+
+  /**
+   * Whether Claude already trusts `dir` or a folder above it — read-only, from
+   * Claude's own ~/.claude.json (or $CLAUDE_CONFIG_DIR/.claude.json).
+   */
+  function claudeTrusts(dir) {
+    let projects = {};
+    try {
+      const base = process.env.CLAUDE_CONFIG_DIR || os.homedir();
+      projects = (JSON.parse(fs.readFileSync(path.join(base, '.claude.json'), 'utf8')) || {}).projects || {};
+    } catch (_) {
+      return false;
+    }
+    let cur = path.resolve(dir);
+    for (;;) {
+      if (projects[cur] && projects[cur].hasTrustDialogAccepted === true) return true;
+      const up = path.dirname(cur);
+      if (up === cur) return false;
+      cur = up;
+    }
   }
 
   /** The CLI line for Claude Code with these launch flags (the same resolver Play uses). */
@@ -667,7 +701,9 @@ function createLeadHost({ machine, machineLabel = null, adapter, homeDir = os.ho
           if (it.kind === 'task' && adapter.setTaskStatus) {
             try { adapter.setTaskStatus(chief.projectPath, it.ref, 'in_progress'); } catch (_) { /* the agent closes it anyway */ }
           }
-          const started = await startAgent(chief, terminalId, { command, prompt: prepared.prompt });
+          // Only a queue worktree (inside .frame/worktrees/) gets Claude's trust question answered.
+          const inWorktree = !!prepared.worktree && path.resolve(prepared.cwd).startsWith(path.resolve(chief.projectPath, '.frame', 'worktrees') + path.sep);
+          const started = await startAgent(chief, terminalId, { command, prompt: prepared.prompt, trustedRoot: inWorktree ? chief.projectPath : null });
           if (!started.ok && !started.waiting) {
             queueChange(chief.projectPath, (cur) => qrules.setState(cur, it.id, 'failed', { note: started.reason, terminalId }, { now: new Date().toISOString() }));
             return { outcome: 'failed', terminal: terminalId, reason: started.reason };
