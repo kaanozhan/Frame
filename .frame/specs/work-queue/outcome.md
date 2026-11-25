@@ -38,3 +38,11 @@ _Captured: 2026-11-25 · 7 file change(s)_
 
 ---
 
+## T06 — Queue tasks: Play choice, drawer action, drag
+
+Added 'Add to queue' to the Run task dialog (index.html, taskRunModal.js onQueue, tasksPanel.js), to the task drawer's pending actions, and as drag-and-drop of pending non-spec tiles onto the sidebar Queue row or the Queue view (tasksDashboard.js, projectListUI.js, queueView.sourceForTask). Checked in an isolated Frame instance; drops were exercised with synthetic DragEvents.
+
+_Captured: 2026-11-25 · 6 file change(s)_
+
+---
+

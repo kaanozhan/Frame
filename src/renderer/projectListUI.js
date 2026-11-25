@@ -400,6 +400,9 @@ function buildProjectNav() {
       </div>
     </div>`;
 
+  // The Queue row takes dragged task tiles and spec cards (work-queue spec).
+  require('./queueView').acceptDrops(nav.querySelector('[data-view="queue"]'));
+
   PROJECT_NAV_ITEMS.forEach((item) => {
     nav.querySelector(`[data-view="${item.view}"]`).addEventListener('click', () => {
       try {

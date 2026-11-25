@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 113937,
+      "sizeBytes": 114257,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -16173,20 +16173,20 @@
           "line": 372
         },
         "revealNavItem": {
-          "line": 441,
+          "line": 444,
           "params": [
             "view"
           ],
           "purpose": "Make a nav row reachable without changing the user's saved layout: expand"
         },
         "placeProjectNav": {
-          "line": 454
+          "line": 457
         },
         "refreshProjectNav": {
-          "line": 466
+          "line": 469
         },
         "updateProjectNav": {
-          "line": 546,
+          "line": 549,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -16204,7 +16204,7 @@
           "REMOVE_PROJECT_FROM_REGISTRY"
         ]
       },
-      "sizeBytes": 21975,
+      "sizeBytes": 22134,
       "extraction": {
         "status": "parsed"
       },
@@ -16663,6 +16663,7 @@
         "items",
         "current",
         "isQueued",
+        "sourceForTask",
         "addSource",
         "removeItem",
         "setItem",
@@ -16719,8 +16720,15 @@
         "current": {
           "line": 114
         },
-        "isQueued": {
+        "sourceForTask": {
           "line": 119,
+          "params": [
+            "task"
+          ],
+          "purpose": "A task as a queue source: its id, the facts the rules check, and its home."
+        },
+        "isQueued": {
+          "line": 131,
           "params": [
             "kind",
             "ref"
@@ -16728,14 +16736,14 @@
           "purpose": "Whether a task id / spec slug is queued (not done) — the spec card's icon."
         },
         "addSource": {
-          "line": 129,
+          "line": 141,
           "params": [
             "source"
           ],
           "purpose": "Adds a source: `{ kind, ref, title, status?, source?, phase?, malformed?, home? }`."
         },
         "call": {
-          "line": 144,
+          "line": 156,
           "params": [
             "channel",
             "args",
@@ -16743,29 +16751,29 @@
           ]
         },
         "ui": {
-          "line": 163
+          "line": 175
         },
         "openSource": {
-          "line": 167,
-          "params": [
-            "item"
-          ]
-        },
-        "openTerminal": {
           "line": 179,
           "params": [
             "item"
           ]
         },
+        "openTerminal": {
+          "line": 191,
+          "params": [
+            "item"
+          ]
+        },
         "carriesSource": {
-          "line": 187,
+          "line": 199,
           "params": [
             "e"
           ],
           "purpose": "True when a drag carries a queue source (task tile / spec card)."
         },
         "setDragSource": {
-          "line": 193,
+          "line": 205,
           "params": [
             "e",
             "source"
@@ -16773,78 +16781,78 @@
           "purpose": "Put a queue source on a drag (T06/T07 call this from their dragstart)."
         },
         "acceptDrops": {
-          "line": 202,
+          "line": 214,
           "params": [
             "el"
           ],
           "purpose": "Makes `el` a drop target that queues a dragged task or spec."
         },
         "mountInline": {
-          "line": 235,
+          "line": 247,
           "params": [
             "container"
           ]
         },
         "notifyDetached": {
-          "line": 254
+          "line": 266
         },
         "render": {
-          "line": 264
+          "line": 276
         },
         "renderEmpty": {
-          "line": 287
+          "line": 299
         },
         "actionsFor": {
-          "line": 296,
+          "line": 308,
           "params": [
             "it"
           ]
         },
         "renderRow": {
-          "line": 308,
+          "line": 320,
           "params": [
             "it",
             "i"
           ]
         },
         "renderMode": {
-          "line": 337,
+          "line": 349,
           "params": [
             "it"
           ]
         },
         "itemOf": {
-          "line": 344,
+          "line": 356,
           "params": [
             "el"
           ]
         },
         "onClick": {
-          "line": 349,
+          "line": 361,
           "params": [
             "e"
           ]
         },
         "onDragStart": {
-          "line": 372,
+          "line": 384,
           "params": [
             "e"
           ]
         },
         "onDragOver": {
-          "line": 381,
+          "line": 393,
           "params": [
             "e"
           ]
         },
         "onDrop": {
-          "line": 392,
+          "line": 404,
           "params": [
             "e"
           ]
         },
         "clearDropMarks": {
-          "line": 414,
+          "line": 426,
           "params": [
             "endDrag = true"
           ]
@@ -16856,7 +16864,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 17153,
+      "sizeBytes": 17586,
       "extraction": {
         "status": "parsed"
       },
@@ -16869,7 +16877,8 @@
           "count": "2e8c1c804ae27520",
           "isQueued": "cd2df3256ed324cc",
           "onChange": "4784d58088436a23",
-          "setDragSource": "6747cea8c4c39a78"
+          "setDragSource": "6747cea8c4c39a78",
+          "sourceForTask": "0afd11aa59b107a1"
         }
       }
     },
@@ -20370,25 +20379,25 @@
       ],
       "functions": {
         "init": {
-          "line": 49
+          "line": 51
         },
         "updateBranchChoiceUI": {
-          "line": 98
+          "line": 103
         },
         "getBranchChoice": {
-          "line": 106
-        },
-        "getCliChoice": {
           "line": 111
         },
-        "populateCliOptions": {
+        "getCliChoice": {
           "line": 116
         },
+        "populateCliOptions": {
+          "line": 121
+        },
         "loadCurrentBranch": {
-          "line": 146
+          "line": 151
         },
         "renderWhere": {
-          "line": 163,
+          "line": 168,
           "params": [
             "task",
             "target",
@@ -20397,7 +20406,7 @@
           "purpose": "Show where the task runs: the note, the workspace chooser, and the branch"
         },
         "open": {
-          "line": 189,
+          "line": 195,
           "params": [
             "task",
             "opts = {}"
@@ -20405,16 +20414,20 @@
           "purpose": "Open the modal for a given task."
         },
         "close": {
-          "line": 216
-        },
-        "confirm": {
           "line": 225
         },
+        "confirm": {
+          "line": 235
+        },
+        "queue": {
+          "line": 254,
+          "purpose": "Queue the task instead of running it: no terminal opens (work-queue S2)."
+        },
         "cancel": {
-          "line": 243
+          "line": 260
         }
       },
-      "sizeBytes": 8854,
+      "sizeBytes": 9556,
       "extraction": {
         "status": "parsed"
       },
@@ -20422,6 +20435,7 @@
         "description": "89842ba948bd27c4",
         "purposes": {
           "open": "4aae553672a18f02",
+          "queue": "9638de0c161ba784",
           "renderWhere": "df3a3eb101167e3e"
         }
       }
@@ -20660,78 +20674,79 @@
         "agentDispatch",
         "taskInfoModal",
         "specsDashboard",
+        "queueView",
         "tasksPanel",
         "taskConfirmModal"
       ],
       "functions": {
         "init": {
-          "line": 115
+          "line": 116
         },
         "flatten": {
-          "line": 189,
+          "line": 190,
           "params": [
             "data"
           ]
         },
         "setInlineHost": {
-          "line": 209,
+          "line": 210,
           "params": [
             "host"
           ]
         },
         "mountInline": {
-          "line": 213,
+          "line": 214,
           "params": [
             "container"
           ]
         },
         "notifyDetached": {
-          "line": 222
+          "line": 223
         },
         "_load": {
-          "line": 235
+          "line": 236
         },
         "show": {
-          "line": 256
+          "line": 257
         },
         "hide": {
-          "line": 266
+          "line": 267
         },
         "toggle": {
-          "line": 279
+          "line": 280
         },
         "listModel": {
-          "line": 287
+          "line": 288
         },
         "render": {
-          "line": 300
+          "line": 301
         },
         "renderToolbar": {
-          "line": 317,
+          "line": 318,
           "params": [
             "model"
           ],
           "purpose": "The scope segments, Active's status chips and the spec-tasks checkbox,"
         },
         "renderServerNotes": {
-          "line": 370,
+          "line": 371,
           "purpose": "One line per server whose tasks cannot be shown or changed right now."
         },
         "renderList": {
-          "line": 385,
+          "line": 386,
           "params": [
             "model"
           ]
         },
         "openSpec": {
-          "line": 439,
+          "line": 440,
           "params": [
             "slug"
           ],
           "purpose": "Leave for the Specs screen with this spec in its drawer — the pair"
         },
         "sectionHeader": {
-          "line": 446,
+          "line": 447,
           "params": [
             "id",
             "label",
@@ -20739,7 +20754,7 @@
           ]
         },
         "appendSection": {
-          "line": 462,
+          "line": 463,
           "params": [
             "id",
             "label",
@@ -20748,21 +20763,21 @@
           "purpose": "A section heading plus its grid; returns the grid for the tiles."
         },
         "emptyState": {
-          "line": 476,
+          "line": 477,
           "params": [
             "message",
             "heading"
           ]
         },
         "renderOlderTile": {
-          "line": 491,
+          "line": 492,
           "params": [
             "count"
           ],
           "purpose": "The ghost tile closing Completed: \"N older done tasks · Show\"."
         },
         "renderTile": {
-          "line": 512,
+          "line": 513,
           "params": [
             "task",
             "{ playable = false } = {}"
@@ -20770,24 +20785,24 @@
           "purpose": "One task tile. `playable` puts the Play button on it — pending non-spec"
         },
         "renderPlayButton": {
-          "line": 610,
+          "line": 621,
           "params": [
             "task"
           ],
           "purpose": "Play starts the task through the shared run flow (run modal → Agent"
         },
         "startTask": {
-          "line": 625,
+          "line": 636,
           "params": [
             "task"
           ]
         },
         "syncAside": {
-          "line": 641,
+          "line": 652,
           "purpose": "Single owner of the aside's and the drawer's visibility. The aside exists"
         },
         "selectTask": {
-          "line": 667,
+          "line": 678,
           "params": [
             "taskId",
             "{ instant = false } = {}"
@@ -20795,59 +20810,59 @@
           "purpose": "Open a task in the drawer. `instant` is the top-bar chip path: the list"
         },
         "clearSelection": {
-          "line": 692,
+          "line": 703,
           "params": [
             "{ notify = true } = {}"
           ],
           "purpose": "Close the drawer. `notify: false` is for the host-driven teardown"
         },
         "resetAside": {
-          "line": 703,
+          "line": 714,
           "purpose": "Leaving the screen: no selection, no half-typed form waiting on return."
         },
         "isFormOpen": {
-          "line": 714
+          "line": 725
         },
         "setupForm": {
-          "line": 718
+          "line": 729
         },
         "showForm": {
-          "line": 732
+          "line": 743
         },
         "hideForm": {
-          "line": 747
+          "line": 758
         },
         "requestDeleteSelected": {
-          "line": 755
+          "line": 766
         },
         "selectedWorkspaceId": {
-          "line": 775,
+          "line": 786,
           "purpose": "The selected workspace's id, or null for the main checkout — where a new task goes."
         },
         "submitForm": {
-          "line": 780
+          "line": 791
         },
         "renderDetail": {
-          "line": 803,
+          "line": 814,
           "params": [
             "task"
           ]
         },
         "renderDetailActions": {
-          "line": 886,
+          "line": 898,
           "params": [
             "task"
           ]
         },
         "runDetailAction": {
-          "line": 921,
+          "line": 933,
           "params": [
             "taskId",
             "action"
           ]
         },
         "appendMetaPill": {
-          "line": 936,
+          "line": 953,
           "params": [
             "container",
             "text",
@@ -20855,7 +20870,7 @@
           ]
         },
         "setSection": {
-          "line": 943,
+          "line": 960,
           "params": [
             "textEl",
             "sectionEl",
@@ -20863,64 +20878,64 @@
           ]
         },
         "formatDate": {
-          "line": 954,
+          "line": 971,
           "params": [
             "isoString"
           ]
         },
         "isFilterActive": {
-          "line": 968
+          "line": 985
         },
         "filterMatches": {
-          "line": 972,
+          "line": 989,
           "params": [
             "task"
           ]
         },
         "setupFilter": {
-          "line": 978
+          "line": 995
         },
         "isFilterPopoverOpen": {
-          "line": 1016
+          "line": 1033
         },
         "toggleFilterPopover": {
-          "line": 1020
+          "line": 1037
         },
         "openFilterPopover": {
-          "line": 1026
+          "line": 1043
         },
         "closeFilterPopover": {
-          "line": 1032
+          "line": 1049
         },
         "clearFilters": {
-          "line": 1038
+          "line": 1055
         },
         "updateFilterUI": {
-          "line": 1050
-        },
-        "setupSort": {
           "line": 1067
         },
+        "setupSort": {
+          "line": 1084
+        },
         "isSortPopoverOpen": {
-          "line": 1112
+          "line": 1129
         },
         "toggleSortPopover": {
-          "line": 1116
+          "line": 1133
         },
         "openSortPopover": {
-          "line": 1122
+          "line": 1139
         },
         "closeSortPopover": {
-          "line": 1128
+          "line": 1145
         },
         "resetSort": {
-          "line": 1134
+          "line": 1151
         },
         "updateSortUI": {
-          "line": 1147
+          "line": 1164
         },
         "commitSortToFile": {
-          "line": 1174,
+          "line": 1191,
           "purpose": "Commit the current sorted view to tasks.json. Ids only (tasks-list-view"
         }
       },
@@ -20937,7 +20952,7 @@
           "REORDER_TASKS"
         ]
       },
-      "sizeBytes": 43645,
+      "sizeBytes": 44280,
       "extraction": {
         "status": "parsed"
       },
@@ -20985,6 +21000,7 @@
         "tasksDashboard",
         "taskInfoModal",
         "taskRunModal",
+        "queueView",
         "workspaceSection",
         "agentDispatch",
         "taskConfirmModal"
@@ -21056,18 +21072,18 @@
           "purpose": "Open the run-config modal for a task and dispatch it on confirm."
         },
         "workspaceContext": {
-          "line": 408,
+          "line": 410,
           "purpose": "The selected workspace's record (null for the main checkout) and the project's server workspaces."
         },
         "selectRunWorkspace": {
-          "line": 421,
+          "line": 423,
           "params": [
             "workspaceId"
           ],
           "purpose": "Select the workspace a run goes to before the lane opens there, the way"
         },
         "buildTaskPrompt": {
-          "line": 445,
+          "line": 447,
           "params": [
             "task",
             "opts = {}"
@@ -21075,7 +21091,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. The builder"
         },
         "runTaskWithOptions": {
-          "line": 459,
+          "line": 461,
           "params": [
             "task",
             "opts = {}"
@@ -21083,65 +21099,65 @@
           "purpose": "Send the task to an agent. Always a new Frame: agentDispatch creates"
         },
         "setClaudeRunning": {
-          "line": 478,
+          "line": 480,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 485,
+          "line": 487,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 494,
+          "line": 496,
           "params": [
             "taskId"
           ],
           "purpose": "Delete task — opens the shared confirm modal first; only dispatches the IPC"
         },
         "showAddTaskModal": {
-          "line": 511,
+          "line": 513,
           "purpose": "Show add task modal"
         },
         "showEditTaskModal": {
-          "line": 530,
+          "line": 532,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
         "hideTaskModal": {
-          "line": 556,
+          "line": 558,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 566,
+          "line": 568,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 607,
+          "line": 609,
           "purpose": "Setup modal event listeners"
         },
         "renderSourceChip": {
-          "line": 652,
+          "line": 654,
           "params": [
             "source"
           ],
           "purpose": "Render a small attribution chip for tasks that came from a Frame spec."
         },
         "formatDate": {
-          "line": 663,
+          "line": 665,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 680,
+          "line": 682,
           "purpose": "Initialize when DOM is ready"
         }
       },
@@ -21160,7 +21176,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 21615,
+      "sizeBytes": 21786,
       "extraction": {
         "status": "parsed"
       },
@@ -40522,6 +40538,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "641afbad29f61ff6b973e8cfd3868b165c7f730b0ae827a86c60c16a0b70679f"
+    "revision": "def82df1bfcb082acc796f6490def81ad55da2a277d176d70bf20e9f2a0b1cbb"
   }
 }

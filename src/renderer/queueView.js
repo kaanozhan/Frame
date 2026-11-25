@@ -115,6 +115,18 @@ function current() {
   return payload;
 }
 
+/** A task as a queue source: its id, the facts the rules check, and its home. */
+function sourceForTask(task) {
+  return {
+    kind: 'task',
+    ref: task.id,
+    title: task.title || task.id,
+    status: task.status,
+    source: task.source || null,
+    home: task.location === 'server' ? { location: 'server', serverKey: task.serverKey, serverProjectPath: task.serverProjectPath, host: task.host } : null
+  };
+}
+
 /** Whether a task id / spec slug is queued (not done) — the spec card's icon. */
 function isQueued(kind, ref) {
   return payload.items.some((it) => it.kind === kind && it.ref === ref && it.state !== 'done');
@@ -432,6 +444,7 @@ module.exports = {
   items,
   current,
   isQueued,
+  sourceForTask,
   addSource,
   removeItem,
   setItem,
