@@ -206,3 +206,46 @@
   line-height: 16px;
   text-align: center;
 }
+
+/* ─── Sidebar item: "Chief · <location>" ─── */
+/* The first item under the project switcher, drawn with the switcher's own
+   box (.sidebar-current-project) so the two read as one family. */
+
+.chief-nav-wrap[hidden] {
+  display: none;
+}
+
+.chief-nav-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--accent-primary);
+}
+
+.chief-nav-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.6;
+}
+
+.chief-nav-dot.running {
+  background: var(--accent-primary);
+  opacity: 1;
+}
+
+.chief-nav-note {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.chief-nav-hint {
+  padding: 6px var(--space-sm) 4px;
+  max-width: 260px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}

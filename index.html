@@ -292,6 +292,11 @@
           </button>
           <div id="sidebar-project-menu" class="sidebar-project-menu" role="menu" hidden></div>
         </div>
+        <!-- Chief (lead-agent): the project's lead terminal, the first item
+             under the project — "Chief · <location>" with a menu of where it
+             can run (this Mac, each connected server that holds the project).
+             chiefLane.js renders it. -->
+        <div id="chief-nav-wrap" class="sidebar-current-project-wrap chief-nav-wrap" hidden></div>
         <!-- Workspace switcher (workspaces spec): the second level under the
              project — main + this project's workspaces as a collapsible list, grouped
              Local / Remote. Sits on every rail view, like the project

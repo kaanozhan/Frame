@@ -97,3 +97,11 @@ Followup: live-test a server Chief over a real SSH Frame Server connection (crea
 _Captured: 2026-11-25 · 5 file changes_
 
 ---
+
+## Follow-up — Chief item at the top of the sidebar
+
+At the user's request ("workspace in üstüne, direkt menü item olarak koyalım, en tepede olsun"), the Chief got a sidebar item directly under the project switcher, above Workspace. It is drawn with the switcher's own box: "CHIEF · <location>", a running dot, and the pending-approval count. Its menu lists where the Chief can run: This Mac, plus each connected server that holds the project's workspaces. Picking one leaves a workspace for `main` if needed, opens that location's Chief (creating it if missing) and remembers the choice per project. The one-Chief-per-location rule was already enforced by the PTY owner; the user's report of duplicates turned out to be a misreading (logs showed a single registration). Verified in an isolated Frame instance. Files: `index.html`, `src/renderer/chiefLane.js`, `src/renderer/styles/components/chief.css`.
+
+_Captured: 2026-11-25 · 3 file changes_
+
+---

@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-24",
+  "lastUpdated": "2026-11-25",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 113559,
+      "sizeBytes": 113937,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -10629,42 +10629,44 @@
       "exports": [
         "init",
         "ensure",
+        "openChief",
         "_chiefs"
       ],
       "depends": [
         "electron",
         "shared/ipcChannels",
         "state",
-        "notify"
+        "notify",
+        "workspaceSection"
       ],
       "functions": {
         "escapeHtml": {
-          "line": 44,
+          "line": 48,
           "params": [
             "s"
           ]
         },
         "chiefOf": {
-          "line": 48,
+          "line": 52,
           "params": [
             "projectPath"
           ]
         },
         "ensure": {
-          "line": 55,
+          "line": 59,
           "params": [
             "projectPath"
           ]
         },
         "ensureServers": {
-          "line": 76,
+          "line": 80,
           "params": [
             "projectPath"
           ],
           "purpose": "One Chief per connected server that holds this project's workspaces (T12)."
         },
         "decorate": {
-          "line": 116,
+          "line": 120,
           "params": [
             "terminalId",
             "projectPath",
@@ -10672,66 +10674,123 @@
           ]
         },
         "refreshPending": {
-          "line": 173,
+          "line": 177,
           "params": [
             "projectPath"
           ],
           "purpose": "Approvals asked while this window could not see them (reload, a server reconnect)."
         },
         "render": {
-          "line": 180,
+          "line": 184,
           "params": [
             "terminalId"
           ]
         },
         "setMode": {
-          "line": 198,
+          "line": 203,
           "params": [
             "terminalId",
             "mode"
           ]
         },
         "start": {
-          "line": 207,
+          "line": 212,
           "params": [
             "terminalId"
           ]
         },
         "stopped": {
-          "line": 230,
+          "line": 235,
           "params": [
             "terminalId"
           ],
           "purpose": "The Chief's session left its terminal (back at the shell): show Start again."
         },
         "approvalTitle": {
-          "line": 240,
+          "line": 245,
           "params": [
             "rec"
           ],
           "purpose": "\"Send to 1st Terminal (blue)\": the target as the user sees it, not its id."
         },
         "renderCards": {
-          "line": 248,
+          "line": 253,
           "params": [
             "terminalId"
           ]
         },
         "onApprovals": {
-          "line": 283,
+          "line": 288,
           "params": [
             "payload"
           ],
           "purpose": "main → renderer: a Chief's pending approvals changed."
         },
+        "readLocations": {
+          "line": 306
+        },
+        "rememberLocation": {
+          "line": 310,
+          "params": [
+            "projectPath",
+            "key"
+          ]
+        },
+        "locationsFor": {
+          "line": 319,
+          "purpose": "Where the Chief can run for this project: this Mac, then each connected server that holds its workspaces."
+        },
+        "chiefAt": {
+          "line": 324,
+          "params": [
+            "projectPath",
+            "key"
+          ],
+          "purpose": "The Chief terminal at a location, if this window has it."
+        },
+        "selectedLocation": {
+          "line": 330,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "chiefSummary": {
+          "line": 339,
+          "params": [
+            "id"
+          ]
+        },
+        "renderNav": {
+          "line": 344
+        },
+        "refreshTargets": {
+          "line": 394,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "openChief": {
+          "line": 404,
+          "params": [
+            "projectPath",
+            "key"
+          ],
+          "purpose": "Show the Chief at `key` ('local' or a server key), opening it there first if needed."
+        },
+        "onDocClickForNav": {
+          "line": 419,
+          "params": [
+            "e"
+          ]
+        },
         "init": {
-          "line": 300,
+          "line": 430,
           "params": [
             "multiTerminalUI"
           ]
         },
         "serverKeyOf": {
-          "line": 42,
+          "line": 46,
           "params": [
             "id"
           ]
@@ -10749,7 +10808,7 @@
           "LEAD_STOP"
         ]
       },
-      "sizeBytes": 14861,
+      "sizeBytes": 21334,
       "extraction": {
         "status": "parsed"
       },
@@ -10757,8 +10816,11 @@
         "description": "80776c3e6c2c0c4a",
         "purposes": {
           "approvalTitle": "49608c30ed486d7d",
+          "chiefAt": "19f8592afe9b1016",
           "ensureServers": "4e00771dbb6926c0",
+          "locationsFor": "8f32bec0d5b5aa6f",
           "onApprovals": "5314df977e368d65",
+          "openChief": "38c790a95f0f0ddc",
           "refreshPending": "42dadb6ef3cbe71f",
           "stopped": "cb481a62921901ba"
         }
@@ -19221,7 +19283,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 4323,
+      "sizeBytes": 5157,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -39381,6 +39443,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "5dc17823e96f94251421a4f5da2de3b36d8f01325d5b6f2a9ddbec218bab2747"
+    "revision": "e8ebb47ef7af64c68a75f8ffd126d39ee48baac4f05ca61f9bde5c58362c7a31"
   }
 }

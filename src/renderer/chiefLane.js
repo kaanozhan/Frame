@@ -38,6 +38,10 @@ const chiefs = new Map();
 const ensuring = new Set(); // projectPaths (and `projectPath#serverKey`) with an ensure in flight
 let serverTimer = null;
 
+const LOCATION_KEY = 'frame-chief-location'; // { [projectPath]: 'local' | serverKey }
+let navTargets = [];   // the current project's server Chief targets [{ serverKey, host, serverProjectPath }]
+let navMenuOpen = false;
+
 const isServerId = (id) => String(id).startsWith('srv-');
 const serverKeyOf = (id) => { const m = /^srv-([0-9a-z]+)\./.exec(String(id)); return m ? m[1] : null; };
 
@@ -193,6 +197,7 @@ function render(terminalId) {
   chip.textContent = m.label;
   chip.classList.toggle('auto', c.mode === 'full-auto');
   renderCards(terminalId);
+  renderNav();
 }
 
 async function setMode(terminalId, mode) {
@@ -288,10 +293,135 @@ function onApprovals(payload) {
   c.pending = Array.isArray(payload.pending) ? payload.pending.map((r) => ({ ...r, serverKey: r.serverKey || payload.serverKey || null })) : [];
   manager.setLeadPending(id, c.pending.length);
   renderCards(id);
+  renderNav();
   const fresh = c.pending.filter((r) => !before.has(r.id));
   if (fresh.length) {
     const project = `${c.projectPath.split(/[\\/]/).pop()}${c.host ? ` on ${c.host}` : ''}`;
     notify.info(`Chief (${project}) is waiting for your approval: ${approvalTitle(fresh[0])}. Open the Chief terminal to approve or reject.`, { sticky: true });
+  }
+}
+
+// ─── sidebar item: "Chief · <location>" ────────────────────
+
+function readLocations() {
+  try { return JSON.parse(localStorage.getItem(LOCATION_KEY) || '{}') || {}; } catch (_) { return {}; }
+}
+
+function rememberLocation(projectPath, key) {
+  try {
+    const all = readLocations();
+    all[projectPath] = key;
+    localStorage.setItem(LOCATION_KEY, JSON.stringify(all));
+  } catch (_) { /* a convenience only */ }
+}
+
+/** Where the Chief can run for this project: this Mac, then each connected server that holds its workspaces. */
+function locationsFor() {
+  return [{ key: 'local', label: 'This Mac' }, ...navTargets.map((t) => ({ key: t.serverKey, label: t.host, target: t }))];
+}
+
+/** The Chief terminal at a location, if this window has it. */
+function chiefAt(projectPath, key) {
+  const lead = manager.getTerminalsInScope(projectPath, 'main').filter((t) => t.lead);
+  const found = key === 'local' ? lead.find((t) => !isServerId(t.id)) : lead.find((t) => serverKeyOf(t.id) === key);
+  return found ? found.id : null;
+}
+
+function selectedLocation(projectPath) {
+  const key = readLocations()[projectPath] || 'local';
+  return locationsFor().some((l) => l.key === key) ? key : 'local';
+}
+
+const CHIEF_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 18h20"/><path d="M3 18 5 7l5 5 2-7 2 7 5-5 2 11"/></svg>';
+const CARET = '<svg class="sidebar-current-project-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+const CHECK = '<svg class="sidebar-project-menu-item-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+function chiefSummary(id) {
+  const c = id ? chiefs.get(id) : null;
+  return { running: !!(c && c.running), pending: c ? c.pending.length : 0 };
+}
+
+function renderNav() {
+  const wrap = document.getElementById('chief-nav-wrap');
+  if (!wrap || !manager) return;
+  const projectPath = state.getProjectPath && state.getProjectPath();
+  if (!projectPath) {
+    wrap.hidden = true;
+    return;
+  }
+  wrap.hidden = false;
+  const locs = locationsFor();
+  const sel = selectedLocation(projectPath);
+  const selLoc = locs.find((l) => l.key === sel) || locs[0];
+  const s = chiefSummary(chiefAt(projectPath, sel));
+  const totalPending = locs.reduce((n, l) => n + chiefSummary(chiefAt(projectPath, l.key)).pending, 0);
+
+  wrap.innerHTML = `
+    <button type="button" class="sidebar-current-project chief-nav-btn" tabindex="-1" aria-haspopup="true" aria-expanded="${navMenuOpen}" title="Open the Chief — choose where it runs">
+      <span class="chief-nav-icon">${CHIEF_ICON}</span>
+      <span class="sidebar-current-project-label">Chief</span>
+      <span class="sidebar-current-project-name">${escapeHtml(selLoc.label)}</span>
+      <span class="chief-nav-dot${s.running ? ' running' : ''}" title="${s.running ? 'Session running' : 'Not started'}"></span>
+      ${totalPending ? `<span class="chief-pending-badge" title="Waiting for your approval">${totalPending}</span>` : ''}
+      ${CARET}
+    </button>
+    <div class="sidebar-project-menu chief-nav-menu" role="menu"${navMenuOpen ? '' : ' hidden'}>
+      ${locs.map((l) => {
+        const ls = chiefSummary(chiefAt(projectPath, l.key));
+        const note = ls.pending ? `${ls.pending} waiting` : ls.running ? 'running' : '';
+        return `<button type="button" class="sidebar-project-menu-item${l.key === sel ? ' active' : ''}" role="menuitem" data-loc="${escapeHtml(l.key)}">
+          <span class="sidebar-project-menu-item-name">${escapeHtml(l.label)}</span>
+          ${note ? `<span class="chief-nav-note">${escapeHtml(note)}</span>` : ''}
+          ${l.key === sel ? CHECK : ''}
+        </button>`;
+      }).join('')}
+      ${navTargets.length ? '' : '<div class="chief-nav-hint">Connect a server that holds this project\'s workspaces to run a Chief there.</div>'}
+    </div>`;
+
+  wrap.querySelector('.chief-nav-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    navMenuOpen = !navMenuOpen;
+    if (navMenuOpen) refreshTargets(projectPath);
+    renderNav();
+  });
+  wrap.querySelectorAll('[data-loc]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    navMenuOpen = false;
+    openChief(projectPath, b.dataset.loc);
+  }));
+}
+
+async function refreshTargets(projectPath) {
+  try {
+    navTargets = (await ipcRenderer.invoke(IPC.LEAD_SERVER_TARGETS, { projectPath })) || [];
+  } catch (_) {
+    navTargets = [];
+  }
+  renderNav();
+}
+
+/** Show the Chief at `key` ('local' or a server key), opening it there first if needed. */
+async function openChief(projectPath, key) {
+  rememberLocation(projectPath, key);
+  renderNav();
+  // The Chief lives in main: leave a workspace first.
+  try {
+    const ws = require('./workspaceSection');
+    if (ws.selectedWorkspace && ws.selectedWorkspace()) ws.select(null);
+  } catch (_) { /* no workspace list */ }
+  if (key === 'local') await ensure(projectPath);
+  else await ensureServers(projectPath);
+  const id = chiefAt(projectPath, key);
+  if (id) ui.enterLane(id);
+  else notify.error(key === 'local' ? 'The Chief terminal could not be opened.' : 'That server\'s Chief could not be opened — is the server connected?');
+}
+
+function onDocClickForNav(e) {
+  if (!navMenuOpen) return;
+  const wrap = document.getElementById('chief-nav-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    navMenuOpen = false;
+    renderNav();
   }
 }
 
@@ -301,9 +431,25 @@ function init(multiTerminalUI) {
   ui = multiTerminalUI;
   manager = ui.manager;
 
-  state.onProjectChange((projectPath) => { if (projectPath) ensure(projectPath); });
+  state.onProjectChange((projectPath) => {
+    navMenuOpen = false;
+    navTargets = [];
+    renderNav();
+    if (projectPath) {
+      ensure(projectPath);
+      refreshTargets(projectPath);
+    }
+  });
   const current = state.getProjectPath && state.getProjectPath();
-  if (current) ensure(current);
+  if (current) {
+    ensure(current);
+    refreshTargets(current);
+  }
+  renderNav();
+  document.addEventListener('click', onDocClickForNav, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && navMenuOpen) { navMenuOpen = false; renderNav(); }
+  }, true);
 
   // Session in / out of the Chief terminal, from the PTY's foreground process.
   ipcRenderer.on(IPC.TERMINAL_PROCESS_DATA, (event, data) => {
@@ -342,11 +488,14 @@ function init(multiTerminalUI) {
     clearTimeout(serverTimer);
     serverTimer = setTimeout(() => {
       const p = state.getProjectPath && state.getProjectPath();
-      if (p) ensureServers(p);
+      if (p) {
+        ensureServers(p);
+        refreshTargets(p);
+      }
     }, 2000);
   });
 
   ipcRenderer.on(IPC.LEAD_APPROVALS, (event, payload) => onApprovals(payload));
 }
 
-module.exports = { init, ensure, _chiefs: chiefs };
+module.exports = { init, ensure, openChief, _chiefs: chiefs };
