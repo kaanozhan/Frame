@@ -28928,6 +28928,292 @@
         }
       }
     },
+    "shared/queueRules": {
+      "file": "src/shared/queueRules.js",
+      "description": "queueRules — the rules behind the work queue (work-queue spec, T01).",
+      "exports": [
+        "VERSION",
+        "MAX_PARALLEL",
+        "DEFAULT_PARALLEL",
+        "KINDS",
+        "STATES",
+        "FLOW_MODES",
+        "DEFAULT_FLOW_MODE",
+        "TRANSITIONS",
+        "REFUSAL_TEXT",
+        "normalizeQueue",
+        "normalizeItem",
+        "emptyQueue",
+        "clampParallel",
+        "refusal",
+        "add",
+        "find",
+        "remove",
+        "reorder",
+        "canMove",
+        "setState",
+        "setParallel",
+        "setFlowMode",
+        "activeCount",
+        "nextRunnable",
+        "markInterrupted",
+        "deriveMissing",
+        "mergeQueues",
+        "homeOf",
+        "worktreeKey",
+        "queueBranch",
+        "queueWorktreeRel",
+        "nextPhaseCommand",
+        "startCommand"
+      ],
+      "depends": [],
+      "functions": {
+        "list": {
+          "line": 50,
+          "params": [
+            "x"
+          ]
+        },
+        "clampParallel": {
+          "line": 54,
+          "params": [
+            "n"
+          ]
+        },
+        "normalizeFlowMode": {
+          "line": 60,
+          "params": [
+            "m"
+          ]
+        },
+        "normalizeItem": {
+          "line": 67,
+          "params": [
+            "raw"
+          ],
+          "purpose": "One stored item, cleaned; null when it cannot be an item."
+        },
+        "normalizeQueue": {
+          "line": 90,
+          "params": [
+            "raw"
+          ],
+          "purpose": "A queue file's contents, cleaned: unknown fields dropped, bad items skipped."
+        },
+        "emptyQueue": {
+          "line": 103
+        },
+        "sameSource": {
+          "line": 107,
+          "params": [
+            "a",
+            "kind",
+            "ref"
+          ]
+        },
+        "refusal": {
+          "line": 116,
+          "params": [
+            "queue",
+            "source"
+          ],
+          "purpose": "Why a source cannot be queued, or null. `source` is what the caller knows:"
+        },
+        "add": {
+          "line": 143,
+          "params": [
+            "queue",
+            "source",
+            "{ id",
+            "now = null",
+            "flowMode = DEFAULT_FLOW_MODE } = {}"
+          ],
+          "purpose": "`{ queue, item }` with the source appended, or `{ queue, refused }` unchanged."
+        },
+        "find": {
+          "line": 152,
+          "params": [
+            "queue",
+            "id"
+          ]
+        },
+        "remove": {
+          "line": 157,
+          "params": [
+            "queue",
+            "id"
+          ],
+          "purpose": "Removes an item; a running one is refused (stop its terminal first)."
+        },
+        "reorder": {
+          "line": 166,
+          "params": [
+            "queue",
+            "ids"
+          ],
+          "purpose": "Puts the named ids first, in that order; the rest keep their order after them."
+        },
+        "canMove": {
+          "line": 178,
+          "params": [
+            "from",
+            "to"
+          ]
+        },
+        "setState": {
+          "line": 187,
+          "params": [
+            "queue",
+            "id",
+            "state",
+            "patch = {}",
+            "{ now = null } = {}"
+          ],
+          "purpose": "Moves an item to `state`, merging `patch` (worktree, terminalId, note, …)."
+        },
+        "pick": {
+          "line": 201,
+          "params": [
+            "obj",
+            "keys"
+          ]
+        },
+        "setParallel": {
+          "line": 207,
+          "params": [
+            "queue",
+            "n"
+          ]
+        },
+        "setFlowMode": {
+          "line": 213,
+          "params": [
+            "queue",
+            "id",
+            "mode"
+          ],
+          "purpose": "A spec item's flow mode; not while it runs (the running agent already has its command)."
+        },
+        "activeCount": {
+          "line": 224,
+          "params": [
+            "items"
+          ],
+          "purpose": "How many items hold a terminal now."
+        },
+        "nextRunnable": {
+          "line": 232,
+          "params": [
+            "items",
+            "{ parallel = DEFAULT_PARALLEL",
+            "freeSlots = MAX_PARALLEL } = {}"
+          ],
+          "purpose": "The items to start now, in queue order: queued or interrupted, not missing,"
+        },
+        "markInterrupted": {
+          "line": 239,
+          "params": [
+            "queue",
+            "liveIds"
+          ],
+          "purpose": "Running items whose terminal is not in `liveIds` become interrupted (D19)."
+        },
+        "deriveMissing": {
+          "line": 256,
+          "params": [
+            "items",
+            "{ taskIds = null",
+            "specSlugs = null } = {}"
+          ],
+          "purpose": "Items as shown: an unfinished item whose task id or spec slug no longer"
+        },
+        "mergeQueues": {
+          "line": 273,
+          "params": [
+            "macItems",
+            "servers = []"
+          ],
+          "purpose": "The project's queues as one list: the Mac's first, then each server's,"
+        },
+        "homeOf": {
+          "line": 284,
+          "params": [
+            "itemId",
+            "merged"
+          ],
+          "purpose": "Where an item of the merged list lives: `{ location:'mac' }`, a server home, or null."
+        },
+        "slugPart": {
+          "line": 291,
+          "params": [
+            "s"
+          ]
+        },
+        "worktreeKey": {
+          "line": 299,
+          "params": [
+            "item",
+            "takenBranches = []"
+          ],
+          "purpose": "The worktree key of an item (plan D14): the spec slug, or `task-<id>`, with"
+        },
+        "queueBranch": {
+          "line": 307,
+          "params": [
+            "key"
+          ]
+        },
+        "queueWorktreeRel": {
+          "line": 312,
+          "params": [
+            "key"
+          ],
+          "purpose": "`.frame/worktrees/queue-<key>`, relative to the checkout (posix)."
+        },
+        "nextPhaseCommand": {
+          "line": 317,
+          "params": [
+            "phase"
+          ],
+          "purpose": "The next single phase for step-by-step (D20); null when nothing is left."
+        },
+        "startCommand": {
+          "line": 331,
+          "params": [
+            "item",
+            "phase"
+          ],
+          "purpose": "The spec command an item starts with: `spec.auto` in full auto, the next"
+        }
+      },
+      "sizeBytes": 14038,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0c9d932ae20c15c5",
+        "purposes": {
+          "activeCount": "2089280efd93d43e",
+          "add": "bd493f157f7b1c25",
+          "deriveMissing": "bc56cf39b6d02f19",
+          "homeOf": "5df436e951805108",
+          "markInterrupted": "6fb3870448480177",
+          "mergeQueues": "e8fc2f30b732e382",
+          "nextPhaseCommand": "8a987a12dbfc61ba",
+          "nextRunnable": "8213fa5bc87065a1",
+          "normalizeItem": "efa71ec91679fc17",
+          "normalizeQueue": "42b7b6df9584e712",
+          "queueWorktreeRel": "b8f5dc4c9f021f44",
+          "refusal": "fa514f8257eccfd6",
+          "remove": "6a0a0ca02b78e804",
+          "reorder": "7794d1b9e4379f47",
+          "setFlowMode": "b2a4594ca8024e1b",
+          "setState": "c307d483ef40319d",
+          "startCommand": "fa4fe9e23a4a6bd8",
+          "worktreeKey": "42899ff8af51dcdf"
+        }
+      }
+    },
     "shared/reviewModel": {
       "file": "src/shared/reviewModel.js",
       "description": "reviewModel — the rules behind a workspace review (workspace-review spec).",
@@ -34071,6 +34357,28 @@
         }
       }
     },
+    "test/queueRules.test": {
+      "file": "test/queueRules.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert",
+        "src/shared/queueRules"
+      ],
+      "functions": {
+        "withItems": {
+          "line": 8,
+          "params": [
+            "...sources"
+          ]
+        }
+      },
+      "sizeBytes": 8914,
+      "extraction": {
+        "status": "parsed"
+      }
+    },
     "test/rendererGuards.test": {
       "file": "test/rendererGuards.test.js",
       "description": "Renderer guards (workspace-hardening R1, R2, R7): pure helpers the dialogs use.",
@@ -38862,6 +39170,18 @@
         "description": "Which Claude sessions Home offers to resume, and how they are labelled."
       }
     ],
+    "rules": [
+      {
+        "module": "shared/leadRules",
+        "file": "src/shared/leadRules.js",
+        "description": "leadRules — the rules behind the Chief (lead-agent spec, T01)."
+      },
+      {
+        "module": "shared/queueRules",
+        "file": "src/shared/queueRules.js",
+        "description": "queueRules — the rules behind the work queue (work-queue spec, T01)."
+      }
+    ],
     "section": [
       {
         "module": "renderer/github/sectionState",
@@ -39369,7 +39689,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 440,
+        "parsed": 442,
         "unsupported": 93,
         "partial": 0
       }
@@ -39416,9 +39736,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 628,
+      "visitedEntries": 630,
       "traversedDirectories": 87,
-      "eligibleFiles": 533,
+      "eligibleFiles": 535,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -39435,7 +39755,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 533,
+      "indexedFiles": 535,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -39443,6 +39763,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "e8ebb47ef7af64c68a75f8ffd126d39ee48baac4f05ca61f9bde5c58362c7a31"
+    "revision": "50a3b71f807d15331a1c75ded6771097f6358e8d72fcd4a4d3609014f5160363"
   }
 }
