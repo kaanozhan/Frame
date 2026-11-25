@@ -127,6 +127,20 @@ function sourceForTask(task) {
   };
 }
 
+/** A spec as a queue source; a spec in a server workspace is queued on that server. */
+function sourceForSpec(spec) {
+  const ws = spec.workspace || null;
+  const onServer = ws && ws.serverKey && ws.serverProjectPath;
+  return {
+    kind: 'spec',
+    ref: spec.slug,
+    title: spec.title || spec.slug,
+    phase: spec.phase,
+    malformed: !!spec.malformed,
+    home: onServer ? { location: 'server', serverKey: ws.serverKey, serverProjectPath: ws.serverProjectPath, host: ws.host } : null
+  };
+}
+
 /** Whether a task id / spec slug is queued (not done) — the spec card's icon. */
 function isQueued(kind, ref) {
   return payload.items.some((it) => it.kind === kind && it.ref === ref && it.state !== 'done');
@@ -445,6 +459,7 @@ module.exports = {
   current,
   isQueued,
   sourceForTask,
+  sourceForSpec,
   addSource,
   removeItem,
   setItem,

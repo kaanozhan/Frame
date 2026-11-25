@@ -265,3 +265,32 @@
   outline-offset: -2px;
   background: var(--selected-bg);
 }
+
+/* The queue icon on a spec card (work-queue spec): outlined, filled with the
+   accent while the spec is queued. */
+.specs-card-queue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.specs-card-queue:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.specs-card-queue.on {
+  border-color: transparent;
+  background: var(--accent-primary);
+  color: var(--bg-deep);
+}

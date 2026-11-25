@@ -1812,7 +1812,8 @@ async function refreshServerSpecs(projectPath, onlyRoot = null) {
   }
   for (const r of rows) {
     if (onlyRoot && r.root !== onlyRoot) continue;
-    const workspace = { id: r.id, name: r.name, branch: null, root: r.root, host: r.host, serverKey: r.serverKey || null, offline: false };
+    // serverProjectPath: a server spec is queued on its own server (work-queue).
+    const workspace = { id: r.id, name: r.name, branch: null, root: r.root, host: r.host, serverKey: r.serverKey || null, serverProjectPath: r.serverProjectPath || null, offline: false };
     const link = linkOf(r.serverKey);
     if (!link) {
       // This workspace's server is down: keep its last list, offline.

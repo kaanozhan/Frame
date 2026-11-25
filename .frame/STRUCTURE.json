@@ -8051,7 +8051,7 @@
           "purpose": "Re-list the server workspaces of `projectPath` (only `onlyRoot` when given),"
         },
         "remoteSpecEntry": {
-          "line": 1852,
+          "line": 1853,
           "params": [
             "projectPath",
             "slug"
@@ -8059,19 +8059,19 @@
           "purpose": "The server workspace entry that holds `slug` for `projectPath`, or null when"
         },
         "serverOffline": {
-          "line": 1865,
+          "line": 1866,
           "params": [
             "entry"
           ]
         },
         "offlineText": {
-          "line": 1869,
+          "line": 1870,
           "params": [
             "entry"
           ]
         },
         "serverSpecCall": {
-          "line": 1873,
+          "line": 1874,
           "params": [
             "entry",
             "method",
@@ -8079,7 +8079,7 @@
           ]
         },
         "getServerSpec": {
-          "line": 1878,
+          "line": 1879,
           "params": [
             "entry",
             "slug"
@@ -8087,7 +8087,7 @@
           "purpose": "GET_SPEC for a server spec: the server's getSpec, tagged with its workspace; `{ offline: host }` while unreachable."
         },
         "readServerSpecReport": {
-          "line": 1902,
+          "line": 1903,
           "params": [
             "entry",
             "slug",
@@ -8095,7 +8095,7 @@
           ]
         },
         "updateServerSpecStatus": {
-          "line": 1911,
+          "line": 1912,
           "params": [
             "entry",
             "slug",
@@ -8103,26 +8103,26 @@
           ]
         },
         "unwatchServerSpecs": {
-          "line": 1922
+          "line": 1923
         },
         "wireServerSpecs": {
-          "line": 1931
+          "line": 1932
         },
         "checkoutLocations": {
-          "line": 1978,
+          "line": 1979,
           "params": [
             "root"
           ]
         },
         "inCheckout": {
-          "line": 1984,
+          "line": 1985,
           "params": [
             "root",
             "fn"
           ]
         },
         "listSpecsIn": {
-          "line": 1997,
+          "line": 1998,
           "params": [
             "root",
             "tasksProject"
@@ -8130,14 +8130,14 @@
           "purpose": "listSpecs over one checkout; task counts come from `tasksProject`'s tasks.json."
         },
         "getSpecIn": {
-          "line": 2001,
+          "line": 2002,
           "params": [
             "root",
             "slug"
           ]
         },
         "readSpecReportIn": {
-          "line": 2005,
+          "line": 2006,
           "params": [
             "root",
             "slug",
@@ -8145,7 +8145,7 @@
           ]
         },
         "updateSpecStatusIn": {
-          "line": 2009,
+          "line": 2010,
           "params": [
             "root",
             "slug",
@@ -8153,7 +8153,7 @@
           ]
         },
         "syncSpecTasksIn": {
-          "line": 2014,
+          "line": 2015,
           "params": [
             "root",
             "tasksProject"
@@ -8161,7 +8161,7 @@
           "purpose": "Import every spec's tasks.md in `root` into `tasksProject`'s tasks.json."
         },
         "buildSpecCommandFileIn": {
-          "line": 2027,
+          "line": 2028,
           "params": [
             "root",
             "tasksProject",
@@ -8173,13 +8173,13 @@
           "purpose": "Stage a spec command's prompt in `root`, with `{tasks_path}` naming `tasksProject`'s tasks.json."
         },
         "init": {
-          "line": 2033,
+          "line": 2034,
           "params": [
             "window"
           ]
         },
         "handleGetSpec": {
-          "line": 2041,
+          "line": 2042,
           "params": [
             "projectPath",
             "slug"
@@ -8187,7 +8187,7 @@
           "purpose": "The spec IPC handlers route a server spec to Frame Server (server-specs"
         },
         "handleReadSpecReport": {
-          "line": 2046,
+          "line": 2047,
           "params": [
             "projectPath",
             "slug",
@@ -8195,7 +8195,7 @@
           ]
         },
         "handleUpdateSpecStatus": {
-          "line": 2051,
+          "line": 2052,
           "params": [
             "projectPath",
             "slug",
@@ -8203,7 +8203,7 @@
           ]
         },
         "serverStagingTarget": {
-          "line": 2065,
+          "line": 2066,
           "params": [
             "projectPath",
             "slug",
@@ -8212,7 +8212,7 @@
           "purpose": "Where a spec command for `workspaceId` / `slug` runs when that is a server"
         },
         "handleBuildSpecCommandFile": {
-          "line": 2080,
+          "line": 2081,
           "params": [
             "{ projectPath",
             "slug = null",
@@ -8225,7 +8225,7 @@
           "purpose": "BUILD_SPEC_COMMAND_FILE: stage locally, or — for a server workspace — have"
         },
         "setupIPC": {
-          "line": 2105,
+          "line": 2106,
           "params": [
             "ipcMain"
           ]
@@ -8252,7 +8252,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 96788,
+      "sizeBytes": 96918,
       "extraction": {
         "status": "parsed"
       },
@@ -16664,6 +16664,7 @@
         "current",
         "isQueued",
         "sourceForTask",
+        "sourceForSpec",
         "addSource",
         "removeItem",
         "setItem",
@@ -16727,8 +16728,15 @@
           ],
           "purpose": "A task as a queue source: its id, the facts the rules check, and its home."
         },
-        "isQueued": {
+        "sourceForSpec": {
           "line": 131,
+          "params": [
+            "spec"
+          ],
+          "purpose": "A spec as a queue source; a spec in a server workspace is queued on that server."
+        },
+        "isQueued": {
+          "line": 145,
           "params": [
             "kind",
             "ref"
@@ -16736,14 +16744,14 @@
           "purpose": "Whether a task id / spec slug is queued (not done) — the spec card's icon."
         },
         "addSource": {
-          "line": 141,
+          "line": 155,
           "params": [
             "source"
           ],
           "purpose": "Adds a source: `{ kind, ref, title, status?, source?, phase?, malformed?, home? }`."
         },
         "call": {
-          "line": 156,
+          "line": 170,
           "params": [
             "channel",
             "args",
@@ -16751,29 +16759,29 @@
           ]
         },
         "ui": {
-          "line": 175
+          "line": 189
         },
         "openSource": {
-          "line": 179,
+          "line": 193,
           "params": [
             "item"
           ]
         },
         "openTerminal": {
-          "line": 191,
+          "line": 205,
           "params": [
             "item"
           ]
         },
         "carriesSource": {
-          "line": 199,
+          "line": 213,
           "params": [
             "e"
           ],
           "purpose": "True when a drag carries a queue source (task tile / spec card)."
         },
         "setDragSource": {
-          "line": 205,
+          "line": 219,
           "params": [
             "e",
             "source"
@@ -16781,78 +16789,78 @@
           "purpose": "Put a queue source on a drag (T06/T07 call this from their dragstart)."
         },
         "acceptDrops": {
-          "line": 214,
+          "line": 228,
           "params": [
             "el"
           ],
           "purpose": "Makes `el` a drop target that queues a dragged task or spec."
         },
         "mountInline": {
-          "line": 247,
+          "line": 261,
           "params": [
             "container"
           ]
         },
         "notifyDetached": {
-          "line": 266
+          "line": 280
         },
         "render": {
-          "line": 276
+          "line": 290
         },
         "renderEmpty": {
-          "line": 299
+          "line": 313
         },
         "actionsFor": {
-          "line": 308,
+          "line": 322,
           "params": [
             "it"
           ]
         },
         "renderRow": {
-          "line": 320,
+          "line": 334,
           "params": [
             "it",
             "i"
           ]
         },
         "renderMode": {
-          "line": 349,
+          "line": 363,
           "params": [
             "it"
           ]
         },
         "itemOf": {
-          "line": 356,
+          "line": 370,
           "params": [
             "el"
           ]
         },
         "onClick": {
-          "line": 361,
+          "line": 375,
           "params": [
             "e"
           ]
         },
         "onDragStart": {
-          "line": 384,
+          "line": 398,
           "params": [
             "e"
           ]
         },
         "onDragOver": {
-          "line": 393,
+          "line": 407,
           "params": [
             "e"
           ]
         },
         "onDrop": {
-          "line": 404,
+          "line": 418,
           "params": [
             "e"
           ]
         },
         "clearDropMarks": {
-          "line": 426,
+          "line": 440,
           "params": [
             "endDrag = true"
           ]
@@ -16864,7 +16872,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 17586,
+      "sizeBytes": 18103,
       "extraction": {
         "status": "parsed"
       },
@@ -16878,6 +16886,7 @@
           "isQueued": "cd2df3256ed324cc",
           "onChange": "4784d58088436a23",
           "setDragSource": "6747cea8c4c39a78",
+          "sourceForSpec": "85d3f1a1052331c3",
           "sourceForTask": "0afd11aa59b107a1"
         }
       }
@@ -18571,6 +18580,7 @@
         "taskInfoModal",
         "workspaceSection",
         "terminal",
+        "queueView",
         "specSection"
       ],
       "functions": {
@@ -18635,23 +18645,41 @@
           "line": 381
         },
         "openFromGrid": {
-          "line": 435,
+          "line": 436,
           "params": [
             "slug"
           ],
           "purpose": "A card click. A spec living in another checkout (spec-in-workspace) selects"
         },
+        "canQueue": {
+          "line": 455,
+          "params": [
+            "spec"
+          ]
+        },
+        "queueButtonHtml": {
+          "line": 459,
+          "params": [
+            "spec"
+          ]
+        },
+        "wireQueue": {
+          "line": 468,
+          "params": [
+            "list"
+          ]
+        },
         "wireOlderTile": {
-          "line": 447
+          "line": 497
         },
         "renderCard": {
-          "line": 454,
+          "line": 504,
           "params": [
             "spec"
           ]
         },
         "selectCard": {
-          "line": 516,
+          "line": 567,
           "params": [
             "slug",
             "{ instant = false } = {}"
@@ -18659,26 +18687,26 @@
           "purpose": "Open a spec in the drawer. `instant` is the top-bar chip path: the grid"
         },
         "clearSelection": {
-          "line": 543,
+          "line": 594,
           "params": [
             "{ notify = true } = {}"
           ],
           "purpose": "Close the drawer. `notify: false` is for the host-driven teardown"
         },
         "reloadDetail": {
-          "line": 556
+          "line": 607
         },
         "renderDetailHeader": {
-          "line": 583
+          "line": 634
         },
         "runSpecCommand": {
-          "line": 669,
+          "line": 720,
           "params": [
             "command"
           ]
         },
         "tabBtn": {
-          "line": 680,
+          "line": 731,
           "params": [
             "tab",
             "label",
@@ -18686,44 +18714,44 @@
           ]
         },
         "renderDetailBody": {
-          "line": 686
-        },
-        "renderTasksTabBody": {
           "line": 737
         },
+        "renderTasksTabBody": {
+          "line": 788
+        },
         "renderSpecTaskRow": {
-          "line": 774,
+          "line": 825,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 823
+          "line": 874
         },
         "handleSpecTaskAction": {
-          "line": 836,
+          "line": 887,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 847
+          "line": 898
         },
         "tasksTabLabel": {
-          "line": 853,
+          "line": 904,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 862,
+          "line": 913,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 867,
+          "line": 918,
           "params": [
             "iso"
           ]
@@ -18742,7 +18770,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 36138,
+      "sizeBytes": 38633,
       "extraction": {
         "status": "parsed"
       },
@@ -20058,7 +20086,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 4816,
+      "sizeBytes": 5476,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -40538,6 +40566,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "def82df1bfcb082acc796f6490def81ad55da2a277d176d70bf20e9f2a0b1cbb"
+    "revision": "e31869bf456679dbc3036ba711b21b5b1d361f06dd3addfb6f2f4ee551cf27dd"
   }
 }

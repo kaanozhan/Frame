@@ -46,3 +46,11 @@ _Captured: 2026-11-25 · 6 file change(s)_
 
 ---
 
+## T07 — Queue specs: card icon and drag
+
+Added the queue icon and card drag to specsDashboard.js (queueButtonHtml, wireQueue, canQueue), sourceForSpec to queueView.js and the icon's styles to queue.css. Beyond the plan's file list for this step, specManager.js's server spec workspace object gained serverProjectPath (the file is in the plan's footprint for T09). Checked in an isolated Frame instance.
+
+_Captured: 2026-11-25 · 4 file change(s)_
+
+---
+
