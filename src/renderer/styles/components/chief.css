@@ -249,3 +249,75 @@
   line-height: 1.4;
   color: var(--text-tertiary);
 }
+
+/* ─── Queue bar (work-queue spec): Start queue + parallel limit ─── */
+/* Sits left of the mode chip while the Chief's session runs. */
+
+.chief-queue {
+  position: absolute;
+  top: var(--space-xs);
+  right: calc(var(--space-md) + 104px);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+
+.chief-queue[hidden] {
+  display: none;
+}
+
+.chief-queue-start {
+  padding: 2px var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent-primary);
+  color: var(--bg-deep);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chief-queue-start.running {
+  background: var(--bg-secondary);
+  color: var(--accent-primary);
+  box-shadow: inset 0 0 0 1px var(--accent-primary);
+}
+
+.chief-queue-par {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.chief-queue-step {
+  width: 18px;
+  padding: 1px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.chief-queue-step:hover {
+  color: var(--text-primary);
+}
+
+.chief-queue-n {
+  min-width: 12px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.chief-approval-detail {
+  white-space: pre-wrap;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}

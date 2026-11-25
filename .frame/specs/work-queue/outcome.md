@@ -94,3 +94,11 @@ _Captured: 2026-11-25 · 6 file change(s)_
 
 ---
 
+## T12 — Start queue on the Chief
+
+Added the Chief's queue bar (chiefLane.js, chief.css), Start queue through leadHost.queueStart (desktop IPC in leadManager.js, lead.queueStart on Frame Server), the 'Start queue' palette command (index.js), a non-editable approval detail for queue starts, and the Queue section of CHIEF.md. In the full-loop run the harness stubbed screen reads, so the Chief recorded both items as needs-you with a note that it could not confirm the result — in the app terminal_read has the real screen.
+
+_Captured: 2026-11-25 · 8 file change(s)_
+
+---
+

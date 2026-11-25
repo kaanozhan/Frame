@@ -17,6 +17,11 @@
  * project's clone there, and keeps working while this Mac is away. Its
  * approvals arrive the same way, tagged with the server.
  *
+ * While the session runs, a queue bar sits beside the mode chip (work-queue
+ * T12): **Start queue** — the user's go for this machine's queue, never
+ * automatic — and the parallel limit (default 9). It shows only when this
+ * machine's queue has something to run.
+ *
  * Everything the Chief can do is decided in the main process (leadHost);
  * this module only shows state and relays the user's clicks.
  */
@@ -153,7 +158,24 @@ function decorate(terminalId, projectPath, host = null) {
   cards.className = 'chief-approvals';
   root.appendChild(cards);
 
-  c.els = { overlay, chip, cards };
+  const queueBar = document.createElement('div');
+  queueBar.className = 'chief-queue';
+  queueBar.hidden = true;
+  queueBar.innerHTML = `
+    <button type="button" class="chief-queue-start" title="Let the Chief work this machine's queue: each item in its own worktree and terminal"></button>
+    <span class="chief-queue-par" title="How many items run at once (the terminal limit is 9)">
+      <button type="button" class="chief-queue-step" data-step="-1" aria-label="Fewer at once">−</button>
+      <span class="chief-queue-n"></span>
+      <button type="button" class="chief-queue-step" data-step="1" aria-label="More at once">+</button>
+    </span>`;
+  root.appendChild(queueBar);
+
+  c.els = { overlay, chip, cards, queueBar };
+  queueBar.querySelector('.chief-queue-start').addEventListener('click', (e) => { e.stopPropagation(); startQueueOn(terminalId); });
+  queueBar.querySelectorAll('.chief-queue-step').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    stepParallel(terminalId, Number(b.dataset.step));
+  }));
 
   overlay.querySelectorAll('.chief-mode').forEach((b) => b.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -197,7 +219,59 @@ function render(terminalId) {
   chip.textContent = m.label;
   chip.classList.toggle('auto', c.mode === 'full-auto');
   renderCards(terminalId);
+  renderQueueBar(terminalId);
   renderNav();
+}
+
+// ─── queue bar (work-queue T12) ───────────────────────────
+
+/** This Chief's machine's items and parallel limit, from the Queue view's data. */
+function queueFor(terminalId) {
+  const c = chiefs.get(terminalId);
+  const q = require('./queueView').current();
+  if (!c || !q || q.projectPath !== c.projectPath) return { items: [], parallel: 9, serverKey: null };
+  const key = isServerId(terminalId) ? serverKeyOf(terminalId) : null;
+  const items = q.items.filter((it) => (key ? it.location === 'server' && it.serverKey === key : it.location !== 'server'));
+  const parallel = key ? ((q.parallels && q.parallels.servers && q.parallels.servers[key]) || 9) : ((q.parallels && q.parallels.mac) || q.parallel || 9);
+  return { items, parallel, serverKey: key };
+}
+
+function renderQueueBar(terminalId) {
+  const c = chiefs.get(terminalId);
+  if (!c || !c.els.queueBar) return;
+  const { items, parallel } = queueFor(terminalId);
+  const open = items.filter((it) => ['queued', 'interrupted', 'running'].includes(it.state));
+  const running = items.filter((it) => it.state === 'running').length;
+  const bar = c.els.queueBar;
+  bar.hidden = !c.running || open.length === 0;
+  const btn = bar.querySelector('.chief-queue-start');
+  btn.textContent = running ? `Queue running · ${running}/${open.length}` : `Start queue · ${open.length}`;
+  btn.classList.toggle('running', running > 0);
+  bar.querySelector('.chief-queue-n').textContent = String(parallel);
+}
+
+async function startQueueOn(terminalId) {
+  const c = chiefs.get(terminalId);
+  if (!c) return;
+  if (!c.running) { notify.info('Start the Chief first, then start the queue.'); return; }
+  let res;
+  try { res = await ipcRenderer.invoke(IPC.LEAD_QUEUE_START, { terminalId }); } catch (err) { res = { ok: false, reason: err.message }; }
+  if (res && res.ok) notify.info(`The Chief is working the queue${c.host ? ` on ${c.host}` : ''}.`);
+  else notify.error((res && res.reason) || 'The queue could not be started.');
+}
+
+function stepParallel(terminalId, delta) {
+  const { parallel, serverKey } = queueFor(terminalId);
+  const next = Math.max(1, Math.min(9, parallel + delta));
+  if (next !== parallel) require('./queueView').setParallel(next, serverKey);
+}
+
+/** The palette's "Start queue": the Chief at the sidebar's selected location. */
+function startQueue(projectPath = state.getProjectPath && state.getProjectPath()) {
+  if (!projectPath) return;
+  const id = chiefAt(projectPath, selectedLocation(projectPath));
+  if (!id) { notify.info('Open the Chief first (sidebar → Chief).'); return; }
+  startQueueOn(id);
 }
 
 async function setMode(terminalId, mode) {
@@ -250,6 +324,16 @@ function approvalTitle(rec) {
   return `Send to ${name}${ws}`;
 }
 
+/** One line on what a non-message action will do (a queue start: its worktree and terminal). */
+function approvalDetail(rec) {
+  const p = rec.payload || {};
+  if (rec.action === 'queue_start') {
+    const mode = p.kind === 'spec' ? (p.flowMode === 'step-by-step' ? ' · next phase only' : ' · full auto') : '';
+    return `${p.kind === 'spec' ? 'Spec' : 'Task'}: ${p.title || p.ref || ''}${mode}\nWorktree: ${p.worktree || 'a new one'} · opens a terminal`;
+  }
+  return '';
+}
+
 function renderCards(terminalId) {
   const c = chiefs.get(terminalId);
   if (!c) return;
@@ -259,16 +343,20 @@ function renderCards(terminalId) {
     const text = rec.payload && typeof rec.payload.text === 'string' ? rec.payload.text : '';
     const card = document.createElement('div');
     card.className = 'chief-approval';
+    // Only a message can be edited; any other action (a queue start) shows what it will do.
+    const editable = rec.action === 'terminal_send';
     card.innerHTML = `
       <div class="chief-approval-head">${escapeHtml(approvalTitle(rec))}</div>
-      <textarea class="chief-approval-text" rows="${Math.min(8, Math.max(2, text.split('\n').length))}" spellcheck="false">${escapeHtml(text)}</textarea>
+      ${editable
+        ? `<textarea class="chief-approval-text" rows="${Math.min(8, Math.max(2, text.split('\n').length))}" spellcheck="false">${escapeHtml(text)}</textarea>`
+        : `<div class="chief-approval-detail">${escapeHtml(approvalDetail(rec))}</div>`}
       <div class="chief-approval-actions">
         <button type="button" class="chief-approve">Approve</button>
         <button type="button" class="chief-reject">Reject</button>
       </div>`;
     const area = card.querySelector('textarea');
     const decide = async (decision) => {
-      const edited = decision === 'approved' && area.value !== text;
+      const edited = !!area && decision === 'approved' && area.value !== text;
       card.classList.add('deciding');
       try {
         await ipcRenderer.invoke(IPC.LEAD_DECIDE, { approvalId: rec.id, decision: edited ? 'edited' : decision, text: edited ? area.value : null, serverKey: rec.serverKey || null });
@@ -277,7 +365,7 @@ function renderCards(terminalId) {
         card.classList.remove('deciding');
       }
     };
-    area.addEventListener('keydown', (e) => e.stopPropagation()); // typing here is not typing into the terminal
+    if (area) area.addEventListener('keydown', (e) => e.stopPropagation()); // typing here is not typing into the terminal
     card.querySelector('.chief-approve').addEventListener('click', (e) => { e.stopPropagation(); decide('approved'); });
     card.querySelector('.chief-reject').addEventListener('click', (e) => { e.stopPropagation(); decide('rejected'); });
     cards.appendChild(card);
@@ -496,6 +584,9 @@ function init(multiTerminalUI) {
   });
 
   ipcRenderer.on(IPC.LEAD_APPROVALS, (event, payload) => onApprovals(payload));
+
+  // The queue bar follows the queue (work-queue T12).
+  require('./queueView').onChange(() => { for (const id of chiefs.keys()) renderQueueBar(id); });
 }
 
-module.exports = { init, ensure, openChief, _chiefs: chiefs };
+module.exports = { init, ensure, openChief, startQueue, _chiefs: chiefs };

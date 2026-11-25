@@ -11,7 +11,7 @@
  * Terminal ids are the server's own `srv-<boot>-<n>`; ptyManager underneath
  * still knows them as `term-<n>`.
  *
- * Methods: lead.start · lead.stop · lead.mode · lead.pending · lead.decide
+ * Methods: lead.start · lead.stop · lead.mode · lead.pending · lead.decide · lead.queueStart
  * Event:   lead.approvals { chiefId, projectPath, machine, pending[] }
  *          lead.terminalOpened { projectPath } — the Chief opened a queue
  *          item's terminal; a connected desktop re-adopts the project's terminals
@@ -106,7 +106,9 @@ function setup({ registerMethods, broadcast, terminals }) {
     'lead.mode': async ({ projectPath, mode } = {}) => (mode ? host.setMode(projectPath, mode) : host.getMode(projectPath)),
     'lead.pending': async ({ projectPath = null } = {}) => host.chiefsFor(projectPath).map((c) => ({ ...c, pending: host.pending(c.chiefId) })),
     // The server is the authority: the first desktop to decide wins (D17).
-    'lead.decide': async ({ approvalId, decision, text = null } = {}) => host.decide(approvalId, { decision, text })
+    'lead.decide': async ({ approvalId, decision, text = null } = {}) => host.decide(approvalId, { decision, text }),
+    // The Start queue button on a desktop (work-queue T12).
+    'lead.queueStart': async ({ terminalId } = {}) => host.queueStart(terminalId)
   });
 
   return {

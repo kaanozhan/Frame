@@ -751,6 +751,14 @@ function registerCommands() {
     shortcut: 'CmdOrCtrl+,',
     run: () => frameSettingsModal.open()
   });
+  // The work queue (work-queue spec): the Chief at the sidebar's location works it.
+  r({
+    id: 'queue.start',
+    title: 'Start queue',
+    category: 'Queue',
+    run: () => require('./chiefLane').startQueue()
+  });
+
   r({
     id: 'settings.openProject',
     title: 'Project Settings',

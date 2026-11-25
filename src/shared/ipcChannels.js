@@ -237,6 +237,7 @@ const IPC = {
   LEAD_SCREEN_REPLY: 'lead-screen-reply',
   LEAD_OPEN_TERMINAL_REQUEST: 'lead-open-terminal-request', // main → renderer: { requestId, projectPath, cwd, name, assignment } — open a visible terminal (work-queue)
   LEAD_OPEN_TERMINAL_REPLY: 'lead-open-terminal-reply',     // renderer → main: { requestId, terminalId?, error? }
+  LEAD_QUEUE_START: 'lead-queue-start',                     // renderer → main (invoke): { terminalId } → { ok, reason? } — the Chief's Start queue button (work-queue)
   LEAD_TERMINAL_OPENED: 'lead-terminal-opened',             // main → renderer: { serverKey } — a server Chief opened a queue terminal; re-adopt (work-queue)            // renderer → main: { requestId, text } — the answer
 
   // Work queue (work-queue spec): one queue per machine, merged for the window

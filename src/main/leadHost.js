@@ -748,6 +748,21 @@ function createLeadHost({ machine, machineLabel = null, adapter, homeDir = os.ho
 
   if (adapter.queue) registerQueueTools();
 
+  // What the Chief's Start queue button types into the Chief's own session
+  // (work-queue T12). The user pressed it, so this is the user's instruction.
+  const QUEUE_START_PROMPT = 'Work the queue now: call queue_list, start the items listed in `next` with queue_start, follow each with terminal_wait and terminal_read, record how each ended with queue_update, start the next ones as slots free up, and stop when nothing is left to start. Then report briefly: what ran, what is in review, what needs me.';
+
+  /** The Start queue button: one message into the Chief's session (`{ ok, reason? }`). */
+  function queueStart(chiefId) {
+    const chief = byChiefId.get(chiefId);
+    if (!chief) return { ok: false, reason: 'The Chief is not running — start it first.' };
+    if (!adapter.queue) return { ok: false, reason: 'This machine has no queue.' };
+    const q = queueOf(chief.projectPath);
+    if (!q.items.some((it) => ['queued', 'interrupted', 'running'].includes(it.state))) return { ok: false, reason: 'Nothing in this machine\'s queue to start.' };
+    enqueueDelivery(chief, chiefId, QUEUE_START_PROMPT);
+    return { ok: true };
+  }
+
   /** A queue item's terminal went away while it ran: interrupted (D19), unless the Chief already recorded the end. */
   function queueTerminalGone(terminalId) {
     const rec = queueTerminals.get(terminalId);
@@ -862,6 +877,7 @@ function createLeadHost({ machine, machineLabel = null, adapter, homeDir = os.ho
     setMode,
     register, // the work-queue spec adds tools here (D19)
     startAgent: (chiefId, terminalId, opts) => startAgent(byChiefId.get(chiefId), terminalId, opts),
+    queueStart,
     toolDefinitions,
     close,
     get socketPath() { return socketPath; },

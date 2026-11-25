@@ -238,6 +238,16 @@ function setupIPC(ipcMain) {
     return host ? host.setMode(projectPath, mode) : 'user-guided';
   });
 
+  // Start queue (work-queue T12): the Chief of that terminal works its machine's queue.
+  ipcMain.handle(IPC.LEAD_QUEUE_START, async (event, { terminalId } = {}) => {
+    if (isServerTerminalId(terminalId)) {
+      const route = serverRoute(terminalId);
+      if (!route) return { ok: false, reason: 'That server is not connected.' };
+      try { return await route.link.call('lead.queueStart', { terminalId: route.serverTerminalId }); } catch (e) { return { ok: false, reason: e.message }; }
+    }
+    return host ? host.queueStart(terminalId) : { ok: false, reason: 'Chief host not ready' };
+  });
+
   ipcMain.handle(IPC.LEAD_SERVER_TARGETS, (event, { projectPath } = {}) => serverChiefTargets(projectPath));
 
   // This project's Chiefs with what they wait on — local, plus every connected

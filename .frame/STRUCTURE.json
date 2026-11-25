@@ -4305,7 +4305,7 @@
           ]
         }
       },
-      "sizeBytes": 43126,
+      "sizeBytes": 44289,
       "extraction": {
         "status": "parsed"
       },
@@ -4435,7 +4435,7 @@
           ]
         },
         "decideOnServer": {
-          "line": 279,
+          "line": 289,
           "params": [
             "serverKey",
             "{ approvalId",
@@ -4445,7 +4445,7 @@
           "purpose": "A server Chief's approval, decided here; the server applies the first decision only."
         },
         "shutdown": {
-          "line": 289
+          "line": 299
         }
       },
       "ipc": {
@@ -4454,6 +4454,7 @@
           "LEAD_STOP",
           "LEAD_MODE_GET",
           "LEAD_MODE_SET",
+          "LEAD_QUEUE_START",
           "LEAD_SERVER_TARGETS",
           "LEAD_PENDING",
           "LEAD_DECIDE",
@@ -4464,7 +4465,7 @@
           "channel"
         ]
       },
-      "sizeBytes": 13082,
+      "sizeBytes": 13684,
       "extraction": {
         "status": "parsed"
       },
@@ -11159,6 +11160,7 @@
         "init",
         "ensure",
         "openChief",
+        "startQueue",
         "_chiefs"
       ],
       "depends": [
@@ -11166,36 +11168,37 @@
         "shared/ipcChannels",
         "state",
         "notify",
+        "queueView",
         "workspaceSection"
       ],
       "functions": {
         "escapeHtml": {
-          "line": 48,
+          "line": 53,
           "params": [
             "s"
           ]
         },
         "chiefOf": {
-          "line": 52,
+          "line": 57,
           "params": [
             "projectPath"
           ]
         },
         "ensure": {
-          "line": 59,
+          "line": 64,
           "params": [
             "projectPath"
           ]
         },
         "ensureServers": {
-          "line": 80,
+          "line": 85,
           "params": [
             "projectPath"
           ],
           "purpose": "One Chief per connected server that holds this project's workspaces (T12)."
         },
         "decorate": {
-          "line": 120,
+          "line": 125,
           "params": [
             "terminalId",
             "projectPath",
@@ -11203,74 +11206,114 @@
           ]
         },
         "refreshPending": {
-          "line": 177,
+          "line": 199,
           "params": [
             "projectPath"
           ],
           "purpose": "Approvals asked while this window could not see them (reload, a server reconnect)."
         },
         "render": {
-          "line": 184,
+          "line": 206,
           "params": [
             "terminalId"
           ]
         },
+        "queueFor": {
+          "line": 229,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "This Chief's machine's items and parallel limit, from the Queue view's data."
+        },
+        "renderQueueBar": {
+          "line": 239,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "startQueueOn": {
+          "line": 253,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "stepParallel": {
+          "line": 263,
+          "params": [
+            "terminalId",
+            "delta"
+          ]
+        },
+        "startQueue": {
+          "line": 270,
+          "params": [
+            "projectPath = state.getProjectPath && state.getProjectPath("
+          ],
+          "purpose": "The palette's \"Start queue\": the Chief at the sidebar's selected location."
+        },
         "setMode": {
-          "line": 203,
+          "line": 277,
           "params": [
             "terminalId",
             "mode"
           ]
         },
         "start": {
-          "line": 212,
+          "line": 286,
           "params": [
             "terminalId"
           ]
         },
         "stopped": {
-          "line": 235,
+          "line": 309,
           "params": [
             "terminalId"
           ],
           "purpose": "The Chief's session left its terminal (back at the shell): show Start again."
         },
         "approvalTitle": {
-          "line": 245,
+          "line": 319,
           "params": [
             "rec"
           ],
           "purpose": "\"Send to 1st Terminal (blue)\": the target as the user sees it, not its id."
         },
+        "approvalDetail": {
+          "line": 328,
+          "params": [
+            "rec"
+          ],
+          "purpose": "One line on what a non-message action will do (a queue start: its worktree and terminal)."
+        },
         "renderCards": {
-          "line": 253,
+          "line": 337,
           "params": [
             "terminalId"
           ]
         },
         "onApprovals": {
-          "line": 288,
+          "line": 376,
           "params": [
             "payload"
           ],
           "purpose": "main → renderer: a Chief's pending approvals changed."
         },
         "readLocations": {
-          "line": 306
+          "line": 394
         },
         "rememberLocation": {
-          "line": 310,
+          "line": 398,
           "params": [
             "projectPath",
             "key"
           ]
         },
         "locationsFor": {
-          "line": 319,
+          "line": 407,
           "purpose": "Where the Chief can run for this project: this Mac, then each connected server that holds its workspaces."
         },
         "chiefAt": {
-          "line": 324,
+          "line": 412,
           "params": [
             "projectPath",
             "key"
@@ -11278,28 +11321,28 @@
           "purpose": "The Chief terminal at a location, if this window has it."
         },
         "selectedLocation": {
-          "line": 330,
+          "line": 418,
           "params": [
             "projectPath"
           ]
         },
         "chiefSummary": {
-          "line": 339,
+          "line": 427,
           "params": [
             "id"
           ]
         },
         "renderNav": {
-          "line": 344
+          "line": 432
         },
         "refreshTargets": {
-          "line": 394,
+          "line": 482,
           "params": [
             "projectPath"
           ]
         },
         "openChief": {
-          "line": 404,
+          "line": 492,
           "params": [
             "projectPath",
             "key"
@@ -11307,19 +11350,19 @@
           "purpose": "Show the Chief at `key` ('local' or a server key), opening it there first if needed."
         },
         "onDocClickForNav": {
-          "line": 419,
+          "line": 507,
           "params": [
             "e"
           ]
         },
         "init": {
-          "line": 430,
+          "line": 518,
           "params": [
             "multiTerminalUI"
           ]
         },
         "serverKeyOf": {
-          "line": 46,
+          "line": 51,
           "params": [
             "id"
           ]
@@ -11337,20 +11380,23 @@
           "LEAD_STOP"
         ]
       },
-      "sizeBytes": 21334,
+      "sizeBytes": 26217,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "80776c3e6c2c0c4a",
         "purposes": {
+          "approvalDetail": "d10ce49a565c12ba",
           "approvalTitle": "49608c30ed486d7d",
           "chiefAt": "19f8592afe9b1016",
           "ensureServers": "4e00771dbb6926c0",
           "locationsFor": "8f32bec0d5b5aa6f",
           "onApprovals": "5314df977e368d65",
           "openChief": "38c790a95f0f0ddc",
+          "queueFor": "7b16f9eca23ec5af",
           "refreshPending": "42dadb6ef3cbe71f",
+          "startQueue": "d7bd2eb9f33eb845",
           "stopped": "cb481a62921901ba"
         }
       }
@@ -14940,11 +14986,11 @@
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1257,
+          "line": 1265,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1282,
+          "line": 1290,
           "params": [
             "err"
           ],
@@ -14965,7 +15011,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 47748,
+      "sizeBytes": 47969,
       "extraction": {
         "status": "parsed"
       },
@@ -20076,7 +20122,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 5157,
+      "sizeBytes": 6619,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -27710,7 +27756,7 @@
           ]
         }
       },
-      "sizeBytes": 5546,
+      "sizeBytes": 5709,
       "extraction": {
         "status": "parsed"
       },
@@ -29083,7 +29129,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 22117,
+      "sizeBytes": 22291,
       "extraction": {
         "status": "parsed"
       },
@@ -32053,7 +32099,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 2627,
+      "sizeBytes": 3281,
       "extraction": {
         "status": "parsed"
       },
@@ -39175,6 +39221,11 @@
         "name": "lead-terminal-opened",
         "direction": "",
         "description": ""
+      },
+      "LEAD_QUEUE_START": {
+        "name": "lead-queue-start",
+        "direction": "",
+        "description": ""
       }
     },
     "queue": {
@@ -40798,6 +40849,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "92292976d41d0abab8d4bf753b1a098412fc5de7fc54c6497e679c545ae7181b"
+    "revision": "686cbf9894e1883187c7cf92cfdcd3837f791001ee05d6ec3661d64a148b1594"
   }
 }
