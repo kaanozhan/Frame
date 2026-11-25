@@ -14,3 +14,11 @@ _Captured: 2026-11-25 · 3 file change(s)_
 
 ---
 
+## T03 — Desktop queue manager and IPC
+
+Added src/main/queueManager.js (Mac queue, QUEUE_DATA push per change, missing derived from loadTasks/listSpecs) and the QUEUE_LOAD/DATA/ADD/REMOVE/REORDER/SET/PARALLEL channels, wired in src/main/index.js. The source facts (task status/source, spec phase) come with the add request and queueRules decides; refusals return REFUSAL_TEXT. Smoke-tested in Node with a stubbed electron; no unit test, as the plan puts tests on the pure rules and the store.
+
+_Captured: 2026-11-25 · 3 file change(s)_
+
+---
+

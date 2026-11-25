@@ -48,6 +48,7 @@ const analytics = require('./analytics');
 const specManager = require('./specManager');
 const orchestrationManager = require('./orchestrationManager');
 const leadManager = require('./leadManager');
+const queueManager = require('./queueManager');
 const structureLifecycle = require('./structureLifecycle');
 
 // The running app keeps each open Frame checkout's STRUCTURE.json current
@@ -274,6 +275,7 @@ function setupAllIPC() {
 
   // Chief (lead-agent) — the project's lead terminal and its tools
   leadManager.setupIPC(ipcMain);
+  queueManager.setupIPC(ipcMain);
 
   // Analytics — toggle from Settings
   ipcMain.handle(IPC.ANALYTICS_SET_ENABLED, (event, enabled) =>
@@ -394,6 +396,7 @@ function initModulesWithWindow(window) {
   specManager.init(window);
   orchestrationManager.init(window);
   leadManager.init(window);
+  queueManager.init(window);
   activityLog.attachWindow(window);
   serverConnection.init(window, app.getVersion());
 }

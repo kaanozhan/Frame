@@ -236,6 +236,15 @@ const IPC = {
   LEAD_SCREEN_REQUEST: 'lead-screen-request',        // main → renderer: { requestId, terminalId, lines } — plain screen text, please
   LEAD_SCREEN_REPLY: 'lead-screen-reply',            // renderer → main: { requestId, text } — the answer
 
+  // Work queue (work-queue spec): one queue per machine, merged for the window
+  QUEUE_LOAD: 'queue-load',                          // renderer → main (invoke): { projectPath } → the QUEUE_DATA payload
+  QUEUE_DATA: 'queue-data',                          // main → renderer: { projectPath, items[], parallel, parallels, serverNotes }
+  QUEUE_ADD: 'queue-add',                            // renderer → main (invoke): { projectPath, source } → { ok, item? , error? }
+  QUEUE_REMOVE: 'queue-remove',                      // renderer → main (invoke): { projectPath, itemId } → { ok, error? }
+  QUEUE_REORDER: 'queue-reorder',                    // renderer → main (invoke): { projectPath, ids[] } → { ok, error? }
+  QUEUE_SET: 'queue-set',                            // renderer → main (invoke): { projectPath, itemId, action: 'done'|'continue'|'reset'|'flowMode', mode? } → { ok, error? }
+  QUEUE_PARALLEL: 'queue-parallel',                  // renderer → main (invoke): { projectPath, parallel, serverKey? } → { ok, parallel }
+
   // Meta-file store (frameStore owns where .frame/ files live)
   LOAD_STRUCTURE_MAP: 'load-structure-map',          // renderer → main (invoke): parsed STRUCTURE.json, or { error }
 
