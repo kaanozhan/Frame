@@ -213,7 +213,7 @@ function inlineCap(cli) {
  * gaps, delivered through the same `{token}` interpolation the templates
  * already use for slug and title.
  *
- * `ask_mechanism` is the only substantive one. Claude Code has a structured
+ * `ask_mechanism` and `full_auto_offer` are the substantive ones. Claude Code has a structured
  * question tool; the templates' own fallback for a CLI without one is to
  * print a numbered list and wait, which is what Codex gets. Wording is kept
  * close so a diff between the two rendered prompts stays small and readable.
@@ -229,7 +229,14 @@ const DIALECT = {
     // shipped, and tokenising a sentence must not reflow the document.
     autonomous_handoff: 'Click the\n   implement button on this spec\'s page in Frame and pick Autonomous, or run\n'
       + '   `node .frame/bin/implement-launch.js {slug}` in a fresh terminal — either\n'
-      + '   one starts implementing with no further input.'
+      + '   one starts implementing with no further input.',
+    // spec.new's closing question (full-auto-spec-flow). Five lines for both
+    // CLIs, so the rendered spec.new documents stay line-for-line comparable.
+    full_auto_offer: 'Ask once, with the `AskUserQuestion` tool, how the rest of this spec runs:\n'
+      + '- **Step by step** — stop here; the user drives plan, tasks and implement from\n'
+      + '  Frame\'s spec page, one phase per click.\n'
+      + '- **Full auto** — plan, tasks and implement run to the end in one new session\n'
+      + '  launched with the autonomous permission flags, with no further questions.'
   },
   [CODEX]: {
     tool_id: CODEX,
@@ -242,7 +249,14 @@ const DIALECT = {
     // them line for line.
     autonomous_handoff: 'Autonomous is not\n   available for Codex yet: Frame\'s launcher still resolves Claude Code\n'
       + '   paths. Offer **guided** instead — the same task-by-task loop, paced by\n'
-      + '   Codex\'s own approval prompts.'
+      + '   Codex\'s own approval prompts.',
+    // Full auto needs the same flagged launch autonomous does, so Codex is
+    // not offered it: the closing question collapses to step by step.
+    full_auto_offer: 'Do not offer full auto: it needs Claude Code\'s autonomous permission\n'
+      + 'flags, which Frame\'s launcher cannot pass to Codex yet. The only option is:\n'
+      + '- **Step by step** — stop here; the user drives plan, tasks and implement from\n'
+      + '  Frame\'s spec page, one phase per click. Record it without asking.\n'
+      + '- (Full auto is not available for Codex.)'
   }
 };
 
@@ -251,7 +265,26 @@ function dialect(cli) {
   return { ...DIALECT[CLAUDE], ...(DIALECT[cli] || {}) };
 }
 
+/**
+ * What spec.new tells the user after they pick full auto (issue #224). Which
+ * one is true depends on how the session started, not on the CLI, so these
+ * are not dialect values: Frame fills `started` when its New spec dispatched
+ * spec.new — that lane is bound to the new spec, and Frame starts the run on
+ * the transition — and spec-command-hint hands over `unbound` for a
+ * `/spec.new` typed into any other session, which Frame never starts on its
+ * own (full-auto-spec-flow D8).
+ */
+const FULL_AUTO_HANDOFF = {
+  started: '*"Frame starts the full-auto run in a new session now. Without Frame open, '
+    + 'run `node .frame/bin/implement-launch.js <slug> --full-auto` in a fresh terminal."*',
+  unbound: '*"This spec was written outside Frame\'s New spec, so Frame does not start the '
+    + 'run on its own. In Frame, open the spec\'s page and click **Resume Full Auto…**. '
+    + 'Without Frame open, run `node .frame/bin/implement-launch.js <slug> --full-auto` '
+    + 'in a fresh terminal."*'
+};
+
 module.exports = {
+  FULL_AUTO_HANDOFF,
   CLAUDE,
   CODEX,
   ROLES,

@@ -327,9 +327,24 @@ function promptMode(input) {
 
   if (command === 'spec.new') {
     note(root, 'hint.injected', { reason: undefined });
+    // {tool_id} is named with its value: left out, the agent guessed `claude`,
+    // which status.json validation rejects (only claude-code, codex, gemini).
+    // {full_auto_offer} is a dialect phrase (full-auto-spec-flow): it decides
+    // whether full auto is offered at all, so it is handed over verbatim.
+    const offer = vocab ? vocab.dialect(tool).full_auto_offer : null;
+    // {full_auto_handoff} (#224): a session Frame's New spec did not start is
+    // not bound to the spec it writes, so Frame never starts its full-auto run
+    // by itself — the hand-off names Resume Full Auto… instead.
+    const handoff = vocab && vocab.FULL_AUTO_HANDOFF ? vocab.FULL_AUTO_HANDOFF.unbound : null;
     return emit(`\`spec.new\` was asked for. Its flow lives in \`${tplRel}\` — read that file and ` +
-      `follow it exactly, interpolating {project_path}, {slug}, {title}, {description} and ` +
-      `{spec_catalog}. Do not write spec.md from memory; the template is the flow.`);
+      `follow it exactly, interpolating {project_path}, {slug}, {title}, {description}, ` +
+      `{spec_catalog}, {tool_id} (= \`${tool}\`), {full_auto_offer}` +
+      (offer ? ` (= the text between the first pair of lines below)` : ` (= ask the user: step by step, or full auto)`) +
+      ` and {full_auto_handoff}` +
+      (handoff ? ` (= the text between the second pair)` : ` (= tell the user to open the spec's page in Frame and click Resume Full Auto…)`) +
+      `. Do not write spec.md from memory; the template is the flow.` +
+      (offer ? `\n---\n${offer}\n---` : '') +
+      (handoff ? `\n---\n${handoff}\n---` : ''));
   }
 
   const named = namedSlug(root, input.prompt);
