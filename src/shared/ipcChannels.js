@@ -234,7 +234,9 @@ const IPC = {
   LEAD_DECIDE: 'lead-decide',                        // renderer → main (invoke): { approvalId, decision, text?, serverKey? } → { ok }
   LEAD_SERVER_TARGETS: 'lead-server-targets',        // renderer → main (invoke): { projectPath } → [{ serverKey, host, serverProjectPath }] — servers that should have a Chief
   LEAD_SCREEN_REQUEST: 'lead-screen-request',        // main → renderer: { requestId, terminalId, lines } — plain screen text, please
-  LEAD_SCREEN_REPLY: 'lead-screen-reply',            // renderer → main: { requestId, text } — the answer
+  LEAD_SCREEN_REPLY: 'lead-screen-reply',
+  LEAD_OPEN_TERMINAL_REQUEST: 'lead-open-terminal-request', // main → renderer: { requestId, projectPath, cwd, name, assignment } — open a visible terminal (work-queue)
+  LEAD_OPEN_TERMINAL_REPLY: 'lead-open-terminal-reply',     // renderer → main: { requestId, terminalId?, error? }            // renderer → main: { requestId, text } — the answer
 
   // Work queue (work-queue spec): one queue per machine, merged for the window
   QUEUE_LOAD: 'queue-load',                          // renderer → main (invoke): { projectPath } → the QUEUE_DATA payload

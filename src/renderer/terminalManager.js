@@ -1042,6 +1042,20 @@ class TerminalManager {
     }
     TerminalManager._ipcBound = true;
 
+    // The Chief opens a terminal for a queue item (work-queue T10): a lane in
+    // the item's project, under main, named for the item, with the item as
+    // its assignment. It takes focus only if nothing else has it.
+    ipcRenderer.on(IPC.LEAD_OPEN_TERMINAL_REQUEST, async (event, { requestId, projectPath, cwd, name, assignment } = {}) => {
+      try {
+        const terminalId = await this.createTerminal({ projectPath, workspaceId: 'main', cwd, name: name || undefined });
+        if (!terminalId) throw new Error(`The terminal limit (${this.maxTerminals}) is reached in main.`);
+        if (assignment) this.setAssignment(terminalId, assignment);
+        ipcRenderer.send(IPC.LEAD_OPEN_TERMINAL_REPLY, { requestId, terminalId });
+      } catch (err) {
+        ipcRenderer.send(IPC.LEAD_OPEN_TERMINAL_REPLY, { requestId, error: err.message });
+      }
+    });
+
     // The Chief asks for a local terminal's screen (lead-agent T09).
     ipcRenderer.on(IPC.LEAD_SCREEN_REQUEST, (event, { requestId, terminalId, lines } = {}) => {
       ipcRenderer.send(IPC.LEAD_SCREEN_REPLY, { requestId, text: this.readScreenText(terminalId, lines) });

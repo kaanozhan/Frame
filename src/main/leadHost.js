@@ -22,8 +22,10 @@
  *   transcriptFor(id)           → Promise<string|null>                (a .jsonl path)
  *   write(id, data)
  *   orchestrationIds(projectPath) → Iterable<id>                       (conductor lanes, read-only)
- *   createTerminal?(opts)       → Promise<id>                          (unused in v1; the queue spec)
+ *   createTerminal?(opts)       → Promise<id>      { projectPath, cwd, name, assignment } — visible to the user (work-queue)
  *   onApprovalsChanged?(chief, pending[])                              (UI: show / clear cards)
+ *   queue?                      → { load(projectPath), change(projectPath, fn) }  this machine's work queue (work-queue)
+ *   setTaskStatus?(projectPath, taskId, status)                        (work-queue: a started task goes in_progress)
  * }
  */
 
@@ -52,6 +54,10 @@ const TRANSCRIPT_TAIL_BYTES = 256 * 1024;
 const DEFAULT_SEND_WAIT_S = 60;
 const MAX_WAIT_S = 300;
 const SOCKET_PATH_MAX = 100;
+const TERMINAL_CAP = 9;            // per workspace; the Chief is outside it
+const SHELL_READY_MAX_MS = 6000;   // a new terminal's shell, before the CLI is typed
+const AGENT_READY_MAX_MS = 120000; // the CLI, before the prompt is pasted
+const WAITING_START_MAX_MS = 30 * 60 * 1000; // a start question the user has not answered yet
 
 const TEMPLATE_DIR = path.join(__dirname, '../templates/lead');
 const PROTOCOL_FILE = path.join(__dirname, '../shared/leadProtocol.js');
@@ -188,7 +194,7 @@ function createLeadHost({ machine, machineLabel = null, adapter, homeDir = os.ho
     if (req.type === 'list') return proto.hostOk(req.id, toolDefinitions());
     const tool = registry.get(req.tool);
     if (!tool) return proto.hostError(req.id, 'unknown-tool', `No tool ${req.tool}`);
-    const result = await tool.run(chief, req.args || {});
+    const result = await tool.run(chief, req.args || {}, toolContext(chief));
     return proto.hostOk(req.id, result);
   }
 
@@ -357,6 +363,18 @@ function createLeadHost({ machine, machineLabel = null, adapter, homeDir = os.ho
     registry.set(name, { approval: true, ...def });
   }
 
+  /**
+   * What a registered tool gets as its third argument (work-queue D13):
+   * the generic approval card, and whether its own action needs one now.
+   */
+  function toolContext(chief) {
+    return {
+      mode: getMode(chief.projectPath),
+      needsApproval: (toolName) => rules.needsApproval(registry.get(toolName), getMode(chief.projectPath)),
+      requestApproval: (rec) => requestApproval(chief, rec)
+    };
+  }
+
   function toolDefinitions() {
     return [...registry.entries()].map(([name, t]) => ({ name, description: t.description, inputSchema: t.inputSchema }));
   }
@@ -479,6 +497,237 @@ function createLeadHost({ machine, machineLabel = null, adapter, homeDir = os.ho
     }
   });
 
+  // ─── work queue (work-queue spec, T10) ────────────────────
+  //
+  // The Chief chooses and judges; everything mechanical happens here (D10):
+  // the worktree, provisioning, the staged prompt (queueRunner), the terminal
+  // (adapter.createTerminal — visible to the user on every machine), the CLI
+  // and the prompt (startAgent). State lives in the queue file, never in the
+  // Chief's session, so a fresh Chief can pick up where the last one stopped.
+
+  const queueTerminals = new Map(); // terminalId → { projectPath, itemId }
+
+  function queueOf(projectPath) {
+    return adapter.queue.load(projectPath);
+  }
+
+  function queueChange(projectPath, fn) {
+    return adapter.queue.change(projectPath, fn);
+  }
+
+  /** Free terminal slots in main on this machine for the project (the Chief and home terminals do not count). */
+  function freeSlots(chief) {
+    const used = (adapter.listTerminals(chief.projectPath) || [])
+      .filter((t) => t && !t.lead && !t.home && (t.workspace || t.workspaceId || 'main') === 'main' && t.projectPath === chief.projectPath).length;
+    return Math.max(0, TERMINAL_CAP - used);
+  }
+
+  function itemView(it) {
+    const out = { id: it.id, kind: it.kind, ref: it.ref, title: it.title, state: it.state };
+    if (it.kind === 'spec') out.flowMode = it.flowMode;
+    if (it.worktree) out.worktree = it.worktree;
+    if (it.terminalId) out.terminal = it.terminalId;
+    if (it.note) out.note = it.note;
+    return out;
+  }
+
+  async function waitFor(pred, maxMs) {
+    const until = Date.now() + maxMs;
+    while (!stopped && Date.now() < until) {
+      if (pred()) return true;
+      await sleep(POLL_MS);
+    }
+    return pred();
+  }
+
+  /**
+   * Start an agent in a fresh terminal: type the CLI once the shell is at its
+   * prompt, wait for Claude's OSC 7501 ready report, then paste the prompt
+   * through the same gated, bracketed delivery terminal_send uses.
+   * `{ ok, status }` or `{ ok:false, reason }`.
+   */
+  async function startAgent(chief, terminalId, { command, prompt }) {
+    await waitFor(() => !!adapter.pasteMode(terminalId), SHELL_READY_MAX_MS);
+    adapter.write(terminalId, `${command}\r`);
+    const ready = await waitFor(() => {
+      const s = statusOf(terminalId);
+      return s.status === rules.STATUS.READY && !!s.agent || s.status === rules.STATUS.APPROVAL || s.status === rules.STATUS.ENDED;
+    }, AGENT_READY_MAX_MS);
+    const s = statusOf(terminalId);
+    if (!ready || s.status === rules.STATUS.ENDED) return { ok: false, reason: s.status === rules.STATUS.ENDED ? 'The terminal closed before the agent started.' : 'The agent did not become ready in time.' };
+    if (s.status === rules.STATUS.APPROVAL) {
+      // Claude asks before it starts (trust this folder, sign in). The user
+      // answers in that terminal; the prompt follows as soon as it is ready.
+      waitFor(() => { const x = statusOf(terminalId); return (x.status === rules.STATUS.READY && !!x.agent) || x.status === rules.STATUS.ENDED; }, WAITING_START_MAX_MS)
+        .then(() => { if (statusOf(terminalId).status === rules.STATUS.READY) enqueueDelivery(chief, terminalId, prompt); })
+        .catch(() => {});
+      return { ok: false, reason: `The agent asks the user first (${s.msg || s.kind || 'a question'}) — answer it in its terminal; the item's prompt follows on its own.`, waiting: true };
+    }
+    const item = enqueueDelivery(chief, terminalId, prompt);
+    const res = await Promise.race([item.done, sleep(AGENT_READY_MAX_MS).then(() => null)]);
+    if (!res) return { ok: false, reason: 'The prompt is still waiting to be delivered.', waiting: true };
+    if (res.outcome !== 'delivered') return { ok: false, reason: res.reason || `Prompt ${res.outcome}.` };
+    return { ok: true, status: statusOf(terminalId).status };
+  }
+
+  /** The CLI line for Claude Code with these launch flags (the same resolver Play uses). */
+  async function agentCommand(projectPath, launchFlags) {
+    const check = await require('./aiToolManager').checkToolAvailable({ toolId: 'claude', projectPath, launchFlags });
+    if (!check || !check.available) throw new Error('Claude Code is not installed or not on PATH on this machine.');
+    return check.resolvedCommand;
+  }
+
+  function registerQueueTools() {
+    const qrules = require('../shared/queueRules');
+
+    register('queue_list', {
+      approval: false,
+      description: 'List this machine\'s work queue for the project, in order: each item (a task or a spec) with its state (queued, running, needs-you, review, done, failed, interrupted), worktree and terminal, plus the parallel limit, free terminal slots and the ids to start next.',
+      inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+      async run(chief) {
+        const q = queueOf(chief.projectPath);
+        const slots = freeSlots(chief);
+        const next = qrules.nextRunnable(q.items, { parallel: q.parallel, freeSlots: slots }).map((it) => it.id);
+        return { machine: machineLabel || machine, parallel: q.parallel, running: qrules.activeCount(q.items), freeSlots: slots, next, items: q.items.map(itemView) };
+      }
+    });
+
+    register('queue_start', {
+      approval: true,
+      description: 'Start one queued (or interrupted) item: Frame creates its git worktree, opens a terminal there, starts Claude Code and gives it the item (a task prompt, or the spec\'s next phase / full-auto run). In user-guided mode the user approves first. Returns the terminal to follow with terminal_wait / terminal_read.',
+      inputSchema: {
+        type: 'object',
+        properties: { id: { type: 'string', description: 'Item id from queue_list' } },
+        required: ['id'],
+        additionalProperties: false
+      },
+      async run(chief, args, ctx) {
+        const q = queueOf(chief.projectPath);
+        const it = qrules.find(q, args.id);
+        if (!it) return { outcome: 'refused', reason: 'No such item in this machine\'s queue.' };
+        if (!['queued', 'interrupted'].includes(it.state)) return { outcome: 'refused', reason: `It is ${it.state}; only a queued or interrupted item can start.` };
+        if (qrules.activeCount(q.items) >= q.parallel) return { outcome: 'refused', reason: `The parallel limit (${q.parallel}) is reached; wait for a running item to finish.` };
+        if (freeSlots(chief) <= 0) return { outcome: 'refused', reason: 'No free terminal slot on this machine (the limit is 9).' };
+        if (pending(chief.chiefId).some((r) => r.action === 'queue_start' && r.target === it.id)) return { outcome: 'refused', reason: 'Its start is already waiting for the user\'s approval.' };
+
+        let where = it.worktree ? it.worktree.branch || it.worktree.path : null;
+        if (!where) {
+          try {
+            const taken = await require('./gitBranchesManager').queueBranches(chief.projectPath);
+            where = qrules.queueBranch(qrules.worktreeKey(it, taken));
+          } catch (_) { where = 'a new worktree'; }
+        }
+        if (ctx.needsApproval('queue_start')) {
+          const what = it.kind === 'spec' ? `spec ${it.ref} (${it.flowMode === 'step-by-step' ? 'next phase' : 'full auto'})` : `task "${it.title}"`;
+          const { decided } = ctx.requestApproval({
+            action: 'queue_start',
+            target: it.id,
+            summary: `Start ${what} in ${where} — opens a terminal`,
+            payload: { kind: it.kind, ref: it.ref, title: it.title, worktree: where, flowMode: it.flowMode || null }
+          });
+          const rec = await Promise.race([decided, sleep(MAX_WAIT_S * 1000).then(() => null)]);
+          if (!rec) {
+            // Still undecided: start it if approved later, but answer the Chief now.
+            decided.then((r) => { if (r.status === 'approved' || r.status === 'edited') launch(chief, it).catch(() => {}); });
+            return { outcome: 'pending_approval', reason: 'Waiting for the user to approve in Frame. It starts on approval; check queue_list later. Do not start it again.' };
+          }
+          if (rec.status === 'rejected') return { outcome: 'rejected', reason: 'The user rejected starting it.' };
+          if (rec.status === 'cancelled') return { outcome: 'cancelled', reason: rec.reason || 'The approval was cancelled.' };
+        }
+        return launch(chief, it);
+      }
+    });
+
+    /** Prepare, open, start — after any approval. Records the outcome in the queue. */
+    async function launch(chief, item) {
+      {
+        // Re-read: it may have started (or been removed) while waiting for approval.
+        const it = qrules.find(queueOf(chief.projectPath), item.id);
+        if (!it || !['queued', 'interrupted'].includes(it.state)) return { outcome: 'refused', reason: `It is ${it ? it.state : 'gone'} now.` };
+        let prepared;
+        try {
+          prepared = await require('./queueRunner').prepare(chief.projectPath, it);
+        } catch (e) {
+          queueChange(chief.projectPath, (cur) => qrules.setState(cur, it.id, 'failed', { note: e.message }, { now: new Date().toISOString() }));
+          return { outcome: 'failed', reason: e.message };
+        }
+        let terminalId = null;
+        try {
+          const command = await agentCommand(chief.projectPath, prepared.launchFlags);
+          if (!adapter.createTerminal) throw new Error('This machine cannot open terminals for the Chief.');
+          terminalId = await adapter.createTerminal({
+            projectPath: chief.projectPath,
+            cwd: prepared.cwd,
+            name: `${it.kind === 'spec' ? 'Spec' : 'Task'} · ${String(it.title || it.ref).slice(0, 40)}`,
+            assignment: { kind: it.kind, label: `${it.kind}: ${it.kind === 'spec' ? it.ref : it.title}`, ref: it.ref }
+          });
+          if (!terminalId) throw new Error('No terminal could be opened.');
+          queueTerminals.set(terminalId, { projectPath: chief.projectPath, itemId: it.id });
+          queueChange(chief.projectPath, (cur) => qrules.setState(cur, it.id, 'running', { worktree: prepared.worktree || it.worktree || null, terminalId, note: null }, { now: new Date().toISOString() }));
+          if (it.kind === 'task' && adapter.setTaskStatus) {
+            try { adapter.setTaskStatus(chief.projectPath, it.ref, 'in_progress'); } catch (_) { /* the agent closes it anyway */ }
+          }
+          const started = await startAgent(chief, terminalId, { command, prompt: prepared.prompt });
+          if (!started.ok && !started.waiting) {
+            queueChange(chief.projectPath, (cur) => qrules.setState(cur, it.id, 'failed', { note: started.reason, terminalId }, { now: new Date().toISOString() }));
+            return { outcome: 'failed', terminal: terminalId, reason: started.reason };
+          }
+          return {
+            outcome: started.ok ? 'started' : 'started-waiting',
+            terminal: terminalId,
+            worktree: prepared.worktree || null,
+            cwd: prepared.cwd,
+            ...(prepared.command ? { command: prepared.command } : {}),
+            ...(started.reason ? { note: started.reason } : {})
+          };
+        } catch (e) {
+          queueChange(chief.projectPath, (cur) => qrules.setState(cur, it.id, 'failed', { note: e.message, ...(terminalId ? { terminalId } : {}) }, { now: new Date().toISOString() }));
+          return { outcome: 'failed', ...(terminalId ? { terminal: terminalId } : {}), reason: e.message };
+        }
+      }
+    }
+
+    register('queue_update', {
+      approval: false,
+      description: 'Record how a running item ended, after you checked its terminal: review (finished — the user reviews its branch), needs-you (a step-by-step phase ended, or it waits on the user), or failed. Add a one-line note for the user.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Item id from queue_list' },
+          state: { type: 'string', enum: ['review', 'needs-you', 'failed'] },
+          note: { type: 'string', description: 'One line for the user (what was done, or why it stopped)' }
+        },
+        required: ['id', 'state'],
+        additionalProperties: false
+      },
+      async run(chief, args) {
+        const note = typeof args.note === 'string' ? args.note.slice(0, 300) : null;
+        const res = queueChange(chief.projectPath, (cur) => qrules.setState(cur, args.id, args.state, { note }, { now: new Date().toISOString() }));
+        if (res.refused) return { outcome: 'refused', reason: qrules.REFUSAL_TEXT[res.refused] || res.refused };
+        for (const [tid, rec] of queueTerminals) if (rec.itemId === args.id) queueTerminals.delete(tid);
+        return { outcome: 'updated', item: itemView(res.item) };
+      }
+    });
+  }
+
+  if (adapter.queue) registerQueueTools();
+
+  /** A queue item's terminal went away while it ran: interrupted (D19), unless the Chief already recorded the end. */
+  function queueTerminalGone(terminalId) {
+    const rec = queueTerminals.get(terminalId);
+    if (!rec) return;
+    queueTerminals.delete(terminalId);
+    try {
+      const qrules = require('../shared/queueRules');
+      const it = qrules.find(queueOf(rec.projectPath), rec.itemId);
+      if (it && it.state === 'running' && it.terminalId === terminalId) {
+        queueChange(rec.projectPath, (cur) => qrules.setState(cur, rec.itemId, 'interrupted', { note: 'Its terminal closed.' }, { now: new Date().toISOString() }));
+      }
+    } catch (e) {
+      log('warn', `queue interrupt failed: ${e.message}`);
+    }
+  }
+
   // ─── Chief lifecycle ───────────────────────────────────
 
   function publicChief(chief) {
@@ -545,6 +794,7 @@ function createLeadHost({ machine, machineLabel = null, adapter, homeDir = os.ho
   /** A terminal went away: drop its queue and cancel approvals aimed at it (or made by it, if it was a Chief). */
   function terminalGone(terminalId) {
     if (byChiefId.has(terminalId)) stopChief(terminalId, { reason: 'The Chief terminal closed.' });
+    if (adapter.queue) queueTerminalGone(terminalId);
     cancelWhere((r) => r.target === terminalId, 'The target terminal closed.');
     const d = rules.dropTarget(queues, terminalId);
     queues = d.queues;
@@ -575,6 +825,7 @@ function createLeadHost({ machine, machineLabel = null, adapter, homeDir = os.ho
     getMode,
     setMode,
     register, // the work-queue spec adds tools here (D19)
+    startAgent: (chiefId, terminalId, opts) => startAgent(byChiefId.get(chiefId), terminalId, opts),
     toolDefinitions,
     close,
     get socketPath() { return socketPath; },

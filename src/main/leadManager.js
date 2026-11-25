@@ -26,11 +26,32 @@ const logger = require('./logger');
 const { isServerTerminalId, splitDesktopTerminalId, desktopTerminalId } = require('../shared/serverRouting');
 
 const SCREEN_TIMEOUT_MS = 3000;
+const OPEN_TERMINAL_TIMEOUT_MS = 15000;
 const MACHINE = 'desktop';
 
 let mainWindow = null;
 let host = null;
 const screenWaiters = new Map(); // requestId → resolve
+const openWaiters = new Map();   // requestId → resolve
+
+/**
+ * A terminal the Chief opens for a queue item (work-queue D11): the renderer
+ * creates it, so it is a lane the user sees (main-created PTYs are invisible
+ * to the renderer), filed under its project, with the item as its assignment.
+ */
+function openTerminal({ projectPath, cwd, name = null, assignment = null } = {}) {
+  if (!mainWindow || mainWindow.isDestroyed()) return Promise.reject(new Error('No Frame window to open a terminal in.'));
+  const requestId = crypto.randomBytes(6).toString('hex');
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { openWaiters.delete(requestId); reject(new Error('Frame did not open the terminal in time.')); }, OPEN_TERMINAL_TIMEOUT_MS);
+    openWaiters.set(requestId, (reply) => {
+      clearTimeout(timer);
+      if (reply && reply.terminalId) resolve(reply.terminalId);
+      else reject(new Error((reply && reply.error) || 'The terminal could not be opened.'));
+    });
+    send(IPC.LEAD_OPEN_TERMINAL_REQUEST, { requestId, projectPath, cwd, name, assignment });
+  });
+}
 
 function send(channel, payload) {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
@@ -90,8 +111,13 @@ const adapter = {
   transcriptFor,
   write: (id, data) => ptyManager.writeToTerminal(id, data),
   orchestrationIds,
-  // Not used by any v1 tool; the work-queue spec's "open a terminal" lands here (D19).
-  createTerminal: async ({ cwd, projectPath, workspaceId = 'main' } = {}) => ptyManager.createTerminal(cwd, projectPath, null, null, workspaceId),
+  // The work queue (work-queue T10): terminals the user sees, this Mac's queue, task state.
+  createTerminal: (opts) => openTerminal(opts),
+  queue: {
+    load: (projectPath) => require('./queueManager').macQueue(projectPath),
+    change: (projectPath, fn) => require('./queueManager').macChange(projectPath, fn)
+  },
+  setTaskStatus: (projectPath, taskId, status) => require('./tasksManager').updateTask(projectPath, taskId, { status }),
   onApprovalsChanged: (chief, pending) => send(IPC.LEAD_APPROVALS, { ...chief, pending })
 };
 
@@ -227,6 +253,13 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.LEAD_DECIDE, (event, { approvalId, decision, text = null, serverKey = null } = {}) => {
     if (serverKey) return module.exports.decideOnServer(serverKey, { approvalId, decision, text });
     return host ? host.decide(approvalId, { decision, text }) : { ok: false };
+  });
+
+  ipcMain.on(IPC.LEAD_OPEN_TERMINAL_REPLY, (event, reply = {}) => {
+    const fn = openWaiters.get(reply.requestId);
+    if (!fn) return;
+    openWaiters.delete(reply.requestId);
+    fn(reply);
   });
 
   ipcMain.on(IPC.LEAD_SCREEN_REPLY, (event, { requestId, text } = {}) => {

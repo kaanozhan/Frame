@@ -374,6 +374,13 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.QUEUE_LOAD, (event, { projectPath } = {}) => {
     if (projectPath) {
       currentProjectPath = projectPath;
+      // After a restart the running items' terminals are gone: interrupted (D19).
+      try {
+        const live = new Set((require('./ptyManager').listTerminals(projectPath) || []).map((t) => t.id));
+        const before = macQueue(projectPath);
+        const after = store.reconcile(projectPath, live);
+        if (after.items.some((it, i) => it.state !== (before.items[i] && before.items[i].state))) followWorktrees(projectPath, after);
+      } catch (e) { logger.warn('queue', `reconcile failed: ${e.message}`); }
       refreshServerQueues(projectPath).catch(() => {});
     }
     return queuePayload(projectPath);

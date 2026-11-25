@@ -67,6 +67,12 @@ test('setState follows the transition table and stamps times', () => {
   assert.strictEqual(q.setState(r.queue, 'q1', 'running').refused, 'bad-state');
 });
 
+test('a queued item that cannot start goes straight to failed', () => {
+  const queue = withItems(task('a'));
+  const r = q.setState(queue, 'q1', 'failed', { note: 'no worktree' }, { now: 'T' });
+  assert.deepStrictEqual([r.item.state, r.item.note, r.item.finishedAt], ['failed', 'no worktree', 'T']);
+});
+
 test('needs-you continues back to queued', () => {
   let queue = withItems(spec('s'));
   queue = q.setState(queue, 'q1', 'running', { terminalId: 't' }).queue;

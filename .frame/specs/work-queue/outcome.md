@@ -70,3 +70,11 @@ _Captured: 2026-11-25 · 9 file change(s)_
 
 ---
 
+## T10 — Chief queue tools and the agent starter
+
+Added ctx for registered tools, startAgent and the queue_list/queue_start/queue_update tools to src/main/leadHost.js; the desktop terminal round trip in leadManager.js and terminalManager.js (LEAD_OPEN_TERMINAL_REQUEST/REPLY); the queue and task-status adapter; and the restart reconcile in queueManager's QUEUE_LOAD. Deviations: queued → failed is now a legal transition (queueRules.js + test), and a start that hits a Claude question (trust this folder) returns started-waiting and delivers the prompt once the user answers. Followup: every new worktree asks Claude's trust question, so an unattended queue needs a decision on pre-trusting queue worktrees.
+
+_Captured: 2026-11-25 · 7 file change(s)_
+
+---
+

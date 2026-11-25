@@ -4274,25 +4274,29 @@
         "shared/leadRules",
         "shared/leadProtocol",
         "shared/programStatus",
-        "shared/leadTranscript"
+        "shared/leadTranscript",
+        "aiToolManager",
+        "shared/queueRules",
+        "gitBranchesManager",
+        "queueRunner"
       ],
       "functions": {
         "shellQuote": {
-          "line": 59,
+          "line": 65,
           "params": [
             "s",
             "platform = process.platform"
           ]
         },
         "readTail": {
-          "line": 64,
+          "line": 70,
           "params": [
             "file",
             "bytes = TRANSCRIPT_TAIL_BYTES"
           ]
         },
         "createLeadHost": {
-          "line": 91,
+          "line": 97,
           "params": [
             "{ machine",
             "machineLabel = null",
@@ -4301,7 +4305,7 @@
           ]
         }
       },
-      "sizeBytes": 26612,
+      "sizeBytes": 41319,
       "extraction": {
         "status": "parsed"
       },
@@ -4334,19 +4338,31 @@
         "logger",
         "shared/serverRouting",
         "orchestrationManager",
+        "queueManager",
+        "tasksManager",
         "serverConnection",
         "workspaceManager"
       ],
       "functions": {
+        "openTerminal": {
+          "line": 42,
+          "params": [
+            "{ projectPath",
+            "cwd",
+            "name = null",
+            "assignment = null } = {}"
+          ],
+          "purpose": "A terminal the Chief opens for a queue item (work-queue D11): the renderer"
+        },
         "send": {
-          "line": 35,
+          "line": 56,
           "params": [
             "channel",
             "payload"
           ]
         },
         "readScreen": {
-          "line": 40,
+          "line": 61,
           "params": [
             "terminalId",
             "lines"
@@ -4354,34 +4370,34 @@
           "purpose": "Plain screen text from the renderer's xterm (D5); null when it cannot answer."
         },
         "claudeConfigDir": {
-          "line": 50
+          "line": 71
         },
         "transcriptFor": {
-          "line": 55,
+          "line": 76,
           "params": [
             "terminalId"
           ],
           "purpose": "A terminal's transcript: the SessionStart report, else ~/.claude/sessions/<pid>.json (D16)."
         },
         "orchestrationIds": {
-          "line": 74,
+          "line": 95,
           "params": [
             "projectPath"
           ],
           "purpose": "Conductor and worker lanes of a running orchestration session (read-only to the Chief)."
         },
         "server": {
-          "line": 100
+          "line": 126
         },
         "serverRoute": {
-          "line": 105,
+          "line": 131,
           "params": [
             "terminalId"
           ],
           "purpose": "`{ link, serverTerminalId, info }` for a server Chief's desktop id, or null."
         },
         "toDesktopRecord": {
-          "line": 114,
+          "line": 140,
           "params": [
             "rec",
             "key"
@@ -4389,37 +4405,37 @@
           "purpose": "Server-local ids in an approval record → desktop ids, so the renderer can name the target."
         },
         "forwardServerApprovals": {
-          "line": 118,
+          "line": 144,
           "params": [
             "payload",
             "key"
           ]
         },
         "serverChiefTargets": {
-          "line": 131,
+          "line": 157,
           "params": [
             "projectPath"
           ],
           "purpose": "Connected servers that hold workspaces of this project, each with its clone path: where a server Chief belongs."
         },
         "init": {
-          "line": 149,
+          "line": 175,
           "params": [
             "window"
           ]
         },
         "getHost": {
-          "line": 160,
+          "line": 186,
           "purpose": "The desktop host (T12's server bridge and tests)."
         },
         "setupIPC": {
-          "line": 164,
+          "line": 190,
           "params": [
             "ipcMain"
           ]
         },
         "decideOnServer": {
-          "line": 241,
+          "line": 274,
           "params": [
             "serverKey",
             "{ approvalId",
@@ -4429,7 +4445,7 @@
           "purpose": "A server Chief's approval, decided here; the server applies the first decision only."
         },
         "shutdown": {
-          "line": 251
+          "line": 284
         }
       },
       "ipc": {
@@ -4441,13 +4457,14 @@
           "LEAD_SERVER_TARGETS",
           "LEAD_PENDING",
           "LEAD_DECIDE",
+          "LEAD_OPEN_TERMINAL_REPLY",
           "LEAD_SCREEN_REPLY"
         ],
         "emits": [
           "channel"
         ]
       },
-      "sizeBytes": 11262,
+      "sizeBytes": 12817,
       "extraction": {
         "status": "parsed"
       },
@@ -4456,6 +4473,7 @@
         "purposes": {
           "decideOnServer": "95fb498338b936a5",
           "getHost": "342291fb849308f9",
+          "openTerminal": "cc4b0e760102b4b6",
           "orchestrationIds": "09cf2bc3a3a897fc",
           "readScreen": "5efcaee08f663c39",
           "serverChiefTargets": "98889df6e9e29a4a",
@@ -6172,7 +6190,8 @@
         "tasksManager",
         "specManager",
         "serverConnection",
-        "workspaceManager"
+        "workspaceManager",
+        "ptyManager"
       ],
       "functions": {
         "send": {
@@ -6399,7 +6418,7 @@
           "channel"
         ]
       },
-      "sizeBytes": 17381,
+      "sizeBytes": 17900,
       "extraction": {
         "status": "parsed"
       },
@@ -21670,6 +21689,7 @@
           "TERMINAL_CREATED",
           "TERMINAL_OUTPUT_ID",
           "AVAILABLE_SHELLS_DATA",
+          "LEAD_OPEN_TERMINAL_REQUEST",
           "LEAD_SCREEN_REQUEST",
           "TERMINAL_OUTPUT_ID",
           "TERMINAL_DESTROYED",
@@ -21683,10 +21703,12 @@
           "SESSION_RESTORE_META",
           "TERMINAL_DESTROY",
           "TERMINAL_RESIZE_ID",
+          "LEAD_OPEN_TERMINAL_REPLY",
+          "LEAD_OPEN_TERMINAL_REPLY",
           "LEAD_SCREEN_REPLY"
         ]
       },
-      "sizeBytes": 46836,
+      "sizeBytes": 47706,
       "extraction": {
         "status": "parsed"
       },
@@ -29058,7 +29080,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 21665,
+      "sizeBytes": 21955,
       "extraction": {
         "status": "parsed"
       },
@@ -30028,7 +30050,7 @@
           "purpose": "The spec command an item starts with: `spec.auto` in full auto, the next"
         }
       },
-      "sizeBytes": 14724,
+      "sizeBytes": 14780,
       "extraction": {
         "status": "parsed"
       },
@@ -35217,7 +35239,7 @@
           ]
         }
       },
-      "sizeBytes": 9002,
+      "sizeBytes": 9309,
       "extraction": {
         "status": "parsed"
       }
@@ -39135,6 +39157,16 @@
         "name": "lead-server-targets",
         "direction": "",
         "description": ""
+      },
+      "LEAD_OPEN_TERMINAL_REQUEST": {
+        "name": "lead-open-terminal-request",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_OPEN_TERMINAL_REPLY": {
+        "name": "lead-open-terminal-reply",
+        "direction": "",
+        "description": ""
       }
     },
     "queue": {
@@ -40758,6 +40790,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "c18e5ab0c22040d334197338c2c20984bb18f15178a5f6f2cbcfb3627f484dce"
+    "revision": "5f0168c3f19200a02cbec69e5679380b4971a894fd0ea5d0283112086e203e23"
   }
 }

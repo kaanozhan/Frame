@@ -33,7 +33,7 @@ const DEFAULT_FLOW_MODE = FLOW_MODES.FULL_AUTO; // plan D6
 
 /** Legal moves between stored states. */
 const TRANSITIONS = Object.freeze({
-  queued: ['running', 'done'],
+  queued: ['running', 'done', 'failed'], // failed: it could not be prepared or opened
   running: ['review', 'failed', 'needs-you', 'interrupted', 'queued'],
   'needs-you': ['queued', 'running', 'review', 'done', 'failed'],
   review: ['done', 'queued'],
