@@ -6,3 +6,11 @@ _Captured: 2026-11-25 · 2 file change(s)_
 
 ---
 
+## T02 — Queue store and machine-local queue.json
+
+Added src/main/queueStore.js: load/save/update/reconcile over .frame/queue.json, with atomic writes and .bak/corrupt recovery through fsSafe. A refused rule writes nothing. Added 'queue.json' to FRAME_FILE_CLASSES.runtime (src/shared/frameConstants.js), so the managed .frame/.gitignore block lists it the next time Frame regenerates it. test/queueStore.test.js has 6 tests; 'interrupted on load' is reconcile(checkout, liveIds), which the owners call with their live terminal ids.
+
+_Captured: 2026-11-25 · 3 file change(s)_
+
+---
+

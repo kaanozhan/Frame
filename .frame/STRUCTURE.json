@@ -6107,6 +6107,75 @@
         }
       }
     },
+    "main/queueStore": {
+      "file": "src/main/queueStore.js",
+      "description": "queueStore — one checkout's `.frame/queue.json` (work-queue spec, T02).",
+      "exports": [
+        "FILE",
+        "queuePath",
+        "load",
+        "save",
+        "update",
+        "reconcile"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/queueRules",
+        "fsSafe",
+        "frameStore"
+      ],
+      "functions": {
+        "queuePath": {
+          "line": 22,
+          "params": [
+            "checkout"
+          ]
+        },
+        "load": {
+          "line": 27,
+          "params": [
+            "checkout"
+          ],
+          "purpose": "The checkout's queue, cleaned; an absent or unreadable file is an empty queue."
+        },
+        "save": {
+          "line": 33,
+          "params": [
+            "checkout",
+            "queue"
+          ]
+        },
+        "update": {
+          "line": 46,
+          "params": [
+            "checkout",
+            "fn"
+          ],
+          "purpose": "Applies one rule to the stored queue and saves when it changed something."
+        },
+        "reconcile": {
+          "line": 59,
+          "params": [
+            "checkout",
+            "liveIds"
+          ],
+          "purpose": "Running items whose terminal is not among `liveIds` become interrupted"
+        }
+      },
+      "sizeBytes": 2288,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "6adcc69260daf275",
+        "purposes": {
+          "load": "d1d0d1042785e46d",
+          "reconcile": "eaff94c1722ffaa7",
+          "update": "9087e560bfe6f42d"
+        }
+      }
+    },
     "main/sendFiles": {
       "file": "src/main/sendFiles.js",
       "description": "Send git-ignored files to a server workspace (server-copy-files).",
@@ -27907,7 +27976,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 5573,
+      "sizeBytes": 5742,
       "extraction": {
         "status": "parsed"
       },
@@ -34379,6 +34448,30 @@
         "status": "parsed"
       }
     },
+    "test/queueStore.test": {
+      "file": "test/queueStore.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert",
+        "fs",
+        "os",
+        "path",
+        "src/main/queueStore",
+        "src/shared/queueRules",
+        "src/shared/frameConstants"
+      ],
+      "functions": {
+        "checkout": {
+          "line": 10
+        }
+      },
+      "sizeBytes": 2963,
+      "extraction": {
+        "status": "parsed"
+      }
+    },
     "test/rendererGuards.test": {
       "file": "test/rendererGuards.test.js",
       "description": "Renderer guards (workspace-hardening R1, R2, R7): pure helpers the dialogs use.",
@@ -39083,6 +39176,18 @@
         "description": "serverProtocol — the messages between Frame desktop and Frame Server"
       }
     ],
+    "queue": [
+      {
+        "module": "main/queueStore",
+        "file": "src/main/queueStore.js",
+        "description": "queueStore — one checkout's `.frame/queue.json` (work-queue spec, T02)."
+      },
+      {
+        "module": "shared/queueRules",
+        "file": "src/shared/queueRules.js",
+        "description": "queueRules — the rules behind the work queue (work-queue spec, T01)."
+      }
+    ],
     "rail": [
       {
         "module": "renderer/otherTerminalsRail",
@@ -39449,6 +39554,11 @@
         "description": "frameStore — the one module that knows where a project's meta files live."
       },
       {
+        "module": "main/queueStore",
+        "file": "src/main/queueStore.js",
+        "description": "queueStore — one checkout's `.frame/queue.json` (work-queue spec, T02)."
+      },
+      {
         "module": "main/sessionRestoreStore",
         "file": "src/main/sessionRestoreStore.js",
         "description": "Which AI session runs in which terminal, and what each project restores."
@@ -39689,7 +39799,7 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 442,
+        "parsed": 444,
         "unsupported": 93,
         "partial": 0
       }
@@ -39736,9 +39846,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 630,
+      "visitedEntries": 632,
       "traversedDirectories": 87,
-      "eligibleFiles": 535,
+      "eligibleFiles": 537,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -39755,7 +39865,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 535,
+      "indexedFiles": 537,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -39763,6 +39873,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "50a3b71f807d15331a1c75ded6771097f6358e8d72fcd4a4d3609014f5160363"
+    "revision": "2b71c0fa2ce9956444a8c9ec0e8a7e2bca672e28724246ba3d842f5077224838"
   }
 }
