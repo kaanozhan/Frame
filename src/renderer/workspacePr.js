@@ -69,13 +69,14 @@ function rowState(id) {
 /**
  * GitHub access for `ws`: the desktop's `gh` for local workspaces, its own
  * server's for a server workspace (server-workspace-panels;
- * multi-server-connections: `serverAccess` is keyed by server).
+ * multi-server-connections: `serverAccess` is keyed by server). Null for a
+ * server workspace whose server has not answered yet — not "gh missing" (#235).
  */
 function access(ws) {
   const none = { gh: false, authed: false, repoName: null };
   if (ws && ws.location === 'server') {
     const byServer = (current && current.serverAccess) || null;
-    return (byServer && ws.serverKey && byServer[ws.serverKey]) || none;
+    return (byServer && ws.serverKey && byServer[ws.serverKey]) || null;
   }
   return (current && current.access) || none;
 }
@@ -85,6 +86,7 @@ function prBlockedReason(ws) {
   const a = access(ws);
   const on = ws && ws.location === 'server' ? ` on ${ws.host || 'the server'}` : '';
   if (ws && ws.location === 'server' && ws.offline) return `${ws.host || 'The server'} is offline`;
+  if (!a) return `Waiting for ${ws.host || 'the server'} to report its GitHub status`;
   if (!a.gh) return `GitHub CLI (gh) is not installed${on}`;
   if (!a.authed) return `GitHub CLI is not signed in${on} — run \`gh auth login\`${on ? ' there' : ''}`;
   if (!a.repoName) return 'This project has no GitHub remote';
