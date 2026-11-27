@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-25",
+  "lastUpdated": "2026-11-27",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -6178,6 +6178,7 @@
         "reorderItems",
         "setItem",
         "setParallel",
+        "setConfirm",
         "refreshServerQueues",
         "serverListsOf",
         "_resetForTests"
@@ -6251,41 +6252,41 @@
           "purpose": "What every QUEUE_DATA push carries: the Mac's queue, then each server's."
         },
         "serverConn": {
-          "line": 116
+          "line": 117
         },
         "linkOf": {
-          "line": 120,
+          "line": 121,
           "params": [
             "serverKey"
           ]
         },
         "serverProjectsOf": {
-          "line": 130,
+          "line": 131,
           "params": [
             "projectPath"
           ],
           "purpose": "The server projects holding `projectPath`, one per server and server project."
         },
         "serverListsOf": {
-          "line": 142,
+          "line": 143,
           "params": [
             "projectPath"
           ]
         },
         "serverNotesOf": {
-          "line": 151,
+          "line": 152,
           "params": [
             "projectPath"
           ]
         },
         "markOffline": {
-          "line": 161,
+          "line": 162,
           "params": [
             "serverKey = null"
           ]
         },
         "refreshServerQueues": {
-          "line": 171,
+          "line": 172,
           "params": [
             "projectPath",
             "{ onlyKey = null } = {}"
@@ -6293,10 +6294,10 @@
           "purpose": "Re-read the server queues of `projectPath` (only `onlyKey`'s when given), watch them, push. Never throws."
         },
         "wireServers": {
-          "line": 207
+          "line": 208
         },
         "itemHome": {
-          "line": 246,
+          "line": 247,
           "params": [
             "projectPath",
             "itemId"
@@ -6304,7 +6305,7 @@
           "purpose": "The home of an item id in the merged list: `{ location:'mac' }`, a server home, or null."
         },
         "onServer": {
-          "line": 251,
+          "line": 252,
           "params": [
             "projectPath",
             "home",
@@ -6314,39 +6315,39 @@
           "purpose": "Calls `method` on a server home and re-reads that server's queue; `{ ok, res }` or `{ ok:false, error }`."
         },
         "sourceHome": {
-          "line": 264,
+          "line": 265,
           "params": [
             "source"
           ],
           "purpose": "The server home a source names (its task or spec lives on that server), or null for the Mac."
         },
         "cleanSource": {
-          "line": 271,
+          "line": 272,
           "params": [
             "source"
           ]
         },
         "push": {
-          "line": 276,
+          "line": 277,
           "params": [
             "projectPath"
           ]
         },
         "errorOf": {
-          "line": 285,
+          "line": 286,
           "params": [
             "res"
           ]
         },
         "reply": {
-          "line": 289,
+          "line": 290,
           "params": [
             "res",
             "extra = {}"
           ]
         },
         "addSource": {
-          "line": 300,
+          "line": 301,
           "params": [
             "projectPath",
             "source"
@@ -6354,14 +6355,14 @@
           "purpose": "`source` = { kind, ref, title, status?, source?, phase?, malformed?, home? }."
         },
         "removeItem": {
-          "line": 310,
+          "line": 311,
           "params": [
             "projectPath",
             "itemId"
           ]
         },
         "reorderItems": {
-          "line": 317,
+          "line": 318,
           "params": [
             "projectPath",
             "ids"
@@ -6369,7 +6370,7 @@
           "purpose": "Each home gets its own part of the order; a move never crosses homes."
         },
         "setItem": {
-          "line": 340,
+          "line": 341,
           "params": [
             "projectPath",
             "itemId",
@@ -6379,7 +6380,7 @@
           "purpose": "Done (review → done), Continue (needs-you → queued), Reset (→ queued), flow mode."
         },
         "setParallel": {
-          "line": 351,
+          "line": 352,
           "params": [
             "projectPath",
             "n",
@@ -6387,20 +6388,28 @@
           ],
           "purpose": "One machine's parallel limit: the Mac's, or `serverKey`'s for its server project."
         },
+        "setConfirm": {
+          "line": 367,
+          "params": [
+            "projectPath",
+            "confirm"
+          ],
+          "purpose": "\"Before starting\" for the whole project: this Mac's queue and every"
+        },
         "okOnly": {
-          "line": 362,
+          "line": 379,
           "params": [
             "r"
           ]
         },
         "init": {
-          "line": 368,
+          "line": 385,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 373,
+          "line": 390,
           "params": [
             "ipcMain"
           ]
@@ -6413,13 +6422,14 @@
           "QUEUE_REMOVE",
           "QUEUE_REORDER",
           "QUEUE_SET",
+          "QUEUE_CONFIRM",
           "QUEUE_PARALLEL"
         ],
         "emits": [
           "channel"
         ]
       },
-      "sizeBytes": 17900,
+      "sizeBytes": 18864,
       "extraction": {
         "status": "parsed"
       },
@@ -6436,6 +6446,7 @@
           "refreshServerQueues": "cb8ff05fbbfb1854",
           "reorderItems": "020959477131b491",
           "serverProjectsOf": "509cbc43be447245",
+          "setConfirm": "42563248cc76ec4c",
           "setItem": "07c71b97d0415c53",
           "setParallel": "4f62fe6ff3b4a242",
           "sourceHome": "bd2ddf6e161f1c09"
@@ -6460,7 +6471,8 @@
         "gitBranchesManager",
         "shared/frameConstants",
         "tasksManager",
-        "workspaceTooling"
+        "workspaceTooling",
+        "queueStore"
       ],
       "functions": {
         "specDirIn": {
@@ -6525,11 +6537,12 @@
           "line": 111,
           "params": [
             "checkout",
-            "item"
+            "item",
+            "{ confirm = 'ask' } = {}"
           ]
         },
         "prepare": {
-          "line": 125,
+          "line": 126,
           "params": [
             "checkout",
             "item"
@@ -6537,7 +6550,7 @@
           "purpose": "Everything a queue item needs before its agent starts. Throws with a"
         }
       },
-      "sizeBytes": 5837,
+      "sizeBytes": 6034,
       "extraction": {
         "status": "parsed"
       },
@@ -16909,6 +16922,7 @@
         "removeItem",
         "setItem",
         "setParallel",
+        "setConfirm",
         "setDragSource",
         "acceptDrops"
       ],
@@ -16939,44 +16953,44 @@
           ]
         },
         "load": {
-          "line": 82
+          "line": 83
         },
         "emit": {
-          "line": 93
+          "line": 94
         },
         "onChange": {
-          "line": 100,
+          "line": 101,
           "params": [
             "fn"
           ],
           "purpose": "Subscribe to queue changes (the sidebar row's count, the Chief lane)."
         },
         "count": {
-          "line": 106,
+          "line": 107,
           "purpose": "Items not done: the sidebar count."
         },
         "items": {
-          "line": 110
+          "line": 111
         },
         "current": {
-          "line": 114
+          "line": 115
         },
         "sourceForTask": {
-          "line": 119,
+          "line": 120,
           "params": [
             "task"
           ],
           "purpose": "A task as a queue source: its id, the facts the rules check, and its home."
         },
         "sourceForSpec": {
-          "line": 131,
+          "line": 132,
           "params": [
             "spec"
           ],
           "purpose": "A spec as a queue source; a spec in a server workspace is queued on that server."
         },
         "isQueued": {
-          "line": 145,
+          "line": 146,
           "params": [
             "kind",
             "ref"
@@ -16984,14 +16998,14 @@
           "purpose": "Whether a task id / spec slug is queued (not done) — the spec card's icon."
         },
         "addSource": {
-          "line": 155,
+          "line": 156,
           "params": [
             "source"
           ],
           "purpose": "Adds a source: `{ kind, ref, title, status?, source?, phase?, malformed?, home? }`."
         },
         "call": {
-          "line": 170,
+          "line": 171,
           "params": [
             "channel",
             "args",
@@ -16999,29 +17013,29 @@
           ]
         },
         "ui": {
-          "line": 189
+          "line": 191
         },
         "openSource": {
-          "line": 193,
+          "line": 195,
           "params": [
             "item"
           ]
         },
         "openTerminal": {
-          "line": 205,
+          "line": 207,
           "params": [
             "item"
           ]
         },
         "carriesSource": {
-          "line": 213,
+          "line": 215,
           "params": [
             "e"
           ],
           "purpose": "True when a drag carries a queue source (task tile / spec card)."
         },
         "setDragSource": {
-          "line": 219,
+          "line": 221,
           "params": [
             "e",
             "source"
@@ -17029,78 +17043,81 @@
           "purpose": "Put a queue source on a drag (T06/T07 call this from their dragstart)."
         },
         "acceptDrops": {
-          "line": 228,
+          "line": 230,
           "params": [
             "el"
           ],
           "purpose": "Makes `el` a drop target that queues a dragged task or spec."
         },
         "mountInline": {
-          "line": 261,
+          "line": 263,
           "params": [
             "container"
           ]
         },
         "notifyDetached": {
-          "line": 280
+          "line": 282
         },
         "render": {
-          "line": 290
+          "line": 292
+        },
+        "renderConfirm": {
+          "line": 322
         },
         "renderEmpty": {
-          "line": 313
+          "line": 328
         },
         "actionsFor": {
-          "line": 322,
+          "line": 337,
           "params": [
             "it"
           ]
         },
         "renderRow": {
-          "line": 334,
+          "line": 349,
           "params": [
             "it",
             "i"
           ]
         },
         "renderMode": {
-          "line": 363,
+          "line": 378,
           "params": [
             "it"
           ]
         },
         "itemOf": {
-          "line": 370,
+          "line": 385,
           "params": [
             "el"
           ]
         },
         "onClick": {
-          "line": 375,
+          "line": 390,
           "params": [
             "e"
           ]
         },
         "onDragStart": {
-          "line": 398,
+          "line": 422,
           "params": [
             "e"
           ]
         },
         "onDragOver": {
-          "line": 407,
+          "line": 431,
           "params": [
             "e"
           ]
         },
         "onDrop": {
-          "line": 418,
+          "line": 442,
           "params": [
             "e"
           ]
         },
         "clearDropMarks": {
-          "line": 440,
+          "line": 464,
           "params": [
             "endDrag = true"
           ]
@@ -17112,7 +17129,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 18103,
+      "sizeBytes": 19483,
       "extraction": {
         "status": "parsed"
       },
@@ -20326,7 +20343,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 5476,
+      "sizeBytes": 5666,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -20887,11 +20904,12 @@
           "params": [
             "task",
             "missing",
-            "fileRef = 'tasks.json'"
+            "fileRef = 'tasks.json'",
+            "{ decide = false } = {}"
           ]
         },
         "buildTaskPrompt": {
-          "line": 63,
+          "line": 71,
           "params": [
             "task",
             "opts = {}"
@@ -20899,7 +20917,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. A task missing"
         }
       },
-      "sizeBytes": 4944,
+      "sizeBytes": 5812,
       "extraction": {
         "status": "parsed"
       },
@@ -27871,14 +27889,14 @@
       ],
       "functions": {
         "setup": {
-          "line": 34,
+          "line": 35,
           "params": [
             "{ registerMethods",
             "broadcast }"
           ]
         }
       },
-      "sizeBytes": 7030,
+      "sizeBytes": 7318,
       "extraction": {
         "status": "parsed"
       },
@@ -29129,7 +29147,7 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 22291,
+      "sizeBytes": 22471,
       "extraction": {
         "status": "parsed"
       },
@@ -29844,6 +29862,10 @@
         "STATES",
         "FLOW_MODES",
         "DEFAULT_FLOW_MODE",
+        "CONFIRM",
+        "DEFAULT_CONFIRM",
+        "normalizeConfirm",
+        "setConfirm",
         "TRANSITIONS",
         "REFUSAL_TEXT",
         "normalizeQueue",
@@ -29874,43 +29896,49 @@
       ],
       "depends": [],
       "functions": {
+        "normalizeConfirm": {
+          "line": 40,
+          "params": [
+            "c"
+          ]
+        },
         "list": {
-          "line": 50,
+          "line": 61,
           "params": [
             "x"
           ]
         },
         "clampParallel": {
-          "line": 54,
+          "line": 65,
           "params": [
             "n"
           ]
         },
         "normalizeFlowMode": {
-          "line": 60,
+          "line": 71,
           "params": [
             "m"
           ]
         },
         "normalizeItem": {
-          "line": 67,
+          "line": 78,
           "params": [
             "raw"
           ],
           "purpose": "One stored item, cleaned; null when it cannot be an item."
         },
         "normalizeQueue": {
-          "line": 90,
+          "line": 101,
           "params": [
             "raw"
           ],
           "purpose": "A queue file's contents, cleaned: unknown fields dropped, bad items skipped."
         },
         "emptyQueue": {
-          "line": 103
+          "line": 114
         },
         "sameSource": {
-          "line": 107,
+          "line": 118,
           "params": [
             "a",
             "kind",
@@ -29918,7 +29946,7 @@
           ]
         },
         "refusal": {
-          "line": 116,
+          "line": 127,
           "params": [
             "queue",
             "source"
@@ -29926,7 +29954,7 @@
           "purpose": "Why a source cannot be queued, or null. `source` is what the caller knows:"
         },
         "add": {
-          "line": 143,
+          "line": 154,
           "params": [
             "queue",
             "source",
@@ -29937,14 +29965,14 @@
           "purpose": "`{ queue, item }` with the source appended, or `{ queue, refused }` unchanged."
         },
         "find": {
-          "line": 152,
+          "line": 163,
           "params": [
             "queue",
             "id"
           ]
         },
         "remove": {
-          "line": 157,
+          "line": 168,
           "params": [
             "queue",
             "id"
@@ -29952,7 +29980,7 @@
           "purpose": "Removes an item; a running one is refused (stop its terminal first)."
         },
         "reorder": {
-          "line": 166,
+          "line": 177,
           "params": [
             "queue",
             "ids"
@@ -29960,14 +29988,14 @@
           "purpose": "Puts the named ids first, in that order; the rest keep their order after them."
         },
         "canMove": {
-          "line": 178,
+          "line": 189,
           "params": [
             "from",
             "to"
           ]
         },
         "setState": {
-          "line": 187,
+          "line": 198,
           "params": [
             "queue",
             "id",
@@ -29978,21 +30006,29 @@
           "purpose": "Moves an item to `state`, merging `patch` (worktree, terminalId, note, …)."
         },
         "pick": {
-          "line": 201,
+          "line": 212,
           "params": [
             "obj",
             "keys"
           ]
         },
         "setParallel": {
-          "line": 207,
+          "line": 218,
           "params": [
             "queue",
             "n"
           ]
         },
+        "setConfirm": {
+          "line": 224,
+          "params": [
+            "queue",
+            "c"
+          ],
+          "purpose": "How the machine's queued tasks treat an unclear start: 'ask' or 'decide'."
+        },
         "setFlowMode": {
-          "line": 213,
+          "line": 230,
           "params": [
             "queue",
             "id",
@@ -30001,14 +30037,14 @@
           "purpose": "A spec item's flow mode; not while it runs (the running agent already has its command)."
         },
         "activeCount": {
-          "line": 224,
+          "line": 241,
           "params": [
             "items"
           ],
           "purpose": "How many items hold a terminal now."
         },
         "nextRunnable": {
-          "line": 232,
+          "line": 249,
           "params": [
             "items",
             "{ parallel = DEFAULT_PARALLEL",
@@ -30017,7 +30053,7 @@
           "purpose": "The items to start now, in queue order: queued or interrupted, not missing,"
         },
         "markInterrupted": {
-          "line": 239,
+          "line": 256,
           "params": [
             "queue",
             "liveIds"
@@ -30025,7 +30061,7 @@
           "purpose": "Running items whose terminal is not in `liveIds` become interrupted (D19)."
         },
         "deriveMissing": {
-          "line": 256,
+          "line": 273,
           "params": [
             "items",
             "{ taskIds = null",
@@ -30034,7 +30070,7 @@
           "purpose": "Items as shown: an unfinished item whose task id or spec slug no longer"
         },
         "mergeQueues": {
-          "line": 273,
+          "line": 290,
           "params": [
             "macItems",
             "servers = []"
@@ -30042,7 +30078,7 @@
           "purpose": "The project's queues as one list: the Mac's first, then each server's,"
         },
         "homeOf": {
-          "line": 284,
+          "line": 301,
           "params": [
             "itemId",
             "merged"
@@ -30050,13 +30086,13 @@
           "purpose": "Where an item of the merged list lives: `{ location:'mac' }`, a server home, or null."
         },
         "slugPart": {
-          "line": 291,
+          "line": 308,
           "params": [
             "s"
           ]
         },
         "worktreeKey": {
-          "line": 300,
+          "line": 317,
           "params": [
             "item",
             "takenBranches = []"
@@ -30064,34 +30100,34 @@
           "purpose": "The worktree key of an item (plan D14): the spec slug, or the task id"
         },
         "queueBranch": {
-          "line": 310,
+          "line": 327,
           "params": [
             "key"
           ]
         },
         "queueWorktreeRel": {
-          "line": 315,
+          "line": 332,
           "params": [
             "key"
           ],
           "purpose": "`.frame/worktrees/queue-<key>`, relative to the checkout (posix)."
         },
         "worktreeRoots": {
-          "line": 323,
+          "line": 340,
           "params": [
             "items"
           ],
           "purpose": "The worktrees whose spec copies are live (plan D16): every item that has"
         },
         "nextPhaseCommand": {
-          "line": 334,
+          "line": 351,
           "params": [
             "phase"
           ],
           "purpose": "The next single phase for step-by-step (D20); null when nothing is left."
         },
         "startCommand": {
-          "line": 348,
+          "line": 365,
           "params": [
             "item",
             "phase"
@@ -30099,7 +30135,7 @@
           "purpose": "The spec command an item starts with: `spec.auto` in full auto, the next"
         }
       },
-      "sizeBytes": 14780,
+      "sizeBytes": 15661,
       "extraction": {
         "status": "parsed"
       },
@@ -30120,6 +30156,7 @@
           "refusal": "fa514f8257eccfd6",
           "remove": "6a0a0ca02b78e804",
           "reorder": "7794d1b9e4379f47",
+          "setConfirm": "2f575bc7887c1587",
           "setFlowMode": "b2a4594ca8024e1b",
           "setState": "c307d483ef40319d",
           "startCommand": "fa4fe9e23a4a6bd8",
@@ -35288,7 +35325,7 @@
           ]
         }
       },
-      "sizeBytes": 9309,
+      "sizeBytes": 9672,
       "extraction": {
         "status": "parsed"
       }
@@ -35983,7 +36020,7 @@
           "purpose": "A project on \"the Mac\" received by the server. `frame`: a Frame project; `mode`: its gitSharing."
         }
       },
-      "sizeBytes": 8228,
+      "sizeBytes": 8397,
       "extraction": {
         "status": "parsed"
       },
@@ -37605,7 +37642,7 @@
           "purpose": "The builder as it stood in tasksPanel.js before this spec, kept verbatim"
         }
       },
-      "sizeBytes": 8244,
+      "sizeBytes": 9694,
       "extraction": {
         "status": "parsed"
       },
@@ -39263,6 +39300,11 @@
         "name": "queue-parallel",
         "direction": "",
         "description": ""
+      },
+      "QUEUE_CONFIRM": {
+        "name": "queue-confirm",
+        "direction": "",
+        "description": ""
       }
     }
   },
@@ -40849,6 +40891,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "686cbf9894e1883187c7cf92cfdcd3837f791001ee05d6ec3661d64a148b1594"
+    "revision": "cb10bc2ecd82b3efe28009934c00e6547b3810c845ba58e1a0f66992a04b4877"
   }
 }
