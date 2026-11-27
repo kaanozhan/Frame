@@ -73,6 +73,7 @@ function apply(data) {
     items: Array.isArray(data.items) ? data.items : [],
     parallel: data.parallel || 9,
     parallels: data.parallels || { mac: data.parallel || 9, servers: {} },
+    confirm: data.confirm === 'decide' ? 'decide' : 'ask',
     serverNotes: Array.isArray(data.serverNotes) ? data.serverNotes : []
   };
   emit();
@@ -184,6 +185,7 @@ const removeItem = (itemId) => call(IPC.QUEUE_REMOVE, { itemId }, 'Could not rem
 const setItem = (itemId, action, mode = null) => call(IPC.QUEUE_SET, { itemId, action, mode }, 'Could not change it');
 const reorder = (ids) => call(IPC.QUEUE_REORDER, { ids }, 'Could not reorder the queue');
 /** One machine's parallel limit (Chief screen): the Mac's, or a server's by key. */
+const setConfirm = (confirm) => call(IPC.QUEUE_CONFIRM, { confirm }, 'Could not change the setting');
 const setParallel = (parallel, serverKey = null) => call(IPC.QUEUE_PARALLEL, { parallel, serverKey }, 'Could not change the limit');
 
 function ui() {
@@ -301,6 +303,7 @@ function render() {
         <span class="queue-summary">${open ? `${open} open${running ? ` · ${running} running` : ''}` : ''}</span>
       </div>
       <div class="view-header-actions">
+        ${renderConfirm()}
         <span class="queue-hint">Start it from the Chief</span>
       </div>
     </div>
@@ -308,6 +311,18 @@ function render() {
     <div class="queue-body">
       ${list.length ? `<ol class="queue-list">${list.map(renderRow).join('')}</ol>` : renderEmpty()}
     </div>`;
+}
+
+// "Before starting" (work-queue): how a queued task treats an unclear start.
+const CONFIRM_OPTIONS = [
+  ['ask', 'Ask me', 'Like Play: when a task has no description or criteria, the agent writes them and waits for your go in its terminal.'],
+  ['decide', 'Decide', 'The agent writes missing criteria and carries on; it asks only when it truly cannot continue, and lists its assumptions at the end.']
+];
+
+function renderConfirm() {
+  const cur = payload.confirm === 'decide' ? 'decide' : 'ask';
+  const segs = CONFIRM_OPTIONS.map(([v, label, title]) => `<button type="button" class="queue-mode-seg${cur === v ? ' on' : ''}" data-confirm="${v}" aria-pressed="${cur === v}" title="${escapeHtml(title)}">${label}</button>`).join('');
+  return `<span class="queue-confirm"><span class="queue-confirm-label">Before starting</span><span class="queue-mode" role="group" aria-label="Before starting">${segs}</span></span>`;
 }
 
 function renderEmpty() {
@@ -373,6 +388,15 @@ function itemOf(el) {
 }
 
 function onClick(e) {
+  const conf = e.target.closest('[data-confirm]');
+  if (conf) {
+    if (conf.dataset.confirm !== payload.confirm) {
+      payload = { ...payload, confirm: conf.dataset.confirm };
+      render();
+      setConfirm(conf.dataset.confirm);
+    }
+    return;
+  }
   const btn = e.target.closest('[data-act]');
   if (!btn || btn.disabled) return;
   const it = itemOf(btn);
@@ -464,6 +488,7 @@ module.exports = {
   removeItem,
   setItem,
   setParallel,
+  setConfirm,
   setDragSource,
   acceptDrops
 };

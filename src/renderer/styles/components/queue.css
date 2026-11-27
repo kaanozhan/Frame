@@ -19,6 +19,18 @@
   white-space: nowrap;
 }
 
+.queue-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.queue-confirm-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
 .queue-notes {
   display: flex;
   flex-direction: column;

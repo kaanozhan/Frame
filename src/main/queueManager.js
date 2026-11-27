@@ -99,6 +99,7 @@ function queuePayload(projectPath) {
     items: rules.mergeQueues(shown, lists),
     parallel: mac.parallel,
     parallels: { mac: mac.parallel, servers },
+    confirm: mac.confirm,
     serverNotes: serverNotesOf(projectPath)
   };
 }
@@ -190,7 +191,7 @@ async function refreshServerQueues(projectPath, { onlyKey = null } = {}) {
     try {
       const res = await link.call('queue.list', { projectPath: p.serverProjectPath }, SERVER_CALL_MS);
       const q = rules.normalizeQueue(res && res.queue);
-      serverQueues.set(p.key, { ...blank, items: q.items, parallel: q.parallel });
+      serverQueues.set(p.key, { ...blank, items: q.items, parallel: q.parallel, confirm: q.confirm });
       changed = true;
       link.call('queue.watch', { projectPath: p.serverProjectPath }).catch(() => { /* gone meanwhile — the next connect retries */ });
     } catch (err) {
@@ -359,6 +360,22 @@ async function setParallel(projectPath, n, serverKey = null) {
   return { ok: true, parallel: res.queue.parallel };
 }
 
+/**
+ * "Before starting" for the whole project: this Mac's queue and every
+ * connected server's (an offline one keeps its own until it is back).
+ */
+async function setConfirm(projectPath, confirm) {
+  const value = rules.normalizeConfirm(confirm);
+  macChange(projectPath, (q) => rules.setConfirm(q, value));
+  const errors = [];
+  for (const e of serverQueues.values()) {
+    if (e.projectPath !== projectPath || e.unsupported || e.offline) continue;
+    const r = await onServer(projectPath, { serverKey: e.serverKey, serverProjectPath: e.serverProjectPath, host: e.host, offline: e.offline }, 'queue.confirm', { confirm: value });
+    if (!r.ok) errors.push(r.error);
+  }
+  return errors.length ? { ok: false, error: errors.join(' '), confirm: value } : { ok: true, confirm: value };
+}
+
 function okOnly(r) {
   return r.ok ? { ok: true } : r;
 }
@@ -389,6 +406,7 @@ function setupIPC(ipcMain) {
   ipcMain.handle(IPC.QUEUE_REMOVE, (event, { projectPath, itemId } = {}) => removeItem(projectPath, itemId));
   ipcMain.handle(IPC.QUEUE_REORDER, (event, { projectPath, ids } = {}) => reorderItems(projectPath, ids));
   ipcMain.handle(IPC.QUEUE_SET, (event, { projectPath, itemId, action, mode } = {}) => setItem(projectPath, itemId, action, mode));
+  ipcMain.handle(IPC.QUEUE_CONFIRM, (event, { projectPath, confirm } = {}) => setConfirm(projectPath, confirm));
   ipcMain.handle(IPC.QUEUE_PARALLEL, (event, { projectPath, parallel, serverKey = null } = {}) => setParallel(projectPath, parallel, serverKey));
 }
 
@@ -404,6 +422,7 @@ module.exports = {
   reorderItems,
   setItem,
   setParallel,
+  setConfirm,
   refreshServerQueues,
   serverListsOf,
   _resetForTests: () => { serverQueues.clear(); serverWired = false; currentProjectPath = null; }

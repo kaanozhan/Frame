@@ -40,8 +40,16 @@ function taskFileRef(opts) {
   return opts && typeof opts.tasksPath === 'string' && opts.tasksPath ? `the task list at ${opts.tasksPath}` : 'tasks.json';
 }
 
-function formatStep(task, missing, fileRef = 'tasks.json') {
+function formatStep(task, missing, fileRef = 'tasks.json', { decide = false } = {}) {
   const fields = missing.map(f => `\`${f}\``).join(' and ');
+  // From the work queue with "decide" (work-queue): nobody is watching, so
+  // the agent records the criteria and goes on; the user reviews them at the end.
+  if (decide) {
+    return `this task is not ready yet: its ${fields} ${missing.length > 1 ? 'are' : 'is'} empty.`
+      + ` Read this task in ${fileRef} (task id: ${task.id}) and the code it concerns, then write ${missing.length > 1 ? 'them' : 'it'} into that entry.`
+      + ` Never add or change \`userRequest\`.`
+      + ` Then continue without waiting for confirmation, and repeat the acceptance criteria in your final summary`;
+  }
   // The entry in tasks.json is where the agent finds the user's original
   // request (`userRequest`) when the New Task form recorded one.
   return `this task is not ready yet: its ${fields} ${missing.length > 1 ? 'are' : 'is'} empty.`
@@ -69,7 +77,7 @@ function buildTaskPrompt(task, opts = {}) {
   const steps = [];
   const missing = missingFields(task);
   const fileRef = taskFileRef(opts);
-  if (missing.length > 0) steps.push(formatStep(task, missing, fileRef));
+  if (missing.length > 0) steps.push(formatStep(task, missing, fileRef, { decide: !!opts.decide }));
 
   if (opts.branchMode === 'new') {
     const branchStep = opts.newBranchName
@@ -89,6 +97,9 @@ function buildTaskPrompt(task, opts = {}) {
   // when it's genuinely done; the tasks watcher pushes the change straight
   // back into the UI. Terminal-side signals can't tell "done" from
   // "stopped", so this stays the only auto-completion path.
+  if (opts.decide) {
+    prompt += ` You run unattended from Frame's work queue: ask only if you truly cannot continue; otherwise make a reasonable choice, and list the assumptions you made in your final summary.`;
+  }
   prompt += ` When the task is fully complete, update this task's status to "completed" in ${fileRef} (task id: ${task.id}).`;
   if (fileRef !== 'tasks.json') {
     prompt += ` Use exactly that file — it can be outside your working folder; never edit a .frame/tasks.json inside the working folder instead.`;

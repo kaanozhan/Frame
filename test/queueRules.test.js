@@ -11,8 +11,14 @@ function withItems(...sources) {
   return queue;
 }
 
-test('empty queue defaults to parallel 9 and version 1', () => {
-  assert.deepStrictEqual(q.emptyQueue(), { version: 1, parallel: 9, items: [] });
+test('empty queue defaults to parallel 9, ask before starting, version 1', () => {
+  assert.deepStrictEqual(q.emptyQueue(), { version: 1, parallel: 9, confirm: 'ask', items: [] });
+});
+
+test('setConfirm keeps ask or decide; anything else reads ask', () => {
+  assert.strictEqual(q.setConfirm(q.emptyQueue(), 'decide').queue.confirm, 'decide');
+  assert.strictEqual(q.setConfirm(q.emptyQueue(), 'whatever').queue.confirm, 'ask');
+  assert.strictEqual(q.normalizeQueue({ confirm: 'decide' }).confirm, 'decide');
 });
 
 test('add appends a reference with full auto for specs', () => {

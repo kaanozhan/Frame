@@ -6,7 +6,11 @@
  * Chief's queue tools (leadHost) all decide with these, so a queue behaves the
  * same on every machine.
  *
- * A queue is one machine's list (plan D5): `{ version, parallel, items }`.
+ * A queue is one machine's list (plan D5): `{ version, parallel, confirm, items }`.
+ * `confirm` is how a queued task treats an unclear start (user's call,
+ * 2026-11-27): 'ask' — like Play, the agent writes the missing criteria and
+ * waits for the user's go; 'decide' — it writes them and carries on, asking
+ * only when it truly cannot continue, and lists its assumptions at the end.
  * An item is a *reference* to a task id or a spec slug, never a copy (spec
  * C1); `title` is only a snapshot so a vanished source still reads.
  */
@@ -29,6 +33,13 @@ const STATES = Object.freeze({
 });
 
 const FLOW_MODES = Object.freeze({ FULL_AUTO: 'full-auto', STEP: 'step-by-step' });
+
+const CONFIRM = Object.freeze({ ASK: 'ask', DECIDE: 'decide' });
+const DEFAULT_CONFIRM = CONFIRM.ASK; // Play's behaviour until the user chooses otherwise
+
+function normalizeConfirm(c) {
+  return c === CONFIRM.DECIDE ? CONFIRM.DECIDE : CONFIRM.ASK;
+}
 const DEFAULT_FLOW_MODE = FLOW_MODES.FULL_AUTO; // plan D6
 
 /** Legal moves between stored states. */
@@ -97,7 +108,7 @@ function normalizeQueue(raw) {
     seen.add(it.id);
     items.push(it);
   }
-  return { version: VERSION, parallel: clampParallel(q.parallel == null ? DEFAULT_PARALLEL : q.parallel), items };
+  return { version: VERSION, parallel: clampParallel(q.parallel == null ? DEFAULT_PARALLEL : q.parallel), confirm: normalizeConfirm(q.confirm), items };
 }
 
 function emptyQueue() {
@@ -207,6 +218,12 @@ function pick(obj, keys) {
 function setParallel(queue, n) {
   const q = normalizeQueue(queue);
   return { queue: { ...q, parallel: clampParallel(n) } };
+}
+
+/** How the machine's queued tasks treat an unclear start: 'ask' or 'decide'. */
+function setConfirm(queue, c) {
+  const q = normalizeQueue(queue);
+  return { queue: { ...q, confirm: normalizeConfirm(c) } };
 }
 
 /** A spec item's flow mode; not while it runs (the running agent already has its command). */
@@ -360,6 +377,10 @@ module.exports = {
   STATES,
   FLOW_MODES,
   DEFAULT_FLOW_MODE,
+  CONFIRM,
+  DEFAULT_CONFIRM,
+  normalizeConfirm,
+  setConfirm,
   TRANSITIONS,
   REFUSAL_TEXT,
   normalizeQueue,

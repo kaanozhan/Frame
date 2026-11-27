@@ -108,12 +108,13 @@ async function prepareSpec(checkout, item) {
   return { cwd, worktree, command, launchFlags: staged.launchFlags || [], prompt: staged.instruction, phase: status.phase };
 }
 
-async function prepareTask(checkout, item) {
+async function prepareTask(checkout, item, { confirm = 'ask' } = {}) {
   const task = findTask(checkout, item.ref);
   if (!task) throw new Error(`The task ${item.ref} no longer exists.`);
   const worktree = await worktreeFor(checkout, item);
   require('./workspaceTooling').provision(checkout, worktree.path);
-  const prompt = buildTaskPrompt(task, { tasksPath: tasksPathOf(checkout) });
+  // The queue's "Before starting" setting: ask like Play, or decide and go on.
+  const prompt = buildTaskPrompt(task, { tasksPath: tasksPathOf(checkout), decide: confirm === 'decide' });
   const launchFlags = require('./specManager').getAutoLaunchFlags(worktree.path, AI_TOOL);
   return { cwd: worktree.path, worktree, command: null, launchFlags, prompt, task };
 }
@@ -125,7 +126,7 @@ async function prepareTask(checkout, item) {
 async function prepare(checkout, item) {
   if (!checkout || !item) throw new Error('Nothing to prepare.');
   if (item.kind === rules.KINDS.SPEC) return prepareSpec(checkout, item);
-  if (item.kind === rules.KINDS.TASK) return prepareTask(checkout, item);
+  if (item.kind === rules.KINDS.TASK) return prepareTask(checkout, item, { confirm: require('./queueStore').load(checkout).confirm });
   throw new Error('Unknown item kind.');
 }
 

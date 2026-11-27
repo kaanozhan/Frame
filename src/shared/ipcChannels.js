@@ -247,6 +247,7 @@ const IPC = {
   QUEUE_REMOVE: 'queue-remove',                      // renderer → main (invoke): { projectPath, itemId } → { ok, error? }
   QUEUE_REORDER: 'queue-reorder',                    // renderer → main (invoke): { projectPath, ids[] } → { ok, error? }
   QUEUE_SET: 'queue-set',                            // renderer → main (invoke): { projectPath, itemId, action: 'done'|'continue'|'reset'|'flowMode', mode? } → { ok, error? }
+  QUEUE_CONFIRM: 'queue-confirm',                    // renderer → main (invoke): { projectPath, confirm: 'ask'|'decide' } → { ok, confirm } — "Before starting" (work-queue)
   QUEUE_PARALLEL: 'queue-parallel',                  // renderer → main (invoke): { projectPath, parallel, serverKey? } → { ok, parallel }
 
   // Meta-file store (frameStore owns where .frame/ files live)

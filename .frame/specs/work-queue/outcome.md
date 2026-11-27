@@ -102,3 +102,11 @@ _Captured: 2026-11-25 · 8 file change(s)_
 
 ---
 
+## Follow-up — "Before starting": Ask me / Decide
+
+In the first real queue run all three task agents stopped, because those tasks had no description or acceptance criteria and the queue reused Play's prompt, which then says to write them and wait for the user's go; one agent also asked a genuine content question. The user chose a setting over a fixed behaviour: the Queue view's header now has "Before starting: Ask me | Decide" (queue.json `confirm`, default ask; queueRules.setConfirm, QUEUE_CONFIRM, queue.confirm on Frame Server, applied to every connected machine's queue). With Decide, queueRunner builds the task prompt with runPrompt's `decide`: the agent writes missing criteria and carries on, asks only when it truly cannot continue, and lists its assumptions at the end; Ask me keeps Play's prompt unchanged. Tests: queueRules, taskRunPrompt (2 new), serverQueue.
+
+_Captured: 2026-11-27 · 11 file change(s)_
+
+---
+

@@ -14,6 +14,7 @@
  *   queue.reorder  { projectPath, ids }                     → { ok }
  *   queue.set      { projectPath, itemId, action, mode? }   → { item }
  *   queue.parallel { projectPath, parallel }                → { parallel }
+ *   queue.confirm  { projectPath, confirm: 'ask'|'decide' } → { confirm }
  *   queue.watch    { projectPath } / queue.unwatch
  *   event: queue.changed { projectPath }
  *
@@ -139,6 +140,10 @@ function setup({ registerMethods, broadcast }) {
       else if (action === 'flowMode') fn = (q) => rules.setFlowMode(q, itemId, mode);
       else throw new Error('Unknown action.');
       return { item: apply(dir, fn).item };
+    },
+    'queue.confirm': async ({ projectPath, confirm } = {}) => {
+      const dir = needFrame(project(projectPath));
+      return { confirm: apply(dir, (q) => rules.setConfirm(q, confirm)).queue.confirm };
     },
     'queue.parallel': async ({ projectPath, parallel } = {}) => {
       const dir = needFrame(project(projectPath));

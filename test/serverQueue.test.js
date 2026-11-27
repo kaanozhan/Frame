@@ -95,6 +95,8 @@ test('add, reorder, set, parallel and remove change only the clone\'s queue.json
   assert.equal((await methods['queue.set']({ projectPath, itemId: a.id, action: 'done' })).item.state, 'done');
   await assert.rejects(methods['queue.set']({ projectPath, itemId: a.id, action: 'nope' }), /Unknown action/);
   assert.deepEqual(await methods['queue.parallel']({ projectPath, parallel: 3 }), { parallel: 3 });
+  assert.deepEqual(await methods['queue.confirm']({ projectPath, confirm: 'decide' }), { confirm: 'decide' });
+  assert.equal(fileQueue(projectPath).confirm, 'decide');
   assert.deepEqual(await methods['queue.remove']({ projectPath, itemId: a.id }), { ok: true });
   assert.deepEqual((await methods['queue.list']({ projectPath })).queue.items.map((i) => i.id), [b.id]);
   assert.equal(fs.existsSync(path.join(local, '.frame', 'runtime', 'queue.json')), false, 'the Mac never gets the server\'s queue');
