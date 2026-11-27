@@ -261,6 +261,9 @@ module.exports = {
   init,
   setupIPC,
   getSessionsForProject,
+  // lead-agent (T05): the Chief finds a terminal's transcript with these.
+  projectsDir,
+  encodeProjectPath,
   // exported for tests
   _resetCache: () => scanCache.clear()
 };

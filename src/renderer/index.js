@@ -105,6 +105,9 @@ function init() {
   // composes lanes + agentDispatch; opened from the command palette / Home.
   orchestrator.setHost(multiTerminalUI);
 
+  // Chief (lead-agent) — every project's permanent lead terminal.
+  require('./chiefLane').init(multiTerminalUI);
+
   // Workspace review (workspace-review) — a section tab over a workspace's changes.
   require('./reviewSection').setHost(multiTerminalUI);
 
@@ -748,6 +751,14 @@ function registerCommands() {
     shortcut: 'CmdOrCtrl+,',
     run: () => frameSettingsModal.open()
   });
+  // The work queue (work-queue spec): the Chief at the sidebar's location works it.
+  r({
+    id: 'queue.start',
+    title: 'Start queue',
+    category: 'Queue',
+    run: () => require('./chiefLane').startQueue()
+  });
+
   r({
     id: 'settings.openProject',
     title: 'Project Settings',

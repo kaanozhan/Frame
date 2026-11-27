@@ -76,6 +76,15 @@ function init() {
   }
 }
 
+/**
+ * The transcript of the session running in a terminal, as its SessionStart
+ * hook reported it (lead-agent T05), or null.
+ */
+function transcriptFor(terminalId) {
+  const entry = live[terminalId];
+  return entry && entry.transcriptPath ? { transcriptPath: entry.transcriptPath, sessionId: entry.sessionId, cwd: entry.cwd } : null;
+}
+
 /** The env a PTY needs so its CLIs can report. Empty when init failed. */
 function envFor(terminalId) {
   if (!reportDir) return {};
@@ -249,6 +258,7 @@ function setupIPC(ipcMain) {
 module.exports = {
   init,
   envFor,
+  transcriptFor,
   registerTerminal,
   onForeground,
   onClose,

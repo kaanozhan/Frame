@@ -424,6 +424,7 @@ function renderGrid() {
     if (card.dataset.malformed) return; // nothing to open — the reason is on the card
     card.addEventListener('click', () => openFromGrid(card.dataset.slug));
   });
+  wireQueue(filtered);
   wireOlderTile();
 }
 
@@ -442,6 +443,55 @@ function openFromGrid(slug) {
   const ui = require('./terminal').getMultiTerminalUI();
   if (ui) ui.showSpecsGrid();
   selectCard(slug, { instant: true });
+}
+
+// ─── Work queue (work-queue spec) ──────────────────────────
+// Each card that can still run has a queue icon (filled while queued) and
+// drags onto the sidebar's Queue row or the Queue view. A second click on a
+// queued spec opens the Queue instead of adding it twice.
+
+const QUEUE_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/><line x1="3" y1="12" x2="6" y2="12"/><polyline points="4.5 10.5 6 12 4.5 13.5"/></svg>';
+
+function canQueue(spec) {
+  return !!spec && !spec.malformed && spec.phase !== 'done' && !(spec.workspace && spec.workspace.offline);
+}
+
+function queueButtonHtml(spec) {
+  if (!canQueue(spec)) return '';
+  const queued = require('./queueView').isQueued('spec', spec.slug);
+  const title = queued ? 'In the queue — open the Queue' : 'Add to queue';
+  return `<button type="button" class="specs-card-queue${queued ? ' on' : ''}" data-queue-slug="${escapeHtml(spec.slug)}" aria-pressed="${queued}" title="${title}" aria-label="${title}">${QUEUE_ICON}</button>`;
+}
+
+let queueSubscribed = false;
+
+function wireQueue(list) {
+  const queueView = require('./queueView');
+  if (!queueSubscribed) {
+    queueSubscribed = true;
+    // The icon follows the queue (added here, from the drawer, or removed in the Queue view).
+    queueView.onChange(() => { if (gridEl && (inlineMounted || isVisible)) renderGrid(); });
+  }
+  const bySlug = new Map(list.map((s) => [s.slug, s]));
+  gridEl.querySelectorAll('.specs-card-queue').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const spec = bySlug.get(btn.dataset.queueSlug);
+      if (!spec) return;
+      if (queueView.isQueued('spec', spec.slug)) {
+        const ui = require('./terminal').getMultiTerminalUI();
+        if (ui) ui.showQueue();
+        return;
+      }
+      queueView.addSource(queueView.sourceForSpec(spec));
+    });
+  });
+  gridEl.querySelectorAll('.specs-card[data-slug]').forEach((card) => {
+    const spec = bySlug.get(card.dataset.slug);
+    if (!canQueue(spec)) return;
+    card.draggable = true;
+    card.addEventListener('dragstart', (e) => queueView.setDragSource(e, queueView.sourceForSpec(spec)));
+  });
 }
 
 function wireOlderTile() {
@@ -488,6 +538,7 @@ function renderCard(spec) {
         <span class="spec-phase-badge phase-${spec.phase}">${phaseLabel}</span>
         ${spec.ai_tool ? `<span class="specs-card-ai">${escapeHtml(spec.ai_tool)}</span>` : ''}
         ${require('./workspaceSection').workspaceChipHtml(spec.workspace)}
+        ${queueButtonHtml(spec)}
       </div>
       <div class="specs-card-title">${escapeHtml(spec.title)}</div>
       <div class="specs-card-slug">${escapeHtml(spec.slug)}</div>

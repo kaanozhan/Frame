@@ -47,6 +47,8 @@ const gitDiffManager = require('./gitDiffManager');
 const analytics = require('./analytics');
 const specManager = require('./specManager');
 const orchestrationManager = require('./orchestrationManager');
+const leadManager = require('./leadManager');
+const queueManager = require('./queueManager');
 const structureLifecycle = require('./structureLifecycle');
 
 // The running app keeps each open Frame checkout's STRUCTURE.json current
@@ -271,6 +273,10 @@ function setupAllIPC() {
   // Orchestration — conductor-led parallel spec execution
   orchestrationManager.setupIPC(ipcMain);
 
+  // Chief (lead-agent) — the project's lead terminal and its tools
+  leadManager.setupIPC(ipcMain);
+  queueManager.setupIPC(ipcMain);
+
   // Analytics — toggle from Settings
   ipcMain.handle(IPC.ANALYTICS_SET_ENABLED, (event, enabled) =>
     analytics.setEnabled(enabled)
@@ -389,6 +395,8 @@ function initModulesWithWindow(window) {
   gitStatusManager.init(window);
   specManager.init(window);
   orchestrationManager.init(window);
+  leadManager.init(window);
+  queueManager.init(window);
   activityLog.attachWindow(window);
   serverConnection.init(window, app.getVersion());
 }
@@ -449,6 +457,7 @@ app.on('before-quit', (e) => {
 // will-quit only fires after before-quit's live-agent confirmation passed.
 app.on('will-quit', () => {
   structureLifecycle.disposeAll();
+  leadManager.shutdown();
   // Close the SSH tunnel; server terminals keep running on the server.
   serverConnection.disconnect({ forget: false, quiet: true });
 });

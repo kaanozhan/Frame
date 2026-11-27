@@ -110,6 +110,7 @@ function viewItems() {
     ['terminals', 'Go to Terminals', () => ui.showTerminals()],
     ['specs', 'Go to Specs', () => ui.showSpecs()],
     ['tasks', 'Go to Tasks', () => ui.showTasksBoard()],
+    ['queue', 'Go to Queue', () => ui.showQueue()],
     ['sessions', 'Go to Sessions', () => ui.showPanel('sessions')]
   ];
   return views.map(([key, title, run]) => ({

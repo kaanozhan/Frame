@@ -45,6 +45,8 @@ let initialized = false;
 let activeTask = null;
 let activeOnRun = null;
 let activeOnCancel = null;
+let activeOnQueue = null;
+let queueBtn = null;
 
 function init() {
   if (initialized) return;
@@ -58,6 +60,7 @@ function init() {
   newBranchNameInput = document.getElementById('task-run-new-branch-name');
   runBtn = document.getElementById('task-run-confirm');
   cancelBtn = document.getElementById('task-run-cancel');
+  queueBtn = document.getElementById('task-run-queue');
   whereEl = document.getElementById('task-run-where');
   whereNoteEl = document.getElementById('task-run-where-note');
   workspaceSelect = document.getElementById('task-run-workspace');
@@ -68,6 +71,7 @@ function init() {
 
   cancelBtn.addEventListener('click', cancel);
   runBtn.addEventListener('click', confirm);
+  if (queueBtn) queueBtn.addEventListener('click', queue);
 
   modalEl.addEventListener('click', (e) => {
     if (e.target === modalEl) cancel();
@@ -88,6 +92,7 @@ function init() {
       if (e.target === newBranchNameInput) return;
       e.preventDefault();
       if (document.activeElement === runBtn) confirm();
+      else if (queueBtn && document.activeElement === queueBtn) queue();
       else cancel();
     }
   });
@@ -183,6 +188,7 @@ function renderWhere(task, target, selected) {
  * @param {object} opts
  * @param {function} opts.onRun     - called with chosen options on confirm
  * @param {function} [opts.onCancel]
+ * @param {function} [opts.onQueue] - shows "Add to queue"; called instead of onRun
  * @param {object}   [opts.target]  - shared/serverTasks.runTarget's answer; absent = run where the user is
  * @param {object}   [opts.selected] - the selected workspace record, for the note's host
  */
@@ -193,7 +199,10 @@ function open(task, opts = {}) {
   activeTask = task;
   activeOnRun = typeof opts.onRun === 'function' ? opts.onRun : null;
   activeOnCancel = typeof opts.onCancel === 'function' ? opts.onCancel : null;
+  activeOnQueue = typeof opts.onQueue === 'function' ? opts.onQueue : null;
   activeTarget = opts.target || null;
+  // "Add to queue" is offered only when the caller can queue (work-queue).
+  if (queueBtn) queueBtn.hidden = !activeOnQueue;
 
   if (titleEl) {
     titleEl.textContent = task && task.title ? task.title : '';
@@ -219,6 +228,7 @@ function close() {
   activeTask = null;
   activeOnRun = null;
   activeOnCancel = null;
+  activeOnQueue = null;
   activeTarget = null;
 }
 
@@ -238,6 +248,13 @@ function confirm() {
   const cb = activeOnRun;
   close();
   if (cb) cb(options);
+}
+
+/** Queue the task instead of running it: no terminal opens (work-queue S2). */
+function queue() {
+  const cb = activeOnQueue;
+  close();
+  if (cb) cb();
 }
 
 function cancel() {

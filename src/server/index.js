@@ -230,12 +230,17 @@ function start(argv = process.argv.slice(2)) {
   const bind = bindRule(args.bind);
   if (bind.warning) console.warn(`[frame-server] WARNING: ${bind.warning}`);
 
+  const terminals = require('./terminals').setup({ shim, registerMethods, broadcast });
   const parts = [
-    require('./terminals').setup({ shim, registerMethods, broadcast }),
+    terminals,
+    // The server Chief (lead-agent): the project's lead terminal on this server.
+    require('./lead').setup({ registerMethods, broadcast, terminals }),
     require('./projects').setup({ shim, registerMethods, broadcast }),
     require('./panels').setup({ shim, registerMethods, broadcast }),
     require('./specs').setup({ shim, registerMethods, broadcast }),
     require('./tasks').setup({ shim, registerMethods, broadcast }),
+    // The work queue (work-queue): this server's queue of a project.
+    require('./queue').setup({ shim, registerMethods, broadcast }),
     require('./sendFiles').setup({ shim, registerMethods, broadcast }),
     require('./doctor').setup({ shim, registerMethods, broadcast })
   ];

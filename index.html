@@ -292,6 +292,11 @@
           </button>
           <div id="sidebar-project-menu" class="sidebar-project-menu" role="menu" hidden></div>
         </div>
+        <!-- Chief (lead-agent): the project's lead terminal, the first item
+             under the project — "Chief · <location>" with a menu of where it
+             can run (this Mac, each connected server that holds the project).
+             chiefLane.js renders it. -->
+        <div id="chief-nav-wrap" class="sidebar-current-project-wrap chief-nav-wrap" hidden></div>
         <!-- Workspace switcher (workspaces spec): the second level under the
              project — main + this project's workspaces as a collapsible list, grouped
              Local / Remote. Sits on every rail view, like the project
@@ -1400,6 +1405,8 @@
       </div>
       <div class="task-run-modal-footer">
         <button type="button" id="task-run-cancel" class="task-run-btn task-run-btn-cancel">Cancel</button>
+        <!-- work-queue: the second answer to Play — queue it for the Chief instead of running it now -->
+        <button type="button" id="task-run-queue" class="task-run-btn task-run-btn-cancel" title="Add it to the queue; the Chief runs it in its own worktree when you start the queue" hidden>Add to queue</button>
         <button type="button" id="task-run-confirm" class="task-run-btn task-run-btn-primary">Run</button>
       </div>
     </div>

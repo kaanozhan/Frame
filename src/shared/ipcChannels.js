@@ -224,6 +224,32 @@ const IPC = {
   ORCH_REMOVE_WORKER: 'orch-remove-worker',          // renderer → main: cleanup a worker (worktree + branch)
   ORCH_RESUME_WORKER: 'orch-resume-worker',          // renderer → main: relaunch a recovered worker's lane in its existing worktree
 
+  // Chief (lead-agent spec) — one per project per machine
+  LEAD_START: 'lead-start',                          // renderer → main (invoke): { projectPath, terminalId } → { command, mode } — register the Chief, get its launch command
+  LEAD_STOP: 'lead-stop',                            // renderer → main: { terminalId } — the Chief session ended
+  LEAD_MODE_GET: 'lead-mode-get',                    // renderer → main (invoke): { projectPath } → 'user-guided' | 'full-auto'
+  LEAD_MODE_SET: 'lead-mode-set',                    // renderer → main (invoke): { projectPath, mode } → the stored mode
+  LEAD_APPROVALS: 'lead-approvals',                  // main → renderer: { chiefId, projectPath, machine, pending[] } — cards to show
+  LEAD_PENDING: 'lead-pending',                      // renderer → main (invoke): { projectPath } → [{ chiefId, machine, pending[] }]
+  LEAD_DECIDE: 'lead-decide',                        // renderer → main (invoke): { approvalId, decision, text?, serverKey? } → { ok }
+  LEAD_SERVER_TARGETS: 'lead-server-targets',        // renderer → main (invoke): { projectPath } → [{ serverKey, host, serverProjectPath }] — servers that should have a Chief
+  LEAD_SCREEN_REQUEST: 'lead-screen-request',        // main → renderer: { requestId, terminalId, lines } — plain screen text, please
+  LEAD_SCREEN_REPLY: 'lead-screen-reply',
+  LEAD_OPEN_TERMINAL_REQUEST: 'lead-open-terminal-request', // main → renderer: { requestId, projectPath, cwd, name, assignment } — open a visible terminal (work-queue)
+  LEAD_OPEN_TERMINAL_REPLY: 'lead-open-terminal-reply',     // renderer → main: { requestId, terminalId?, error? }
+  LEAD_QUEUE_START: 'lead-queue-start',                     // renderer → main (invoke): { terminalId } → { ok, reason? } — the Chief's Start queue button (work-queue)
+  LEAD_TERMINAL_OPENED: 'lead-terminal-opened',             // main → renderer: { serverKey } — a server Chief opened a queue terminal; re-adopt (work-queue)            // renderer → main: { requestId, text } — the answer
+
+  // Work queue (work-queue spec): one queue per machine, merged for the window
+  QUEUE_LOAD: 'queue-load',                          // renderer → main (invoke): { projectPath } → the QUEUE_DATA payload
+  QUEUE_DATA: 'queue-data',                          // main → renderer: { projectPath, items[], parallel, parallels, serverNotes }
+  QUEUE_ADD: 'queue-add',                            // renderer → main (invoke): { projectPath, source } → { ok, item? , error? }
+  QUEUE_REMOVE: 'queue-remove',                      // renderer → main (invoke): { projectPath, itemId } → { ok, error? }
+  QUEUE_REORDER: 'queue-reorder',                    // renderer → main (invoke): { projectPath, ids[] } → { ok, error? }
+  QUEUE_SET: 'queue-set',                            // renderer → main (invoke): { projectPath, itemId, action: 'done'|'continue'|'reset'|'flowMode', mode? } → { ok, error? }
+  QUEUE_CONFIRM: 'queue-confirm',                    // renderer → main (invoke): { projectPath, confirm: 'ask'|'decide' } → { ok, confirm } — "Before starting" (work-queue)
+  QUEUE_PARALLEL: 'queue-parallel',                  // renderer → main (invoke): { projectPath, parallel, serverKey? } → { ok, parallel }
+
   // Meta-file store (frameStore owns where .frame/ files live)
   LOAD_STRUCTURE_MAP: 'load-structure-map',          // renderer → main (invoke): parsed STRUCTURE.json, or { error }
 

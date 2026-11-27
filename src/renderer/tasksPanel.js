@@ -400,7 +400,9 @@ function openRunFlow(task) {
         updates: { status: 'in_progress' }
       });
       notify.info('Task sent');
-    }
+    },
+    // Play's second answer (work-queue): queue it for the Chief instead.
+    onQueue: () => require('./queueView').addSource(require('./queueView').sourceForTask(task))
   });
 }
 
