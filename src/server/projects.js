@@ -9,7 +9,7 @@
  * names, branch prefix, fetched `origin/<base>`, archive rules.
  *
  * Methods: projects.ensure / projects.list,
- *          workspaces.list / status / create / archive / restore / rename / provision,
+ *          workspaces.list / status / create / archive / restore / rename / provision / preflight,
  *          tools.check (is the agent CLI installed *here*?).
  * Event:   workspaces.updated { projectPath }
  *
@@ -44,6 +44,10 @@ function setup({ shim, registerMethods, broadcast }) {
   const tooling = require('./tooling');
   const git = require('../main/gitBranchesManager');
   const aiToolManager = require('../main/aiToolManager');
+  const frameStore = require('../main/frameStore');
+  const { FRAME_FILES } = require('../shared/frameConstants');
+  const { isValidBranchName } = require('../shared/gitRefNames');
+  const { isFrameProject } = tooling;
   projectRegistry.init(null, shim.fakeWindow);
   workspaceManager.init(shim.fakeWindow);
 
@@ -185,6 +189,25 @@ function setup({ shim, registerMethods, broadcast }) {
       });
       if (res && !res.error && res.workspace) await tooling.provisionIfFrame(project, res.workspace.path);
       return res;
+    },
+    /**
+     * Start Work on this server (frame-cloud-start-on-server D9): what the
+     * desktop checks before it reserves anything in the cloud. `base` is a
+     * plain branch name; it is fetched from origin, and a failed fetch keeps
+     * the last fetched copy (`fetch` says which). Nothing is written.
+     */
+    'workspaces.preflight': async ({ projectPath, branch, base } = {}) => {
+      const project = needProject(projectPath);
+      if (!isValidBranchName(branch)) throw new Error(`"${branch}" is not a valid branch name.`);
+      if (!isValidBranchName(base)) throw new Error(`"${base}" is not a valid base branch name.`);
+      const fetch = await git.fetchBranch(project, base);
+      return {
+        branchTaken: await git.localBranchExists(branch, project),
+        baseOnOrigin: await git.remoteBranchExists(base, project),
+        fetch,
+        // The clone's own task file, as tasks.list answers it: none without Frame.
+        tasksPath: isFrameProject(project) ? path.resolve(frameStore.resolvePath(project, FRAME_FILES.TASKS)) : null
+      };
     },
     'workspaces.status': async ({ projectPath, id } = {}) => workspaceManager.status(needProject(projectPath), id),
     // An archived workspace comes back from its branch (the desktop's Archived list).

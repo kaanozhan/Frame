@@ -346,6 +346,34 @@ function serverCall(method, projectPath, id, extra = {}) {
 }
 
 /**
+ * One saved server's link and its clone of `projectPath`, for a caller that
+ * talks to that server itself (Start Work on a server,
+ * frame-cloud-start-on-server D9): `{ link, host, serverKey,
+ * serverProjectPath }`, where `serverProjectPath` is null when the server has
+ * no copy. With `ensure`, a missing project is sent first, as creating a
+ * workspace sends it, and `sent: { uncommitted }` says so (T12).
+ * → `{ error, unsaved? }` for a server no longer saved
+ * (`unsaved`), not connected, or one that could not take the project; every
+ * error but the unsaved one names the host.
+ */
+async function serverProject(projectPath, serverKey, { ensure = false } = {}) {
+  const link = serverKey ? server().of(serverKey) : null;
+  if (!link) return { error: 'That server is no longer in the list.', unsaved: true };
+  if (!link.isConnected()) return { error: `Not connected to ${link.host} — connect it first.` };
+  try {
+    const ensured = ensure ? await ensureOnServer(projectPath, link) : null;
+    const serverProjectPath = ensured ? ensured.serverProjectPath : await serverProjectFor(projectPath, link);
+    return {
+      link, host: link.host, serverKey: link.key, serverProjectPath: serverProjectPath || null,
+      ...(ensured && ensured.sent ? { sent: ensured.sent } : {})
+    };
+  } catch (err) {
+    const msg = err.message || String(err);
+    return { error: msg.includes(link.host) ? msg : `${link.host}: ${msg}` };
+  }
+}
+
+/**
  * Create a workspace on one server (`serverKey`). Without a key — a caller
  * that predates several servers — the first connected server is used.
  */
@@ -365,7 +393,12 @@ async function createOnServer(projectPath, { from, base, branch, serverKey = nul
     entry.rows = [...entry.rows.filter((r) => r.id !== workspace.id), workspace];
     setRows(projectPath, entry);
     notifyRenderer(projectPath);
-    return { error: null, workspace, copied: [], fetch: res.fetch, setupScript: res.setupScript, location: 'server', serverKey: link.key, ...(sent ? { sent } : {}) };
+    return {
+      error: null, workspace, copied: [], fetch: res.fetch, setupScript: res.setupScript, location: 'server', serverKey: link.key,
+      // The commit a new branch was cut from, read on the server (frame-cloud-start-on-server D6).
+      ...(res.startSha ? { startSha: res.startSha } : {}),
+      ...(sent ? { sent } : {})
+    };
   } catch (err) {
     return { error: err.message };
   }
@@ -482,8 +515,12 @@ async function status(projectPath, id) {
 /**
  * Create a workspace.
  *   from: 'new'    → new branch `<prefix>/<name>` off `origin/<base>` (fetched
- *                    first; a failed fetch falls back to what is local)
+ *                    first; a failed fetch falls back to what is local). With
+ *                    `branch`, the new branch takes that name instead and the
+ *                    workspace is named from its last segment; a name already
+ *                    taken is refused (frame-cloud-start-on-server D6).
  *   from: 'branch' → an existing branch (local, or remote-only via git's DWIM)
+ * A new branch's answer carries `startSha`, the commit it was cut from.
  */
 async function create(projectPath, { from = 'new', base, branch, location = 'local', serverKey = null, copyFiles = null } = {}) {
   if (!projectPath) return { error: 'No project selected' };
@@ -491,7 +528,8 @@ async function create(projectPath, { from = 'new', base, branch, location = 'loc
   // refuse anything that is not a plain branch name before any git runs
   // (workspace-hardening X1 — `--upload-pack=<cmd>` as a base ran a command).
   if (base !== undefined && base !== null && base !== '' && !isValidBranchName(base)) return { error: `"${base}" is not a valid base branch name.` };
-  if (from === 'branch' && !isValidBranchName(branch)) return { error: `"${branch}" is not a valid branch name.` };
+  const named = branch !== undefined && branch !== null && branch !== '';
+  if ((from === 'branch' || named) && !isValidBranchName(branch)) return { error: `"${branch}" is not a valid branch name.` };
   if (location === 'server') return createOnServer(projectPath, { from, base, branch, serverKey });
   const { error: gitError } = await git.loadWorktrees(projectPath);
   if (gitError) return { error: 'This project is not a git repository.' };
@@ -528,13 +566,20 @@ async function create(projectPath, { from = 'new', base, branch, location = 'loc
       startPoint = baseBranch;
     }
 
-    // Pick a name whose folder and branch are both free.
-    const taken = [...takenNames];
-    for (;;) {
-      name = nextName(taken);
-      targetBranch = `${settings.branchPrefix}/${name}`;
-      if (!(await git.localBranchExists(targetBranch, projectPath))) break;
-      taken.push(name);
+    if (named) {
+      // The caller's branch name (Start Work on a server): never reused.
+      if (await git.localBranchExists(branch, projectPath)) return { error: `Branch "${branch}" already exists.` };
+      targetBranch = branch;
+      name = uniquify(toSlug(branch.split('/').pop()) || nextName(takenNames), takenNames);
+    } else {
+      // Pick a name whose folder and branch are both free.
+      const taken = [...takenNames];
+      for (;;) {
+        name = nextName(taken);
+        targetBranch = `${settings.branchPrefix}/${name}`;
+        if (!(await git.localBranchExists(targetBranch, projectPath))) break;
+        taken.push(name);
+      }
     }
     base = baseBranch;
   }
@@ -587,7 +632,7 @@ async function create(projectPath, { from = 'new', base, branch, location = 'loc
   const copied = await copyIgnoredFiles(projectPath, worktreePath, copyFiles);
   tooling.provision(projectPath, worktreePath);
   notify(projectPath);
-  return { error: null, workspace: result.record, copied, fetch, setupScript: settings.setupScript };
+  return { error: null, workspace: result.record, copied, fetch, setupScript: settings.setupScript, ...(from !== 'branch' ? { startSha } : {}) };
 }
 
 async function refExists(ref, projectPath) {
@@ -798,6 +843,7 @@ module.exports = {
   list,
   serverLocation,
   serverRoots,
+  serverProject,
   provision,
   status,
   baseForBranch,

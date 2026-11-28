@@ -146,6 +146,44 @@ test('a project in local sharing mode is refused', async () => {
   await assert.rejects(methods['tasks.add']({ projectPath, task: { title: 'x' } }), /local mode/);
 });
 
+// ─── frame-cloud-start-on-server T04: tasks.insert ─────────────
+
+const startedRow = (id) => ({
+  id, title: 'Begun on the server', description: 'From the brief', status: 'pending', priority: 'medium', category: 'feature',
+  acceptanceCriteria: ['Logs in', 'Shows an error'], notes: 'Shaped in Frame Cloud', source: 'cloud:brief-12:p2',
+  createdAt: '2026-11-25T00:00:00Z', updatedAt: '2026-11-25T00:00:00Z'
+});
+
+test('start-on-server T04: tasks.insert appends rows whole to the clone\'s tasks.json and answers its path', async () => {
+  const { local, projectPath } = await receive();
+  const macBefore = fs.readFileSync(path.join(local, '.frame', 'tasks.json'), 'utf8');
+  const row = startedRow('task-cloud-12-p2');
+  const res = await methods['tasks.insert']({ projectPath, rows: [row] });
+  assert.deepEqual(res, { tasksPath: path.join(projectPath, '.frame', 'tasks.json') });
+  const onDisk = JSON.parse(fs.readFileSync(res.tasksPath, 'utf8'));
+  assert.deepEqual(onDisk.tasks.map((t) => t.id), ['task-a', 'task-b', 'task-cloud-12-p2']);
+  assert.deepEqual(onDisk.tasks[2], row, 'reserved id, acceptance criteria and notes kept as sent');
+  assert.equal(onDisk.metadata.totalCreated, 1);
+  assert.equal(fs.readFileSync(path.join(local, '.frame', 'tasks.json'), 'utf8'), macBefore, 'the Mac\'s file never changes');
+});
+
+test('start-on-server T04: tasks.insert refuses a clash, bad rows, local mode and a project without Frame, writing nothing', async () => {
+  const { projectPath } = await receive();
+  const file = path.join(projectPath, '.frame', 'tasks.json');
+  const before = fs.readFileSync(file, 'utf8');
+  await assert.rejects(methods['tasks.insert']({ projectPath, rows: [startedRow('task-new'), startedRow('task-a')] }), /task-a already exists/);
+  await assert.rejects(methods['tasks.insert']({ projectPath, rows: [startedRow('task-twice'), startedRow('task-twice')] }), /task-twice already exists/);
+  await assert.rejects(methods['tasks.insert']({ projectPath, rows: [] }), /Missing task rows/);
+  await assert.rejects(methods['tasks.insert']({ projectPath, rows: [{ title: 'no id' }] }), /Missing task rows/);
+  assert.equal(fs.readFileSync(file, 'utf8'), before, 'nothing was written');
+
+  const local = await receive({ mode: 'local' });
+  await assert.rejects(methods['tasks.insert']({ projectPath: local.projectPath, rows: [startedRow('task-x')] }), /local mode/);
+  const bare = await receive({ frame: false });
+  await assert.rejects(methods['tasks.insert']({ projectPath: bare.projectPath, rows: [startedRow('task-x')] }), new RegExp(NO_FRAME.slice(0, 30)));
+  assert.equal(fs.existsSync(path.join(bare.projectPath, '.frame')), false);
+});
+
 // ─── T03: tasks.watch ─────────────────────────────────────────
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

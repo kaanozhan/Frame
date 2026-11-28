@@ -1027,8 +1027,23 @@ function partFacts(part, brief) {
     target: brief ? brief.targetBranch : undefined,
     tracking: brief ? brief.mergeTracking : undefined,
     done: Boolean(brief) && brief.status === 'done',
+    setup: ref && settingUp.has(ref) ? { host: settingUp.get(ref) } : null,
   });
   return { record, lane, status };
+}
+
+/**
+ * The parts whose new workspace this window is still setting up, by ref →
+ * the server's host, or null on this Mac (frame-cloud-start-places D19): from
+ * the moment Begin opens the workspace until its lane opens.
+ */
+const settingUp = new Map();
+
+function markSettingUp(ref, host) {
+  if (!ref) return;
+  if (host === undefined) settingUp.delete(ref);
+  else settingUp.set(ref, host);
+  renderPartSlots();
 }
 
 /**
@@ -1068,13 +1083,25 @@ function loadedWorkspaces() {
 }
 
 /**
- * The chip naming the workspace on this Mac a part is in, which selects it
- * (frame-cloud-start-workspace); '' when it is in none.
+ * The chip naming the workspace a part is in, which selects it
+ * (frame-cloud-start-workspace); '' when it is in none. A server part's chip
+ * reads `name · host` (frame-cloud-start-on-server D3); while that server is
+ * offline it reads `· offline` and cannot be clicked. A part begun in the
+ * project checkout reads "project checkout · <branch>" instead, as text
+ * (frame-cloud-start-places D10); a workspace on its branch still wins.
  */
 function renderPartWorkspace(part, attrs) {
   const ws = copy.partWorkspace(part, loadedWorkspaces());
+  if (!ws && part.begunPlace === 'checkout' && part.begunBranch) {
+    return `<span class="cloud-briefs-prow-ws checkout" title="${escapeHtml(copy.checkoutRowHint(part.begunBranch))}">${escapeHtml(copy.checkoutRowLabel(part.begunBranch))}</span>`;
+  }
   if (!ws) return '';
-  return `<button type="button" class="cloud-briefs-prow-ws" data-action="select-part-workspace" ${attrs} data-ws-id="${escapeHtml(ws.id)}" title="${escapeHtml(copy.partWorkspaceHint(ws.name))}" tabindex="-1">${escapeHtml(ws.name)}</button>`;
+  const chip = copy.partWorkspaceChip(ws);
+  const where = ws.location === 'server' ? ' server' : '';
+  if (chip.offline) {
+    return `<span class="cloud-briefs-prow-ws${where} offline" title="${escapeHtml(chip.hint)}">${escapeHtml(chip.label)}</span>`;
+  }
+  return `<button type="button" class="cloud-briefs-prow-ws${where}" data-action="select-part-workspace" ${attrs} data-ws-id="${escapeHtml(ws.id)}" title="${escapeHtml(chip.hint)}" tabindex="-1">${escapeHtml(chip.label)}</button>`;
 }
 
 /** Select the workspace a part row's chip names, if it is still listed. */
@@ -1701,6 +1728,8 @@ function openStartDialog(number, partId) {
       notify.success(copy.startedNotice(result));
       const fetchNote = copy.fetchFailedNotice(result);
       if (fetchNote) notify.info(fetchNote);
+      const sentNote = copy.sentNotice(result);
+      if (sentNote) notify.info(sentNote);
       reloadAfterStart(number);
       openBeginLane(result);
     },
@@ -1710,21 +1739,37 @@ function openStartDialog(number, partId) {
 
 /**
  * Begin: a lane on the chosen part, in the workspace Start Work created for
- * it (frame-cloud-start-workspace). The workspace is listed and selected, its
- * setup script runs to the end (as New Workspace runs it, without an agent),
- * and it is selected again, since the user may have moved during setup.
+ * it (frame-cloud-start-workspace). The workspace is listed and selected; on
+ * a Frame Server, Send files is offered first (frame-cloud-start-on-server
+ * T12); its setup script runs to the end (as New Workspace runs it, without
+ * an agent), and it is selected again, since the user may have moved during setup.
+ * Meanwhile the part's row reads "Setting up…" (frame-cloud-start-places D19).
+ * A part begun in the project checkout has no workspace and no setup: the
+ * checkout is selected and git status refreshed, since its branch just
+ * changed (D20).
  * Then the lane opens through the paths a spec or a task runs by today:
  * `/spec.plan` for a spec, the task run for a task, which names the main
  * checkout's tasks.json and then goes in progress there. Frame opened the
- * workspace on the part's branch, so the task stays on it.
+ * workspace (or switched the checkout) on the part's branch, so the task
+ * stays on it.
  */
 async function openBeginLane(result) {
   const begin = result && result.begin;
   if (!begin) return;
   const path = state.getProjectPath();
   if (!path) return;
-  if (result.workspace) {
-    const opened = await selectBegunWorkspace(path, result.workspace, result.setupScript);
+  if (result.place === 'checkout') {
+    require('./workspaceSection').selectSpecWorkspace(null);
+    ipcRenderer.send(IPC.REFRESH_GIT_STATUS);
+  } else if (result.workspace) {
+    const ref = result.part && result.part.ref;
+    markSettingUp(ref, result.workspace.location === 'server' ? (result.workspace.host || null) : null);
+    let opened;
+    try {
+      opened = await selectBegunWorkspace(path, result.workspace, result.setupScript);
+    } finally {
+      markSettingUp(ref, undefined);
+    }
     if (!opened) return; // another project now: the lane is not opened anywhere
   }
   if (begin.shape === 'spec') {
@@ -1755,6 +1800,19 @@ async function selectBegunWorkspace(path, workspace, setupScript) {
   await section.load();
   if (state.getProjectPath() !== path) return false;
   pick();
+  // A server workspace has only what git carries: offer the files git leaves
+  // out before setup runs, as New Workspace does (server-copy-files, T12).
+  if (workspace.location === 'server') {
+    const listed = section.getWorkspaces().find((w) => w.id === workspace.id) || workspace;
+    try {
+      const sendFiles = require('./sendFilesModal');
+      const picked = await sendFiles.open({ projectPath: path, workspace: listed, context: 'create' });
+      if (picked && picked.sent) notify.info(sendFiles.summary(picked.sent));
+    } catch (err) {
+      console.error('cloudBriefsPanel: could not offer files for the server workspace', err);
+    }
+    if (state.getProjectPath() !== path) return false;
+  }
   if (setupScript) {
     try {
       await require('./newWorkspaceModal').runSetupThenAgent({ setupScript, openAgent: false });

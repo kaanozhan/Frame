@@ -12,6 +12,7 @@
  *   tasks.update  { projectPath, taskId, updates } → { task }
  *   tasks.delete  { projectPath, taskId }          → { success }
  *   tasks.reorder { projectPath, order }           → { success }
+ *   tasks.insert  { projectPath, rows }            → { tasksPath }
  *   tasks.watch   { projectPath } / tasks.unwatch
  *   event: tasks.changed { projectPath }
  *
@@ -132,6 +133,25 @@ function setup({ registerMethods, broadcast }) {
       const dir = needFrame(project(projectPath));
       if (!Array.isArray(order)) throw new Error('Missing order.');
       return { success: !!tasksManager.reorderTasks(dir, order) };
+    },
+    // Start Work's task part, begun on this server (frame-cloud-start-on-server
+    // D11): the rows go in whole — reserved id, acceptance criteria, notes —
+    // in one load and save. Any id clash refuses the call and writes nothing.
+    'tasks.insert': async ({ projectPath, rows } = {}) => {
+      const dir = needFrame(project(projectPath));
+      if (!Array.isArray(rows) || !rows.length || rows.some((r) => !r || typeof r !== 'object' || typeof r.id !== 'string' || !r.id)) {
+        throw new Error('Missing task rows.');
+      }
+      const data = tasksManager.loadTasks(dir);
+      if (!data || !Array.isArray(data.tasks)) throw new Error('.frame/tasks.json could not be read on the server.');
+      const taken = new Set(data.tasks.map((t) => t && t.id));
+      const clash = rows.find((r, i) => taken.has(r.id) || rows.findIndex((o) => o.id === r.id) !== i);
+      if (clash) throw new Error(`${clash.id} already exists in .frame/tasks.json on the server`);
+      data.tasks.push(...rows);
+      data.metadata = data.metadata || {};
+      data.metadata.totalCreated = (data.metadata.totalCreated || 0) + rows.length;
+      if (!tasksManager.saveTasks(dir, data)) throw new Error('.frame/tasks.json could not be written on the server.');
+      return { tasksPath: tasksPathOf(dir) };
     },
     // Watch this project's tasks.json, and only this one: the desktop
     // follows one project at a time.

@@ -14,6 +14,8 @@
  *   specs.unwatch                                   stop watching
  *   specs.stage  { projectPath, root, slug, command, aiTool, description }
  *                provision Frame's tooling, then stage the command's prompt in root
+ *   specs.create { projectPath, root, slug, files }  a new spec folder holding only
+ *                spec.md and status.json, as Start Work writes it (frame-cloud-start-on-server D10)
  *
  * specs.stage does what the desktop does for a local workspace, here: the
  * clone gets Frame's gitignored tooling from this package (hook scripts in
@@ -41,6 +43,8 @@ const LOCAL_MODE = 'This project keeps Frame files out of git (local mode), so a
 const SLUG_RE = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
 // What the desktop may change on a server spec: what the spec flow needs.
 const STATUS_KEYS = ['phase', 'implement_mode', 'flow_mode'];
+// What Start Work may write into a new spec folder, and nothing else.
+const CREATE_FILES = ['spec.md', 'status.json'];
 const CHANGE_DEBOUNCE_MS = 300;
 
 function setup({ registerMethods, broadcast }) {
@@ -130,6 +134,25 @@ function setup({ registerMethods, broadcast }) {
       return { watching: Array.from(watchers.keys()) };
     },
     'specs.unwatch': async () => { unwatchAll(); return null; },
+    // Start Work's spec part, begun on this server: a brand-new folder only,
+    // never an overwrite, and only the two files Shape produced.
+    'specs.create': async ({ projectPath, root, slug, files } = {}) => {
+      const dir = checkout(projectPath, root);
+      needSlug(slug);
+      let mode = 'repo';
+      try { mode = gitSharing.getMode(projectPath); } catch (_) { mode = 'repo'; }
+      if (mode === 'local') throw new Error(LOCAL_MODE);
+      const names = files && typeof files === 'object' && !Array.isArray(files) ? Object.keys(files) : [];
+      if (!names.length || names.some((n) => !CREATE_FILES.includes(n) || typeof files[n] !== 'string')) {
+        throw new Error('A new spec takes only spec.md and status.json, as text.');
+      }
+      const folder = frameStore.resolveSpecDir(dir, slug);
+      if (fs.existsSync(folder)) throw new Error(`.frame/specs/${slug} already exists on this branch`);
+      fs.mkdirSync(folder, { recursive: true });
+      const created = CREATE_FILES.filter((n) => names.includes(n));
+      for (const name of created) fsSafe.writeFileAtomic(path.join(folder, name), files[name]);
+      return { created };
+    },
     'specs.stage': async ({ projectPath, root, slug = null, command, aiTool = 'claude-code', description = '' } = {}) => {
       const dir = checkout(projectPath, root);
       if (!COMMANDS.includes(command)) return { success: false, error: `Unknown spec command: ${command}` };

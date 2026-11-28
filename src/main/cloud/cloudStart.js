@@ -28,6 +28,9 @@ const TASK_TITLE_MAX = 60;
 /** A part's type → its branch prefix. */
 const BRANCH_PREFIXES = { feature: 'feat/', fix: 'fix/', refactor: 'refactor/', docs: 'docs/', test: 'test/' };
 
+/** Where a begun part runs (frame-cloud-start-places): the project checkout, a new workspace, or a server workspace. */
+const PLACES = ['checkout', 'workspace', 'server'];
+
 function str(value) {
   return typeof value === 'string' ? value : '';
 }
@@ -257,7 +260,11 @@ function startable(brief) {
 // (`baseSha`, kept since frame-cloud-brief-done). Begin now sends the branch
 // to the cloud too (`brief.recordBranch`), so every machine can show it; this
 // store stays the machine's own record, for parts begun before that and for
-// telling this machine's deleted branch from a teammate's.
+// telling this machine's deleted branch from a teammate's. A part begun in a
+// workspace on a Frame Server also keeps that server's key (`serverKey`,
+// frame-cloud-start-on-server D13); an entry without one is This Mac's. A
+// part begun in the project checkout keeps `place: 'checkout'` and its
+// `title` (frame-cloud-start-places D2), so the checkout's lock can name it.
 
 function isNonEmpty(value) {
   return typeof value === 'string' && value.length > 0;
@@ -272,12 +279,22 @@ function isSha(value) {
   return typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
 }
 
-/** `{ ref, branch, begunAt, baseSha? }`, or null. `baseSha` is optional: older entries have none. */
+/**
+ * `{ ref, branch, begunAt, baseSha?, serverKey?, place?, title? }`, or null.
+ * `baseSha` is optional: older entries have none. No `serverKey` means This
+ * Mac, and no `place` a workspace, so the store grows without a migration.
+ * `place` is only ever 'checkout', and `title` is kept only with it.
+ */
 function normalizeBegunEntry(raw) {
   const e = obj(raw);
   if (!isNonEmpty(e.ref) || !isNonEmpty(e.branch) || !isNonEmpty(e.begunAt)) return null;
   const entry = { ref: e.ref, branch: e.branch, begunAt: e.begunAt };
   if (isSha(e.baseSha)) entry.baseSha = e.baseSha;
+  if (isNonEmpty(e.serverKey)) entry.serverKey = e.serverKey;
+  if (e.place === 'checkout' && !entry.serverKey) {
+    entry.place = 'checkout';
+    if (isNonEmpty(e.title)) entry.title = e.title;
+  }
   return entry;
 }
 
@@ -296,14 +313,14 @@ function normalizeBegun(store) {
 }
 
 /** The store with one part recorded as begun (a later Begin of the same part replaces it). */
-function addBegun(store, { projectId, number, partId, ref, branch, begunAt, baseSha }) {
+function addBegun(store, { projectId, number, partId, ref, branch, begunAt, baseSha, serverKey, place, title }) {
   const base = normalizeBegun(store);
-  const entry = normalizeBegunEntry({ ref, branch, begunAt, baseSha });
+  const entry = normalizeBegunEntry({ ref, branch, begunAt, baseSha, serverKey, place, title });
   if (!isNonEmpty(projectId) || !Number.isInteger(number) || !isNonEmpty(partId) || !entry) return base;
   return { version: 1, begun: { ...base.begun, [begunKey(projectId, number, partId)]: entry } };
 }
 
-/** `{ ref, branch, begunAt, baseSha? }` for a part this machine began, or null. */
+/** `{ ref, branch, begunAt, baseSha?, serverKey?, place?, title? }` for a part this machine began, or null. */
 function getBegun(store, projectId, number, partId) {
   const begun = obj(obj(store).begun);
   const key = begunKey(projectId, number, partId);
@@ -311,28 +328,85 @@ function getBegun(store, projectId, number, partId) {
 }
 
 /**
- * The briefs with `begunBranch` (a branch, or null) and `branchGone` on each
- * listed part. `localBranches` (a Set of this folder's branch names) drops an
- * entry whose branch is gone — deleted since, so the part waits to be begun
- * again; left out, every entry counts. `branchGone` is true when that gone
- * branch is also the part's cloud `branch`: this machine began it there and
- * deleted it, so the cloud's branch must not keep the row at "On <branch>".
- * A cloud branch begun on another machine is never gone here. Briefs without
- * parts are left as they are.
+ * Does a begun entry still stand? A Mac entry while `localBranches` (a Set
+ * of this folder's branch names) has its branch. A server entry while its
+ * server is in `servers` (`{ [serverKey]: Set | null }`, the saved servers)
+ * and that server's set has the branch, or is null because the server is
+ * offline or could not list it (D13). A server no longer saved cannot be
+ * reached or listed, so its entry no longer stands (D4). Left out, either
+ * map counts every entry of its kind.
  */
-function withBegunBranches(briefs, store, projectId, localBranches = null) {
+function begunLive(entry, localBranches = null, servers = null) {
+  if (!entry) return false;
+  if (!entry.serverKey) return !localBranches || localBranches.has(entry.branch);
+  if (!servers) return true;
+  if (!Object.prototype.hasOwnProperty.call(servers, entry.serverKey)) return false;
+  const onServer = servers[entry.serverKey];
+  return !onServer || onServer.has(entry.branch);
+}
+
+/**
+ * The briefs with `begunBranch` (a branch, or null) and `branchGone` on each
+ * listed part, `begunServerKey` on a part begun on a Frame Server, and
+ * `begunPlace: 'checkout'` on one begun in the project checkout.
+ * An entry that no longer stands (`begunLive`) — its branch deleted since,
+ * or its server removed — lets the part wait to be begun again.
+ * `branchGone` is true when that entry's branch is also the part's cloud
+ * `branch`: this machine began it there and lost it, so the cloud's branch
+ * must not keep the row at "On <branch>". A cloud branch begun on another
+ * machine is never gone here. Briefs without parts are left as they are.
+ */
+function withBegunBranches(briefs, store, projectId, localBranches = null, servers = null) {
   return arr(briefs).map((brief) => {
     if (!Array.isArray(brief.parts)) return brief;
     return {
       ...brief,
       parts: brief.parts.map((part) => {
         const entry = getBegun(store, projectId, brief.number, part.id);
-        const live = entry && (!localBranches || localBranches.has(entry.branch));
+        const live = begunLive(entry, localBranches, servers);
         const branchGone = Boolean(entry && !live && part.branch && part.branch === entry.branch);
-        return { ...part, begunBranch: live ? entry.branch : null, branchGone };
+        const out = { ...part, begunBranch: live ? entry.branch : null, branchGone };
+        if (live && entry.serverKey) out.begunServerKey = entry.serverKey;
+        if (live && entry.place === 'checkout') out.begunPlace = 'checkout';
+        return out;
       }),
     };
   });
+}
+
+// ─── The project checkout ─────────────────────────────────────
+
+/**
+ * The begun part that keeps the project checkout busy (frame-cloud-start-places
+ * D1, D15): an entry of `projectId` begun in the checkout, whose branch is
+ * the checkout's `currentBranch`, and whose record `isFinished(entry)` says
+ * is not finished yet (its spec is not `done`, its task not `completed`).
+ * → `{ title, ref, branch }`, the title falling back to the ref, or null.
+ */
+function checkoutBusy(store, projectId, currentBranch, isFinished = () => false) {
+  if (!isNonEmpty(projectId) || !isNonEmpty(currentBranch)) return null;
+  const prefix = `${projectId}:`;
+  for (const [key, raw] of Object.entries(obj(obj(store).begun))) {
+    if (!key.startsWith(prefix)) continue;
+    const entry = normalizeBegunEntry(raw);
+    if (!entry || entry.place !== 'checkout' || entry.branch !== currentBranch) continue;
+    if (isFinished(entry)) continue;
+    return { title: entry.title || entry.ref, ref: entry.ref, branch: entry.branch };
+  }
+  return null;
+}
+
+/**
+ * Why the project checkout cannot take a part now, or null (D6, D14): a busy
+ * part first — `{ reason: 'checkoutBusy', part: <title>, detail: <branch> }` —
+ * then uncommitted changes — `{ reason: 'checkoutDirty', detail: <count> }`.
+ * The checkout is never stashed, so either one locks it.
+ */
+function checkoutBlock({ changes, busy } = {}) {
+  if (busy && isNonEmpty(busy.branch)) return { reason: 'checkoutBusy', part: str(busy.title) || str(busy.ref), detail: busy.branch };
+  const count = Number(changes) || 0;
+  if (count > 0) return { reason: 'checkoutDirty', detail: count };
+  return null;
 }
 
 // ─── The dialog and the start ─────────────────────────────────
@@ -341,13 +415,45 @@ function withBegunBranches(briefs, store, projectId, localBranches = null) {
  * What the branch is cut from by default: `origin/<targetBranch>`, which the
  * start fetches first, else the local `targetBranch`, else null. Origin's
  * copy wins because a local branch can be behind it, and New Workspace cuts
- * from origin's copy too (frame-cloud-start-workspace T11).
+ * from origin's copy too (frame-cloud-start-workspace T11). The project
+ * checkout prefers the local target (`prefer: 'local'`,
+ * frame-cloud-start-places D13): it is switched where the user works.
  */
-function pickBase(targetBranch, { local, remote }) {
+function pickBase(targetBranch, { local, remote }, { prefer = 'origin' } = {}) {
   if (!targetBranch) return null;
+  if (prefer === 'local' && local) return targetBranch;
   if (remote) return `origin/${targetBranch}`;
   if (local) return targetBranch;
   return null;
+}
+
+/**
+ * Each place's default base (D13, D17): the checkout's local target first,
+ * a workspace's `origin/<target>` first, and a server's `origin/<target>`
+ * only, since a server cuts from origin alone. `targetOn` says where the
+ * brief's target exists: `{ local, remote }`.
+ */
+function placeBases(targetBranch, targetOn) {
+  const on = obj(targetOn);
+  return {
+    checkout: pickBase(targetBranch, on, { prefer: 'local' }),
+    workspace: pickBase(targetBranch, on),
+    server: targetBranch && on.remote ? `origin/${targetBranch}` : null,
+  };
+}
+
+/** The checkout's facts as the dialog reads them, or null when main gave none. */
+function checkoutView(checkout) {
+  if (!checkout || typeof checkout !== 'object') return null;
+  const busy = checkout.busy && isNonEmpty(checkout.busy.branch)
+    ? { title: str(checkout.busy.title) || str(checkout.busy.ref), ref: str(checkout.busy.ref), branch: checkout.busy.branch }
+    : null;
+  return {
+    path: str(checkout.path),
+    branch: str(checkout.branch),
+    changes: Number.isInteger(checkout.changes) && checkout.changes > 0 ? checkout.changes : 0,
+    busy,
+  };
 }
 
 /**
@@ -438,8 +544,14 @@ function startMode(brief) {
  * bases }` or `{ ok: false, reason: 'notStartable' }`.
  * `base` is the default (the target, origin's else local) and `bases` what
  * the "from" menu offers.
+ *
+ * For the three places (frame-cloud-start-places D17) the view also carries
+ * `placeBases` (each place's default base, from `targetOn: { local, remote }`,
+ * all null without it), `checkout: { path, branch, changes, busy }` (the
+ * project checkout's state; null when not given) and `workspaceFolder`
+ * (where a new workspace's folder goes on this Mac; null when not given).
  */
-function prepareView({ brief, base, begun = {}, branches = [] }) {
+function prepareView({ brief, base, begun = {}, branches = [], targetOn = null, checkout = null, workspaceFolder = null }) {
   const b = obj(brief);
   const mode = startMode(b);
   if (!mode) return { ok: false, reason: 'notStartable' };
@@ -467,6 +579,9 @@ function prepareView({ brief, base, begun = {}, branches = [] }) {
     suggestions: branchSuggestions(b),
     base: base || null,
     bases: baseOptions(branches),
+    placeBases: placeBases(b.targetBranch, targetOn),
+    checkout: checkoutView(checkout),
+    workspaceFolder: isNonEmpty(workspaceFolder) ? workspaceFolder : null,
   };
 }
 
@@ -475,8 +590,56 @@ function errorText(err) {
 }
 
 /**
- * A Start Work or Begin request (`{ number, beginPartId, branch, base }`) →
- * what happened. One part is begun each time, in a workspace of its own
+ * Does this machine's begun entry still stand in the way of Begin? The
+ * service answers it (`deps.begunStands`) for a server entry by D13's rule;
+ * without that dep, the Mac's branch decides, as before.
+ */
+async function begunStands(entry, deps) {
+  if (deps.begunStands) return Boolean(await deps.begunStands(entry));
+  return deps.localBranchExists(entry.branch);
+}
+
+/** `alreadyBegun`'s detail: the branch, and the host when the part is on a server (D5). */
+async function begunDetail(entry, deps) {
+  if (!entry.serverKey || !deps.hostOf) return entry.branch;
+  const host = str(await deps.hostOf(entry.serverKey));
+  return host ? `${entry.branch} on ${host}` : entry.branch;
+}
+
+/**
+ * The checks a server start runs before `brief.start` (D9, D15): a base on
+ * origin only, then the server's own preflight — reached, new enough, the
+ * project on it, the branch free in its clone, origin holding the base.
+ * → `{ ok: true, base, fetch, tasksPath }` or a refusal.
+ */
+async function serverChecks({ brief, branch, chosenBase }, deps) {
+  let base;
+  if (chosenBase) {
+    if (!chosenBase.startsWith('origin/')) return { ok: false, reason: 'baseNotOnOrigin', detail: chosenBase };
+    base = chosenBase;
+  } else {
+    if (!isNonEmpty(brief.targetBranch)) return { ok: false, reason: 'baseMissing', detail: brief.targetBranch };
+    base = `origin/${brief.targetBranch}`;
+  }
+  if (!deps.serverPreflight) return { ok: false, reason: 'serverUnavailable', detail: '' };
+  let pre;
+  try {
+    pre = obj(await deps.serverPreflight({ branch, base: workspaceBase(base) }));
+  } catch (err) {
+    return { ok: false, reason: 'serverUnavailable', detail: errorText(err) };
+  }
+  if (pre.ok === false) return { ok: false, reason: pre.reason === 'serverOld' ? 'serverOld' : 'serverUnavailable', detail: str(pre.detail) };
+  if (pre.branchTaken) return { ok: false, reason: 'branchTaken', detail: branch };
+  if (!pre.baseOnOrigin) return { ok: false, reason: 'baseNotOnOrigin', detail: base };
+  const f = obj(pre.fetch);
+  const fetch = { fetched: f.fetched === true, error: f.fetched === true ? null : errorText(f.error || 'the fetch failed'), skipped: false };
+  const sent = pre.sent && typeof pre.sent === 'object' ? { uncommitted: Number(pre.sent.uncommitted) || 0 } : null;
+  return { ok: true, base, fetch, tasksPath: str(pre.tasksPath) || null, sent };
+}
+
+/**
+ * A Start Work or Begin request (`{ number, beginPartId, branch, base,
+ * serverKey? }`) → what happened. One part is begun each time, in a workspace of its own
  * (frame-cloud-start-workspace): its branch is cut from the brief's target
  * without touching the main checkout, a new workspace opens that branch, and
  * only that part is written — a spec part's folder into the workspace, a
@@ -522,9 +685,42 @@ function errorText(err) {
  * before it opens the lane there, and `fetch: { fetched, error, skipped }`; a task part's `begin` also carries
  * `tasksPath`, so the task run updates the main checkout's file. Partial
  * steps: `branch`, `workspace` (the branch stays) and `files`.
+ *
+ * With `serverKey` the part starts on that Frame Server
+ * (frame-cloud-start-on-server). The base must be `origin/<x>` (D15), and
+ * `deps.serverPreflight({ branch, base })` → `{ branchTaken, baseOnOrigin,
+ * fetch, tasksPath }`, or `{ ok: false, reason: 'serverUnavailable' |
+ * 'serverOld', detail }`, runs before `brief.start` (D9); the Mac's branches
+ * are not asked. No branch is cut here: `deps.createWorkspace` cuts it on
+ * the server and answers `startSha`, the `baseSha` (D6). The service binds
+ * `createWorkspace`, `writeSpec` and `writeTasks` to that server; the task
+ * part's `tasksPath` is the server clone's, from the preflight. The begun
+ * record keeps `serverKey`. Begin's guard asks `deps.begunStands(entry)`
+ * when given (D14), and `deps.hostOf(serverKey)` names the host in
+ * `alreadyBegun` (D5). When the preflight had to send the project there
+ * (`sent: { uncommitted }`), the answer carries `sent` too (T12).
+ *
+ * `place` names where the part runs (frame-cloud-start-places D11):
+ * 'checkout', 'workspace' or 'server'. Without it a `serverKey` means a
+ * server, else a workspace; a server without a `serverKey`, or another place
+ * with one, is `badRequest`. In the project checkout ('checkout', D12) the
+ * lock is checked first, from `deps.checkoutState()` → `{ branch, changes,
+ * busy }` (`checkoutBusy` / `checkoutDirty`, D14) — the checkout is never
+ * stashed. The base defaults to the local target (D13). After `brief.start`
+ * the branch is cut and checked out in the project folder
+ * (`deps.createBranch(name, base, { track, checkout: true })`), no workspace
+ * is opened, and the spec is written under `deps.checkoutPath`; the begun
+ * record keeps `place: 'checkout'` and the part's title. The answer carries
+ * `place`, `workspace: null` and `checkout: { from }`, the branch it left.
+ * Partial steps there: `branch` and `files`.
  */
 async function handleStartRequest(request, deps) {
   const r = obj(request);
+  const serverKey = isNonEmpty(r.serverKey) ? r.serverKey : null;
+  const place = PLACES.includes(r.place) ? r.place : (serverKey ? 'server' : 'workspace');
+  if ((place === 'server') !== Boolean(serverKey)) return { ok: false, reason: 'badRequest' };
+  const inCheckout = place === 'checkout';
+
   const read = await deps.call((ctx) => getBrief({ ...ctx, projectSlug: deps.projectSlug, number: r.number }));
   if (!read.ok) return { ok: false, reason: read.reason };
   const brief = read.value;
@@ -537,7 +733,7 @@ async function handleStartRequest(request, deps) {
     if (!part.recordRef) return { ok: false, reason: 'notStartable' };
     const begun = await deps.begun(part.id);
     // A record whose branch is gone (deleted since) no longer stands in the way.
-    if (begun && await deps.localBranchExists(begun.branch)) return { ok: false, reason: 'alreadyBegun', detail: begun.branch };
+    if (begun && await begunStands(begun, deps)) return { ok: false, reason: 'alreadyBegun', detail: await begunDetail(begun, deps) };
   }
 
   const problem = definitionProblem(part);
@@ -550,23 +746,42 @@ async function handleStartRequest(request, deps) {
 
   const branch = str(r.branch).trim() || branchSuggestions(brief)[part.id];
   if (!deps.isValidBranchName(branch)) return { ok: false, reason: 'badBranch', detail: branch };
-  if (await deps.localBranchExists(branch)) return { ok: false, reason: 'branchTaken', detail: branch };
 
-  // The base the user picked, else the brief's target (origin's, else local).
+  // The base the user picked, else the brief's target (origin's, else local;
+  // local first in the project checkout).
   const chosenBase = str(r.base).trim();
   let base;
-  if (chosenBase) {
-    if (!await baseExists(chosenBase, deps)) return { ok: false, reason: 'baseMissing', detail: chosenBase };
-    base = chosenBase;
+  let fetch;
+  let serverTasksPath = null;
+  let sent = null;
+  let checkoutFrom = '';
+  if (serverKey) {
+    const checked = await serverChecks({ brief, branch, chosenBase }, deps);
+    if (!checked.ok) return checked;
+    ({ base, fetch, sent } = checked);
+    serverTasksPath = checked.tasksPath;
   } else {
-    base = pickBase(brief.targetBranch, {
-      local: await deps.localBranchExists(brief.targetBranch),
-      remote: await deps.remoteBranchExists(brief.targetBranch),
-    });
-    if (!base) return { ok: false, reason: 'baseMissing', detail: brief.targetBranch };
+    if (inCheckout) {
+      // Main reads the checkout again: the renderer's lock is not trusted (C2).
+      if (!deps.checkoutState) return { ok: false, reason: 'other' };
+      const state = obj(await deps.checkoutState());
+      const block = checkoutBlock(state);
+      if (block) return { ok: false, ...block };
+      checkoutFrom = str(state.branch);
+    }
+    if (await deps.localBranchExists(branch)) return { ok: false, reason: 'branchTaken', detail: branch };
+    if (chosenBase) {
+      if (!await baseExists(chosenBase, deps)) return { ok: false, reason: 'baseMissing', detail: chosenBase };
+      base = chosenBase;
+    } else {
+      base = pickBase(brief.targetBranch, {
+        local: await deps.localBranchExists(brief.targetBranch),
+        remote: await deps.remoteBranchExists(brief.targetBranch),
+      }, { prefer: inCheckout ? 'local' : 'origin' });
+      if (!base) return { ok: false, reason: 'baseMissing', detail: brief.targetBranch };
+    }
+    fetch = await fetchBase(base, deps);
   }
-
-  const fetch = await fetchBase(base, deps);
 
   if (refs) {
     const started = await startThrough(deps.call, {
@@ -586,47 +801,62 @@ async function handleStartRequest(request, deps) {
     error: errorText(err),
   });
 
-  try {
-    // A remote base is cut without tracking, so the work branch does not track it.
-    await deps.createBranch(branch, base, { track: !base.startsWith('origin/') });
-  } catch (err) {
-    return partial('branch', err);
-  }
-
-  // The commit the branch was cut from: its own tip, right after it is cut.
-  // Worktrees share refs with the main repository, so this is the same
-  // commit the workspace starts at.
   let baseSha = null;
-  try {
-    const tip = deps.branchSha ? await deps.branchSha(branch) : null;
-    baseSha = isSha(tip) ? tip : null;
-  } catch {
-    baseSha = null;
+  if (!serverKey) {
+    try {
+      // A remote base is cut without tracking, so the work branch does not track
+      // it. In the project checkout the branch is also checked out there.
+      const track = !base.startsWith('origin/');
+      await deps.createBranch(branch, base, inCheckout ? { track, checkout: true } : { track });
+    } catch (err) {
+      return partial('branch', err);
+    }
+
+    // The commit the branch was cut from: its own tip, right after it is cut.
+    // Worktrees share refs with the main repository, so this is the same
+    // commit the workspace starts at.
+    try {
+      const tip = deps.branchSha ? await deps.branchSha(branch) : null;
+      baseSha = isSha(tip) ? tip : null;
+    } catch {
+      baseSha = null;
+    }
   }
 
-  // The part's own workspace, opened on the branch just cut. A failure leaves
-  // the branch where it is: Start Work can be finished from it by hand.
-  let workspace;
+  // The part's own workspace, opened on the branch just cut — or, on a
+  // server, cut and opened there in one call. A failure leaves a Mac branch
+  // where it is: Start Work can be finished from it by hand. The server
+  // drops its own half-made branch. The project checkout opens none.
+  let workspace = null;
   let setupScript = '';
-  try {
-    const created = obj(await deps.createWorkspace(branch, workspaceBase(base)));
-    const ws = obj(created.workspace);
-    if (!isNonEmpty(ws.id) || !isNonEmpty(ws.path)) throw new Error('the workspace was not created');
-    workspace = { id: ws.id, name: str(ws.name), path: ws.path, branch: str(ws.branch) || branch, base: ws.base || null };
-    setupScript = str(created.setupScript);
-  } catch (err) {
-    return partial('workspace', err);
+  if (!inCheckout) {
+    try {
+      const created = obj(await deps.createWorkspace(branch, workspaceBase(base)));
+      const ws = obj(created.workspace);
+      if (!isNonEmpty(ws.id) || !isNonEmpty(ws.path)) throw new Error('the workspace was not created');
+      workspace = { id: ws.id, name: str(ws.name), path: ws.path, branch: str(ws.branch) || branch, base: ws.base || null };
+      if (serverKey) {
+        workspace.location = 'server';
+        workspace.serverKey = serverKey;
+        if (isNonEmpty(ws.host)) workspace.host = ws.host;
+        baseSha = isSha(created.startSha) ? created.startSha : null;
+      }
+      setupScript = str(created.setupScript);
+    } catch (err) {
+      return partial('workspace', err);
+    }
   }
 
   const now = deps.now();
   let begin;
   try {
     if (part.shape === 'spec') {
-      await deps.writeSpec(ref, specFiles({ slug: ref, title: part.title, definition: part.definition, now }), workspace.path);
+      const root = inCheckout ? deps.checkoutPath : workspace.path;
+      await deps.writeSpec(ref, specFiles({ slug: ref, title: part.title, definition: part.definition, now }), root);
       begin = { shape: 'spec', slug: ref, title: part.title };
     } else {
       const row = taskRow({ part, fields: parseTaskDefinition(part.definition).fields, id: ref, brief, now });
-      const tasksPath = str(deps.tasksPath ? await deps.tasksPath() : '') || null;
+      const tasksPath = serverKey ? serverTasksPath : (str(deps.tasksPath ? await deps.tasksPath() : '') || null);
       await deps.writeTasks([row]);
       begin = {
         shape: 'task',
@@ -637,7 +867,10 @@ async function handleStartRequest(request, deps) {
   } catch (err) {
     return partial('files', err);
   }
-  await deps.recordBegun({ partId: part.id, ref, branch, baseSha });
+  const entry = { partId: part.id, ref, branch, baseSha };
+  if (serverKey) entry.serverKey = serverKey;
+  if (inCheckout) Object.assign(entry, { place: 'checkout', title: part.title });
+  await deps.recordBegun(entry);
   if (baseSha && deps.recordBranch) {
     // Fired, not awaited: a failure never reaches Begin's answer.
     (async () => deps.recordBranch({ id: brief.id, partId: part.id, branch, baseSha }))().catch(() => {});
@@ -652,13 +885,17 @@ async function handleStartRequest(request, deps) {
     specs: part.shape === 'spec' ? 1 : 0,
     tasks: part.shape === 'task' ? 1 : 0,
     begin,
+    place,
     workspace,
     setupScript,
     fetch,
+    ...(sent ? { sent } : {}),
+    ...(inCheckout ? { checkout: { from: checkoutFrom } } : {}),
   };
 }
 
 module.exports = {
+  PLACES,
   SLUG_MAX,
   BRANCH_NAME_MAX,
   TASK_TITLE_MAX,
@@ -679,8 +916,12 @@ module.exports = {
   normalizeBegun,
   addBegun,
   getBegun,
+  begunLive,
   withBegunBranches,
+  checkoutBusy,
+  checkoutBlock,
   pickBase,
+  placeBases,
   workspaceBase,
   baseOptions,
   prepareView,

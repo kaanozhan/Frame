@@ -506,9 +506,19 @@ function beginDialogTitle(title) {
   return `Begin “${title}”`;
 }
 
-const START_DIALOG_DESCRIPTION = 'The part you begin gets its own branch and workspace, and opens in a lane there. The other parts wait on the brief until you begin them.';
-const BEGIN_DIALOG_DESCRIPTION = 'This part gets its own branch and workspace, and opens in a lane there.';
-const START_CHOICE_TITLE = 'Begin with';
+const START_DIALOG_DESCRIPTION = 'Every part is reserved on the brief. Pick the one to begin now; the others wait on the brief until you begin them.';
+const BEGIN_DIALOG_DESCRIPTION = 'Pick where this part runs. It gets its own branch there and opens in a lane.';
+const START_CHOICE_TITLE = 'What to work on';
+const PLACE_TITLE = 'Where to work';
+const NEXT_LABEL = 'Next';
+const BACK_LABEL = 'Back';
+const CHANGE_LABEL = 'Change';
+const PART_LABEL = 'Part';
+
+/** The dialog's footer while Start Work has two steps: "Step 1 of 2 · What to work on". */
+function stepLabel(step) {
+  return step === 2 ? `Step 2 of 2 · ${PLACE_TITLE}` : `Step 1 of 2 · ${START_CHOICE_TITLE}`;
+}
 
 /** A Begin choice: "Begin with “Login flow”". */
 function beginWithLabel(title) {
@@ -518,8 +528,8 @@ function beginWithLabel(title) {
 /** What Begin opens, by the part's shape. */
 function beginHint(shape) {
   return shape === 'spec'
-    ? 'Writes this spec in a new workspace on its own branch, then opens a lane there that plans it.'
-    : 'Adds this task, opens a new workspace on its own branch, then a lane there that runs it.';
+    ? 'Writes this spec on its own branch, then opens a lane that plans it.'
+    : 'Adds this task on its own branch, then opens a lane that runs it.';
 }
 
 const ORCHESTRATE_LABEL = 'Orchestrate';
@@ -527,10 +537,173 @@ const ORCHESTRATE_HINT = 'Run every part side by side, each on its own branch.';
 const COMING_SOON = 'Coming soon';
 const BRANCH_LABEL = 'Branch';
 const FROM_LABEL = 'from';
-const WORKSPACE_LABEL = 'Workspace';
-const LOCATION_LABEL = 'Location';
 const THIS_MAC_LABEL = 'This Mac';
-const SERVER_LOCATION_LABEL = 'Server';
+/** Why the server card is disabled in local mode (frame-cloud-start-on-server C6). */
+const LOCAL_MODE_LOCATION_HINT = 'This project keeps Frame files out of git (local mode), so its parts start on This Mac only.';
+
+// ─── Start Work's three places (frame-cloud-start-places) ─────
+
+/** Each place's card title. */
+const PLACE_LABELS = {
+  checkout: 'Project checkout',
+  workspace: 'New workspace',
+  server: 'Server workspace',
+};
+
+function plural(n, one, many) {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+/** The project checkout card's meta line: its path, and the branch it is on (none on a detached HEAD). */
+function checkoutMeta(path, branch) {
+  const p = String(path || '');
+  return branch ? `${p} · on ${branch}` : p;
+}
+
+/**
+ * The three short facts each card lists (D9). `branch` is the checkout's
+ * current branch, which a new workspace leaves as it is.
+ */
+function placeFacts(place, { branch = '' } = {}) {
+  if (place === 'checkout') return ['Your project folder switches to the part’s branch', 'Starts right away, no setup', 'One part at a time here'];
+  if (place === 'server') return ['Keeps running while this Mac sleeps', 'Committed work only; you tick extra files', 'Setup runs there first'];
+  return [branch ? `Its own folder; the checkout stays on ${branch}` : 'Its own folder; the checkout stays as it is', 'Setup runs first', 'Other parts can run beside it'];
+}
+
+/**
+ * Why the project checkout card is locked, or null (D1, D6): a begun part
+ * still in progress on its branch first, then its uncommitted changes. The
+ * checkout is never stashed. `checkout` is the dialog view's.
+ */
+function checkoutLock(checkout) {
+  const c = checkout || {};
+  if (c.busy && c.busy.branch) {
+    return `“${c.busy.title || c.busy.ref}” is in progress here, on ${c.busy.branch}. Switching the branch would pull it out from under that part.`;
+  }
+  const n = Number(c.changes) || 0;
+  if (n > 0) return `${plural(n, 'uncommitted change', 'uncommitted changes')} here. Commit them to start in the project checkout.`;
+  return null;
+}
+
+/**
+ * The server card's state, from the saved servers (`{ key, host, status }`,
+ * as serverConnect lists them) and local mode (D8): `localMode` (disabled in
+ * every state), `none` (no server saved yet), `offline` (only servers not
+ * connected) or `ready` (one or more connected). → `{ kind, connected:
+ * [{ key, host }], offline: [{ key, host }] }`.
+ */
+function serverCardState(servers, { localMode = false } = {}) {
+  const list = (Array.isArray(servers) ? servers : []).filter((s) => s && s.key);
+  const view = (s) => ({ key: s.key, host: String(s.host || s.key) });
+  const isUp = (s) => Boolean(s.status && s.status.state === 'connected');
+  const connected = list.filter(isUp).map(view);
+  const offline = list.filter((s) => !isUp(s)).map(view);
+  let kind = 'ready';
+  if (localMode) kind = 'localMode';
+  else if (list.length === 0) kind = 'none';
+  else if (connected.length === 0) kind = 'offline';
+  return { kind, connected, offline };
+}
+
+/** The server card's meta line: the connected hosts. */
+function serverCardMeta(hosts) {
+  return (Array.isArray(hosts) ? hosts : []).join(', ');
+}
+
+/** A saved server that is not connected, on the server card. */
+function serverOfflineLine(host) {
+  return `${host} is not connected.`;
+}
+
+const CONNECT_LABEL = 'Connect';
+const ADD_SERVER_LABEL = 'Add a server…';
+const NO_SERVER_TAG = 'No server yet';
+const NO_SERVER_TEXT = 'Run parts on a machine of your own, so they keep going while this Mac sleeps or is closed.';
+const NO_SERVER_FACTS = ['A Linux or macOS machine you reach with ssh', 'Frame installs Frame Server there for you'];
+const SERVER_SELECT_LABEL = 'Server';
+
+/** A server in the Server select: its host, and "(not connected)" while it is down. */
+function serverOptionLabel(host, { offline = false } = {}) {
+  return offline ? `${host} (not connected)` : String(host || '');
+}
+
+/**
+ * The notice when the Servers dialog closed to hand the screen to a terminal
+ * (D3): Start Work closed with it, so the terminal is not covered.
+ */
+const SERVER_HANDOFF_NOTICE = 'Start Work closed so you can finish in the terminal. Open it again once the server is connected.';
+
+/** The line under "Where to work" before a place is picked: what the branch will be set up from. */
+function placePendingLine(targetBranch) {
+  return targetBranch
+    ? `Pick where it runs, and its branch is set up for that place: your local ${targetBranch} for the project checkout, a fetched origin/${targetBranch} for a workspace.`
+    : 'Pick where it runs, and its branch is set up for that place.';
+}
+
+/** "Branch · <this>": where the branch row's branch goes. */
+function branchPlaceLabel(place, host) {
+  if (place === 'checkout') return 'in the project checkout';
+  if (place === 'server') return `for the workspace on ${host || 'the server'}`;
+  return 'for the new workspace';
+}
+
+/**
+ * Where the branch is cut from, by place (D13): an `origin/` base is fetched
+ * first (on the server for a server), a local base is cut as it is; in the
+ * checkout it is then checked out in `path`. '' without a base.
+ */
+function baseNote(place, base, { host = '', path = '' } = {}) {
+  const b = String(base || '');
+  if (!b) return '';
+  const remote = b.startsWith('origin/');
+  const short = remote ? b.slice('origin/'.length) : b;
+  if (place === 'server') return `Fetched on ${host || 'the server'} first, so the workspace starts from the latest ${short} there.`;
+  if (place === 'checkout') {
+    const where = path ? ` in ${path}` : ' in the project folder';
+    return remote
+      ? `Fetched from origin first, then cut and checked out${where}.`
+      : `Cut from your local ${b} as it is on this Mac, then checked out${where}.`;
+  }
+  return remote
+    ? `Fetched from origin first, so the workspace starts from the latest ${short}.`
+    : `Cut from your local ${b} as it is on this Mac.`;
+}
+
+/**
+ * What starting there will do, under the branch row: the checkout switching
+ * from `from` to `branch`; the new workspace's `name` and `folder`; the
+ * workspace on `host`, the project sent there first if missing (D4), and
+ * `changes` uncommitted changes staying on this Mac.
+ */
+function placeOutcome(place, { branch = '', from = '', name = null, folder = '', host = '', changes = 0 } = {}) {
+  const b = branch || 'the new branch';
+  if (place === 'checkout') return from ? `The checkout switches from ${from} to ${b}.` : `The checkout switches to ${b}.`;
+  if (place === 'server') {
+    const h = host || 'the server';
+    const n = Number(changes) || 0;
+    const ws = name ? `Workspace ${name} on ${h}.` : `A new workspace on ${h}.`;
+    let stays = '';
+    if (n === 1) stays = ' The uncommitted change stays on this Mac.';
+    else if (n > 1) stays = ` The ${n} uncommitted changes stay on this Mac.`;
+    return `${ws} If this project is not on ${h} yet, Frame sends its committed history there first.${stays}`;
+  }
+  if (!name) return 'The workspace is named when it is created.';
+  return folder ? `Workspace ${name}, in ${folder}.` : `Workspace ${name}.`;
+}
+
+/** The whole line under the branch row: the base note, then what will happen. */
+function placeBranchLine(place, facts = {}) {
+  return [baseNote(place, facts.base, facts), placeOutcome(place, facts)].filter(Boolean).join(' ');
+}
+
+/** The Start button, naming the place (spec START LABEL): "Start" until one is picked, "Starting…" while it runs. */
+function startPlaceLabel(place, { host = '', pending = false } = {}) {
+  if (pending) return 'Starting…';
+  if (place === 'checkout') return 'Start in project checkout';
+  if (place === 'workspace') return 'Start in new workspace';
+  if (place === 'server') return `Start on ${host || 'the server'}`;
+  return 'Start';
+}
 
 /**
  * The name the part's new workspace will get, as workspaceManager.create
@@ -544,10 +717,6 @@ function beginWorkspaceName(branch, taken = []) {
   return slug ? uniquify(slug, taken) : null;
 }
 
-/** The workspace line's value: the name, or what happens without one. */
-function workspaceNameText(name) {
-  return name || 'Named when it is created';
-}
 const BASE_FILTER_PLACEHOLDER = 'Find a branch…';
 const BASE_LOCAL_TITLE = 'Local';
 const BASE_REMOTE_TITLE = 'origin';
@@ -562,11 +731,6 @@ function baseMissingLine(targetBranch) {
 }
 
 const CANCEL_LABEL = 'Cancel';
-
-/** The confirm button: "Start", or "Starting…" while it runs. */
-function startSubmitLabel(pending) {
-  return pending ? 'Starting…' : 'Start';
-}
 
 const PART_PROBLEMS = {
   empty: 'has no definition',
@@ -591,6 +755,7 @@ const START_MESSAGES = {
   recordRefTaken: 'Another brief already uses one of these spec or task names. Pull the latest changes and start again.',
   baseMissing: baseMissingLine(''),
   badRequest: 'Pick the part to begin and try again.',
+  localMode: 'This project keeps Frame files out of git (local mode), so its parts cannot start on a server. Start it on This Mac.',
   notFound: 'This brief was not found in Frame Cloud. It may have been removed.',
   network: REASON_MESSAGES.network,
   notConnected: REASON_MESSAGES.notConnected,
@@ -602,10 +767,26 @@ const START_MESSAGES = {
 /** The sentence for a start that was refused before anything was written. `result` is `{ reason, part?, detail? }`. */
 function startErrorMessage(result) {
   const r = result || {};
+  if (r.reason === 'serverUnavailable') {
+    const why = String(r.detail || '').trim();
+    return why ? `Could not start on the server. ${/[.!?]$/.test(why) ? why : `${why}.`}` : 'Could not start on the server. Check that it is connected, then try again.';
+  }
+  if (r.reason === 'serverOld') return `Update Frame Server on ${r.detail || 'that server'} to start parts there (Connect to Server ▸ Update).`;
+  if (r.reason === 'baseNotOnOrigin') {
+    const name = String(r.detail || '').replace(/^origin\//, '');
+    return `${name ? `The branch ${name}` : 'That base'} is not on origin, and a server cuts only from origin. Push it first, or pick another base.`;
+  }
   if (r.reason === 'badBranch') return `${r.detail ? `“${r.detail}”` : 'That'} is not a branch name git accepts.`;
   if (r.reason === 'branchTaken') return `A branch named ${r.detail || 'that'} already exists. Pick another name.`;
   if (r.reason === 'baseMissing' && r.detail) return `The branch ${r.detail} is not on this machine. Fetch it, or pick another base.`;
   if (r.reason === 'alreadyBegun') return `This part was already begun${r.detail ? ` on ${r.detail}` : ''}.`;
+  if (r.reason === 'checkoutDirty') {
+    const n = Number(r.detail) || 0;
+    return `${n > 0 ? plural(n, 'uncommitted change', 'uncommitted changes') : 'Uncommitted changes'} in the project checkout. Commit them to start there, or pick another place.`;
+  }
+  if (r.reason === 'checkoutBusy') {
+    return `“${r.part || 'Another part'}” is in progress in the project checkout${r.detail ? `, on ${r.detail}` : ''}. Pick another place, or finish that part first.`;
+  }
   if (r.reason === 'badDefinition') return partProblemMessage(r.part || 'A part', r.detail);
   return START_MESSAGES[r.reason] || 'Start Work could not run. Try again.';
 }
@@ -639,11 +820,14 @@ function partialMessage(result) {
  * The toast when a part was begun in its own workspace: "Brief #5 started:
  * “Login flow” on feat/login, in workspace login." for the brief's first
  * part, "Began “Fix typo” on fix/typo, in workspace typo." for a later one.
- * Without a workspace name the sentence ends at the branch.
+ * In the project checkout it ends "…, in the project checkout." Without a
+ * workspace name the sentence ends at the branch.
  */
-function startedNotice({ mode, number, part, branch, workspace } = {}) {
+function startedNotice({ mode, number, part, branch, workspace, place } = {}) {
   const title = part && part.title ? `“${part.title}”` : 'the part';
-  const where = workspace && workspace.name ? `${branch}, in workspace ${workspace.name}` : branch;
+  const host = workspace && workspace.host ? ` on ${workspace.host}` : '';
+  let where = workspace && workspace.name ? `${branch}, in workspace ${workspace.name}${host}` : branch;
+  if (place === 'checkout') where = `${branch}, in the project checkout`;
   return mode === 'begin'
     ? `Began ${title} on ${where}.`
     : `Brief #${number} started: ${title} on ${where}.`;
@@ -658,6 +842,18 @@ function fetchFailedNotice({ fetch, workspace } = {}) {
   if (!fetch || fetch.skipped || fetch.fetched) return null;
   const base = workspace && workspace.base ? `origin/${workspace.base}` : 'the base';
   return `Couldn't fetch ${base} — cut from the last fetched copy.`;
+}
+
+/**
+ * The note after a server start that first sent the project there (T12), as
+ * New Workspace says it: committed history only, and what stayed on this
+ * Mac. Null when nothing was sent.
+ */
+function sentNotice({ sent, workspace } = {}) {
+  if (!sent) return null;
+  const host = (workspace && workspace.host) || 'the server';
+  const n = Number(sent.uncommitted) || 0;
+  return `Sent this project's committed history to ${host}.${n ? ` ${n} uncommitted change${n === 1 ? '' : 's'} stayed on this Mac — commit and push them to use them there.` : ''}`;
 }
 
 const OPEN_SPEC_LABEL = 'Open spec';
@@ -768,9 +964,12 @@ function prStatus(p, target, run) {
  * has for it, and `part.begunBranch` the branch this machine began it on.
  * With `done` (the brief is Done) the row keeps its label but offers no Begin
  * or Run (plan D7): a Done brief's facts are frozen until it moves back to
- * Active. In order:
+ * Active. `setup` (`{ host }`) says this window is still setting up the
+ * part's workspace (frame-cloud-start-places D19). In order:
  * - the cloud dropped it → "Dropped · <reason>";
  * - it counts as merged into `target` → "Merged into <target>";
+ * - its workspace is being set up → "Setting up the workspace" or "Setting
+ *   up on <host>", with no Run;
  * - the folder holds an unfinished record and a live agent lane → the lane's
  *   state, with no Run: the lane is the way in;
  * - only while tracking is `ready`, its pull request (see prStatus), keeping
@@ -792,11 +991,12 @@ function partStatus({ done, ...facts } = {}) {
   return done === true ? { ...status, run: null } : status;
 }
 
-function partStatusOf({ part, spec, task, lane, target, tracking = 'ready' } = {}) {
+function partStatusOf({ part, spec, task, lane, target, tracking = 'ready', setup = null } = {}) {
   const p = part || {};
   if (!p.recordRef) return { label: '', tone: 'idle', laneName: null, run: null };
   if (p.droppedAt) return { label: droppedLabel(p.dropReason), tone: 'dropped', laneName: null, run: null };
   if (countsAsMerged(p, target)) return { label: mergedLabel(target), tone: 'done', laneName: null, run: null };
+  if (setup) return { label: settingUpLabel(setup.host), tone: 'active', laneName: null, run: null };
   const record = p.shape === 'spec' ? spec : task;
   const own = record ? (p.shape === 'spec' ? specState(record) : taskState(record)) : null;
   if (own && own.tone !== 'implemented' && lane && lane.agentName) {
@@ -812,23 +1012,64 @@ function partStatusOf({ part, spec, task, lane, target, tracking = 'ready' } = {
 }
 
 /**
- * The workspace on this Mac a begun part is in: the active, local workspace
- * whose branch is the part's `begunBranch`, else its cloud `branch`. Git
- * checks a branch out in at most one worktree, so the match is unique. A
- * workspace that is archived, missing or on a server is not a match, and the
- * row then reads as it does without one. → the workspace record, or null.
+ * The workspace a begun part is in. A part begun on a Frame Server
+ * (`begunServerKey`, frame-cloud-start-on-server) matches that server's
+ * workspace on its `begunBranch`, offline or not. Otherwise: the active,
+ * local workspace whose branch is the part's `begunBranch`, else its cloud
+ * `branch`. Git checks a branch out in at most one worktree, so the match is
+ * unique. A workspace that is archived or missing, or in another location,
+ * is not a match, and the row then reads as it does without one.
+ * → the workspace record, or null.
  */
 function partWorkspace(part, workspaces) {
   const p = part || {};
+  if (!Array.isArray(workspaces)) return null;
+  const usable = (w) => w && !w.archivedAt && !w.missing;
+  if (p.begunServerKey) {
+    if (!p.begunBranch) return null;
+    return workspaces.find((w) => usable(w) && w.location === 'server' && w.serverKey === p.begunServerKey
+      && w.branch === p.begunBranch) || null;
+  }
   const branch = p.begunBranch || p.branch;
-  if (!branch || !Array.isArray(workspaces)) return null;
-  return workspaces.find((w) => w && w.branch === branch && !w.archivedAt && !w.missing
-    && (w.location || 'local') === 'local') || null;
+  if (!branch) return null;
+  return workspaces.find((w) => usable(w) && w.branch === branch && (w.location || 'local') === 'local') || null;
 }
 
 /** The part row's workspace chip, as its tooltip: "Switch to workspace login-flow". */
 function partWorkspaceHint(name) {
   return `Switch to workspace ${name}`;
+}
+
+/**
+ * The part row's chip for its workspace (D3): `name` on This Mac, `name ·
+ * host` on a server, `name · host · offline` while that server is down —
+ * which cannot be switched to. → `{ label, hint, offline }`.
+ */
+function partWorkspaceChip(ws) {
+  const w = ws || {};
+  const name = String(w.name || '');
+  if (w.location !== 'server') return { label: name, hint: partWorkspaceHint(name), offline: false };
+  const host = String(w.host || 'the server');
+  if (w.offline) return { label: `${name} · ${host} · offline`, hint: `${host} is offline. Connect it to switch to workspace ${name}.`, offline: true };
+  return { label: `${name} · ${host}`, hint: `Switch to workspace ${name} on ${host}`, offline: false };
+}
+
+/**
+ * A part begun in the project checkout, where a workspace chip would be
+ * (frame-cloud-start-places D10): "project checkout · feat/login".
+ */
+function checkoutRowLabel(branch) {
+  return `project checkout · ${branch}`;
+}
+
+/** That label's tooltip. */
+function checkoutRowHint(branch) {
+  return `This part runs in the project checkout, on ${branch}.`;
+}
+
+/** A part whose workspace is still being set up (D19): with its host on a server. */
+function settingUpLabel(host) {
+  return host ? `Setting up on ${host}` : 'Setting up the workspace';
 }
 
 const RUN_LABEL = 'Run';
@@ -1302,6 +1543,12 @@ module.exports = {
   START_DIALOG_DESCRIPTION,
   BEGIN_DIALOG_DESCRIPTION,
   START_CHOICE_TITLE,
+  PLACE_TITLE,
+  NEXT_LABEL,
+  BACK_LABEL,
+  CHANGE_LABEL,
+  PART_LABEL,
+  stepLabel,
   beginWithLabel,
   beginHint,
   ORCHESTRATE_LABEL,
@@ -1309,12 +1556,30 @@ module.exports = {
   COMING_SOON,
   BRANCH_LABEL,
   FROM_LABEL,
-  WORKSPACE_LABEL,
-  LOCATION_LABEL,
   THIS_MAC_LABEL,
-  SERVER_LOCATION_LABEL,
+  LOCAL_MODE_LOCATION_HINT,
+  PLACE_LABELS,
+  checkoutMeta,
+  placeFacts,
+  checkoutLock,
+  serverCardState,
+  serverCardMeta,
+  serverOfflineLine,
+  CONNECT_LABEL,
+  ADD_SERVER_LABEL,
+  NO_SERVER_TAG,
+  NO_SERVER_TEXT,
+  NO_SERVER_FACTS,
+  SERVER_SELECT_LABEL,
+  serverOptionLabel,
+  SERVER_HANDOFF_NOTICE,
+  placePendingLine,
+  branchPlaceLabel,
+  baseNote,
+  placeOutcome,
+  placeBranchLine,
+  startPlaceLabel,
   beginWorkspaceName,
-  workspaceNameText,
   BASE_FILTER_PLACEHOLDER,
   BASE_LOCAL_TITLE,
   BASE_REMOTE_TITLE,
@@ -1322,16 +1587,20 @@ module.exports = {
   PICK_BASE_LABEL,
   baseMissingLine,
   CANCEL_LABEL,
-  startSubmitLabel,
   partProblemMessage,
   startErrorMessage,
   partialMessage,
   startedNotice,
   fetchFailedNotice,
+  sentNotice,
   OPEN_SPEC_LABEL,
   OPEN_TASK_LABEL,
   partWorkspace,
   partWorkspaceHint,
+  partWorkspaceChip,
+  checkoutRowLabel,
+  checkoutRowHint,
+  settingUpLabel,
   partNotHereMessage,
   IMPLEMENTED_LABEL,
   TRACKING_WARNINGS,

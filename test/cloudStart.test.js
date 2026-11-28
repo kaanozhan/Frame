@@ -349,6 +349,9 @@ test('prepareView in start mode: every part can be begun unless its definition d
     suggestions: { p1: 'feat/login-flow', p2: 'fix/fix-typo', p3: 'docs/docs' },
     base: 'origin/main',
     bases: [],
+    placeBases: { checkout: null, workspace: null, server: null },
+    checkout: null,
+    workspaceFolder: null,
   });
 });
 
@@ -375,6 +378,7 @@ test('Start with a spec: brief.start reserves every ref, and only the chosen par
     part: { title: 'Login flow', shape: 'spec', ref: 'login-flow' },
     specs: 1, tasks: 0,
     begin: { shape: 'spec', slug: 'login-flow', title: 'Login flow' },
+    place: 'workspace',
     workspace: { id: 'ws1', name: 'login-flow', path: WS_PATH, branch: 'feat/login-flow', base: 'main' },
     setupScript: 'npm ci',
     fetch: { fetched: false, error: null, skipped: true },
@@ -829,4 +833,393 @@ test('withBegunBranches marks each listed part with the branch this machine bega
   assert.equal(out[1].parts, null);
   assert.equal('parts' in out[2], false);
   assert.equal(briefs[0].parts[0].begunBranch, undefined);
+});
+
+// ─── frame-cloud-start-on-server T05: a part begun on a server ─
+
+const SERVER_BEGUN = { ...BEGUN, partId: 'p2', ref: 'task-fix-typo', branch: 'fix/typo', serverKey: 'k-box' };
+
+test('start-on-server T05: the begun entry keeps a serverKey, and an entry without one reads as This Mac', () => {
+  const store = start.addBegun(start.addBegun(start.emptyBegun(), BEGUN), SERVER_BEGUN);
+  assert.deepEqual(start.getBegun(store, 'proj1', 3, 'p2'), { ref: 'task-fix-typo', branch: 'fix/typo', begunAt: NOW, serverKey: 'k-box' });
+  assert.deepEqual(start.getBegun(store, 'proj1', 3, 'p1'), { ref: 'login-flow', branch: 'feat/login-flow', begunAt: NOW }, 'no serverKey key on a Mac entry');
+  for (const bad of [null, '', 7]) {
+    const kept = start.addBegun(start.emptyBegun(), { ...SERVER_BEGUN, serverKey: bad });
+    assert.equal('serverKey' in start.getBegun(kept, 'proj1', 3, 'p2'), false, String(bad));
+  }
+  const reread = start.normalizeBegun(JSON.parse(JSON.stringify(store)));
+  assert.equal(start.getBegun(reread, 'proj1', 3, 'p2').serverKey, 'k-box', 'survives the file round trip');
+});
+
+test('start-on-server T05: a server entry stands while its server is saved and has the branch or cannot say', () => {
+  const store = start.addBegun(start.emptyBegun(), SERVER_BEGUN);
+  const briefs = [{ number: 3, parts: [{ id: 'p2', recordRef: 'task-fix-typo', branch: 'fix/typo' }] }];
+  const mac = new Set(['main']); // the Mac never has a server part's branch
+  const run = (servers) => start.withBegunBranches(briefs, store, 'proj1', mac, servers)[0].parts[0];
+
+  const known = run({ 'k-box': new Set(['main', 'fix/typo']) });
+  assert.deepEqual([known.begunBranch, known.branchGone, known.begunServerKey], ['fix/typo', false, 'k-box'], 'saved and known');
+
+  const offline = run({ 'k-box': null });
+  assert.deepEqual([offline.begunBranch, offline.branchGone, offline.begunServerKey], ['fix/typo', false, 'k-box'], 'saved, offline or unknown');
+
+  const unsaved = run({ 'k-other': new Set(['fix/typo']) });
+  assert.deepEqual([unsaved.begunBranch, unsaved.branchGone, 'begunServerKey' in unsaved], [null, true, false], 'server no longer saved (D4)');
+
+  const gone = run({ 'k-box': new Set(['main']) });
+  assert.deepEqual([gone.begunBranch, gone.branchGone, 'begunServerKey' in gone], [null, true, false], 'deleted on its server');
+
+  const unlisted = start.withBegunBranches(briefs, store, 'proj1', mac)[0].parts[0];
+  assert.deepEqual([unlisted.begunBranch, unlisted.begunServerKey], ['fix/typo', 'k-box'], 'without a servers map every server entry counts');
+});
+
+test('start-on-server T05: Mac entries are judged by the Mac\'s branches only and carry no server key', () => {
+  const store = start.addBegun(start.addBegun(start.emptyBegun(), BEGUN), SERVER_BEGUN);
+  const briefs = [{ number: 3, parts: [{ id: 'p1', recordRef: 'login-flow', branch: BEGUN.branch }, { id: 'p2', recordRef: 'task-fix-typo' }] }];
+  const servers = { 'k-box': new Set(['fix/typo', BEGUN.branch]) };
+  const [macPart, serverPart] = start.withBegunBranches(briefs, store, 'proj1', new Set(['main']), servers)[0].parts;
+  assert.deepEqual([macPart.begunBranch, macPart.branchGone, 'begunServerKey' in macPart], [null, true, false], 'the server having the name does not keep a Mac entry');
+  assert.equal(serverPart.begunBranch, 'fix/typo');
+  const live = start.withBegunBranches(briefs, store, 'proj1', new Set([BEGUN.branch]), servers)[0].parts[0];
+  assert.deepEqual(Object.keys(live).sort(), ['begunBranch', 'branch', 'branchGone', 'id', 'recordRef'], 'a Mac part\'s shape is unchanged');
+});
+
+// ─── frame-cloud-start-on-server T06: starting a part on a server ─
+
+const SERVER_TIP = 'e'.repeat(40);
+const SERVER_TASKS = '/srv/projects/my-app/.frame/tasks.json';
+const SERVER_REQUEST = { ...REQUEST, serverKey: 'k-box' };
+
+/**
+ * fakes() with the server deps the service binds for one server: the
+ * preflight (answer or Error in `answers.preflight`), a createWorkspace that
+ * cuts on the server and answers `startSha`, the host and begun lookups.
+ */
+function serverFakes(answers = {}) {
+  const f = fakes(answers);
+  f.preflights = [];
+  f.deps.serverPreflight = async (input) => {
+    f.preflights.push(input);
+    if (answers.preflight instanceof Error) throw answers.preflight;
+    return answers.preflight || { branchTaken: false, baseOnOrigin: true, fetch: { fetched: true, error: null }, tasksPath: SERVER_TASKS };
+  };
+  f.deps.createWorkspace = async (branch, base) => {
+    if (answers.fail === 'workspace') throw new Error('workspace broke');
+    f.log.push(['workspace', branch, base]);
+    return { workspace: { id: 'srv-ws1', name: branch.split('/').pop(), path: '/srv/ws/my-app/login-flow', branch, base, host: 'box.local' }, setupScript: 'npm ci', startSha: SERVER_TIP };
+  };
+  f.deps.hostOf = (key) => (key === 'k-box' ? 'box.local' : null);
+  return f;
+}
+
+test('start-on-server T06: a spec part starts on the server — no Mac branch, baseSha from the server, serverKey recorded', async () => {
+  const { deps, log, branches, starts, preflights } = serverFakes({ remote: ['main'] });
+  const result = await start.handleStartRequest(SERVER_REQUEST, deps);
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.deepEqual(preflights, [{ branch: 'feat/login-flow', base: 'main' }]);
+  assert.equal(starts().length, 1);
+  assert.deepEqual(log.map((e) => e[0]), ['workspace', 'spec', 'recorded'], 'nothing is cut or read on the Mac');
+  assert.deepEqual(effect(log, 'workspace'), ['workspace', 'feat/login-flow', 'main']);
+  assert.equal(effect(log, 'spec')[3], '/srv/ws/my-app/login-flow', 'written into the server workspace');
+  assert.deepEqual(effect(log, 'recorded')[1], { partId: 'p1', ref: 'login-flow', branch: 'feat/login-flow', baseSha: SERVER_TIP, serverKey: 'k-box' });
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(branches, [{ id: 'b1', partId: 'p1', branch: 'feat/login-flow', baseSha: SERVER_TIP }]);
+  assert.deepEqual(result.workspace, { id: 'srv-ws1', name: 'login-flow', path: '/srv/ws/my-app/login-flow', branch: 'feat/login-flow', base: 'main', location: 'server', serverKey: 'k-box', host: 'box.local' });
+  assert.deepEqual(result.fetch, { fetched: true, error: null, skipped: false });
+});
+
+test('start-on-server T06: a task part begun on a server names the server clone\'s tasks.json', async () => {
+  const { deps, log } = serverFakes({ get: ok(STARTED) });
+  const result = await start.handleStartRequest({ number: 3, beginPartId: 'p2', branch: 'fix/typo', serverKey: 'k-box' }, deps);
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.begin.tasksPath, SERVER_TASKS);
+  assert.equal(effect(log, 'tasks')[1][0].id, 'task-fix-typo');
+  assert.equal(effect(log, 'tasks')[1][0].acceptanceCriteria, '- Spelled right.');
+});
+
+test('start-on-server T06: each server refusal comes before brief.start and writes nothing', async () => {
+  const cases = [
+    [{ base: 'main' }, {}, { reason: 'baseNotOnOrigin', detail: 'main' }],
+    [{}, { preflight: { ok: false, reason: 'serverOld', detail: 'box.local' } }, { reason: 'serverOld', detail: 'box.local' }],
+    [{}, { preflight: { ok: false, reason: 'serverUnavailable', detail: 'Not connected to box.local.' } }, { reason: 'serverUnavailable', detail: 'Not connected to box.local.' }],
+    [{}, { preflight: new Error('box.local went away') }, { reason: 'serverUnavailable', detail: 'box.local went away' }],
+    [{}, { preflight: { branchTaken: true, baseOnOrigin: true, fetch: { fetched: true } } }, { reason: 'branchTaken', detail: 'feat/login-flow' }],
+    [{ base: 'origin/release' }, { preflight: { branchTaken: false, baseOnOrigin: false, fetch: { fetched: false, error: 'no such ref' } } }, { reason: 'baseNotOnOrigin', detail: 'origin/release' }],
+  ];
+  for (const [extra, answers, want] of cases) {
+    const { deps, log, starts } = serverFakes(answers);
+    const result = await start.handleStartRequest({ ...SERVER_REQUEST, ...extra }, deps);
+    assert.deepEqual(result, { ok: false, ...want }, JSON.stringify(want));
+    assert.equal(starts().length, 0, `${want.reason}: no brief.start`);
+    assert.deepEqual(log, [], `${want.reason}: nothing written`);
+  }
+  const { deps, starts } = serverFakes();
+  delete deps.serverPreflight;
+  assert.deepEqual(await start.handleStartRequest(SERVER_REQUEST, deps), { ok: false, reason: 'serverUnavailable', detail: '' });
+  assert.equal(starts().length, 0);
+});
+
+test('start-on-server T06: the Mac having the branch name does not refuse a server start', async () => {
+  const { deps } = serverFakes({ local: ['main', 'feat/login-flow'] });
+  assert.equal((await start.handleStartRequest(SERVER_REQUEST, deps)).ok, true);
+});
+
+test('start-on-server T06: a workspace failure on the server is partial and cuts nothing on the Mac', async () => {
+  const { deps, log, starts } = serverFakes({ fail: 'workspace' });
+  const result = await start.handleStartRequest(SERVER_REQUEST, deps);
+  assert.equal(result.reason, 'partial');
+  assert.equal(result.step, 'workspace');
+  assert.equal(starts().length, 1);
+  assert.deepEqual(log, []);
+});
+
+test('start-on-server T06: Begin of a part begun on a server is refused with the host while it stands', async () => {
+  const entry = { ref: 'task-fix-typo', branch: 'fix/typo', serverKey: 'k-box' };
+  const stands = serverFakes({ get: ok(STARTED), begun: { p2: entry } });
+  const asked = [];
+  stands.deps.begunStands = async (e) => { asked.push(e); return true; };
+  assert.deepEqual(await start.handleStartRequest({ number: 3, beginPartId: 'p2', branch: 'fix/typo-2', serverKey: 'k-box' }, stands.deps),
+    { ok: false, reason: 'alreadyBegun', detail: 'fix/typo on box.local' });
+  assert.deepEqual(asked, [entry]);
+
+  const gone = serverFakes({ get: ok(STARTED), begun: { p2: entry } });
+  gone.deps.begunStands = async () => false;
+  assert.equal((await start.handleStartRequest({ number: 3, beginPartId: 'p2', branch: 'fix/typo-2' }, gone.deps)).ok, true, 'begun again, here on the Mac');
+});
+
+test('start-on-server T06: a Mac start never asks the server deps', async () => {
+  const { deps, log, preflights } = serverFakes({ remote: ['main'] });
+  deps.createWorkspace = async (branch, base) => { log.push(['workspace', branch, base]); return { workspace: workspaceOf(branch, base), setupScript: '' }; };
+  const result = await start.handleStartRequest(REQUEST, deps);
+  assert.equal(result.ok, true);
+  assert.deepEqual(preflights, []);
+  assert.deepEqual(steps(log), ['branch', 'workspace', 'spec', 'recorded']);
+  assert.deepEqual(effect(log, 'recorded')[1], { partId: 'p1', ref: 'login-flow', branch: 'feat/login-flow', baseSha: HEAD });
+});
+
+test('start-on-server T12: a server start that sent the project says so; one that did not, and a Mac start, do not', async () => {
+  const sentAnswer = { branchTaken: false, baseOnOrigin: true, fetch: { fetched: true, error: null }, tasksPath: SERVER_TASKS, sent: { uncommitted: 3 } };
+  const sent = serverFakes({ preflight: sentAnswer });
+  assert.deepEqual((await start.handleStartRequest(SERVER_REQUEST, sent.deps)).sent, { uncommitted: 3 });
+  const there = serverFakes();
+  assert.equal('sent' in (await start.handleStartRequest(SERVER_REQUEST, there.deps)), false, 'the project was already on the server');
+  const mac = fakes({ remote: ['main'] });
+  assert.equal('sent' in (await start.handleStartRequest(REQUEST, mac.deps)), false);
+});
+
+// ─── frame-cloud-start-places T01: a part begun in the project checkout ─
+
+const CHECKOUT_BEGUN = { ...BEGUN, place: 'checkout', title: 'Login flow' };
+
+test('start-places T01: a checkout entry keeps place and title; any other place or a server entry keeps neither', () => {
+  const store = start.addBegun(start.emptyBegun(), CHECKOUT_BEGUN);
+  assert.deepEqual(start.getBegun(store, 'proj1', 3, 'p1'), { ref: 'login-flow', branch: 'feat/login-flow', begunAt: NOW, place: 'checkout', title: 'Login flow' });
+  const reread = start.normalizeBegun(JSON.parse(JSON.stringify(store)));
+  assert.equal(start.getBegun(reread, 'proj1', 3, 'p1').place, 'checkout', 'survives the file round trip');
+
+  const untitled = start.addBegun(start.emptyBegun(), { ...CHECKOUT_BEGUN, title: '' });
+  assert.deepEqual(start.getBegun(untitled, 'proj1', 3, 'p1'), { ref: 'login-flow', branch: 'feat/login-flow', begunAt: NOW, place: 'checkout' });
+
+  for (const place of ['workspace', 'server', 'elsewhere', 7, null]) {
+    const kept = start.getBegun(start.addBegun(start.emptyBegun(), { ...CHECKOUT_BEGUN, place }), 'proj1', 3, 'p1');
+    assert.deepEqual(Object.keys(kept).sort(), ['begunAt', 'branch', 'ref'], String(place));
+  }
+  const onServer = start.getBegun(start.addBegun(start.emptyBegun(), { ...CHECKOUT_BEGUN, serverKey: 'k-box' }), 'proj1', 3, 'p1');
+  assert.equal('place' in onServer, false, 'a server entry is never a checkout entry');
+  assert.equal('title' in onServer, false);
+});
+
+test('start-places T01: withBegunBranches marks a live checkout part, and a gone branch drops it as any Mac entry', () => {
+  const store = start.addBegun(start.addBegun(start.emptyBegun(), CHECKOUT_BEGUN), { ...BEGUN, partId: 'p2', ref: 'task-fix-typo', branch: 'fix/typo' });
+  const briefs = [{ number: 3, parts: [{ id: 'p1', recordRef: 'login-flow' }, { id: 'p2', recordRef: 'task-fix-typo' }] }];
+  const [inCheckout, inWorkspace] = start.withBegunBranches(briefs, store, 'proj1', new Set(['main', 'feat/login-flow', 'fix/typo']))[0].parts;
+  assert.deepEqual([inCheckout.begunBranch, inCheckout.begunPlace], ['feat/login-flow', 'checkout']);
+  assert.equal('begunPlace' in inWorkspace, false, 'a workspace part has no place key');
+  const gone = start.withBegunBranches(briefs, store, 'proj1', new Set(['main']))[0].parts[0];
+  assert.deepEqual([gone.begunBranch, 'begunPlace' in gone], [null, false]);
+});
+
+test('start-places T01: checkoutBusy finds an unfinished checkout part on the current branch', () => {
+  const other = { ...CHECKOUT_BEGUN, projectId: 'proj2' };
+  const workspacePart = { ...BEGUN, number: 4, partId: 'p9', ref: 'ws-part', branch: 'feat/login-flow' };
+  const store = [CHECKOUT_BEGUN, other, workspacePart].reduce((s, e) => start.addBegun(s, e), start.emptyBegun());
+  assert.deepEqual(start.checkoutBusy(store, 'proj1', 'feat/login-flow'), { title: 'Login flow', ref: 'login-flow', branch: 'feat/login-flow' });
+  assert.equal(start.checkoutBusy(store, 'proj1', 'main'), null, 'the checkout moved to another branch');
+  assert.equal(start.checkoutBusy(store, 'proj1', ''), null, 'a detached HEAD holds no begun part');
+  assert.equal(start.checkoutBusy(store, 'proj3', 'feat/login-flow'), null, 'another project');
+  const asked = [];
+  assert.equal(start.checkoutBusy(store, 'proj1', 'feat/login-flow', (e) => { asked.push(e.ref); return true; }), null, 'finished');
+  assert.deepEqual(asked, ['login-flow'], 'only checkout entries on that branch are asked about');
+  const untitled = start.addBegun(start.emptyBegun(), { ...CHECKOUT_BEGUN, title: undefined });
+  assert.equal(start.checkoutBusy(untitled, 'proj1', 'feat/login-flow').title, 'login-flow', 'the ref names an untitled part');
+});
+
+test('start-places T01: checkoutBlock locks on a busy part first, then on uncommitted changes', () => {
+  const busy = { title: 'Login flow', ref: 'login-flow', branch: 'feat/login-flow' };
+  assert.deepEqual(start.checkoutBlock({ changes: 3, busy }), { reason: 'checkoutBusy', part: 'Login flow', detail: 'feat/login-flow' });
+  assert.deepEqual(start.checkoutBlock({ changes: 3, busy: null }), { reason: 'checkoutDirty', detail: 3 });
+  assert.equal(start.checkoutBlock({ changes: 0, busy: null }), null);
+  assert.equal(start.checkoutBlock({}), null);
+  assert.equal(start.checkoutBlock(), null);
+});
+
+// ─── frame-cloud-start-places T02: each place's base, and the view ─
+
+test('start-places T02: pickBase prefers the local target for the checkout, and falls back to origin', () => {
+  const local = { prefer: 'local' };
+  assert.equal(start.pickBase('main', { local: true, remote: true }, local), 'main');
+  assert.equal(start.pickBase('main', { local: false, remote: true }, local), 'origin/main');
+  assert.equal(start.pickBase('main', { local: true, remote: false }, local), 'main');
+  assert.equal(start.pickBase('main', { local: false, remote: false }, local), null);
+  assert.equal(start.pickBase('', { local: true, remote: true }, local), null);
+  assert.equal(start.pickBase('main', { local: true, remote: true }, { prefer: 'origin' }), 'origin/main', 'the default is unchanged');
+});
+
+test('start-places T02: placeBases gives the checkout local first, a workspace origin first, a server origin only', () => {
+  assert.deepEqual(start.placeBases('main', { local: true, remote: true }), { checkout: 'main', workspace: 'origin/main', server: 'origin/main' });
+  assert.deepEqual(start.placeBases('main', { local: true, remote: false }), { checkout: 'main', workspace: 'main', server: null });
+  assert.deepEqual(start.placeBases('main', { local: false, remote: true }), { checkout: 'origin/main', workspace: 'origin/main', server: 'origin/main' });
+  assert.deepEqual(start.placeBases('main', { local: false, remote: false }), { checkout: null, workspace: null, server: null });
+  assert.deepEqual(start.placeBases(null, { local: true, remote: true }), { checkout: null, workspace: null, server: null });
+  assert.deepEqual(start.placeBases('main'), { checkout: null, workspace: null, server: null });
+});
+
+test('start-places T02: prepareView carries each place\'s base, the checkout\'s state and the workspace folder', () => {
+  const busy = { title: 'Login flow', ref: 'login-flow', branch: 'feat/login-flow', extra: 1 };
+  const view = start.prepareView({
+    brief: STARTED,
+    base: 'origin/main',
+    targetOn: { local: true, remote: true },
+    checkout: { path: '~/code/my-app', branch: 'feat/login-flow', changes: 2, busy },
+    workspaceFolder: '~/frame/workspaces/my-app',
+  });
+  assert.deepEqual(view.placeBases, { checkout: 'main', workspace: 'origin/main', server: 'origin/main' });
+  assert.deepEqual(view.checkout, { path: '~/code/my-app', branch: 'feat/login-flow', changes: 2, busy: { title: 'Login flow', ref: 'login-flow', branch: 'feat/login-flow' } });
+  assert.equal(view.workspaceFolder, '~/frame/workspaces/my-app');
+  assert.equal(view.base, 'origin/main', 'the workspace default is still `base`');
+
+  const detached = start.prepareView({ brief: STARTED, base: 'main', checkout: { path: '/repo', branch: '', changes: -1, busy: { title: 'x' } } });
+  assert.deepEqual(detached.checkout, { path: '/repo', branch: '', changes: 0, busy: null }, 'a busy part without a branch, and a bad count, read as none');
+});
+
+// ─── frame-cloud-start-places T03: starting a part in the project checkout ─
+
+const CHECKOUT_REQUEST = { ...REQUEST, place: 'checkout' };
+const CHECKOUT_ROOT = '/repo';
+
+/** fakes() with the checkout's deps: its state (`answers.checkout`) and its folder. */
+function checkoutFakes(answers = {}) {
+  const f = fakes(answers);
+  f.states = 0;
+  f.deps.checkoutState = async () => { f.states += 1; return answers.checkout || { branch: 'main', changes: 0, busy: null }; };
+  f.deps.checkoutPath = CHECKOUT_ROOT;
+  return f;
+}
+
+test('start-places T03: a spec part starts in the project checkout — cut and checked out from the local target, written there, no workspace', async () => {
+  const { deps, log, branches, starts, fetches } = checkoutFakes({ remote: ['main'] });
+  const result = await start.handleStartRequest(CHECKOUT_REQUEST, deps);
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(starts().length, 1);
+  assert.deepEqual(steps(log), ['branch', 'spec', 'recorded'], 'no workspace is opened');
+  assert.deepEqual(effect(log, 'branch'), ['branch', 'feat/login-flow', 'main', { track: true, checkout: true }], 'the local target wins in the checkout');
+  assert.deepEqual(fetches, [], 'a local base is not fetched');
+  assert.equal(effect(log, 'spec')[3], CHECKOUT_ROOT, 'the spec is written into the project folder');
+  assert.deepEqual(effect(log, 'recorded')[1], { partId: 'p1', ref: 'login-flow', branch: 'feat/login-flow', baseSha: HEAD, place: 'checkout', title: 'Login flow' });
+  assert.equal(result.place, 'checkout');
+  assert.equal(result.workspace, null);
+  assert.equal(result.setupScript, '');
+  assert.deepEqual(result.checkout, { from: 'main' });
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(branches, [{ id: 'b1', partId: 'p1', branch: 'feat/login-flow', baseSha: HEAD }]);
+});
+
+test('start-places T03: without a local target the checkout cuts from origin\'s, fetched first and not tracked', async () => {
+  const { deps, log, fetches } = checkoutFakes({ local: ['develop'], remote: ['main'] });
+  const result = await start.handleStartRequest(CHECKOUT_REQUEST, deps);
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.deepEqual(effect(log, 'branch'), ['branch', 'feat/login-flow', 'origin/main', { track: false, checkout: true }]);
+  assert.deepEqual(fetches, [{ name: 'main', afterStart: false }]);
+  assert.deepEqual(result.fetch, { fetched: true, error: null, skipped: false });
+});
+
+test('start-places T03: a picked base is used in the checkout as anywhere', async () => {
+  const { deps, log } = checkoutFakes({ local: ['main', 'release'] });
+  const result = await start.handleStartRequest({ ...CHECKOUT_REQUEST, base: 'release' }, deps);
+  assert.equal(result.ok, true);
+  assert.deepEqual(effect(log, 'branch'), ['branch', 'feat/login-flow', 'release', { track: true, checkout: true }]);
+});
+
+test('start-places T03: a task part begun in the checkout writes its row to the project\'s tasks.json', async () => {
+  const { deps, log, starts } = checkoutFakes({ get: ok(STARTED) });
+  const result = await start.handleStartRequest({ number: 3, beginPartId: 'p2', branch: 'fix/typo', place: 'checkout' }, deps);
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(starts().length, 0, 'Begin sends no brief.start');
+  assert.deepEqual(steps(log), ['branch', 'tasks', 'recorded']);
+  assert.equal(effect(log, 'tasks')[1][0].id, 'task-fix-typo');
+  assert.equal(result.begin.tasksPath, TASKS_PATH);
+  assert.deepEqual(effect(log, 'recorded')[1], { partId: 'p2', ref: 'task-fix-typo', branch: 'fix/typo', baseSha: HEAD, place: 'checkout', title: 'Fix typo' });
+});
+
+test('start-places T03: a busy or dirty checkout is refused before any fetch or brief.start, and nothing is written', async () => {
+  const busy = { title: 'Export API', ref: 'export-api', branch: 'feat/export-api' };
+  const cases = [
+    [{ branch: 'feat/export-api', changes: 4, busy }, { reason: 'checkoutBusy', part: 'Export API', detail: 'feat/export-api' }],
+    [{ branch: 'main', changes: 2, busy: null }, { reason: 'checkoutDirty', detail: 2 }],
+  ];
+  for (const [checkout, want] of cases) {
+    const { deps, log, starts, fetches } = checkoutFakes({ checkout, remote: ['main'], local: ['develop'] });
+    const result = await start.handleStartRequest(CHECKOUT_REQUEST, deps);
+    assert.deepEqual(result, { ok: false, ...want }, want.reason);
+    assert.equal(starts().length, 0, `${want.reason}: no brief.start`);
+    assert.deepEqual(fetches, [], `${want.reason}: no fetch`);
+    assert.deepEqual(log, [], `${want.reason}: nothing written`);
+  }
+  const { deps, starts } = checkoutFakes();
+  delete deps.checkoutState;
+  assert.deepEqual(await start.handleStartRequest(CHECKOUT_REQUEST, deps), { ok: false, reason: 'other' }, 'no way to read the checkout: refused');
+  assert.equal(starts().length, 0);
+});
+
+test('start-places T03: the checkout is read once, and the lock is checked again whatever the dialog showed', async () => {
+  const f = checkoutFakes({ checkout: { branch: 'main', changes: 1, busy: null } });
+  assert.equal((await start.handleStartRequest(CHECKOUT_REQUEST, f.deps)).reason, 'checkoutDirty');
+  assert.equal(f.states, 1);
+  const workspace = checkoutFakes({ checkout: { branch: 'main', changes: 9, busy: null } });
+  assert.equal((await start.handleStartRequest({ ...REQUEST, place: 'workspace' }, workspace.deps)).ok, true, 'a dirty checkout never blocks a workspace');
+  assert.equal(workspace.states, 0, 'a workspace start does not read the checkout');
+});
+
+test('start-places T03: a place that does not match the serverKey is a bad request, refused before the cloud is read', async () => {
+  for (const extra of [{ place: 'server' }, { place: 'checkout', serverKey: 'k-box' }, { place: 'workspace', serverKey: 'k-box' }]) {
+    const { deps, sent } = serverFakes();
+    assert.deepEqual(await start.handleStartRequest({ ...REQUEST, ...extra }, deps), { ok: false, reason: 'badRequest' }, JSON.stringify(extra));
+    assert.deepEqual(sent, [], 'nothing asked of the cloud');
+  }
+  const unknown = checkoutFakes();
+  assert.equal((await start.handleStartRequest({ ...REQUEST, place: 'garage' }, unknown.deps)).place, 'workspace', 'an unknown place reads as a workspace');
+});
+
+test('start-places T03: a checkout failure after brief.start is partial at branch or files, and records nothing', async () => {
+  for (const [fail, step] of [['branch', 'branch'], ['spec', 'files']]) {
+    const { deps, log, starts } = checkoutFakes({ fail });
+    const result = await start.handleStartRequest(CHECKOUT_REQUEST, deps);
+    assert.equal(result.reason, 'partial', fail);
+    assert.equal(result.step, step);
+    assert.equal(starts().length, 1);
+    assert.equal(effect(log, 'recorded'), undefined, `${fail}: not recorded as begun`);
+    assert.equal(effect(log, 'workspace'), undefined, `${fail}: no workspace`);
+  }
+});
+
+test('start-places T03: workspace and server answers name their place and are otherwise unchanged', async () => {
+  const mac = fakes();
+  const onMac = await start.handleStartRequest(REQUEST, mac.deps);
+  assert.equal(onMac.place, 'workspace');
+  assert.equal('checkout' in onMac, false);
+  assert.deepEqual(effect(mac.log, 'branch')[3], { track: true }, 'a workspace branch is cut, not checked out');
+  const srv = serverFakes();
+  const onServer = await start.handleStartRequest(SERVER_REQUEST, srv.deps);
+  assert.equal(onServer.place, 'server');
+  assert.equal('place' in effect(srv.log, 'recorded')[1], false, 'a server entry has no place');
 });
