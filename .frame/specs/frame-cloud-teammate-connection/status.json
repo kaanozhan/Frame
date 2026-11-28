@@ -1,0 +1,17 @@
+{
+  "slug": "frame-cloud-teammate-connection",
+  "title": "Frame Cloud connection on a teammate's machine",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-frame-cloud-teammate-connection-T01",
+    "task-spec-frame-cloud-teammate-connection-T02",
+    "task-spec-frame-cloud-teammate-connection-T03",
+    "task-spec-frame-cloud-teammate-connection-T04",
+    "task-spec-frame-cloud-teammate-connection-T05"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-11-14T09:58:52Z",
+  "updated_at": "2026-11-15T07:40:26Z",
+  "last_phase_at": "2026-11-15T07:40:26Z",
+  "implement_mode": "guided"
+}

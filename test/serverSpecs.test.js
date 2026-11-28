@@ -308,3 +308,31 @@ test('T04: specs.stage refuses local-mode projects and unknown commands', async 
   assert.match(local.error, /local mode/);
   assert.equal(fs.existsSync(path.join(ws, '.frame', 'runtime', 'prompts', 'on-server__spec.plan.md')), false, 'nothing staged');
 });
+
+// ─── frame-cloud-start-on-server T03: specs.create ───────────
+
+test('start-on-server T03: specs.create writes a new spec folder into a server workspace', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  const files = { 'spec.md': '# Login\n', 'status.json': '{ "slug": "login", "phase": "spec" }\n' };
+  const r = await methods['specs.create']({ projectPath, root: ws, slug: 'login', files });
+  assert.deepEqual(r, { created: ['spec.md', 'status.json'] });
+  const dir = path.join(ws, '.frame', 'specs', 'login');
+  assert.equal(fs.readFileSync(path.join(dir, 'spec.md'), 'utf8'), '# Login\n');
+  assert.equal(fs.readFileSync(path.join(dir, 'status.json'), 'utf8'), files['status.json']);
+  assert.deepEqual(fs.readdirSync(dir).sort(), ['spec.md', 'status.json']);
+  assert.equal(fs.existsSync(path.join(projectPath, '.frame', 'specs', 'login')), false, 'the main copy is not written');
+});
+
+test('start-on-server T03: specs.create refuses an existing folder, a bad slug, other files and a foreign root', async () => {
+  const { projectPath, ws } = await serverWorkspace();
+  const files = { 'spec.md': '# X\n', 'status.json': '{}\n' };
+  await assert.rejects(methods['specs.create']({ projectPath, root: ws, slug: 'on-server', files }), /already exists/);
+  assert.equal(fs.readFileSync(path.join(ws, '.frame', 'specs', 'on-server', 'spec.md'), 'utf8'), '# On server\n', 'the existing spec is untouched');
+  await assert.rejects(methods['specs.create']({ projectPath, root: ws, slug: '../escape', files }), /Not a spec name/);
+  await assert.rejects(methods['specs.create']({ projectPath, root: ws, slug: 'extra', files: { ...files, 'plan.md': '# P\n' } }), /only spec\.md and status\.json/);
+  await assert.rejects(methods['specs.create']({ projectPath, root: ws, slug: 'extra', files: { 'spec.md': 42 } }), /only spec\.md and status\.json/);
+  assert.equal(fs.existsSync(path.join(ws, '.frame', 'specs', 'extra')), false, 'nothing written for a refused call');
+  await assert.rejects(methods['specs.create']({ projectPath, root: path.join(SANDBOX, 'home'), slug: 'x', files }), /not a workspace of this project/);
+  write(path.join(projectPath, '.frame', 'config.json'), { settings: { gitSharing: 'local' } });
+  await assert.rejects(methods['specs.create']({ projectPath, root: ws, slug: 'local-one', files }), /local mode/);
+});

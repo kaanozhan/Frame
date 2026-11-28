@@ -28,10 +28,12 @@ const TOKEN_PATTERNS = [
   /\bBearer\s+[A-Za-z0-9._~+/=-]{16,}/gi // Authorization: Bearer …
 ];
 
-// Key=value / key: value pairs with a secret-ish key. Keeps the key, drops
-// the value.
+// Key=value / key: value pairs with a secret-ish key, including JSON's
+// `"key":"value"` (the key's closing quote sits before the colon). Keeps the
+// key, drops the value. `access_token` needs its own entry: `\btoken` cannot
+// match inside it.
 const KEYED_PATTERN =
-  /\b(password|passwd|pwd|secret|token|api[_-]?key|apikey|access[_-]?key|private[_-]?key|client[_-]?secret|auth)(\s*[=:]\s*)(["']?)[^\s"'&;]{4,}\3/gi;
+  /\b(password|passwd|pwd|secret|access[_-]?token|token|api[_-]?key|apikey|access[_-]?key|private[_-]?key|client[_-]?secret|auth)(["']?\s*[=:]\s*)(["']?)[^\s"'&;]{4,}\3/gi;
 
 function redact(text) {
   if (typeof text !== 'string' || text.length === 0) return text;

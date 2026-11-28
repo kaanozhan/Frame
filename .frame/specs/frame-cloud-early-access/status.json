@@ -1,0 +1,21 @@
+{
+  "slug": "frame-cloud-early-access",
+  "title": "Frame Cloud early access",
+  "phase": "tasks_generated",
+  "generated_task_ids": [
+    "task-spec-frame-cloud-early-access-T01",
+    "task-spec-frame-cloud-early-access-T02",
+    "task-spec-frame-cloud-early-access-T03",
+    "task-spec-frame-cloud-early-access-T04",
+    "task-spec-frame-cloud-early-access-T05",
+    "task-spec-frame-cloud-early-access-T06",
+    "task-spec-frame-cloud-early-access-T07",
+    "task-spec-frame-cloud-early-access-T08",
+    "task-spec-frame-cloud-early-access-T09"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-09-29T18:09:41Z",
+  "updated_at": "2026-09-30T16:24:00.330Z",
+  "last_phase_at": "2026-09-30T16:24:00.330Z",
+  "implement_mode": "guided"
+}

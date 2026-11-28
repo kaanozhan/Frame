@@ -43,6 +43,7 @@ const serversListeners = new Set();
 let modal = null;
 let wantClose = null;      // key whose connect, started here, closes the dialog once its check-up is clean
 let consent = null;        // { key, kind: 'update'|'rollback', agents: [...]|null }
+let closeListener = null;  // open({ onClose }): told once when the dialog closes (frame-cloud-start-places D18)
 const notifiedUpdate = new Set(); // host+version an "update available" toast was shown for
 
 const LABELS = {
@@ -408,10 +409,15 @@ function renderModal() {
 
 /**
  * Open the Servers dialog. `key` selects that server; `add` (or no saved
- * server at all) puts the cursor in the add form.
+ * server at all) puts the cursor in the add form. `onClose({ handoff })` is
+ * called once when the dialog next closes — `handoff` when it closed to give
+ * a terminal the screen — so a caller such as Start Work can come back
+ * (frame-cloud-start-places D18). An `open` without `onClose` keeps one that
+ * is still waiting.
  */
-async function open({ key = null, add = false } = {}) {
+async function open({ key = null, add = false, onClose = null } = {}) {
   if (!modal) return;
+  if (typeof onClose === 'function') closeListener = onClose;
   const input = modal.querySelector('#sc-host');
   const list = modal.querySelector('#sc-hosts');
   let hosts = [];
@@ -449,7 +455,7 @@ async function openServerTerminal(command) {
   const s = statusOf(key);
   if (s.state !== 'connected') return;
   setModel(key, model.noteFixOpened(m(key)));
-  close();
+  close({ handoff: true });
   try {
     const ui = require('./terminal').getMultiTerminalUI();
     const id = await ui.getManager().createServerHomeTerminal({ command, serverKey: key });
@@ -468,7 +474,7 @@ async function openServerTerminal(command) {
 async function openSetupTerminal() {
   const s = statusOf(selectedKey);
   if (!s.host) return;
-  close();
+  close({ handoff: true });
   try {
     const ui = require('./terminal').getMultiTerminalUI();
     const id = await ui.getManager().createLocalCommandTerminal({ command: sshErrors.setupCommand(s.host), name: `Set up ${s.host}` });
@@ -479,10 +485,20 @@ async function openSetupTerminal() {
   }
 }
 
-function close() {
+/**
+ * Close the dialog. `handoff` says it closed for a terminal (a check-up fix,
+ * the ssh access setup). A click or key event passed as the argument reads as
+ * no handoff.
+ */
+function close({ handoff = false } = {}) {
   wantClose = null;
   consent = null;
   if (modal) modal.classList.remove('visible');
+  const listener = closeListener;
+  closeListener = null;
+  if (listener) {
+    try { listener({ handoff: handoff === true }); } catch (err) { console.error('serverConnect close listener failed', err); }
+  }
 }
 
 /** Add the host typed in the form, select it and connect it. */

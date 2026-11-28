@@ -110,7 +110,8 @@
        the center (shell-chrome-app-header-collapsible-panels spec). Static
        markup on purpose — it exists before any script runs, so nothing in
        it flashes at boot and every module that binds by id finds its
-       element at DOMContentLoaded. Left: Frame's mark. Right: the
+       element at DOMContentLoaded. Left: Frame's mark, then the Frame
+       Cloud entry. Right: the
        agent picker with Start, the window-level controls and the layout
        toggles. appHeader.js wires the behavior. -->
   <header id="app-header">
@@ -123,6 +124,21 @@
         <path d="M2 2h7.72v1.52H3.52V9.72H2V2Z"/><path d="M22 2v7.72h-1.52V3.52H14.28V2H22Z"/><path d="M2 22v-7.72h1.52V20.48H9.72V22H2Z"/><path d="M22 22h-7.72v-1.52H20.48V14.28H22V22Z"/>
       </svg>
       <span class="app-header-brand">Frame</span>
+      <!-- Frame Cloud (frame-cloud-header-entry spec): opens #cloud-overlay.
+           Hidden while no server address resolves, so a build without one
+           keeps this header as it was. appHeader.bindCloudEntry paints it
+           from cloudEntry.entryFor on every session push: the cloud icon or
+           the workspace's initial, a label, a tag. Never a badge or a dot. -->
+      <button id="cloud-entry" class="cloud-entry" type="button" data-kind="cloud" aria-label="Frame Cloud" hidden>
+        <span class="cloud-entry-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+          </svg>
+        </span>
+        <span class="cloud-entry-initial" aria-hidden="true"></span>
+        <span class="cloud-entry-label"></span>
+        <span class="cloud-entry-tag" hidden></span>
+      </button>
     </div>
     <!-- Spacer: keeps the brand at the left end and the controls at the
          right end. -->
@@ -234,11 +250,13 @@
             <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>
           </svg>
         </button>
-        <!-- The foot of the rail, below the view tabs: Plugins, Feedback,
-             Frame Settings, then How to Use Frame. All four open a modal
-             (#plugins-modal, #feedback-modal, the Frame Settings overlay,
-             #guide-overlay) rather than switching views — hence no
-             .sidebar-tab-btn (that class drives view switching).
+        <!-- The foot of the rail, below the view tabs: Add Server, Plugins,
+             Feedback, Frame Settings, then How to Use Frame. All five open
+             a modal (the Servers dialog, #plugins-modal, #feedback-modal, the
+             Frame Settings overlay, #guide-overlay) rather than switching views — hence no
+             .sidebar-tab-btn (that class drives view switching). Frame Cloud
+             left the rail for the app header (#cloud-entry,
+             frame-cloud-header-entry spec).
              .sidebar-rail-btn-foot on the first pushes the group to the
              bottom. -->
         <!-- Add Server: opens the Servers dialog on its add field
@@ -290,6 +308,13 @@
               <polyline points="6 9 12 15 18 9"/>
             </svg>
           </button>
+          <!-- Frame Cloud Connected mark (frame-cloud-projects spec): shown by
+               cloudProjectMark only while the open folder is connected. -->
+          <span id="cloud-project-mark" class="cloud-project-mark" role="img" hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+            </svg>
+          </span>
           <div id="sidebar-project-menu" class="sidebar-project-menu" role="menu" hidden></div>
         </div>
         <!-- Chief (lead-agent): the project's lead terminal, the first item
@@ -623,6 +648,56 @@
       <div id="sessions-content">
         <!-- Sessions will be populated here -->
       </div>
+    </div>
+
+    <!-- Briefs: the connected Frame Cloud project's briefs
+         (frame-cloud-briefs-read-only spec), and New brief to create one
+         (frame-cloud-briefs-create spec). A Context row under Sessions
+         that exists only while the open folder is connected. Hosted in the
+         center by multiTerminalUI (cloudBriefsPanel.js). The drawer reuses
+         the Specs grid's .specs-dashboard-detail slide and shows either a
+         brief or the New brief form (cloudBriefsForm.js). -->
+    <div id="cloud-briefs-panel">
+      <div class="view-header">
+        <div class="view-header-title">
+          <span class="view-header-mark" aria-hidden="true">&#9671;</span>
+          <h2>Briefs</h2>
+        </div>
+        <div class="view-header-actions cloud-briefs-actions">
+          <span id="cloud-briefs-count" class="view-header-count"></span>
+          <label class="cloud-briefs-closed-toggle" title="Show closed briefs">
+            <input id="cloud-briefs-show-closed" type="checkbox" tabindex="-1" />
+            <span>Show closed</span>
+          </label>
+          <button id="cloud-briefs-refresh" class="cloud-briefs-icon-btn" tabindex="-1" title="Refresh briefs">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+            </svg>
+          </button>
+          <button id="cloud-briefs-open-web" class="cloud-briefs-web-btn" tabindex="-1" title="Open this project on Frame Cloud">Open on web</button>
+          <button id="cloud-briefs-new" class="cloud-briefs-primary-btn cloud-briefs-new-btn" tabindex="-1" title="Create a brief in this project">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <span>New brief</span>
+          </button>
+        </div>
+      </div>
+      <div id="cloud-briefs-content" class="cloud-briefs-content">
+        <!-- Board rendered here -->
+      </div>
+      <aside id="cloud-briefs-detail" class="specs-dashboard-detail cloud-briefs-detail" aria-hidden="true">
+        <div class="specs-dashboard-detail-bar">
+          <button class="specs-dashboard-detail-back" aria-label="Back to all briefs">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            <span>Briefs</span>
+          </button>
+          <button id="cloud-briefs-detail-refresh" class="cloud-briefs-icon-btn" tabindex="-1" title="Refresh this brief">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+            </svg>
+          </button>
+        </div>
+        <div class="specs-dashboard-detail-content cloud-briefs-detail-content"></div>
+      </aside>
     </div>
 
     <!-- Prompts Panel -->
@@ -1798,6 +1873,21 @@
           </div>
         </div>
 
+        <!-- Frame Cloud (frame-cloud-projects spec): one row, no picker of
+             its own — Connect… routes to the Frame Cloud modal. Hidden for a
+             folder without .frame/config.json or when no server resolves;
+             projectSettingsModal.syncCloudRow re-reads it on open. -->
+        <div class="settings-section" id="settings-project-cloud" hidden>
+          <h4 class="settings-section-title">Frame Cloud</h4>
+          <div class="settings-row">
+            <div class="settings-row-text">
+              <div class="settings-row-label" id="settings-project-cloud-label">Frame Cloud</div>
+              <p class="settings-row-desc" id="settings-project-cloud-desc"></p>
+            </div>
+            <div class="settings-project-cloud-actions" id="settings-project-cloud-actions"></div>
+          </div>
+        </div>
+
         <!-- Workspaces (workspaces spec): what every new workspace gets. Saved
              in .frame/config.json → settings.workspaces, so a team sharing the
              repo shares the setup. -->
@@ -1868,6 +1958,18 @@
         <button type="button" class="settings-close" data-settings-close aria-label="Close">&#x2715;</button>
       </div>
       <div class="settings-body">
+        <!-- Frame Cloud account: one row (frame-cloud-projects spec). Hidden
+             until main resolves a server address; the account itself lives
+             in the Frame Cloud modal (#cloud-overlay), which the button
+             opens after closing this one — frameSettingsModal.renderAccount. -->
+        <div class="settings-section" id="settings-account" hidden>
+          <h4 class="settings-section-title">Account</h4>
+          <div class="settings-about-row">
+            <div class="settings-about-version" id="settings-account-summary">Frame Cloud</div>
+            <button type="button" class="settings-about-btn" id="settings-account-open">Sign in…</button>
+          </div>
+        </div>
+
         <!-- Appearance (ui-zoom-steps spec). The interface scale is page zoom
              owned by main; this select shows the current step and asks for
              another. Options are filled from src/shared/uiZoom.js at runtime
@@ -1961,6 +2063,184 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Frame Cloud (frame-cloud-projects spec). Draws the CLOUD_SESSION_STATE
+       and CLOUD_PROJECTS_STATE pushes only — cloudHub.js owns the shell and
+       the sign-in panes, cloudHubTabs.js the two tabs. Server strings are
+       written as text, never as HTML. -->
+  <div id="cloud-overlay" class="settings-overlay">
+    <div class="settings-modal cloud-modal" role="dialog" aria-label="Frame Cloud">
+      <div class="settings-header">
+        <h3 class="settings-title">Frame Cloud</h3>
+        <button type="button" class="settings-close" data-settings-close aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="settings-body cloud-body">
+        <div data-cloud-state="unavailable" hidden>
+          <p class="settings-about-status">Frame Cloud isn't configured on this machine.</p>
+        </div>
+
+        <!-- Signed out and every sign-in step: the case for Frame Cloud on the
+             left (cloudWelcome.js fills it), the sign-in on the right. The
+             right card swaps panes in place, so the page never jumps. -->
+        <div class="cloud-welcome" id="cloud-welcome" hidden>
+          <section class="cloud-pitch" id="cloud-pitch"></section>
+          <aside class="cloud-signin">
+            <div data-cloud-state="signedOut" class="cloud-signin-pane" hidden>
+              <!-- Today's sign-in; shown unless the server says it is invite-only. -->
+              <div id="cloud-classic" class="cloud-signin-pane">
+                <div class="cloud-signin-head">
+                  <h4 class="cloud-signin-title">Sign in to Frame Cloud</h4>
+                  <p class="cloud-signin-text">Sign-in happens in your browser with your GitHub account. Frame never sees your password.</p>
+                </div>
+                <button type="button" class="settings-about-btn settings-about-btn-primary cloud-signin-btn" data-cloud-action="signIn">Continue with GitHub</button>
+                <ol class="cloud-steps">
+                  <li>Frame opens your browser.</li>
+                  <li>Approve Frame on the page that opens.</li>
+                  <li>Check that the code matches this screen.</li>
+                </ol>
+              </div>
+              <!-- Early access (frame-cloud-early-access): the waitlist first, sign-in
+                   for the invited. Words come from cloudEarlyAccess.js. -->
+              <div id="cloud-early" class="cloud-signin-pane" hidden>
+                <div class="cloud-signin-head">
+                  <h4 class="cloud-signin-title" id="cloud-early-title"></h4>
+                  <p class="cloud-signin-text" id="cloud-early-lede"></p>
+                </div>
+                <form id="cloud-early-form" class="cloud-early-form" novalidate>
+                  <label class="cloud-field-label" for="cloud-waitlist-email" id="cloud-waitlist-label"></label>
+                  <div class="cloud-input-box">
+                    <input id="cloud-waitlist-email" class="cloud-input" type="email" autocomplete="email" spellcheck="false">
+                  </div>
+                  <button type="submit" id="cloud-waitlist-join" class="settings-about-btn settings-about-btn-primary cloud-signin-btn"></button>
+                  <p id="cloud-waitlist-error" class="cloud-early-error" role="alert" hidden></p>
+                  <button type="button" id="cloud-waitlist-fallback" class="cloud-inline-link" hidden></button>
+                </form>
+                <div id="cloud-early-joined" class="cloud-early-joined" hidden>
+                  <h4 class="cloud-signin-title" id="cloud-early-joined-title"></h4>
+                  <p class="cloud-signin-text" id="cloud-waitlist-joined-body"></p>
+                  <button type="button" id="cloud-waitlist-another" class="cloud-inline-link"></button>
+                </div>
+                <p class="cloud-signin-text cloud-early-signin">
+                  <span id="cloud-early-already"></span>
+                  <button type="button" id="cloud-early-signin" class="cloud-inline-link" data-cloud-action="signIn"></button>
+                </p>
+              </div>
+              <p class="settings-about-status cloud-note" data-cloud-note="signedOutUnreachable" hidden>
+                Signed out on this Mac. The server couldn't be reached, so the session there ends within 30 days.
+              </p>
+            </div>
+
+            <div data-cloud-state="requestingCode" class="cloud-signin-pane" hidden>
+              <p class="cloud-waiting"><span class="cloud-spin" aria-hidden="true"></span>Starting sign-in…</p>
+            </div>
+
+            <div data-cloud-state="awaitingApproval" class="cloud-signin-pane" hidden>
+              <div class="cloud-signin-head">
+                <h4 class="cloud-signin-title">Approve in your browser</h4>
+                <p class="cloud-signin-text">Make sure the browser shows the same code.</p>
+              </div>
+              <div id="cloud-code" class="cloud-code"></div>
+              <p class="cloud-waiting"><span class="cloud-spin" aria-hidden="true"></span>Waiting for approval…</p>
+              <p class="cloud-signin-text" data-cloud-note="inviteHint" id="cloud-invite-hint" hidden></p>
+              <ol class="cloud-steps">
+                <li class="done">Frame opened your browser.</li>
+                <li class="now">Approve Frame on the page that opened.</li>
+                <li>Check that the code matches this screen.</li>
+              </ol>
+              <div class="cloud-url">
+                <span id="cloud-url" class="cloud-url-text"></span>
+                <button type="button" class="settings-about-btn" data-cloud-action="copyUrl">Copy</button>
+              </div>
+              <div class="cloud-actions">
+                <button type="button" class="settings-about-btn" data-cloud-action="openBrowser">Open browser again</button>
+                <button type="button" class="settings-about-btn" data-cloud-action="cancel">Cancel</button>
+              </div>
+            </div>
+
+            <div data-cloud-state="registering" class="cloud-signin-pane" hidden>
+              <p class="cloud-waiting"><span class="cloud-spin" aria-hidden="true"></span>Finishing sign-in…</p>
+            </div>
+
+            <div data-cloud-state="failed" class="cloud-signin-pane" hidden>
+              <div class="cloud-signin-head">
+                <h4 class="cloud-signin-title">Sign-in didn't finish</h4>
+                <p class="cloud-signin-text cloud-reason">
+                  <span id="cloud-reason"></span>
+                  <a href="#" id="cloud-web-link" hidden>Open Frame Cloud</a>
+                </p>
+              </div>
+              <button type="button" class="settings-about-btn settings-about-btn-primary cloud-signin-btn" data-cloud-action="signIn">Try again</button>
+              <button type="button" id="cloud-failed-waitlist" class="settings-about-btn cloud-signin-btn" data-cloud-action="joinWaitlist" hidden></button>
+            </div>
+
+            <!-- Where Learn more leads (the guide, or frame.cool) is not settled. -->
+            <div class="cloud-signin-foot">
+              <button type="button" class="settings-about-btn cloud-btn-quiet" disabled title="Not available yet">Learn more</button>
+            </div>
+          </aside>
+        </div>
+
+        <div data-cloud-state="signedIn" class="cloud-signed-in" hidden>
+          <p class="cloud-success" data-cloud-note="justSignedIn" role="status" hidden>
+            Signed in to Frame Cloud
+          </p>
+          <div class="cloud-header">
+            <div class="cloud-identity">
+              <span class="cloud-avatar" aria-hidden="true">
+                <img id="cloud-avatar-img" class="cloud-avatar-img" alt="" referrerpolicy="no-referrer" hidden>
+                <span id="cloud-avatar-initials" class="cloud-avatar-initials"></span>
+              </span>
+              <div class="cloud-identity-text">
+                <div id="cloud-user-name" class="cloud-identity-name"></div>
+                <div id="cloud-user-sub" class="cloud-identity-sub"></div>
+              </div>
+              <button type="button" class="settings-about-btn cloud-sign-out" data-cloud-action="signOut">Sign out</button>
+            </div>
+            <dl class="cloud-meta">
+              <div class="cloud-meta-row">
+                <dt class="cloud-meta-label">Workspace</dt>
+                <dd class="cloud-meta-value">
+                  <span id="cloud-workspace" class="cloud-meta-text"></span>
+                  <button type="button" class="cloud-link-btn" data-cloud-action="openWorkspace">
+                    <span id="cloud-workspace-link-label">Open in browser</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+                  </button>
+                </dd>
+              </div>
+              <div class="cloud-meta-row">
+                <dt class="cloud-meta-label">This device</dt>
+                <dd class="cloud-meta-value">
+                  <span id="cloud-device" class="cloud-meta-text"></span>
+                </dd>
+              </div>
+            </dl>
+          </div>
+          <p class="settings-about-status cloud-note" data-cloud-note="ephemeral" hidden>
+            Your system has no secure storage, so you'll sign in again next launch.
+          </p>
+          <p class="settings-about-status cloud-note" data-cloud-note="signedInUnreachable" hidden>
+            Frame Cloud couldn't be reached — showing the last known details.
+          </p>
+
+          <div id="cloud-tabbar" class="cloud-tabbar">
+            <div class="cloud-tabs" role="tablist">
+              <button type="button" class="cloud-tab" role="tab" data-cloud-tab="projects">Cloud projects</button>
+              <button type="button" class="cloud-tab" role="tab" data-cloud-tab="device">On this device <span id="cloud-device-count" class="cloud-tab-count"></span></button>
+            </div>
+            <div class="cloud-tabbar-side">
+              <span id="cloud-last-updated" class="cloud-last-updated"></span>
+              <button type="button" class="settings-about-btn" data-cloud-action="refresh">Refresh</button>
+            </div>
+          </div>
+          <div id="cloud-device-notice" class="cloud-notice" hidden></div>
+          <div id="cloud-tab-projects" class="cloud-tab-panel" role="tabpanel" data-cloud-panel="projects"></div>
+          <div id="cloud-tab-device" class="cloud-tab-panel" role="tabpanel" data-cloud-panel="device" hidden></div>
+          <!-- Signed in without a workspace: this panel takes the tabs' place. -->
+          <div id="cloud-no-workspace" class="cloud-no-workspace" hidden></div>
         </div>
       </div>
     </div>

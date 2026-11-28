@@ -240,4 +240,4 @@ function paintToolSelection() {
   });
 }
 
-module.exports = { init, takeOver, open, close };
+module.exports = { init, takeOver, open, close, isOpen: () => isOpen };

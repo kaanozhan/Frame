@@ -1,0 +1,20 @@
+{
+  "slug": "frame-cloud-server-url",
+  "title": "Frame Cloud server address",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-frame-cloud-server-url-T01",
+    "task-spec-frame-cloud-server-url-T02",
+    "task-spec-frame-cloud-server-url-T03",
+    "task-spec-frame-cloud-server-url-T04",
+    "task-spec-frame-cloud-server-url-T05",
+    "task-spec-frame-cloud-server-url-T06",
+    "task-spec-frame-cloud-server-url-T07",
+    "task-spec-frame-cloud-server-url-T08"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-10-01T15:04:09Z",
+  "updated_at": "2026-10-01T18:08:30.627Z",
+  "last_phase_at": "2026-10-01T18:08:30.627Z",
+  "implement_mode": "autonomous"
+}

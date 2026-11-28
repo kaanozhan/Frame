@@ -1,0 +1,20 @@
+{
+  "slug": "frame-cloud-no-workspace",
+  "title": "Frame Cloud no workspace",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-frame-cloud-no-workspace-T01",
+    "task-spec-frame-cloud-no-workspace-T02",
+    "task-spec-frame-cloud-no-workspace-T03",
+    "task-spec-frame-cloud-no-workspace-T04",
+    "task-spec-frame-cloud-no-workspace-T05",
+    "task-spec-frame-cloud-no-workspace-T06",
+    "task-spec-frame-cloud-no-workspace-T07",
+    "task-spec-frame-cloud-no-workspace-T08"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-09-28T10:55:23Z",
+  "updated_at": "2026-09-28T16:05:35.654Z",
+  "last_phase_at": "2026-09-28T16:05:35.654Z",
+  "implement_mode": "autonomous"
+}

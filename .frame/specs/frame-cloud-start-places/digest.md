@@ -1,0 +1,15 @@
+---
+keywords: frame cloud, start work, begin, where to work, project checkout, workspace, frame server, add a server, start dialog
+related: frame-cloud-start-on-server, frame-cloud-start-workspace, frame-cloud-brief-start, server-copy-files, server-first-connect, multi-server-connections
+---
+Start Work asks in two steps. Step 1 picks the part (always, even for a one-part brief; Orchestrate disabled). Step 2 picks the place from three equal cards with none preselected: Project checkout, New workspace (This Mac), Server workspace. Then it shows the branch row for that place, and Start names the place. Begin opens on step 2.
+Overturned: frame-cloud-start-on-server D2 (This Mac preselected) and frame-cloud-start-workspace's "the main checkout is never switched". The checkout is a place again, with no stash. It is locked while dirty or busy; busy means it is on the branch of a begun checkout part that is not finished (spec not `done`, task row not `completed`). Busy is checked before dirty and names the part.
+Rejected: busy = a live lane in the checkout (renderer-only state; a closed lane would let another part switch the branch away), and spotting a checkout part as a Mac entry with no workspace (an archived workspace looks the same).
+The begun entry records `place: 'checkout'` + `title` (never with `serverKey`, no migration), and `withBegunBranches` gives live checkout parts `begunPlace`. The pure `checkoutBusy`/`checkoutBlock` are re-checked by main in the core before `brief.start` and any fetch.
+A checkout start is the frame-cloud-brief-start path without the stash: `createBranch(…, { checkout: true })`, no workspace, files under the project folder. The request carries `place` ∈ checkout · workspace · server; a mismatch with `serverKey` is refused before the brief is read.
+Bases per place (`placeBases`, `pickBase({ prefer: 'local' })`): the checkout defaults to the local target, the workspace and server places to `origin/<target>`. `prepareView` also carries `checkout` and `workspaceFolder`.
+Server card states: one, two, offline, no server. Add a server… and Connect open the Servers dialog through `serverConnect.open({ onClose })` with Start Work hidden (`style.display`, since the backdrop's `display: flex` beats `hidden`) and shown again on close; a newly connected server becomes the pick. A handoff to a terminal closes Start Work with a notice. Local mode disables the server card. The server line says "if missing" without asking the server (rejected: a server lookup each time the dialog opens).
+Card rows: "Setting up the workspace" / "Setting up on <host>" is the panel's own state while `openBeginLane` runs. A checkout part reads "project checkout · <branch>" as plain text. A checkout lane selects the project checkout, refreshes git status, then opens /spec.plan or the task run with no setup.
+Retired: the Location radio row and its words, the Workspace line, `startSubmitLabel`. `cloudDone` is unchanged.
+
+Chain: spec.md → plan.md → tasks.md → outcome.md

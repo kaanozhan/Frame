@@ -1,0 +1,26 @@
+# Tasks — Frame Cloud brief discussions
+
+- T01 · Add `recordDiscussion` (POST `brief.recordDiscussion` with `id`, `summary`, optional `url` and `provider`) and `LIMITS.provider = 40` to `src/main/cloud/cloudBriefs.js`, with its procedure-and-input case in `test/cloudBriefs.test.js`.
+- T02 · Write the pure `src/main/cloud/cloudDiscussions.js` — `newDiscussionId`, `addDiscussion` / `getDiscussion` / `pruneDiscussions` (90 days), `validateRecordInput` (summary 1–10,000 trimmed, `http(s)` url), `buildDiscussPrompt` (brief fields and earlier records fenced as data, newest first; the artifact-link offer for `claude` only; the heredoc command line), `handleRecordRequest(request, deps)` for every branch and `replyMessage` — with `test/cloudDiscussions.test.js`.
+- T03 · Write the self-contained `src/templates/bin/record-discussion.js` — pure `parseArgs` / `requestFor`, then read the summary from stdin, publish `bus/<ts>-<rand>.json` beside its own `__dirname` by tmp + rename, wait up to 30 s for `bus/replies/<same>.json`, print its message and exit 0/1, or print "Frame did not answer" — with `test/recordDiscussion.test.js` against a temp bus, including the timeout.
+- T04 · Write `src/main/cloud/cloudDiscussionsService.js` — the `<userData>/cloud-discussions/` folder, the persisted `discussions.json` (pruned on load), staging the command script at start, a `safeWatch` bus watcher that also drains requests left from a closed Frame, the `CLOUD_BRIEF_DISCUSS` handler (connected folder, open proposal, known tool → store entry and prompt) and the `CLOUD_BRIEF_DISCUSSION_RECORDED` push — adding both channels to `src/shared/ipcChannels.js` and wiring `init(window)` and `setupIPC` in `src/main/index.js`.
+- T05 · Add `getBriefLaneInfo(number)` (current project's lanes with `assignment.kind === 'brief'`), `briefStatusDotHtml(number)` and `onBriefLaneActivity(cb)` to `src/renderer/agentDispatch.js`, fed by the existing `laneStatus.onChange` and terminal-destroyed hooks.
+- T06 · Add the `discussion-recorded` case to `eventAction`, `discussionRecords(events)` (newest first), the Discuss / Go to discussion labels and `discussErrorMessage(reason)` to `src/renderer/cloudBriefsCopy.js`, with their cases in `test/cloudBriefsCopy.test.js`.
+- T07 · In `src/renderer/cloudBriefsPanel.js`, show Discuss on an open proposal (invoke `CLOUD_BRIEF_DISCUSS` with the current tool, then `dispatch` with `createNew` and the brief assignment) or Go to discussion while its lane is open, put the activity dot on cards, render the Discussions section under the description, and reload the open detail on `CLOUD_BRIEF_DISCUSSION_RECORDED`; style the button and list in `src/renderer/styles/components/cloud-briefs.css`.
+- T08 · Walk it in Frame on a connected folder: Discuss a proposal, record twice through the agent (once with an artifact link), see the dot and Go to discussion, see both records under Description and in History, and check the command's messages for an ended proposal and with Frame closed.
+
+## Added after the T08 walk (2026-09-21)
+
+- T09 · In `buildDiscussPrompt`, keep as open questions only what decides the proposal's fate (details that can wait stay open as "we can talk more"), and for `claude` ask at wrap-up whether to publish a claude.ai artifact write-up; Codex gets no document offer. Cases in `test/cloudDiscussions.test.js`.
+- T10 · A `brief` lane chip shows a brief icon and opens the Briefs panel on that brief's detail (`laneStatus.js` icon, `terminalsView.js` routing, `cloudBriefsPanel.openBrief(number)`), not a task.
+- T11 · Brief cards: a direct Discuss on open proposals, "N discussions recorded" from `brief.events` fetched per open proposal in `cloudBriefsService.list`, and a clickable "Discussing in <lane>" line with the dot while a lane is open; the card is restructured so no control nests inside the card button.
+
+## Added for the proposal states (2026-09-21)
+
+- T12 · `decideBrief` (POST `brief.decide` with `id`, `priority`) in `cloudBriefs.js`, `decide(folderPath, number, priority)` in `cloudBriefsService.js` keeping the server's refusals, and `CLOUD_BRIEF_DECIDE`; tests.
+- T13 · `addDiscussionCounts` also counts `newCommentCount` (others' comments after the latest record); pure `proposalStage` and the Move to Work / Re-discuss / new-comment labels in `cloudBriefsCopy.js`; tests.
+- T14 · `buildDiscussPrompt` carries the comments as data with the new ones marked, and opens on them when present; tests.
+- T15 · Card and detail follow the four states: Discuss · Discussing · Move to Work + Discuss · a highlighted new-comment chip that opens Comments with Re-discuss; Move to Work confirms with a priority.
+- T16 · Walk the four states and Move to Work in Frame.
+- T17 · A recorded write-up link is also added to the brief's Links (`addAttachment`, titled "Discussion write-up (<date>)"); the Discussions list says "Write-up added to Links" for it, and older records without the attachment keep their link; tests.
+- T18 · The discuss prompt is written to `<userData>/cloud-discussions/prompts/<id>.md` and the lane gets one line to read it, as spec commands and orchestration workers already do; prompt files of pruned discussions are removed; tests.

@@ -1,0 +1,1524 @@
+/* Frame Cloud (frame-cloud-projects spec)
+ *
+ * The modal behind the app header's Frame Cloud entry: the sign-in panes
+ * (moved here from Settings → Account) beside the five-step tour
+ * (frame-cloud-header-entry spec), the signed-in header, and two tabs. It is
+ * a settings
+ * overlay (settingsOverlay), so it never stacks on the two settings surfaces,
+ * drawn at the How to Use Frame guide's size.
+ */
+
+/* One pane per session state, toggled with `hidden`. The panes reuse flex
+   classes, so `hidden` needs the extra weight. */
+#cloud-overlay [hidden] {
+  display: none !important;
+}
+
+.cloud-modal {
+  width: min(var(--modal-width-wide), 94vw);
+  height: min(720px, 86vh);
+}
+
+.cloud-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.cloud-signed-in {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+/* ─── Signed out: the pitch and the sign-in card ────────── */
+
+/* Fills the modal body edge to edge; the body's own padding is cancelled. */
+.cloud-welcome {
+  flex: 1;
+  min-height: 0;
+  margin: -16px -18px -20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+}
+
+.cloud-pitch {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  padding: 32px 36px;
+  overflow-y: auto;
+}
+
+.cloud-pitch-head {
+  display: grid;
+  gap: 10px;
+}
+
+.cloud-pitch-eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cloud-pitch-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+
+.cloud-pitch-lede {
+  margin: 0;
+  max-width: 58ch;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+/* ─── The tour (cloudWelcome.js; words and sample data in cloudTour.js) ─── */
+/* One step at a time: the head above, an example on the stage, then the dots
+   with Back and Next. The stage takes the column's free height, so the nav
+   row and the trust line stay where they are from step to step. The examples
+   have their own classes on purpose — they are illustrations, not the Briefs
+   panel, and must not move when that panel's layout does. */
+
+.cloud-tour-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-secondary);
+}
+
+.cloud-tour-stage {
+  flex: 1 0 auto;
+  min-height: 236px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.cloud-tour-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cloud-tour-dots {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+}
+
+/* A 22×5 bar inside a taller hit area. */
+.cloud-tour-dot-btn {
+  width: 22px;
+  height: 17px;
+  padding: 6px 0;
+  border: 0;
+  border-radius: 3px;
+  background: var(--bg-hover);
+  background-clip: content-box;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.cloud-tour-dot-btn:hover {
+  background-color: var(--border-strong);
+}
+
+.cloud-tour-dot-btn[aria-current="step"] {
+  background-color: var(--accent-primary);
+}
+
+.cloud-tour-btn {
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.cloud-tour-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.cloud-tour-btn:disabled {
+  background: transparent;
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.cloud-tour-btn:focus-visible,
+.cloud-tour-dot-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Tones: what a part's or a card's state reads as. The quiet text here is
+   --text-secondary, not --text-tertiary: at these sizes the tertiary ink
+   falls under 4.5:1 in the light-plus theme. */
+.cloud-tour-tone-ok { color: var(--accent-primary); }
+.cloud-tour-tone-review { color: var(--info); }
+.cloud-tour-tone-active { color: var(--doc-task); }
+.cloud-tour-tone-muted { color: var(--text-secondary); }
+
+/* Overview: six features in two columns. */
+.cloud-tour-features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+}
+
+.cloud-tour-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.cloud-tour-feature b {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* The framed example: a board, a lane of talk, or a list of parts. */
+.cloud-tour-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  padding: 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+}
+
+.cloud-tour-milestone {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.cloud-tour-milestone b {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cloud-tour-track {
+  flex: 1;
+  min-width: 60px;
+  height: 5px;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+}
+
+.cloud-tour-track i {
+  display: block;
+  height: 100%;
+  background: var(--accent-primary);
+}
+
+.cloud-tour-columns {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cloud-tour-column {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cloud-tour-column-wide {
+  flex-grow: 1.9;
+}
+
+.cloud-tour-column-name {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.cloud-tour-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 8px 9px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 7px;
+}
+
+.cloud-tour-card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.cloud-tour-kind {
+  padding: 0 6px;
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+}
+
+.cloud-tour-kind[data-kind="proposal"] {
+  color: var(--info);
+}
+
+.cloud-tour-card-title {
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.cloud-tour-card-foot {
+  font-size: 11.5px;
+}
+
+.cloud-tour-card-parts {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 2px 0;
+  padding: 6px 0;
+  list-style: none;
+  border-block: 1px solid var(--border-default);
+}
+
+.cloud-tour-card-parts li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11.5px;
+}
+
+/* The dot takes its colour from its tone class. */
+.cloud-tour-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.cloud-tour-part-label,
+.cloud-tour-row-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-tour-part-label {
+  color: var(--text-secondary);
+}
+
+.cloud-tour-part-status,
+.cloud-tour-row-status {
+  flex: none;
+  white-space: nowrap;
+  font-size: 11.5px;
+}
+
+.cloud-tour-chip {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 1px 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+}
+
+.cloud-tour-say {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.cloud-tour-say b {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cloud-tour-record {
+  padding: 2px 0 2px 10px;
+  color: var(--text-primary);
+  border-left: 2px solid var(--accent-primary);
+}
+
+.cloud-tour-record small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.cloud-tour-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 7px 9px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 7px;
+}
+
+.cloud-tour-note {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* A picture of the button the step ends on; nothing here is pressable. */
+.cloud-tour-action {
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--bg-secondary);
+  background: var(--accent-primary);
+  border-radius: var(--radius-md);
+}
+
+.cloud-trust {
+  margin: 0;
+  padding-top: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 70ch;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+  border-top: 1px solid var(--border-default);
+}
+
+.cloud-trust svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--text-secondary);
+}
+
+.cloud-trust b {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.cloud-signin {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  padding: 32px 28px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border-default);
+}
+
+.cloud-signin-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cloud-signin-head {
+  display: grid;
+  gap: 8px;
+}
+
+.cloud-signin-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cloud-signin-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.cloud-signin-btn {
+  width: 100%;
+  padding: 9px 14px;
+  font-size: 12px;
+}
+
+.cloud-steps {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: cloud-step;
+}
+
+.cloud-steps li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  counter-increment: cloud-step;
+}
+
+.cloud-steps li::before {
+  content: counter(cloud-step);
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: 50%;
+}
+
+.cloud-steps li.done::before {
+  content: "✓";
+  color: var(--accent-primary);
+  background: var(--accent-subtle);
+  border-color: transparent;
+}
+
+.cloud-steps li.now {
+  color: var(--text-primary);
+}
+
+.cloud-steps li.now::before {
+  border-color: var(--accent-primary);
+}
+
+.cloud-waiting {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.cloud-spin {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border: 1.5px solid var(--border-strong);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: cloud-spin 0.8s linear infinite;
+}
+
+@keyframes cloud-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud-spin { animation: none; }
+}
+
+/* Early access: the waitlist form, the joined card and the quiet sign-in line. */
+.cloud-early-form {
+  display: grid;
+  gap: 8px;
+}
+
+.cloud-early-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--warning-ink);
+}
+
+.cloud-early-joined {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+}
+
+.cloud-early-signin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.cloud-inline-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--accent-primary);
+  cursor: pointer;
+  justify-self: start;
+}
+
+.cloud-inline-link:hover {
+  text-decoration: underline;
+}
+
+.cloud-signin-foot {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+}
+
+/* The user code: read off the screen and matched against the browser. */
+.cloud-code {
+  padding: 14px 0;
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-align: center;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  user-select: all;
+}
+
+/* The web approval page has no code field, so the full URL is the fallback
+   route when the browser did not open — selectable, with a Copy button. */
+.cloud-url {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.cloud-url-text {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.cloud-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cloud-note {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+.cloud-signin-pane .cloud-note {
+  margin: 0;
+}
+
+.cloud-reason a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.cloud-reason a:hover {
+  text-decoration: underline;
+}
+
+/* Brief confirmation after a completed sign-in. */
+.cloud-success {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent-primary);
+  border-radius: 6px;
+  animation: settings-fade 0.14s ease-out;
+}
+
+/* ─── Signed-in header ──────────────────────────────────── */
+
+/* One card: who is signed in (avatar, name, handle, Sign out) over the
+   workspace and this device. */
+.cloud-header {
+  margin-bottom: 4px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+}
+
+.cloud-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.cloud-avatar {
+  position: relative;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.cloud-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cloud-avatar-initials {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.cloud-identity-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.3;
+}
+
+.cloud-identity-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-identity-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-identity-sub:empty {
+  display: none;
+}
+
+.cloud-sign-out {
+  flex: 0 0 auto;
+}
+
+.cloud-meta {
+  margin: 0;
+  padding: 4px 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.cloud-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 30px;
+}
+
+.cloud-meta-row + .cloud-meta-row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.cloud-meta-label {
+  flex: 0 0 96px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.cloud-meta-value {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cloud-meta-text {
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Quiet text button: the workspace's page on the web. */
+.cloud-link-btn {
+  margin-left: auto;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+}
+
+.cloud-link-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.cloud-link-btn:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+/* ─── Tabs ──────────────────────────────────────────────── */
+
+.cloud-tabbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.cloud-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.cloud-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.cloud-tab:hover {
+  color: var(--text-primary);
+}
+
+.cloud-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+.cloud-tab-count {
+  color: var(--text-tertiary);
+}
+
+.cloud-tabbar-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 6px;
+}
+
+.cloud-last-updated {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.cloud-last-updated-stale {
+  color: var(--warning-ink);
+}
+
+.cloud-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent-primary);
+  border-radius: 6px;
+}
+
+.cloud-tab-panel {
+  padding-top: 10px;
+}
+
+/* ─── No workspace (in place of the tabs) ───────────────── */
+
+.cloud-no-workspace {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+.cloud-no-workspace-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cloud-no-workspace-body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.cloud-no-workspace-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.cloud-no-workspace-local {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* ─── Rows (both tabs) ──────────────────────────────────── */
+
+.cloud-empty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 2px;
+}
+
+.cloud-stale {
+  padding-top: 0;
+}
+
+.cloud-stale .settings-about-status {
+  color: var(--warning-ink);
+}
+
+.cloud-rows {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.4fr) max-content minmax(80px, 1fr) max-content;
+  column-gap: 12px;
+}
+
+/* Rows share the table's tracks (subgrid), so the head and every row line
+   up whatever each cell holds. */
+.cloud-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+/* A link's progress, question or error sits on its own line under the row. */
+.cloud-row > .cloud-question,
+.cloud-row > .cloud-row-status,
+.cloud-row > .cloud-row-error {
+  grid-column: 1 / -1;
+  margin-left: 0;
+  padding-left: 0;
+}
+
+.cloud-row-head {
+  padding-top: 0;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.cloud-cell {
+  min-width: 0;
+}
+
+.cloud-cell-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cloud-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-slug {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-cell-folder {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-cell-muted {
+  color: var(--text-tertiary);
+}
+
+.cloud-not-here {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cloud-not-here-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Hover or focus for how to bring the project to this computer. */
+.cloud-info {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--text-tertiary);
+  cursor: help;
+  border-radius: 50%;
+}
+
+.cloud-info:hover,
+.cloud-info:focus-visible {
+  color: var(--text-primary);
+  outline: none;
+}
+
+.cloud-cell-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cloud-row-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.cloud-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+/* Blue, not the accent: the accent is green and would read as Connected. */
+.cloud-chip-ready {
+  color: var(--info);
+  border-color: color-mix(in srgb, var(--info) 45%, transparent);
+  background: color-mix(in srgb, var(--info) 10%, transparent);
+}
+
+.cloud-chip-connected {
+  color: var(--success);
+  background: var(--success-subtle);
+  border-color: transparent;
+}
+
+/* A Not claimed chip's line saying what claiming is. */
+.cloud-cell-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.cloud-chip-note {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-tertiary);
+}
+
+/* ─── On this device ────────────────────────────────────── */
+
+/* The folder list and the selected folder's detail fill the tab. */
+#cloud-tab-device {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cloud-split {
+  flex: 1;
+  min-height: 360px;
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.cloud-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-default);
+}
+
+.cloud-side-label {
+  padding: 10px 8px 4px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cloud-side-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 8px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-primary);
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cloud-side-item:hover {
+  background: var(--bg-hover);
+}
+
+.cloud-side-item.selected {
+  background: var(--bg-primary);
+  box-shadow: inset 0 0 0 1px var(--border-default);
+}
+
+.cloud-side-item:focus-visible {
+  outline: 1px solid var(--accent-primary);
+  outline-offset: -1px;
+}
+
+.cloud-side-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cloud-side-name,
+.cloud-side-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-side-name {
+  font-weight: 500;
+}
+
+.cloud-side-path {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* One dot per state: blue for a suggestion, hollow for new, green when
+   connected — the same colours the Cloud projects chips use. */
+.cloud-state {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.cloud-state-suggested {
+  background: var(--info);
+}
+
+.cloud-state-new,
+.cloud-state-pending {
+  box-shadow: inset 0 0 0 1.5px var(--text-tertiary);
+}
+
+.cloud-state-connected {
+  background: var(--success);
+}
+
+/* A recognised clone: the green ring that fills once this device connects. */
+.cloud-state-ready {
+  box-shadow: inset 0 0 0 1.5px var(--success);
+}
+
+.cloud-uninitialised {
+  margin: auto 0 0;
+  padding: 12px 8px 6px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.cloud-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.cloud-detail-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cloud-detail-path {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.cloud-detail-lead {
+  margin: 0;
+  max-width: 64ch;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.cloud-facts {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px 16px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.cloud-facts dt {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.cloud-facts dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--text-primary);
+}
+
+.cloud-fact-inline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+
+.cloud-fact-note {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.cloud-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+}
+
+.cloud-panel-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cloud-alt {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* The one decisive button, bottom right; Disconnect… sits apart on the left. */
+.cloud-detail-foot {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cloud-detail-foot .cloud-btn-danger-text {
+  margin-right: auto;
+}
+
+.cloud-btn-quiet {
+  background: none;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.cloud-btn-quiet:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.cloud-btn-danger,
+.cloud-btn-danger-text {
+  color: var(--error);
+}
+
+.cloud-btn-danger {
+  background: none;
+  border-color: color-mix(in srgb, var(--error) 40%, transparent);
+}
+
+.cloud-btn-danger:hover:not(:disabled) {
+  background: var(--error-subtle);
+}
+
+.cloud-chip-warn {
+  color: var(--warning-ink);
+}
+
+.cloud-field {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 420px);
+  align-items: center;
+  gap: 10px;
+}
+
+.cloud-field-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* Input with an optional fixed prefix (the workspace part of the URL). */
+.cloud-input-box {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding-left: 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+}
+
+.cloud-input-box:focus-within {
+  border-color: var(--accent-primary);
+}
+
+.cloud-input-prefix {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.cloud-input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px 5px 0;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  outline: none;
+}
+
+.cloud-input-mono,
+.cloud-input-mono .cloud-input {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.cloud-slug-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-left: 66px;
+  font-size: 11px;
+}
+
+.cloud-ok {
+  color: var(--success);
+}
+
+.cloud-row-error {
+  color: var(--error);
+  margin: 0;
+}
+
+.cloud-row-status {
+  margin: 0;
+}
+
+.cloud-question {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  line-height: 1.5;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+}
+
+.cloud-question > span {
+  flex: 1 1 320px;
+}
+
+.cloud-picker {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.cloud-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-primary);
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+}
+
+.cloud-picker-item:last-child {
+  border-bottom: none;
+}
+
+.cloud-picker-item:hover,
+.cloud-picker-item.active {
+  background: var(--bg-hover);
+}
+
+/* ─── With the project ──────────────────────────────────── */
+
+/* The Connected mark sits beside the project switcher, only when shown. */
+.sidebar-current-project-wrap.has-cloud-mark {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cloud-project-mark {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-primary);
+}
+
+#cloud-project-mark[hidden],
+#settings-project-cloud[hidden] {
+  display: none !important;
+}
+
+.settings-project-cloud-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+}

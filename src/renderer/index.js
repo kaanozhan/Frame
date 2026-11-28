@@ -48,6 +48,10 @@ const appLoader = require('./appLoader');
 const projectSettingsModal = require('./projectSettingsModal');
 const doneWindow = require('./doneWindow');
 const frameSettingsModal = require('./frameSettingsModal');
+const cloudHub = require('./cloudHub');
+const cloudHubTabs = require('./cloudHubTabs');
+const cloudProjectMark = require('./cloudProjectMark');
+const cloudBriefsPanel = require('./cloudBriefsPanel');
 const feedbackPanel = require('./feedbackPanel');
 const analyticsNotice = require('./analyticsNotice');
 const healthNotice = require('./healthNotice');
@@ -361,6 +365,12 @@ function init() {
   guideModal.init();
   projectSettingsModal.init();
   frameSettingsModal.init();
+  // Frame Cloud never lands over the first-run screen or the guided tour.
+  cloudHub.init({ isBlocked: () => onboarding.isOpen() || guidedTour.isOpen(), tabs: cloudHubTabs });
+  // The header's Frame Cloud entry follows the session the hub publishes.
+  appHeader.bindCloudEntry(cloudHub);
+  cloudProjectMark.init(cloudHub);
+  cloudBriefsPanel.init(cloudHub);
   feedbackPanel.init();
   // The notice is about what Frame sends home — Privacy lives in Frame's
   // own settings, not the project's.
@@ -439,9 +449,11 @@ function setupButtonHandlers() {
     btn.addEventListener('click', () => revealSidebarTab(btn.dataset.sidebarTab));
   });
 
-  // The foot of the sidebar rail — Plugins, Feedback, then Frame Settings:
-  // each a modal (pluginsPanel, feedbackPanel, frameSettingsModal), not a
-  // view — hence no .sidebar-tab-btn on the buttons. All three toggle.
+  // The foot of the sidebar rail — Add Server, Plugins, Feedback, Frame
+  // Settings, then How to Use Frame: each a modal (serverConnect,
+  // pluginsPanel, feedbackPanel, frameSettingsModal, the guide), not a view —
+  // hence no .sidebar-tab-btn on the buttons. Frame Cloud is not here: its
+  // entry is in the app header (appHeader.bindCloudEntry).
   const addServerBtn = document.getElementById('add-server-btn');
   if (addServerBtn) {
     addServerBtn.addEventListener('click', () => commandRegistry.runById('server.add'));
@@ -750,6 +762,53 @@ function registerCommands() {
     category: 'Help',
     shortcut: 'CmdOrCtrl+,',
     run: () => frameSettingsModal.open()
+  });
+  // Frame Cloud: offered only where a server resolved (never in packaged
+  // builds today), and only the one that applies to the current session.
+  r({
+    id: 'cloud.open',
+    title: 'Frame Cloud: Open',
+    category: 'Help',
+    when: () => cloudHub.accountState() !== 'unavailable',
+    run: () => cloudHub.open()
+  });
+  r({
+    id: 'cloud.signIn',
+    title: 'Frame Cloud: Sign in',
+    category: 'Help',
+    when: () => !['unavailable', 'signedIn'].includes(cloudHub.accountState()),
+    run: () => cloudHub.signIn()
+  });
+  r({
+    id: 'cloud.signOut',
+    title: 'Frame Cloud: Sign out',
+    category: 'Help',
+    when: () => cloudHub.accountState() === 'signedIn',
+    run: () => cloudHub.signOut()
+  });
+  // The open project, as Frame Cloud lists it. Both route to the one place
+  // that picks and confirms: Frame Cloud's On this device row, which a role
+  // without `work` does not have — its window says why (frame-cloud-roles D6).
+  const cloudCanWork = (projects) => Boolean(projects && projects.permissions && projects.permissions.work);
+  r({
+    id: 'cloud.connectProject',
+    title: 'Frame Cloud: Connect this project',
+    category: 'Help',
+    when: () => {
+      const { signedIn, folder, projects } = cloudProjectMark.openFolder();
+      return signedIn && cloudCanWork(projects) && state.getIsFrameProject() && Boolean(folder) && !folder.connected;
+    },
+    run: () => cloudHub.open({ tab: 'device', folderPath: state.getProjectPath() })
+  });
+  r({
+    id: 'cloud.disconnectProject',
+    title: 'Frame Cloud: Disconnect this project',
+    category: 'Help',
+    when: () => {
+      const { signedIn, folder, projects } = cloudProjectMark.openFolder();
+      return signedIn && cloudCanWork(projects) && Boolean(folder && folder.connected);
+    },
+    run: () => cloudHub.open({ tab: 'device', folderPath: state.getProjectPath(), confirmDisconnect: true })
   });
   // The work queue (work-queue spec): the Chief at the sidebar's location works it.
   r({

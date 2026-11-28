@@ -483,14 +483,16 @@ class TerminalsView {
       this._goToTerminal(terminalId);
     });
 
-    // The chip opens the spec or task this terminal is working on, reusing
-    // that section's tab when one is already open — the same route Home's
-    // tiles take. It sits inside the pane, and the pane means "focus this
-    // terminal", so it has to stop there.
+    // The chip opens the spec, task or cloud brief this terminal is working
+    // on, reusing that section's tab when one is already open — the same
+    // route Home's tiles take. A brief opens in the Briefs panel's drawer.
+    // It sits inside the pane, and the pane means "focus this terminal", so
+    // it has to stop there.
     pane.querySelector('button.tv-pane-assign')?.addEventListener('click', (e) => {
       e.stopPropagation();
       const { assignKind, assignRef } = e.currentTarget.dataset;
       if (assignKind === 'spec') require('./specSection').open(assignRef);
+      else if (assignKind === 'brief') require('./cloudBriefsPanel').openBrief(Number(assignRef));
       else require('./taskSection').open(assignRef);
     });
 

@@ -1,0 +1,25 @@
+{
+  "slug": "frame-cloud-start-on-server",
+  "title": "Start Work on a Frame Server",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-frame-cloud-start-on-server-T01",
+    "task-spec-frame-cloud-start-on-server-T02",
+    "task-spec-frame-cloud-start-on-server-T03",
+    "task-spec-frame-cloud-start-on-server-T04",
+    "task-spec-frame-cloud-start-on-server-T05",
+    "task-spec-frame-cloud-start-on-server-T06",
+    "task-spec-frame-cloud-start-on-server-T07",
+    "task-spec-frame-cloud-start-on-server-T08",
+    "task-spec-frame-cloud-start-on-server-T09",
+    "task-spec-frame-cloud-start-on-server-T10",
+    "task-spec-frame-cloud-start-on-server-T11",
+    "task-spec-frame-cloud-start-on-server-T12"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-11-25T08:18:07Z",
+  "updated_at": "2026-11-26T09:39:16.551Z",
+  "last_phase_at": "2026-11-26T09:39:16.551Z",
+  "flow_mode": "step-by-step",
+  "implement_mode": "autonomous"
+}

@@ -1,0 +1,23 @@
+{
+  "slug": "frame-cloud-projects",
+  "title": "Frame Cloud projects",
+  "phase": "done",
+  "generated_task_ids": [
+    "task-spec-frame-cloud-projects-T01",
+    "task-spec-frame-cloud-projects-T02",
+    "task-spec-frame-cloud-projects-T03",
+    "task-spec-frame-cloud-projects-T04",
+    "task-spec-frame-cloud-projects-T05",
+    "task-spec-frame-cloud-projects-T06",
+    "task-spec-frame-cloud-projects-T07",
+    "task-spec-frame-cloud-projects-T08",
+    "task-spec-frame-cloud-projects-T09",
+    "task-spec-frame-cloud-projects-T10",
+    "task-spec-frame-cloud-projects-T11"
+  ],
+  "ai_tool": "claude-code",
+  "created_at": "2026-09-17T08:53:17Z",
+  "updated_at": "2026-09-17T10:29:35.005Z",
+  "last_phase_at": "2026-09-17T10:29:35.005Z",
+  "implement_mode": "autonomous"
+}

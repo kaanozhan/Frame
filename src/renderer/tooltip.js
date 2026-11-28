@@ -54,10 +54,11 @@ function _place(target, placement) {
   tip.style.top = `${Math.max(GAP_PX, Math.min(top, maxTop))}px`;
 }
 
-function show(target, text, placement) {
+function show(target, text, placement, variant) {
   const tip = _el();
   tip.textContent = text;
   tip.dataset.placement = placement;
+  tip.classList.toggle('ui-tooltip-note', variant === 'note');
   tip.classList.add('visible');
   _place(target, placement);
   current = target;
@@ -73,17 +74,19 @@ function hide() {
 /**
  * @param {HTMLElement} el
  * @param {string} text
- * @param {{ placement?: 'top' | 'right' | 'bottom' }} [opts]
+ * @param {{ placement?: 'top' | 'right' | 'bottom', variant?: 'note' }} [opts]
+ *   variant 'note': a sentence or two that wraps, shown above modals too.
  */
 function attach(el, text, opts = {}) {
   if (!el || !text) return;
   const placement = opts.placement || 'top';
+  const variant = opts.variant || '';
   el.removeAttribute('title');
   if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', text);
 
   const schedule = () => {
     clearTimeout(showTimer);
-    showTimer = setTimeout(() => show(el, text, placement), SHOW_DELAY_MS);
+    showTimer = setTimeout(() => show(el, text, placement, variant), SHOW_DELAY_MS);
   };
   el.addEventListener('mouseenter', schedule);
   el.addEventListener('focus', schedule);

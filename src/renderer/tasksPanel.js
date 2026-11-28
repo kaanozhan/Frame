@@ -460,8 +460,10 @@ function buildTaskPrompt(task, opts = {}) {
  */
 async function runTaskWithOptions(task, opts = {}) {
   // The task's own file by absolute path: its server clone's for a server
-  // task, the Mac's main checkout's otherwise (server-tasks B4).
-  const prompt = buildTaskPrompt(task, { ...opts, tasksPath: task.tasksPath || macTasksPath || null });
+  // task, the Mac's main checkout's otherwise (server-tasks B4). A caller's
+  // own `opts.tasksPath` (cloud Begin) comes before the panel's last
+  // TASKS_DATA path, which may not be this project's yet.
+  const prompt = buildTaskPrompt(task, { ...opts, tasksPath: task.tasksPath || opts.tasksPath || macTasksPath || null });
 
   // Lazy-required to avoid load-order coupling with the terminal wiring.
   const agentDispatch = require('./agentDispatch');
@@ -691,6 +693,7 @@ module.exports = {
   toggle,
   loadTasks,
   openRunFlow,
+  runTaskWithOptions,
   isVisible: () => isVisible,
   setClaudeRunning,
   isClaudeRunning

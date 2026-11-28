@@ -68,6 +68,136 @@
   white-space: nowrap;
 }
 
+/* ─── Frame Cloud entry (frame-cloud-header-entry spec) ─── */
+/* A quiet text button right of the mark: transparent at rest, never filled
+   or accent-coloured. The slanted separator is the button's own ::before,
+   outside its box, so it leaves with the button when no server address
+   resolves and stays out of the hover wash. */
+.cloud-entry {
+  position: relative;
+  flex: none;
+  height: 28px;
+  margin-left: 14px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: normal;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.cloud-entry::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  width: 1px;
+  height: 16px;
+  margin-top: -8px;
+  background: var(--border-strong);
+  transform: rotate(18deg);
+  pointer-events: none;
+}
+
+/* No global [hidden] rule exists, and the display values here would win
+   over the attribute's default. */
+.cloud-entry[hidden],
+.cloud-entry [hidden] {
+  display: none;
+}
+
+.cloud-entry:hover,
+.cloud-entry:focus-visible {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.cloud-entry:focus-visible {
+  border-color: var(--accent-primary);
+}
+
+.cloud-entry-icon,
+.cloud-entry-initial {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The workspace's initial stands where the cloud does once signed in. */
+.cloud-entry-initial {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-md);
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cloud-entry[data-kind="workspace"] .cloud-entry-icon,
+.cloud-entry[data-kind="cloud"] .cloud-entry-initial {
+  display: none;
+}
+
+/* The workspace's name and the waitlist call are one step brighter than the
+   resting label — ink, not accent. */
+.cloud-entry[data-kind="workspace"] .cloud-entry-label,
+.cloud-entry.cloud-entry-call .cloud-entry-label {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* A long workspace name ends in an ellipsis; the tooltip has it whole. */
+.cloud-entry[data-kind="workspace"] .cloud-entry-label {
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cloud-entry-tag {
+  padding: 1px 6px;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  /* Secondary, not tertiary: the tertiary ink is under 4.5:1 in light-plus. */
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Narrow: the window's minimum width fits every label, so this is reached
+   through interface zoom, which shrinks the CSS viewport. The entry drops to
+   the cloud icon alone; the tooltip still gives the full state. */
+@media (max-width: 760px) {
+  .cloud-entry {
+    width: 28px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .cloud-entry .cloud-entry-label,
+  .cloud-entry .cloud-entry-tag,
+  .cloud-entry .cloud-entry-initial {
+    display: none;
+  }
+
+  .cloud-entry[data-kind="workspace"] .cloud-entry-icon {
+    display: inline-flex;
+  }
+}
+
 /* ─── Right cluster: icon buttons, bell ─── */
 /* Start is a button in this cluster but not an icon square; :not() keeps
    the specificity at one class, so the later per-class rules still win by

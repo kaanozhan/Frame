@@ -13,11 +13,17 @@
  *
  * The sidebar's update dot and banner lead here — into About, which is where
  * the release they are announcing can actually be read.
+ *
+ * Account (Frame Cloud) is one row: who is signed in, and a button that
+ * closes this modal and opens Frame Cloud (cloudHub), where the account
+ * itself lives (frame-cloud-projects spec). It draws the session state main
+ * pushes over CLOUD_SESSION_STATE; the token never comes this way.
  */
 
 const { ipcRenderer, shell } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const settingsOverlay = require('./settingsOverlay');
+const cloudHub = require('./cloudHub');
 const uiZoom = require('../shared/uiZoom');
 
 const ANALYTICS_KEY = 'analyticsEnabled';
@@ -51,6 +57,11 @@ let currentUpdateInfo = null;
 let autoUpdateActive = false;
 let updateDownloaded = false;
 
+// Account row elements
+let accountSection = null;
+let accountSummaryEl = null;
+let accountOpenBtn = null;
+
 function init() {
   toggleEl = document.getElementById('settings-analytics-toggle');
   crashDumpsToggleEl = document.getElementById('settings-crash-dumps-toggle');
@@ -70,7 +81,10 @@ function init() {
   updateTitleEl = document.getElementById('settings-update-title');
   updateInstallBtn = document.getElementById('settings-update-install');
 
-  overlay = settingsOverlay.create('frame-settings-overlay', syncToggleFromSettings);
+  overlay = settingsOverlay.create('frame-settings-overlay', () => {
+    syncToggleFromSettings();
+    refreshAccountOnOpen();
+  });
   if (!overlay || !toggleEl) {
     if (!toggleEl) console.error('Frame settings: required elements not found');
     return;
@@ -81,6 +95,7 @@ function init() {
 
   // Load current value
   syncToggleFromSettings();
+  initAccountSection();
   initAboutSection();
 
   // Toggle: persist + tell main to enable/disable sending (and to mint or
@@ -141,6 +156,60 @@ function init() {
     renderUpdateState({ checked: true, found: true, info });
   });
 }
+
+// ─── Account (Frame Cloud) ────────────────────────────────
+
+function initAccountSection() {
+  accountSection = document.getElementById('settings-account');
+  accountSummaryEl = document.getElementById('settings-account-summary');
+  accountOpenBtn = document.getElementById('settings-account-open');
+  if (!accountSection || !accountSummaryEl || !accountOpenBtn) {
+    console.error('Frame settings: the Account row is missing — Frame Cloud is not reachable from Settings');
+    return;
+  }
+
+  // Close first: two dialogs never stack. Signed out, the window opens on its
+  // signed-out pane rather than starting sign-in, so an invite-only server's
+  // waitlist is seen first (frame-cloud-early-access D1).
+  accountOpenBtn.addEventListener('click', () => {
+    if (overlay) overlay.close();
+    cloudHub.open();
+  });
+
+  ipcRenderer.on(IPC.CLOUD_SESSION_STATE, (event, state) => renderAccount(state));
+  pullAccountState();
+}
+
+function pullAccountState() {
+  return ipcRenderer
+    .invoke(IPC.CLOUD_GET_STATE)
+    .then(renderAccount)
+    .catch((err) => {
+      console.error('Frame settings: could not read the Frame Cloud state', err);
+    });
+}
+
+// Opening the modal re-reads the session, so the row never shows a state
+// main has moved past.
+function refreshAccountOnOpen() {
+  if (accountSection) pullAccountState();
+}
+
+function renderAccount(state) {
+  if (!accountSection) return;
+  const s = state && state.state ? state : { state: 'unavailable' };
+  accountSection.hidden = s.state === 'unavailable';
+  if (s.state === 'signedIn') {
+    const user = s.user || {};
+    accountSummaryEl.textContent = `Signed in as ${user.name || user.email || '—'}`;
+    accountOpenBtn.textContent = 'Open Frame Cloud';
+  } else {
+    accountSummaryEl.textContent = 'Frame Cloud';
+    accountOpenBtn.textContent = 'Open Frame Cloud';
+  }
+}
+
+// ─── About ────────────────────────────────────────────────
 
 function initAboutSection() {
   // Version text from package.json

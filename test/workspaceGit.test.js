@@ -483,6 +483,26 @@ test('L13e: spec locations of a project that is not watched follow its workspace
   assert.equal(specManager.specRoot(project, 'later'), a.workspace.path);
 });
 
+test('a spec written into a workspace after the map was built is found without a watcher push', async () => {
+  const { project } = makeProject();
+  const specManager = require('../src/main/specManager');
+  const a = await workspaceManager.create(project, { from: 'new', base: 'main' });
+  // The workspace change's SPEC_DATA push rebuilds the map before Start Work
+  // writes the part's spec (task-spec-location-cache-miss-refresh).
+  assert.equal(specManager.specRoot(project, 'unrelated'), project, 'map built');
+  const dir = path.join(a.workspace.path, '.frame', 'specs', 'begun-part');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'spec.md'), '# Begun part\n');
+  fs.writeFileSync(path.join(dir, 'status.json'), JSON.stringify({ slug: 'begun-part', title: 'Begun part', phase: 'specified' }));
+
+  const spec = specManager.getSpec(project, 'begun-part');
+  assert.ok(spec, 'getSpec finds the spec (its status read from the workspace)');
+  assert.equal(spec.status.phase, 'specified');
+  assert.equal(spec.workspace && spec.workspace.id, a.workspace.id);
+  assert.equal(specManager.specRoot(project, 'begun-part'), a.workspace.path);
+  assert.equal(specManager.specRoot(project, 'nowhere'), project, 'a slug that exists nowhere still resolves to main');
+});
+
 // ─── Background reads never take the index lock (follow-up of T01) ──
 
 test('status and diff reads leave .git/index alone (--no-optional-locks)', async () => {

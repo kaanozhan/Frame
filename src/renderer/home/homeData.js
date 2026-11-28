@@ -2,7 +2,7 @@
  * Home Data Layer — the board's one and only subscription set.
  *
  * Every source Home reads lives here: `lanes`, `specs`, `tasks`, `git`,
- * `sessions` and `aiTool`. Widgets declare which of them they want and are
+ * `sessions`, `aiTool` and `milestone`. Widgets declare which of them they want and are
  * handed plain data; none of them ever sees `ipcRenderer` (D3, S6). That is
  * the structural half of the fix for the IPC storm measured 2026-08-20
  * (~100 round-trips/sec, 163% CPU): one listener set for the whole board,
@@ -18,6 +18,14 @@
  * state, so the board pushes it in through `setHostState()` and this module
  * merges each terminal with its live `laneStatus` — the merge is here so that
  * `agentRows` downstream stays a pure function of plain data (C8).
+ *
+ * `milestone` is the open folder's started Frame Cloud milestone, for Home's
+ * tracker (frame-cloud-milestones D12). It has two feeds too: a light
+ * `milestone.list` read (CLOUD_MILESTONES_LIST) when the project, the cloud
+ * state or the folder's Briefs availability changes, and on a Home visit or
+ * window focus once the value is older than 30 s; and the Briefs board's
+ * handoff (`setBoardMilestone`), whose counts already carry a held Move to
+ * Done, so Home matches the strip with no request. No timers.
  */
 
 const { ipcRenderer } = require('electron');
@@ -25,7 +33,7 @@ const { IPC } = require('../../shared/ipcChannels');
 const laneStatus = require('./../laneStatus');
 
 /** Every source a widget may declare. An unknown name is a programming error. */
-const SOURCES = ['lanes', 'specs', 'tasks', 'git', 'sessions', 'aiTool'];
+const SOURCES = ['lanes', 'specs', 'tasks', 'git', 'sessions', 'aiTool', 'milestone'];
 
 const values = {
   // [{ terminal, status }] — the host's terminals merged with laneStatus.
@@ -38,7 +46,10 @@ const values = {
   // Claude transcripts for this project, newest-first as main returns them.
   sessions: [],
   // { current, available } from the AI tool config.
-  aiTool: { current: null, available: {} }
+  aiTool: { current: null, available: {} },
+  // { path, milestone } — the open project's started cloud milestone — or
+  // null: no started milestone, Briefs not available, or not read yet.
+  milestone: null
 };
 
 const listeners = new Map(SOURCES.map(s => [s, new Set()]));
@@ -46,6 +57,22 @@ const listeners = new Map(SOURCES.map(s => [s, new Set()]));
 let bound = false;
 let projectPath = null;
 let terminals = [];
+
+/** How old the milestone may be before a Home visit or focus reads it again. */
+const MILESTONE_STALE_MS = 30 * 1000;
+// When the milestone was last set (a read or the board's handoff); 0 = never.
+let milestoneAt = 0;
+// Every read and handoff takes a number; a read answering after a newer one
+// (or after a handoff) is dropped.
+let milestoneSeq = 0;
+// The open folder's path, cloud project and Briefs availability, as the last
+// cloud push left them: a push that moves none of them reads nothing.
+let cloudKey = null;
+
+// cloudBriefsPanel requires this module, so both sides require lazily.
+function cloudBriefsPanel() {
+  return require('./../cloudBriefsPanel');
+}
 
 function assertSource(source) {
   if (!listeners.has(source)) throw new Error(`homeData: unknown source "${source}"`);
@@ -110,6 +137,26 @@ function init() {
   });
 
   refresh('aiTool');
+
+  // The tracker follows the connection: sign-in, sign-out, a folder linked or
+  // unlinked, a role change.
+  const cloudHub = require('./../cloudHub');
+  cloudHub.onProjects(onCloudChange);
+  cloudHub.onSession(onCloudChange);
+}
+
+/** `${path}\n${cloud project id}\n${available}` for the open folder. */
+function currentCloudKey() {
+  const { path, folder } = require('./../cloudProjectMark').openFolder();
+  const projectId = folder && folder.project ? folder.project.id : '';
+  return `${path || ''}\n${projectId}\n${cloudBriefsPanel().isAvailable() ? 1 : 0}`;
+}
+
+function onCloudChange() {
+  const key = currentCloudKey();
+  if (key === cloudKey) return;
+  cloudKey = key;
+  refresh('milestone');
 }
 
 /**
@@ -140,10 +187,12 @@ function setHostState(state) {
     emit('specs');
     emit('tasks');
     emit('sessions');
+    setMilestone(null, 0);
     if (projectPath) {
       refresh('specs');
       refresh('tasks');
       refresh('sessions');
+      refresh('milestone');
     }
   }
 
@@ -197,6 +246,10 @@ function refresh(source) {
     return loadSessions(IPC.LOAD_CLAUDE_SESSIONS);
   }
 
+  if (source === 'milestone') {
+    return loadMilestone();
+  }
+
   if (source === 'aiTool') {
     return ipcRenderer.invoke(IPC.GET_AI_TOOL_CONFIG)
       .then((config) => {
@@ -208,6 +261,65 @@ function refresh(source) {
   }
 
   return Promise.resolve();
+}
+
+/**
+ * The milestone source's value. `at` is when it was read (0 marks it stale).
+ * Emits only when the value changed, so a re-read with the same answer
+ * repaints nothing.
+ */
+function setMilestone(value, at = Date.now()) {
+  milestoneAt = at;
+  if (JSON.stringify(value) === JSON.stringify(values.milestone)) return;
+  values.milestone = value;
+  emit('milestone');
+}
+
+/** The refusals after which the folder has no tracker at all, rather than a stale one. */
+const MILESTONE_GONE = new Set(['notConnected', 'unauthorized', 'roleForbidden']);
+
+/**
+ * Read the open project's milestones (one `milestone.list`) and keep its
+ * started one. Nothing is read while the folder's Briefs are not available —
+ * a viewer, an unconnected folder (frame-cloud-roles D2). A late answer for
+ * another project, or one overtaken by a newer read or a handoff, is dropped;
+ * a failed read keeps the last value unless the folder lost its connection.
+ */
+function loadMilestone() {
+  const forProject = projectPath;
+  const seq = ++milestoneSeq;
+  if (!forProject || !cloudBriefsPanel().isAvailable()) {
+    setMilestone(null);
+    return Promise.resolve();
+  }
+  return ipcRenderer.invoke(IPC.CLOUD_MILESTONES_LIST, forProject)
+    .then((result) => {
+      if (seq !== milestoneSeq || forProject !== projectPath) return;
+      if (result && result.ok) {
+        const started = require('./../cloudBriefsCopy').startedMilestone(result.milestones);
+        setMilestone(started ? { path: forProject, milestone: started } : null);
+        return;
+      }
+      if (result && MILESTONE_GONE.has(result.reason)) setMilestone(null);
+    })
+    .catch(() => { /* leave the last milestone in place; the next visit reads again */ });
+}
+
+/** Read the milestone again only when it is older than MILESTONE_STALE_MS — a Home visit, a window focus. */
+function refreshMilestoneIfStale() {
+  if (Date.now() - milestoneAt < MILESTONE_STALE_MS) return Promise.resolve();
+  return refresh('milestone');
+}
+
+/**
+ * The Briefs board's started milestone, its `briefs` counted from the board
+ * (held moves included), or null when the board has none. Only for the
+ * project Home is reading; it overtakes any read still in flight (D12).
+ */
+function setBoardMilestone(path, milestone) {
+  if (!path || path !== projectPath) return;
+  milestoneSeq += 1;
+  setMilestone(milestone ? { path, milestone } : null);
 }
 
 /**
@@ -255,5 +367,7 @@ module.exports = {
   setHostState,
   getProjectPath,
   reloadSessions,
-  setAiTool
+  setAiTool,
+  refreshMilestoneIfStale,
+  setBoardMilestone
 };

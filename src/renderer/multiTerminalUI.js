@@ -42,7 +42,8 @@ const terminalChipNotice = require('./terminalChipNotice');
 // Sessions tab is this Context view, its Plugins tab sits in the feedback
 // modal for now.
 const PANEL_REGISTRY = {
-  sessions: { elementId: 'sessions-panel', module: () => require('./sessionsPanel') }
+  sessions: { elementId: 'sessions-panel', module: () => require('./sessionsPanel') },
+  cloudBriefs: { elementId: 'cloud-briefs-panel', module: () => require('./cloudBriefsPanel') }
 };
 
 class MultiTerminalUI {

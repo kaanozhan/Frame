@@ -1,0 +1,2012 @@
+/* ==================== CLOUD BRIEFS ====================
+   The connected Frame Cloud project's briefs
+   (frame-cloud-briefs-read-only spec, cloudBriefsPanel.js) and the New
+   brief form (frame-cloud-briefs-create spec, cloudBriefsForm.js). The
+   panel's hidden / visible rules live beside Sessions in panels.css; the
+   drawer's slide is the Specs grid's .specs-dashboard-detail. This file is
+   the board, the cards, the states, the detail body and the form.
+   Namespaced cloud-briefs-* so the local briefs (.briefs*) can share the
+   tree. */
+
+/* ─── Header controls ─── */
+
+.cloud-briefs-actions [hidden] {
+  display: none !important;
+}
+
+.cloud-briefs-closed-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cloud-briefs-closed-toggle input {
+  margin: 0;
+  accent-color: var(--accent-primary);
+}
+
+.cloud-briefs-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.cloud-briefs-icon-btn:hover {
+  color: var(--info);
+  background: rgba(166, 192, 240, 0.15);
+}
+
+.cloud-briefs-icon-btn.spinning svg {
+  animation: spin 1s linear infinite;
+}
+
+.cloud-briefs-web-btn {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.cloud-briefs-web-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.cloud-briefs-web-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+/* The one filled button: New brief and the form's submit. */
+.cloud-briefs-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border: 1px solid transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  transition: opacity var(--transition-fast);
+}
+
+.cloud-briefs-primary-btn:hover {
+  opacity: 0.85;
+}
+
+.cloud-briefs-primary-btn:focus-visible,
+.cloud-briefs-web-btn:focus-visible,
+.cloud-briefs-icon-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.cloud-briefs-primary-btn:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+/* ─── Board ─── */
+
+.cloud-briefs-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-lg) 12px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.cloud-briefs-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .cloud-briefs-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cloud-briefs-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+  padding: var(--space-md);
+  border-radius: var(--radius-xl);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.cloud-briefs-column-title,
+.cloud-briefs-closed-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cloud-briefs-closed-title {
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-column-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-column-hint,
+.cloud-briefs-muted {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-closed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.cloud-briefs-closed .cloud-briefs-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.cloud-briefs-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* ─── Card ─── */
+
+/* The card is a container: the open-brief button fills it, and the card's
+   controls (Discuss, the live lane) sit below as siblings, never nested. */
+.cloud-briefs-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.cloud-briefs-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-tertiary);
+}
+
+.cloud-briefs-card-open {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+
+.cloud-briefs-card-open:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.cloud-briefs-card-records {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md) var(--space-md);
+  margin-top: calc(-1 * var(--space-xs));
+}
+
+.cloud-briefs-card-actions:empty {
+  display: none;
+}
+
+/* State 4: comments that arrived after the latest record. The one accent
+   on the card, so it reads before the buttons; it opens Comments. */
+.cloud-briefs-new-comments {
+  flex-basis: 100%;
+  align-self: flex-start;
+  max-width: max-content;
+  padding: 1px 8px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  background: transparent;
+  border: 1px solid var(--accent-primary);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cloud-briefs-new-comments:hover {
+  background: var(--bg-hover);
+}
+
+.cloud-briefs-new-comments:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+/* Above the comments: how many are new, and Re-discuss. */
+.cloud-briefs-rediscuss {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.cloud-briefs-rediscuss-slot:empty {
+  display: none;
+}
+
+.cloud-briefs-comments li.new {
+  padding-left: var(--space-sm);
+  border-left: 2px solid var(--accent-primary);
+}
+
+.cloud-briefs-new-tag {
+  margin-left: var(--space-xs);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* Move to Work: a small confirm with a priority, over the whole window. */
+.cloud-briefs-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.cloud-briefs-dialog {
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.cloud-briefs-dialog h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cloud-briefs-dialog p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Move to Done / Move back to Active: the reason, and the parts a move to Done leaves unmerged. */
+.cloud-briefs-move-reason {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.cloud-briefs-move-missing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.cloud-briefs-move-missing ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-height: 200px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.cloud-briefs-move-missing li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px var(--space-md);
+  padding: 6px var(--space-sm);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+}
+
+.cloud-briefs-move-missing-title {
+  min-width: 0;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.cloud-briefs-move-missing-status {
+  min-width: 0;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+/* "Discussing in <lane>": a quiet link that enters the lane. */
+.cloud-briefs-lane-link {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.cloud-briefs-lane-link span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-briefs-lane-link:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.cloud-briefs-lane-link:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.cloud-briefs-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-number {
+  font-family: var(--font-mono);
+}
+
+.cloud-briefs-kind {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.cloud-briefs-kind.work {
+  border-color: transparent;
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+/* "Ready for Done" on an Active card: every live part counts, waiting for a person. */
+.cloud-briefs-ready {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--success-subtle);
+  color: var(--success);
+  white-space: nowrap;
+}
+
+.cloud-briefs-card-title {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.cloud-briefs-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--space-md);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cloud-briefs-priority-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+
+.cloud-briefs-priority-dot.high {
+  background: var(--error);
+}
+
+.cloud-briefs-priority-dot.medium {
+  background: var(--warning);
+}
+
+.cloud-briefs-milestone {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* The started milestone's name on a card (frame-cloud-milestones D9): a badge,
+   so its briefs stand out on the full board. */
+.cloud-briefs-milestone-badge {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.cloud-briefs-ending {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+/* ─── States: loading, empty, error ─── */
+
+.cloud-briefs-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-xl);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.cloud-briefs-state h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cloud-briefs-state p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cloud-briefs-loading {
+  border-style: solid;
+  border-color: var(--border-subtle);
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-error p {
+  color: var(--error);
+}
+
+.cloud-briefs-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+/* A create whose links did not all attach: above the columns until dismissed. */
+.cloud-briefs-notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-md);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  color: var(--warning-ink);
+  font-size: 13px;
+}
+
+.cloud-briefs-notice p {
+  margin: 0;
+  padding: 5px 0;
+  line-height: 1.5;
+}
+
+.cloud-briefs-notice .cloud-briefs-icon-btn {
+  flex-shrink: 0;
+}
+
+/* The tracking box (no GitHub, or tracking off): a standing fact, quieter than a notice. */
+.cloud-briefs-tracking {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.cloud-briefs-tracking p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cloud-briefs-tracking-text {
+  min-width: 0;
+}
+
+/* The box's title ("GitHub tracking is off"), over its description, as on the web. */
+.cloud-briefs-tracking .cloud-briefs-tracking-title {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cloud-briefs-tracking .cloud-briefs-web-btn {
+  flex-shrink: 0;
+}
+
+/* The started milestone above the columns (frame-cloud-milestones): its name,
+   Overdue, the end date, its target branch and a bar, as the web's strip. */
+.cloud-briefs-milestone-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-xl);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  font-size: 13px;
+}
+
+.cloud-briefs-milestone-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.cloud-briefs-milestone-label {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-milestone-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+button.cloud-briefs-milestone-name {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  text-underline-offset: 3px;
+}
+
+button.cloud-briefs-milestone-name:hover {
+  text-decoration: underline;
+}
+
+button.cloud-briefs-milestone-name:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* "Overdue": the web's destructive badge. */
+.cloud-briefs-overdue {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--error-subtle);
+  color: var(--error);
+  white-space: nowrap;
+}
+
+.cloud-briefs-milestone-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--space-xl);
+  min-width: 0;
+  color: var(--text-secondary);
+}
+
+.cloud-briefs-milestone-target {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-briefs-milestone-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.cloud-briefs-progress {
+  display: block;
+  width: 80px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+}
+
+.cloud-briefs-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-primary);
+}
+
+.cloud-briefs-progress-label {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The board's one filter: pressed while the board shows only this milestone. */
+.cloud-briefs-milestone-toggle {
+  flex-shrink: 0;
+}
+
+.cloud-briefs-milestone-toggle[aria-pressed="true"] {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* ─── Detail (inside the Specs drawer shell) ─── */
+
+.cloud-briefs-detail-body {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.cloud-briefs-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.cloud-briefs-detail-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.cloud-briefs-detail-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* Discuss / Go to discussion beside Open on web. */
+.cloud-briefs-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.cloud-briefs-discuss-slot:empty {
+  display: none;
+}
+
+.cloud-briefs-discuss-btn {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.cloud-briefs-discuss-btn .spec-activity-dot {
+  vertical-align: 0;
+}
+
+.cloud-briefs-detail-header .cloud-briefs-ending {
+  margin: 0;
+  font-size: 12px;
+}
+
+.cloud-briefs-status {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.cloud-briefs-status.active {
+  color: var(--info);
+}
+
+.cloud-briefs-status.done {
+  color: var(--success);
+}
+
+.cloud-briefs-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-xl);
+  margin: 0;
+  font-size: 13px;
+}
+
+.cloud-briefs-meta > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.cloud-briefs-meta dt {
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-meta dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.cloud-briefs-meta code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* The detail's Milestone row: the name, its status and end date, and Overdue. */
+.cloud-briefs-milestone-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-sm);
+  min-width: 0;
+}
+
+.cloud-briefs-milestone-row-facts {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.cloud-briefs-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: var(--space-sm) var(--space-md);
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.cloud-briefs-tab:hover {
+  color: var(--text-primary);
+}
+
+.cloud-briefs-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+.cloud-briefs-tab-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+/* Brief body and comments are plain text, as on the web: line breaks kept,
+   nothing interpreted. */
+.cloud-briefs-text {
+  margin: 0;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The discussions recorded on a proposal, newest first, between the
+   description and its links. Summaries are plain text like the body. */
+.cloud-briefs-discussions h3,
+.cloud-briefs-attachments h3 {
+  margin: 0 0 var(--space-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.cloud-briefs-discussions ul,
+.cloud-briefs-attachments ul,
+.cloud-briefs-parts,
+.cloud-briefs-comments,
+.cloud-briefs-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.cloud-briefs-discussions a,
+.cloud-briefs-attachments a {
+  color: var(--info);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.cloud-briefs-discussions a:hover,
+.cloud-briefs-attachments a:hover {
+  text-decoration: underline;
+}
+
+.cloud-briefs-discussions li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+
+.cloud-briefs-discussions .cloud-briefs-byline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.cloud-briefs-parts li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+}
+
+.cloud-briefs-part-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.cloud-briefs-part-title {
+  font-weight: 500;
+}
+
+.cloud-briefs-shaped {
+  margin: 0 0 var(--space-sm);
+  font-size: 12px;
+}
+
+.cloud-briefs-part-definition summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.cloud-briefs-part-definition summary:hover {
+  color: var(--text-primary);
+}
+
+.cloud-briefs-part-definition .cloud-briefs-text {
+  margin-top: var(--space-xs);
+}
+
+.cloud-briefs-chip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.cloud-briefs-comments {
+  gap: var(--space-lg);
+}
+
+.cloud-briefs-comments li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.cloud-briefs-byline {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-history li {
+  line-height: 1.5;
+}
+
+/* ─── New brief form (inside the same drawer) ─── */
+
+.cloud-briefs-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  max-width: 640px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.cloud-briefs-form [hidden] {
+  display: none !important;
+}
+
+.cloud-briefs-form-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.cloud-briefs-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.cloud-briefs-label {
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.cloud-briefs-optional {
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-field-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-field-error,
+.cloud-briefs-form-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--error);
+}
+
+.cloud-briefs-form-error {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-md);
+  background: var(--error-subtle);
+}
+
+.cloud-briefs-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 6px 9px;
+  transition: border-color var(--transition-fast);
+}
+
+.cloud-briefs-input::placeholder {
+  color: var(--text-muted);
+}
+
+.cloud-briefs-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.cloud-briefs-input[aria-invalid="true"] {
+  border-color: var(--error);
+}
+
+.cloud-briefs-textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.cloud-briefs-select {
+  width: auto;
+  min-width: 160px;
+  cursor: pointer;
+}
+
+/* Kind: a two-way switch, the chosen side raised. */
+.cloud-briefs-kind-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  width: 260px;
+  max-width: 100%;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+}
+
+.cloud-briefs-kind-option {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 4px var(--space-md);
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.cloud-briefs-kind-option input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.cloud-briefs-kind-option:hover {
+  color: var(--text-primary);
+}
+
+.cloud-briefs-kind-option:has(input:checked) {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.cloud-briefs-kind-option:has(input:focus-visible) {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+/* Links: the paste field, then one row per link. */
+.cloud-briefs-link-paste {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.cloud-briefs-link-paste .cloud-briefs-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.cloud-briefs-link-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.cloud-briefs-link-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+}
+
+.cloud-briefs-link-title {
+  flex: 0 1 260px;
+  min-width: 0;
+  padding: 3px 7px;
+}
+
+.cloud-briefs-link-host {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-link-remove {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.cloud-briefs-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-default);
+}
+
+.cloud-briefs-form-actions .cloud-briefs-primary-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+/* ─── Start Work dialog ─── */
+
+/* No scroll on the dialog itself: the base menu hangs below the branch row. Long part lists scroll instead. */
+.cloud-briefs-start-dialog {
+  width: min(700px, 100%);
+}
+
+.cloud-briefs-start-dialog [hidden] {
+  display: none !important;
+}
+
+.cloud-briefs-start-dialog [data-ref="body"] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.cloud-briefs-start-choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.cloud-briefs-start-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.cloud-briefs-start-choice:has(input:checked) {
+  border-color: var(--accent-primary);
+  background: var(--accent-subtle);
+}
+
+.cloud-briefs-start-choice.disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.cloud-briefs-start-choice input {
+  margin: 3px 0 0;
+  accent-color: var(--accent-primary);
+}
+
+.cloud-briefs-start-choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cloud-briefs-start-choice-label {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.cloud-briefs-start-soon {
+  margin-left: var(--space-xs);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cloud-briefs-start-problems {
+  margin: 0;
+  padding-left: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* The branch row: icon, the name as an editable chip, "from <base> ⌄". */
+.cloud-briefs-branchrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.cloud-briefs-branchrow-icon {
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-branchrow-name {
+  flex: 1 1 auto;
+  min-width: 80px;
+  height: 26px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--border-default);
+  border-radius: 13px;
+  background: var(--bg-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.cloud-briefs-branchrow-name:focus {
+  border-color: var(--accent-primary);
+}
+
+.cloud-briefs-branchrow-from {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-branchrow-base-wrap {
+  position: relative;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.cloud-briefs-branchrow-base {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 180px;
+  padding: 2px var(--space-xs);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.cloud-briefs-branchrow-base svg {
+  flex-shrink: 0;
+}
+
+.cloud-briefs-branchrow-base span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-briefs-branchrow-base:hover,
+.cloud-briefs-branchrow-base[aria-expanded="true"] {
+  background: var(--bg-tertiary);
+}
+
+.cloud-briefs-basemenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 2;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.cloud-briefs-basemenu-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.cloud-briefs-basemenu-title {
+  padding: var(--space-xs) var(--space-sm) 2px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-basemenu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 4px var(--space-sm);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: left;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.cloud-briefs-basemenu-item span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-briefs-basemenu-item:hover,
+.cloud-briefs-basemenu-item.current {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.cloud-briefs-basemenu-empty {
+  padding: var(--space-sm);
+}
+
+/* The branch label's place: "Branch · in the project checkout". */
+.cloud-briefs-label-sub {
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-start-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+/* Start Work's two steps (frame-cloud-start-places): the counter left of the buttons. */
+.cloud-briefs-start-stepper {
+  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-start-pips {
+  display: inline-flex;
+  gap: var(--space-xs);
+}
+
+.cloud-briefs-start-pip {
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+
+.cloud-briefs-start-pip.on {
+  background: var(--accent-primary);
+}
+
+/* Where to work: three equal cards, none picked (frame-cloud-start-places). */
+.cloud-briefs-places {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+@media (max-width: 720px) {
+  .cloud-briefs-places {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cloud-briefs-place {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+}
+
+label.cloud-briefs-place {
+  cursor: pointer;
+}
+
+label.cloud-briefs-place:hover {
+  border-color: var(--border-strong);
+}
+
+label.cloud-briefs-place:has(input:focus-visible) {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.cloud-briefs-place.on {
+  border-color: var(--accent-primary);
+  background: var(--accent-subtle);
+}
+
+.cloud-briefs-place.off {
+  cursor: not-allowed;
+}
+
+label.cloud-briefs-place.off:hover {
+  border-color: var(--border-default);
+}
+
+.cloud-briefs-place.off .cloud-briefs-place-head,
+.cloud-briefs-place.off .cloud-briefs-place-meta,
+.cloud-briefs-place.off .cloud-briefs-place-facts {
+  color: var(--text-muted);
+}
+
+/* No server yet: the card says what a server gives and offers Add a server…. */
+.cloud-briefs-place.notice {
+  border-style: dashed;
+  border-color: var(--warning);
+}
+
+/* The radio is the card itself: hidden, with a ring drawn in the head. */
+.cloud-briefs-place input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cloud-briefs-place-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cloud-briefs-place-ring {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 1.5px solid var(--text-tertiary);
+  border-radius: 50%;
+}
+
+.cloud-briefs-place.on .cloud-briefs-place-ring {
+  border-color: var(--accent-primary);
+}
+
+.cloud-briefs-place.on .cloud-briefs-place-ring::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+}
+
+.cloud-briefs-place-tag {
+  margin-left: auto;
+  padding: 1px 5px;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--warning);
+  white-space: nowrap;
+}
+
+.cloud-briefs-place-meta {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.cloud-briefs-place-facts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-place-facts li {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.cloud-briefs-place-facts li::before {
+  content: "•";
+  color: var(--text-muted);
+}
+
+/* Why a card cannot be picked: the checkout's lock, an offline server, local mode. */
+.cloud-briefs-place-lock {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-sm);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--warning);
+}
+
+.cloud-briefs-place-lock svg {
+  margin-top: 2px;
+}
+
+.cloud-briefs-place-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-primary);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.cloud-briefs-place-add {
+  align-self: flex-start;
+}
+
+/* Two or more servers connected: which one, under the cards. */
+.cloud-briefs-place-server {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.cloud-briefs-place-select {
+  width: auto;
+  min-width: 180px;
+}
+
+/* Step 2's first line: the part chosen, and Change on Start Work. */
+.cloud-briefs-start-picked {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.cloud-briefs-start-picked-what {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.cloud-briefs-start-change {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-primary);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* ─── A started brief's parts: a row each, on the card and in the Parts tab ─── */
+
+.cloud-briefs-card-parts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md) var(--space-md);
+}
+
+.cloud-briefs-prows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.cloud-briefs-prows li + li {
+  border-top: 1px solid var(--border-default);
+}
+
+.cloud-briefs-prow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "chip title title"
+    ". status action";
+  align-items: center;
+  column-gap: var(--space-sm);
+  row-gap: 2px;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 12px;
+}
+
+.cloud-briefs-prow > .cloud-briefs-chip {
+  grid-area: chip;
+}
+
+.cloud-briefs-prow-title {
+  grid-area: title;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+button.cloud-briefs-prow-title {
+  cursor: pointer;
+}
+
+button.cloud-briefs-prow-title:hover {
+  color: var(--accent-primary);
+  text-decoration: underline;
+}
+
+.cloud-briefs-prow-status {
+  grid-area: status;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  color: var(--text-secondary);
+}
+
+.cloud-briefs-prow-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-tertiary);
+  box-sizing: border-box;
+}
+
+.tone-active .cloud-briefs-prow-dot {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
+}
+
+.tone-attention .cloud-briefs-prow-dot {
+  border-color: var(--warning);
+  background: var(--warning);
+}
+
+.tone-attention .cloud-briefs-prow-status {
+  color: var(--warning-ink);
+}
+
+.tone-done .cloud-briefs-prow-dot {
+  border-color: var(--text-tertiary);
+  background: var(--text-tertiary);
+}
+
+.tone-done .cloud-briefs-prow-title {
+  color: var(--text-secondary);
+}
+
+/* Implemented: finished on this machine, waiting to be merged into the target. */
+.tone-implemented .cloud-briefs-prow-dot {
+  border-color: var(--success);
+}
+
+.tone-implemented .cloud-briefs-prow-status {
+  color: var(--success);
+}
+
+/* Dropped: the cloud took the part off the brief; it stays listed, struck through. */
+.tone-dropped .cloud-briefs-prow-dot {
+  border-color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.tone-dropped .cloud-briefs-prow-title {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+
+.tone-dropped .cloud-briefs-prow-status {
+  color: var(--text-tertiary);
+}
+
+.tone-elsewhere .cloud-briefs-prow-dot {
+  border-style: dashed;
+}
+
+.tone-elsewhere .cloud-briefs-prow-status,
+.tone-elsewhere .cloud-briefs-prow-title {
+  color: var(--text-tertiary);
+}
+
+.tone-elsewhere .cloud-briefs-prow-status {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* Review: an open pull request, open, in review or approved (the web's info tone). */
+.tone-review .cloud-briefs-prow-dot {
+  border-color: var(--info);
+  background: color-mix(in srgb, var(--info) 40%, transparent);
+}
+
+.tone-review .cloud-briefs-prow-status {
+  color: var(--info);
+}
+
+/* "PR #N": the pull request on GitHub, in the foreground colour so it reads as a link on every tone. */
+.cloud-briefs-prow-pr {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+button.cloud-briefs-prow-pr {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+button.cloud-briefs-prow-pr:hover {
+  color: var(--accent-primary);
+}
+
+/* The workspace on this Mac a part is in: a chip that selects it. */
+.cloud-briefs-prow-ws {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 160px;
+  margin-left: var(--space-xs);
+  padding: 0 6px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cloud-briefs-prow-ws:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* On a Frame Server: `name · host`, a little wider (frame-cloud-start-on-server). */
+.cloud-briefs-prow-ws.server {
+  max-width: 220px;
+}
+
+/* Begun in the project checkout: "project checkout · <branch>", as text (frame-cloud-start-places D10). */
+.cloud-briefs-prow-ws.checkout,
+.cloud-briefs-prow-ws.checkout:hover {
+  display: inline-block;
+  max-width: 260px;
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+/* Its server is offline: the last known name, not a way in. */
+.cloud-briefs-prow-ws.offline,
+.cloud-briefs-prow-ws.offline:hover {
+  display: inline-block;
+  border-style: dashed;
+  border-color: var(--border-default);
+  color: var(--text-tertiary);
+  cursor: default;
+}
+
+.cloud-briefs-prow-action {
+  grid-area: action;
+  justify-self: end;
+}
+
+.cloud-briefs-prow-run,
+.cloud-briefs-prow-lane {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 2px var(--space-sm);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.cloud-briefs-prow-run:hover,
+.cloud-briefs-prow-lane:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.cloud-briefs-prow-lane {
+  border-color: transparent;
+}
+
+/* Begin: the one step a waiting part has, so it reads as the primary one. */
+.cloud-briefs-prow-run.begin {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.cloud-briefs-prow-run.begin:hover {
+  background: var(--accent-subtle);
+}
+
+.cloud-briefs-prows-summary {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* The card's attention line: the first part with changes requested or merged into another base. */
+.cloud-briefs-prows-attention {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  font-size: 11px;
+  color: var(--warning-ink);
+}
+
+.cloud-briefs-prows-attention::before {
+  content: '';
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warning);
+}
+
+/* In the Parts tab the row heads each part, over its definition. */
+.cloud-briefs-prow-slot .cloud-briefs-prow {
+  padding: 0;
+}

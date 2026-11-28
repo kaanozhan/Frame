@@ -1,0 +1,11 @@
+---
+keywords: frame cloud, sign-in, no workspace, empty state, G-A, noWorkspace, create workspace, focus re-read
+related: frame-cloud-sign-in, frame-cloud-projects, frame-cloud-project-link, frame-cloud-briefs-read-only
+---
+Signing in to Frame Cloud no longer needs a workspace: `device.register`/`device.me` answering `workspace: null` lead to `signedIn` with `workspace: null` stored. The sign-in core needed no change (it already passed `workspace` through); tests pin null. An older server's 412 `NO_WORKSPACE` still ends in `failed` (`noWorkspace`).
+`cloudProjectsService.status()` answers `'noWorkspace'` (signed in, no workspace slug) and is the one signal the renderer reads. In that state main never calls `project.list`, `link.*` or the cache; `linkBlocked`/`checkSlug` refuse with `noWorkspace`. `CLOUD_OPEN_WORKSPACE_ON_WEB` opens `/new` (built in main by `buildNewWorkspaceWebUrl`, sharing `webBase`'s origin guards) instead of `/{slug}`, with no new IPC channel.
+The Frame Cloud window swaps the tab bar, both tabs and the devices notice for one G-A card (folder count, "Create a workspace ↗", "local Frame needs no account"). This was chosen over a card in Cloud projects plus a second On-this-device variant. `setTab` keeps the tabs hidden in this state. The Workspace row reads "No workspace · Create a workspace", and Project Settings reads "No workspace" with "Open Frame Cloud". All copy is in `src/renderer/cloudNoWorkspace.js`.
+A new workspace is picked up by `device.me` when the window opens, and, while there is no workspace, on every window focus. The first build throttled that focus re-read to 10 s (D9), and the walk showed the click on "Create a workspace ↗" started the clock, so a quick trip to the browser was missed. The throttle was removed: focus fires once per return and `refresh()` shares one request.
+Rules for later: never call a workspace procedure without a workspace (guard in main, not the renderer); never cache an empty slug; key workspace-dependent UI on `status === 'noWorkspace'` or on `lastUpdated` staying null. Out of scope and still open: several workspaces (`memberships[]`), invitations, viewer role, plan wording.
+
+Chain: spec.md → plan.md → tasks.md → outcome.md
