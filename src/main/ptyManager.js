@@ -12,6 +12,8 @@ const promptLogger = require('./promptLogger');
 const analytics = require('./analytics');
 const pollGate = require('./pollGate');
 const sessionRestore = require('./sessionRestore');
+const programStatus = require('../shared/programStatus');
+const leadRules = require('../shared/leadRules');
 
 // Store multiple PTY instances
 const ptyInstances = new Map(); // Map<terminalId, {pty, cwd, projectPath}>
@@ -76,6 +78,22 @@ function getForegroundCommand(shellPid, callback) {
     execFile('ps', ['-o', 'command=', '-p', tpgid], (err2, out2) => {
       const command = (out2 || '').trim();
       callback(err2 || !command ? null : command);
+    });
+  });
+}
+
+/**
+ * The pid of a shell's foreground process group (lead-agent T03): the CLI the
+ * user started there leads its own job, so this is its pid. null on Windows
+ * or when it cannot be told.
+ */
+function foregroundPidOf(shellPid) {
+  return new Promise((resolve) => {
+    if (process.platform === 'win32' || !shellPid) return resolve(null);
+    const { execFile } = require('child_process');
+    execFile('ps', ['-o', 'tpgid=', '-p', String(shellPid)], (err, out) => {
+      const tpgid = Number((out || '').trim());
+      resolve(err || !Number.isInteger(tpgid) || tpgid <= 0 || tpgid === shellPid ? null : tpgid);
     });
   });
 }
@@ -231,16 +249,28 @@ function getAvailableShells() {
  * @param {string|null} shellPath - Shell to use (defaults to system default)
  * @returns {string} Terminal ID
  */
-function createTerminal(workingDir = null, projectPath = null, shellPath = null, extraEnv = null, workspaceId = 'main') {
+function createTerminal(workingDir = null, projectPath = null, shellPath = null, extraEnv = null, workspaceId = 'main', { lead = false } = {}) {
   // Per-workspace cap (workspaces spec; main counts as one). The renderer
   // keeps terminals from inactive projects and workspaces alive in its Map
   // for fast switch-back, so a wider count would surface here as a confusing
-  // "you have 3 visible but can't open a 4th".
+  // "you have 3 visible but can't open a 4th". The Chief (lead-agent) is
+  // Frame's own terminal and never counts.
   const ws = workspaceId || 'main';
-  const scopeCount = Array.from(ptyInstances.values())
-    .filter(p => p.projectPath === projectPath && (p.workspaceId || 'main') === ws).length;
-  if (scopeCount >= MAX_TERMINALS) {
-    throw new Error(`Maximum terminal limit (${MAX_TERMINALS}) reached for this workspace`);
+  if (lead) {
+    // One Chief per project on this machine, enforced by the PTY owner (plan D11).
+    const existing = leadTerminalOf(projectPath);
+    if (existing) {
+      const err = new Error('This project already has a Chief terminal');
+      err.code = 'LEAD_EXISTS';
+      err.terminalId = existing;
+      throw err;
+    }
+  } else {
+    const scopeCount = Array.from(ptyInstances.values())
+      .filter(p => !p.lead && p.projectPath === projectPath && (p.workspaceId || 'main') === ws).length;
+    if (scopeCount >= MAX_TERMINALS) {
+      throw new Error(`Maximum terminal limit (${MAX_TERMINALS}) reached for this workspace`);
+    }
   }
 
   const terminalId = `term-${++terminalCounter}`;
@@ -277,7 +307,8 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
       FRAME_NODE: process.execPath,
       // Session restore: lets a CLI's SessionStart hook report which
       // session runs in this terminal (sessionRestore, frameTemplates).
-      ...sessionRestore.envFor(terminalId),
+      // Not for the Chief: it is recreated fresh, never restored (D11).
+      ...(lead ? {} : sessionRestore.envFor(terminalId)),
       // Orchestration: FRAME_ORCH_BUS / FRAME_ORCH_SLUG let conductor + worker
       // terminals reach Frame's command bus from any worktree (see
       // orchestrationManager). Null for normal terminals.
@@ -294,6 +325,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     const inst = ptyInstances.get(terminalId);
     if (!inst) return;
     inst.lastOutputAt = Date.now();
+    noteProgramStatus(inst, data);
     inst.outputChunks.push(data);
     inst.outputBytes += data.length;
     // Backpressure: past the high-water mark, pause the PTY until the next
@@ -307,7 +339,7 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     }
   });
 
-  sessionRestore.registerTerminal(terminalId, { projectPath, workspaceId: ws, shellPid: ptyProcess.pid });
+  if (!lead) sessionRestore.registerTerminal(terminalId, { projectPath, workspaceId: ws, shellPid: ptyProcess.pid });
 
   // Handle PTY exit
   ptyProcess.onExit(({ exitCode, signal }) => {
@@ -322,6 +354,9 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
       if (inst.flushTimer) clearTimeout(inst.flushTimer);
     }
     ptyInstances.delete(terminalId);
+    for (const fn of exitListeners) {
+      try { fn(terminalId, exitCode); } catch (_) { /* a listener must not break teardown */ }
+    }
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send(IPC.TERMINAL_DESTROYED, { terminalId, exitCode });
     }
@@ -368,11 +403,135 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null,
     outputChunks: [],
     outputBytes: 0,
     flushTimer: null,
-    paused: false
+    paused: false,
+    // lead-agent (T03): what the program in it says about itself.
+    lead: !!lead,
+    shellName: spawnedShellName,
+    statusScanner: programStatus.createScanner(),
+    agentState: null,      // last OSC 7501 report of the session, { state, kind?, msg? }
+    agentStateAt: null,
+    pasteMode: false,      // DEC 2004 (bracketed paste) as last set by the program
+    lastUserInputAt: null
   });
   console.log(`Created terminal ${terminalId} in ${cwd} (project: ${projectPath || 'global'})`);
 
   return terminalId;
+}
+
+/**
+ * Claude Code's OSC 7501 program status and the bracketed-paste mode, read
+ * from a PTY's output (lead-agent T03, plan D7/D14). The PTY owner answers
+ * the CLI's probe — here, so the desktop and Frame Server (which runs this
+ * same module) both do — and only the owner: the renderer's xterm ignores
+ * OSC 7501, so a terminal is never answered twice. The stream itself passes
+ * on unchanged.
+ */
+function noteProgramStatus(inst, data) {
+  let seen;
+  try {
+    seen = inst.statusScanner.feed(data);
+  } catch (_) {
+    return;
+  }
+  for (let i = 0; i < seen.probes; i++) {
+    try { inst.pty.write(programStatus.PROBE_ANSWER); } catch (_) { /* exiting */ }
+  }
+  if (seen.reports.length) {
+    inst.agentState = seen.reports[seen.reports.length - 1];
+    inst.agentStateAt = Date.now();
+  }
+  if (seen.pasteMode !== undefined) inst.pasteMode = seen.pasteMode;
+}
+
+// Main-process listeners for a local PTY's exit (lead-agent T09: the Chief
+// host drops queues and approvals aimed at a closed terminal).
+const exitListeners = new Set();
+
+/** Call `fn(terminalId, exitCode)` when a local PTY exits; returns an unsubscribe. */
+function onTerminalExit(fn) {
+  exitListeners.add(fn);
+  return () => exitListeners.delete(fn);
+}
+
+/** The Chief terminal of a project on this machine, or null (lead-agent T08). */
+function leadTerminalOf(projectPath) {
+  for (const [terminalId, inst] of ptyInstances) {
+    if (inst.lead && inst.projectPath === projectPath) return terminalId;
+  }
+  return null;
+}
+
+function isLeadTerminal(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  return !!(inst && inst.lead);
+}
+
+/** This machine's terminals of a project, as the Chief host lists them. */
+function listTerminals(projectPath) {
+  const out = [];
+  for (const [terminalId, inst] of ptyInstances) {
+    if (inst.projectPath !== projectPath) continue;
+    out.push({ id: terminalId, projectPath: inst.projectPath, workspace: inst.workspaceId || 'main', cwd: inst.cwd, lead: !!inst.lead });
+  }
+  return out;
+}
+
+/** The live foreground process name (node-pty), read now rather than from the gated poll. */
+function getForegroundName(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  if (!inst) return null;
+  try {
+    return inst.pty.process || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Pid of the program in the foreground of a terminal (a CLI the user started), or null. */
+function getForegroundPid(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  return inst ? foregroundPidOf(inst.pty.pid) : Promise.resolve(null);
+}
+
+/**
+ * What a terminal is doing, for the Chief (leadRules.deriveStatus): agent
+ * status from its last OSC 7501 report, or — for a plain shell — from the
+ * foreground process. A report from a CLI that has since exited is dropped
+ * here so a later CLI in the same terminal starts clean.
+ */
+function agentStatus(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  if (!inst) return { status: leadRules.STATUS.ENDED, agent: null };
+  const foreground = getForegroundName(terminalId);
+  const derived = leadRules.deriveStatus({ alive: true, foreground, shellName: inst.shellName, agentState: inst.agentState });
+  if (inst.agentState && derived.agent === null && derived.status === leadRules.STATUS.READY) {
+    inst.agentState = null;
+    inst.agentStateAt = null;
+  }
+  return { ...derived, foreground, at: inst.agentStateAt, msg: inst.agentState && inst.agentState.msg || null };
+}
+
+/** Whether the program in a terminal has bracketed paste on (D14). */
+function pasteMode(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  return !!(inst && inst.pasteMode);
+}
+
+/**
+ * The user typed into a terminal (D15). Called from the input path only —
+ * writes Frame makes itself (`writeToTerminal`) never stamp — and chunks that
+ * are only xterm answering the program are not typing.
+ */
+function noteUserInput(terminalId, data) {
+  const inst = ptyInstances.get(terminalId);
+  if (!inst || programStatus.isTerminalReplyOnly(data)) return;
+  inst.lastUserInputAt = Date.now();
+}
+
+/** When the user last typed there (epoch ms), or null. */
+function getLastUserInputAt(terminalId) {
+  const inst = ptyInstances.get(terminalId);
+  return inst ? inst.lastUserInputAt : null;
 }
 
 /**
@@ -656,15 +815,20 @@ async function adoptFrom(link, projectPath, rows) {
   const mineRows = rows.filter((w) => w.serverKey === link.key);
   if (mineRows.some((w) => w.offline)) return null;
   const serverIds = new Set(mineRows.map((w) => w.id));
+  // The project's server Chief lives in its server clone (lead-agent T12).
+  const serverProjects = new Set(mineRows.map((w) => w.serverProjectPath).filter(Boolean));
   // Workspace terminals by their server workspace; home terminals
   // (server-onboarding) by the desktop project they were opened for —
   // null for one opened with no project selected.
   const onServer = (await link.call('terminals.list', {})) || [];
-  const mine = (t) => (t.home ? (t.homeFor || null) === (projectPath || null) : serverIds.has(t.workspaceId));
+  // A queue item's terminal (work-queue T11) belongs to the clone too, under main.
+  const mine = (t) => (t.home ? (t.homeFor || null) === (projectPath || null)
+    : (t.lead || t.queue) ? serverProjects.has(t.projectPath)
+    : serverIds.has(t.workspaceId));
   const live = onServer
     .map((t) => ({ ...t, serverTerminalId: t.terminalId, terminalId: desktopTerminalId(link.key, t.terminalId) }))
     .filter((t) => t.terminalId && mine(t) && !pendingDestroys.has(t.terminalId))
-    .map((t) => (t.home ? { ...t, workspaceId: t.homeWorkspace || 'main' } : t));
+    .map((t) => (t.home ? { ...t, workspaceId: t.homeWorkspace || 'main' } : (t.lead || t.queue) ? { ...t, workspaceId: 'main', serverProjectPath: t.projectPath } : t));
   // Forget this project's terminals the server no longer has (a restart, a
   // close elsewhere): their ids must not route anywhere (T3).
   const known = [...serverTerminals]
@@ -681,8 +845,9 @@ async function adoptFrom(link, projectPath, rows) {
   for (const t of live) {
     try {
       const snap = await link.call('terminals.attach', { terminalId: t.serverTerminalId });
-      noteServerTerminal(t.terminalId, { projectPath, workspaceId: t.workspaceId, serverKey: link.key, ...(t.home ? { home: true } : {}) });
-      out.push({ terminalId: t.terminalId, projectPath, workspaceId: t.workspaceId, serverKey: link.key, host: link.host, ...(t.home ? { home: true } : {}), screen: snap.screen, cols: snap.cols, rows: snap.rows });
+      const extra = { ...(t.home ? { home: true } : {}), ...(t.lead ? { lead: true, serverProjectPath: t.serverProjectPath } : {}), ...(t.queue ? { queue: true, name: t.name || null } : {}) };
+      noteServerTerminal(t.terminalId, { projectPath, workspaceId: t.workspaceId, serverKey: link.key, ...extra });
+      out.push({ terminalId: t.terminalId, projectPath, workspaceId: t.workspaceId, serverKey: link.key, host: link.host, ...extra, screen: snap.screen, cols: snap.cols, rows: snap.rows });
       if (snap.process) processes.push({ ...snap.process, terminalId: t.terminalId });
     } catch (err) {
       logger.warn('ptyManager', `could not attach ${t.terminalId}: ${err.message}`);
@@ -769,6 +934,7 @@ function setupIPC(ipcMain) {
       let shellPath = null;
       let extraEnv = null;
       let workspaceId = 'main';
+      const lead = !!(data && typeof data === 'object' && data.lead === true);
 
       if (typeof data === 'string') {
         // Legacy format: just working directory
@@ -802,6 +968,29 @@ function setupIPC(ipcMain) {
         return;
       }
 
+      // A server Chief (lead-agent T12): in the project's clone on that
+      // server, shown in this project's main. One per (project, server),
+      // enforced by the server.
+      if (data && data.location === 'server-lead') {
+        const link = data.serverKey ? connectedLink(data.serverKey) : null;
+        const sp = data.serverProjectPath || null;
+        if (!link || !sp) {
+          reply({ success: false, error: 'That server is not connected.' });
+          return;
+        }
+        link.call('terminals.create', { lead: true, projectPath: sp, cwd: sp, workspaceId: 'main', shell: shellPath, cols: (data && data.cols) || 80, rows: (data && data.rows) || 24 })
+          .then((res) => {
+            const id = desktopTerminalId(link.key, res.terminalId);
+            serverTerminals.set(id, { projectPath, workspaceId: 'main', serverKey: link.key, lead: true, serverProjectPath: sp });
+            reply({ terminalId: id, success: true, lead: true, serverKey: link.key, host: link.host });
+          })
+          .catch((err) => {
+            const exists = /already has a Chief/.test(err.message || '');
+            reply({ success: false, error: `Server terminal: ${err.message}`, ...(exists ? { code: 'LEAD_EXISTS' } : {}) });
+          });
+        return;
+      }
+
       const loc = serverLocationOf(workspaceId);
       if (loc) {
         createServerTerminal(loc, { cwd: workingDir, projectPath, workspaceId, shell: shellPath, cols: data && data.cols, rows: data && data.rows })
@@ -809,9 +998,13 @@ function setupIPC(ipcMain) {
           .catch((err) => reply({ success: false, error: `Server terminal: ${err.message}` }));
         return;
       }
-      const terminalId = createTerminal(workingDir, projectPath, shellPath, extraEnv, workspaceId);
-      reply({ terminalId, success: true });
+      const terminalId = createTerminal(workingDir, projectPath, shellPath, extraEnv, workspaceId, { lead });
+      reply({ terminalId, success: true, ...(lead ? { lead: true } : {}) });
     } catch (error) {
+      if (error && error.code === 'LEAD_EXISTS') {
+        reply({ success: false, error: error.message, code: error.code, existingTerminalId: error.terminalId });
+        return;
+      }
       analytics.track('error_occurred', { category: 'terminal_create_failed' });
       reply({ success: false, error: error.message });
     }
@@ -847,6 +1040,7 @@ function setupIPC(ipcMain) {
       if (route && route.link && route.link.isConnected()) route.link.send('terminals.input', { terminalId: route.serverTerminalId, data });
       return;
     }
+    noteUserInput(terminalId, data);
     writeToTerminal(terminalId, data);
     promptLogger.logInput(data);
   });
@@ -882,5 +1076,16 @@ module.exports = {
   requestedShell,
   serverTerminalInfo,
   noteServerTerminal,
+  // lead-agent (T03, T08, T09)
+  onTerminalExit,
+  leadTerminalOf,
+  isLeadTerminal,
+  listTerminals,
+  agentStatus,
+  pasteMode,
+  noteUserInput,
+  getLastUserInputAt,
+  getForegroundName,
+  getForegroundPid,
   setupIPC
 };

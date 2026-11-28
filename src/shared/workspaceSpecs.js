@@ -56,11 +56,16 @@ function mergeSpecLists(mainSpecs, workspaceLists) {
   const claimed = new Set();
   for (const entry of workspaceLists || []) {
     if (!entry || !entry.workspace) continue;
-    const { id, name, branch, root, host, offline } = entry.workspace;
+    const { id, name, branch, root, host, offline, serverKey, serverProjectPath, queue } = entry.workspace;
     // A server workspace (server-specs) also names its host, and whether it
     // is reachable right now; a local one carries neither key.
     const ws = { id, name, branch: branch || null, root };
     if (host) Object.assign(ws, { host, offline: offline === true });
+    // Where a server spec is queued (work-queue): its server and clone.
+    if (serverKey) ws.serverKey = serverKey;
+    if (serverProjectPath) ws.serverProjectPath = serverProjectPath;
+    // A queue item's worktree (work-queue D16), not a workspace to select.
+    if (queue === true) ws.queue = true;
     for (const spec of entry.specs || []) {
       if (!spec || !spec.slug || claimed.has(spec.slug)) continue;
       claimed.add(spec.slug);

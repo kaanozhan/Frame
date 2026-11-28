@@ -81,12 +81,25 @@ function closeCaller() {
   return `unlabelled close from ${frames.join(' < ') || 'an unknown caller'}`;
 }
 
+/**
+ * Oldest first, with a project's Chiefs pinned ahead of every other terminal:
+ * this Mac's Chief, then each server's ("Chief · host").
+ */
+function chiefFirst(a, b) {
+  if (!!a.lead !== !!b.lead) return a.lead ? -1 : 1;
+  if (a.lead) {
+    const aSrv = isServerTerminalId(a.id);
+    if (aSrv !== isServerTerminalId(b.id)) return aSrv ? 1 : -1;
+  }
+  return a.createdAt - b.createdAt;
+}
+
 class TerminalManager {
   constructor() {
     this._createSeq = 0; // request ids for TERMINAL_CREATE
     this.terminals = new Map(); // Map<id, {terminal, fitAddon, element, state}>
     this.activeTerminalId = null;
-    this.viewMode = 'board'; // 'board' (default) | 'terminals' | 'specs' | 'tasks' | 'panel'
+    this.viewMode = 'board'; // 'board' (default) | 'terminals' | 'specs' | 'tasks' | 'queue' | 'panel'
     this.maxTerminals = 9;
     this.onStateChange = null;
     this.currentProjectPath = null; // Current active project (null = global)
@@ -134,7 +147,7 @@ class TerminalManager {
     // Overturns the terminals-view spec's "selecting a project always lands on
     // its terminals view" (2026-08-26): landing on an empty terminals grid
     // says nothing about the project, and Home now does.
-    this.viewMode = this.getTerminalStates().length > 0 ? 'terminals' : 'board';
+    this.viewMode = this.getTerminalStates().some(t => !t.lead) ? 'terminals' : 'board';
 
     this._notifyStateChange();
   }
@@ -154,7 +167,7 @@ class TerminalManager {
     this.currentWorkspaceId = id;
     this.currentWorkspaceRoot = nextRoot;
     this.restoreProjectSession(this.currentProjectPath);
-    this.viewMode = this.getTerminalStates().length > 0 ? 'terminals' : 'board';
+    this.viewMode = this.getTerminalStates().some(t => !t.lead) ? 'terminals' : 'board';
     this._notifyStateChange();
   }
 
@@ -188,7 +201,7 @@ class TerminalManager {
     return Array.from(this.terminals.values())
       .filter(t => t.state.projectPath === projectPath && (t.state.workspaceId || 'main') === ws)
       .map(t => ({ ...t.state }))
-      .sort((a, b) => a.createdAt - b.createdAt);
+      .sort(chiefFirst);
   }
 
   /**
@@ -369,8 +382,8 @@ class TerminalManager {
     // alive in memory for fast switch-back, so a wider count silently locked
     // users out at far fewer visible terminals.
     const scopeCount = Array.from(this.terminals.values())
-      .filter(t => t.state.projectPath === projectPath && (t.state.workspaceId || 'main') === workspaceId).length;
-    if (scopeCount >= this.maxTerminals) {
+      .filter(t => !t.state.lead && t.state.projectPath === projectPath && (t.state.workspaceId || 'main') === workspaceId).length;
+    if (!options.lead && scopeCount >= this.maxTerminals) {
       console.error(`Maximum terminal limit (${this.maxTerminals}) reached for this workspace`);
       return null;
     }
@@ -399,7 +412,10 @@ class TerminalManager {
           });
           resolve(response.terminalId);
         } else {
-          reject(new Error(response.error));
+          const err = new Error(response.error);
+          if (response.code) err.code = response.code;
+          if (response.existingTerminalId) err.existingTerminalId = response.existingTerminalId;
+          reject(err);
         }
       };
 
@@ -411,6 +427,8 @@ class TerminalManager {
         workspaceId,
         shell: options.shell || null,
         extraEnv: options.extraEnv || null, // orchestration worker lanes pass FRAME_ORCH_* env
+        ...(options.lead ? { lead: true } : {}), // the project's Chief (lead-agent)
+        ...(options.serverProjectPath ? { serverProjectPath: options.serverProjectPath } : {}), // a server Chief's clone (lead-agent T12)
         ...(options.location ? { location: options.location } : {}), // 'server-home' (server-onboarding)
         ...(options.serverKey ? { serverKey: options.serverKey } : {}) // which server (multi-server-connections)
       });
@@ -541,7 +559,10 @@ class TerminalManager {
       // What this lane is working on (set by agentDispatch):
       // { kind: 'task'|'spec', label, ref } — presentation metadata only,
       // session-scoped, dies with the lane (never persisted).
-      assignment: null
+      assignment: null,
+      // The project's Chief (lead-agent): pinned first, outside the cap,
+      // never closed by the user.
+      lead: !!options.lead
     };
 
     this.terminals.set(terminalId, { terminal, fitAddon, element, state });
@@ -673,8 +694,9 @@ class TerminalManager {
       terminalInput.send(terminalId, data);
     });
 
-    // If first terminal or no active terminal, make it active
-    if (this.terminals.size === 1 || !this.activeTerminalId) {
+    // If first terminal or no active terminal, make it active. The Chief is
+    // created on its own when a project opens; it never takes focus then.
+    if (!state.lead && (this.terminals.size === 1 || !this.activeTerminalId)) {
       this.setActiveTerminal(terminalId);
     }
 
@@ -762,6 +784,15 @@ class TerminalManager {
     }
   }
 
+  /** How many approvals a Chief terminal is waiting on (lead-agent; drawn as a badge). */
+  setLeadPending(terminalId, count) {
+    const instance = this.terminals.get(terminalId);
+    if (instance && instance.state.leadPending !== count) {
+      instance.state.leadPending = count;
+      this._notifyStateChange();
+    }
+  }
+
   /**
    * Set what a lane is working on (most recent dispatch wins the label).
    * @param {string} terminalId
@@ -781,8 +812,14 @@ class TerminalManager {
    * that vanished can be traced to the action that closed it. A call
    * without one logs its caller instead.
    */
-  closeTerminal(terminalId, { reason = null } = {}) {
+  closeTerminal(terminalId, { reason = null, allowLead = false } = {}) {
     const instance = this.terminals.get(terminalId);
+    if (instance && instance.state.lead && !allowLead) {
+      // The Chief stays (lead-agent spec): closing is not offered; its
+      // session is stopped and restarted from inside the terminal.
+      require('./notify').info('The Chief terminal stays open. Exit its session to stop it; Start brings it back.');
+      return false;
+    }
     if (instance) {
       instance.terminal.dispose();
       instance.element.remove();
@@ -824,7 +861,7 @@ class TerminalManager {
 
     return terminals
       .map(t => ({ ...t.state }))
-      .sort((a, b) => a.createdAt - b.createdAt);
+      .sort(chiefFirst);
   }
 
   /**
@@ -969,6 +1006,33 @@ class TerminalManager {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   }
 
+  /**
+   * The bottom `lines` of a terminal's screen as plain text, trailing blank
+   * lines dropped (lead-agent T09: the Chief reads local terminals from the
+   * xterm that already holds them, plan D5). null for an unknown terminal.
+   */
+  readScreenText(terminalId, lines = 60) {
+    const instance = this.terminals.get(terminalId);
+    if (!instance || !instance.terminal) return null;
+    try {
+      const term = instance.terminal;
+      const buf = term.buffer.active;
+      // Up to the cursor's line, not the screen's last row: a shell that has
+      // printed three lines leaves the rest of the screen blank.
+      const bottom = buf.baseY + buf.cursorY;
+      const want = Math.max(1, Math.min(400, Number(lines) || 60));
+      const out = [];
+      for (let y = Math.max(0, bottom - want + 1); y <= bottom; y++) {
+        const line = buf.getLine(y);
+        out.push(line ? line.translateToString(true) : '');
+      }
+      while (out.length && !out[out.length - 1].trim()) out.pop();
+      return out.join('\n');
+    } catch (_) {
+      return null;
+    }
+  }
+
   _setupIPC() {
     // Init-once across instances: TerminalManager is a singleton; a second
     // construction must not silently double every IPC handler.
@@ -977,6 +1041,30 @@ class TerminalManager {
       return;
     }
     TerminalManager._ipcBound = true;
+
+    // The Chief opens a terminal for a queue item (work-queue T10): a lane in
+    // the item's project, under main, named for the item, with the item as
+    // its assignment. It takes focus only if nothing else has it.
+    ipcRenderer.on(IPC.LEAD_OPEN_TERMINAL_REQUEST, async (event, { requestId, projectPath, cwd, name, assignment } = {}) => {
+      try {
+        const terminalId = await this.createTerminal({ projectPath, workspaceId: 'main', cwd, name: name || undefined });
+        if (!terminalId) throw new Error(`The terminal limit (${this.maxTerminals}) is reached in main.`);
+        if (assignment) this.setAssignment(terminalId, assignment);
+        ipcRenderer.send(IPC.LEAD_OPEN_TERMINAL_REPLY, { requestId, terminalId });
+      } catch (err) {
+        ipcRenderer.send(IPC.LEAD_OPEN_TERMINAL_REPLY, { requestId, error: err.message });
+      }
+    });
+
+    // A server Chief opened a queue terminal (work-queue T11): adopt it now.
+    ipcRenderer.on(IPC.LEAD_TERMINAL_OPENED, () => {
+      if (this.currentProjectPath && this._anyServerConnected()) this.adoptServerTerminals(this.currentProjectPath);
+    });
+
+    // The Chief asks for a local terminal's screen (lead-agent T09).
+    ipcRenderer.on(IPC.LEAD_SCREEN_REQUEST, (event, { requestId, terminalId, lines } = {}) => {
+      ipcRenderer.send(IPC.LEAD_SCREEN_REPLY, { requestId, text: this.readScreenText(terminalId, lines) });
+    });
 
     // Receive output from specific terminal
     ipcRenderer.on(IPC.TERMINAL_OUTPUT_ID, (event, { terminalId, data }) => {
@@ -999,7 +1087,7 @@ class TerminalManager {
     // Handle terminal destroyed from main process
     ipcRenderer.on(IPC.TERMINAL_DESTROYED, (event, { terminalId }) => {
       if (this.terminals.has(terminalId)) {
-        this.closeTerminal(terminalId, { reason: 'the terminal had already ended' });
+        this.closeTerminal(terminalId, { reason: 'the terminal had already ended', allowLead: true });
       }
     });
   }
@@ -1064,7 +1152,7 @@ class TerminalManager {
     for (const t of list || []) {
       let inst = this.terminals.get(t.terminalId);
       if (!inst) {
-        this._initializeTerminal(t.terminalId, { projectPath: t.projectPath, workspaceId: t.workspaceId });
+        this._initializeTerminal(t.terminalId, { projectPath: t.projectPath, workspaceId: t.workspaceId, lead: !!t.lead, ...(t.lead ? { name: `Chief · ${t.host || this._serverOf(t.terminalId).host || 'server'}` } : t.queue && t.name ? { name: t.name } : {}) });
         inst = this.terminals.get(t.terminalId);
         added = true;
         if (inst && t.home && !inst.state.customName) inst.state.customName = `Server · ${t.host || this._serverOf(t.terminalId).host || 'server'}`;
@@ -1131,6 +1219,7 @@ class TerminalManager {
     const perWorkspace = new Map();
 
     terminals.forEach((tState) => {
+      if (tState.lead) return;
       const ws = tState.workspaceId || 'main';
       const index = perWorkspace.get(ws) || 0;
       perWorkspace.set(ws, index + 1);

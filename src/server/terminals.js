@@ -67,6 +67,10 @@ function setup({ shim, registerMethods, broadcast }) {
     projectPath: m.projectPath,
     workspaceId: m.workspaceId,
     home: !!m.home,
+    lead: !!m.lead,
+    // A queue item's terminal (work-queue T11): opened by the server Chief in
+    // the project's clone; a desktop adopts it under that project's main.
+    ...(m.queue ? { queue: true, name: m.name || null } : {}),
     homeFor: m.homeFor || null,
     homeWorkspace: m.homeWorkspace || null,
     cwd: m.cwd,
@@ -81,29 +85,41 @@ function setup({ shim, registerMethods, broadcast }) {
     return m;
   };
 
+  /**
+   * One terminal on this server. `queue` + `name` (work-queue T11): a queue
+   * item's terminal opened by the server Chief — never from a desktop call.
+   */
+  function create({ projectPath = null, workspaceId = 'main', cwd = null, cols = 80, rows = 24, shell = null, extraEnv = null, home = false, homeFor = null, homeWorkspace = null, lead = false } = {}, { queue = false, name = null } = {}) {
+    // A home terminal (server-onboarding): the user's home folder, no
+    // project or workspace here; `homeFor` names the desktop project it was
+    // opened from so a reconnecting desktop can adopt it there.
+    if (home === true) {
+      projectPath = null;
+      workspaceId = null;
+      cwd = os.homedir();
+    }
+    // A server Chief (lead-agent T11): one per server project path, enforced
+    // by ptyManager here, outside the cap, in the project's server clone.
+    const isLead = lead === true && home !== true && !!projectPath;
+    const localId = ptyManager.createTerminal(cwd, projectPath, shell, extraEnv, workspaceId || 'main', { lead: isLead });
+    const terminalId = toServerId(localId);
+    const mirror = createMirror({ cols, rows });
+    meta.set(terminalId, { projectPath, workspaceId, lead: isLead, home: home === true, homeFor: home === true && typeof homeFor === 'string' ? homeFor : null, homeWorkspace: home === true && typeof homeWorkspace === 'string' ? homeWorkspace : null, ...(queue ? { queue: true, name: name || null } : {}), cwd: (ptyManager.getTerminalInfo(localId) || {}).cwd || cwd, createdAt: Date.now(), mirror, process: null });
+    if (cols !== 80 || rows !== 24) ptyManager.resizeTerminal(localId, cols, rows);
+    return { terminalId, cols, rows };
+  }
+
   registerMethods({
     // The shells that exist on this machine (server-linux-readiness): a
     // server workspace's "+" menu lists these, not the desktop's.
     'terminals.shells': async () => ptyManager.getAvailableShells(),
-    'terminals.create': async ({ projectPath = null, workspaceId = 'main', cwd = null, cols = 80, rows = 24, shell = null, extraEnv = null, home = false, homeFor = null, homeWorkspace = null } = {}) => {
-      // A home terminal (server-onboarding): the user's home folder, no
-      // project or workspace here; `homeFor` names the desktop project it was
-      // opened from so a reconnecting desktop can adopt it there.
-      if (home === true) {
-        projectPath = null;
-        workspaceId = null;
-        cwd = os.homedir();
-      }
-      const localId = ptyManager.createTerminal(cwd, projectPath, shell, extraEnv, workspaceId || 'main');
-      const terminalId = toServerId(localId);
-      const mirror = createMirror({ cols, rows });
-      meta.set(terminalId, { projectPath, workspaceId, home: home === true, homeFor: home === true && typeof homeFor === 'string' ? homeFor : null, homeWorkspace: home === true && typeof homeWorkspace === 'string' ? homeWorkspace : null, cwd: (ptyManager.getTerminalInfo(localId) || {}).cwd || cwd, createdAt: Date.now(), mirror, process: null });
-      if (cols !== 80 || rows !== 24) ptyManager.resizeTerminal(localId, cols, rows);
-      return { terminalId, cols, rows };
-    },
+    'terminals.create': async (opts = {}) => create(opts),
     'terminals.input': async ({ terminalId, data }) => {
       need(terminalId);
-      if (typeof data === 'string' && data) ptyManager.writeToTerminal(toLocalId(terminalId), data);
+      if (typeof data === 'string' && data) {
+        ptyManager.noteUserInput(toLocalId(terminalId), data);
+        ptyManager.writeToTerminal(toLocalId(terminalId), data);
+      }
       return null;
     },
     'terminals.resize': async ({ terminalId, cols, rows }) => {
@@ -143,6 +159,23 @@ function setup({ shim, registerMethods, broadcast }) {
   });
 
   return {
+    // For the server Chief (src/server/lead.js).
+    ptyManager,
+    terminalsOf(projectPath) {
+      const out = [];
+      for (const [terminalId, m] of meta) {
+        if (m.projectPath !== projectPath || !ptyManager.hasTerminal(toLocalId(terminalId))) continue;
+        out.push({ id: terminalId, projectPath: m.projectPath, workspace: m.workspaceId || 'main', cwd: m.cwd, home: !!m.home, lead: !!m.lead, ...(m.queue ? { queue: true } : {}) });
+      }
+      return out;
+    },
+    metaOf(terminalId) {
+      return meta.get(terminalId) || null;
+    },
+    // A queue item's terminal in the project's clone (work-queue T11).
+    createQueueTerminal({ projectPath, cwd, name = null }) {
+      return create({ projectPath, workspaceId: 'main', cwd }, { queue: true, name }).terminalId;
+    },
     stop() {
       for (const m of meta.values()) m.mirror.dispose();
       meta.clear();

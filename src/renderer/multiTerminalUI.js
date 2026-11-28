@@ -510,6 +510,7 @@ class MultiTerminalUI {
     const surface = (this.isSectionVisible && this._activeSection()) ? 'section' : state.viewMode;
     if (surface !== 'specs') require('./specsDashboard').notifyDetached();
     if (surface !== 'tasks') require('./tasksDashboard').notifyDetached();
+    if (surface !== 'queue') require('./queueView').notifyDetached();
     if (surface !== 'panel') this._detachPanel();
 
     // Top bar needs the open section tabs (chips) + which one is active
@@ -541,6 +542,8 @@ class MultiTerminalUI {
       this._renderDashView('specs', require('./specsDashboard'));
     } else if (state.viewMode === 'tasks') {
       this._renderDashView('tasks', require('./tasksDashboard'));
+    } else if (state.viewMode === 'queue') {
+      this._renderQueueView();
     } else if (state.viewMode === 'panel') {
       this._renderPanelView(state);
     } else {
@@ -681,9 +684,27 @@ class MultiTerminalUI {
     this.manager.setViewMode('tasks');
   }
 
+  /** Show the work queue as the center view (work-queue spec). */
+  showQueue() {
+    this.isSectionVisible = false;
+    this.manager.setViewMode('queue');
+  }
+
+  /** Mount the Queue view; like _renderDashView, never remount a mounted one. */
+  _renderQueueView() {
+    this._lastViewMode = 'queue';
+    this._mountedTerminalId = null;
+    const queueView = require('./queueView');
+    if (queueView.isInlineMounted() && this.contentContainer.contains(document.querySelector('.queue-view.inline'))) return;
+    this.contentContainer.className = 'terminal-content queue-dash-view';
+    this._clearGridInlineStyles();
+    this.contentContainer.innerHTML = '';
+    queueView.mountInline(this.contentContainer);
+  }
+
   /**
    * What the center currently shows: 'terminals' | 'board' | 'specs' |
-   * 'tasks' | 'panel:<key>' | 'section:<type>'. Drives the sidebar nav's
+   * 'tasks' | 'queue' | 'panel:<key>' | 'section:<type>'. Drives the sidebar nav's
    * active states. The dock is not a surface — it reports its own state
    * through dock.js (dock-panel-readonly-views spec, C2).
    */

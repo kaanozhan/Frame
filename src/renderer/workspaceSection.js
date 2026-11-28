@@ -938,6 +938,9 @@ function workspaceChipHtml(ws) {
 function selectSpecWorkspace(ws) {
   const current = state.getWorkspace();
   if (!current) return false;
+  // A queue item's worktree (work-queue) is not a workspace: its spec opens
+  // from main like any other, nothing to select.
+  if (ws && ws.queue) return false;
   if (ws) {
     if (current.id === ws.id) return false;
     select({ id: ws.id, path: ws.root, name: ws.name, branch: ws.branch });

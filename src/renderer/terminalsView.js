@@ -376,20 +376,21 @@ class TerminalsView {
     const mark = attentionMark(status);
     const assignment = single ? state.assignment : null;
     const pane = document.createElement('div');
-    pane.className = `tv-pane ${state.isActive ? 'active' : ''} ${single ? 'tv-pane-single' : ''}`;
+    pane.className = `tv-pane ${state.isActive ? 'active' : ''} ${single ? 'tv-pane-single' : ''}${state.lead ? ' tv-pane-chief' : ''}`;
     pane.dataset.terminalId = state.id;
 
     pane.innerHTML = `
       <div class="tv-pane-header${assignment ? ' has-assign' : ''}" draggable="${!single}" title="${single ? '' : 'Drag to reorder'}">
         <span class="lane-status-dot ${status}"></span>
         <span class="tv-pane-name">${escapeHtml(state.customName || state.name)}</span>
+        ${state.leadPending ? `<span class="chief-pending-badge" title="Waiting for your approval">${state.leadPending}</span>` : ''}
         <span class="tv-pane-attention ${status}" aria-hidden="${!mark}">${mark || ''}</span>
         <span class="tv-pane-status ${status}" title="${escapeHtml(commandLine || '')}">${escapeHtml(statusLabel(status, { agentName, foreground, commandLine, short: true }))}</span>
         ${this._buildAssignmentChip(assignment, agentName)}
         <span class="tv-pane-actions">
           <button class="tv-pane-btn" data-rename title="Rename terminal">${lucideIcon(Pencil, 11)}</button>
           ${single ? '' : `<button class="tv-pane-btn" data-enlarge title="Enlarge this terminal">${lucideIcon(Maximize2, 12)}</button>`}
-          <button class="tv-pane-btn" data-close title="Close terminal">${lucideIcon(X, 12)}</button>
+          ${state.lead ? '' : `<button class="tv-pane-btn" data-close title="Close terminal">${lucideIcon(X, 12)}</button>`}
         </span>
       </div>
       <div class="tv-pane-content"></div>
@@ -495,7 +496,7 @@ class TerminalsView {
       else require('./taskSection').open(assignRef);
     });
 
-    pane.querySelector('[data-close]').addEventListener('click', (e) => {
+    pane.querySelector('[data-close]')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.manager.closeTerminal(terminalId, { reason: 'closed with its pane × in Terminals' });
     });

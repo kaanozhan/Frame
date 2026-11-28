@@ -157,3 +157,25 @@ test('without a task file the prompt is exactly as before', () => {
     assert.ok(p.endsWith('update this task\'s status to "completed" in tasks.json (task id: task-1).'), p);
   }
 });
+
+// ─── The work queue's "Decide" (work-queue) ───────────────────
+
+test('decide: the format step writes the criteria and goes on, no wait', () => {
+  const task = { id: 'task-q', title: 'Add a date sort', status: 'pending' };
+  const ask = buildTaskPrompt(task, { tasksPath: '/p/.frame/tasks.json' });
+  const decide = buildTaskPrompt(task, { tasksPath: '/p/.frame/tasks.json', decide: true });
+  assert.match(ask, /wait for my confirmation before continuing/);
+  assert.doesNotMatch(decide, /wait for my confirmation/);
+  assert.match(decide, /continue without waiting for confirmation/);
+  assert.match(decide, /You run unattended from Frame's work queue: ask only if you truly cannot continue/);
+  assert.match(decide, /\/p\/\.frame\/tasks\.json/);
+});
+
+test('decide on a ready task adds only the unattended note', () => {
+  const task = { id: 'task-r', title: 'Ready', description: 'Do it.', acceptanceCriteria: 'Done.', status: 'pending' };
+  const base = buildTaskPrompt(task, {});
+  const decide = buildTaskPrompt(task, { decide: true });
+  assert.ok(!base.includes('unattended'));
+  const NOTE = " You run unattended from Frame's work queue: ask only if you truly cannot continue; otherwise make a reasonable choice, and list the assumptions you made in your final summary.";
+  assert.equal(decide, base.replace(' When the task is fully complete', `${NOTE} When the task is fully complete`));
+});

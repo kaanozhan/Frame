@@ -99,6 +99,30 @@ function activeWorkspaceRoots(projectPath) {
     .map((r) => ({ id: r.id, name: r.name, branch: r.branch || null, root: r.path }));
 }
 
+// ─── Queue worktrees (work-queue spec, D16) ────────────────
+// A queued spec runs in its own plain git worktree, where its folder is
+// written on that branch. The queue (queueManager on the desktop, the server's
+// queue module on Frame Server) tells this module which worktrees are live,
+// and their spec copies win over main's — the same way a workspace's does —
+// so the Specs screen and the spec commands see the running spec's phase.
+
+let queueRootsProvider = null;
+
+/** `fn(checkout) → [{ root, branch, key }]` — the live queue worktrees of a checkout. */
+function setQueueRootsProvider(fn) {
+  queueRootsProvider = typeof fn === 'function' ? fn : null;
+}
+
+/** The live queue worktrees of `checkout` whose folder exists, as workspace-shaped records. */
+function queueWorkRoots(checkout) {
+  if (!queueRootsProvider || !checkout) return [];
+  let rows = [];
+  try { rows = queueRootsProvider(checkout) || []; } catch (_) { return []; }
+  return rows
+    .filter((r) => r && r.root && path.resolve(r.root) !== path.resolve(checkout) && fs.existsSync(r.root))
+    .map((r) => ({ id: `queue:${r.key}`, name: r.branch || r.key, branch: r.branch || null, root: r.root, queue: true }));
+}
+
 function specFolderNames(root) {
   try {
     return fs.readdirSync(frameStore.specsRoot(root), { withFileTypes: true })
@@ -114,6 +138,10 @@ function refreshSpecLocations(projectPath) {
   const map = new Map();
   for (const slug of specFolderNames(projectPath)) {
     map.set(slug, { root: projectPath, workspace: null });
+  }
+  // A running queue item's copy beats main's; a workspace's still beats both.
+  for (const ws of queueWorkRoots(projectPath)) {
+    for (const slug of specFolderNames(ws.root)) map.set(slug, { root: ws.root, workspace: ws });
   }
   const claimed = new Set();
   for (const ws of activeWorkspaceRoots(projectPath)) {
@@ -1505,7 +1533,7 @@ function refreshWorkspaceWatchers(projectPath) {
   // is stale (workspace-hardening L13e). It is rebuilt on next use.
   specLocations.delete(projectPath);
   if (projectPath !== activeWatchedProject) return;
-  const wanted = new Set(activeWorkspaceRoots(projectPath).map((ws) => ws.root));
+  const wanted = new Set([...activeWorkspaceRoots(projectPath), ...queueWorkRoots(projectPath)].map((ws) => ws.root));
   for (const [root, watcher] of workspaceSpecWatchers) {
     if (wanted.has(root)) continue;
     try { watcher.close(); } catch (_) { /* ignore */ }
@@ -1823,7 +1851,8 @@ async function refreshServerSpecs(projectPath, onlyRoot = null) {
   }
   for (const r of rows) {
     if (onlyRoot && r.root !== onlyRoot) continue;
-    const workspace = { id: r.id, name: r.name, branch: null, root: r.root, host: r.host, serverKey: r.serverKey || null, offline: false };
+    // serverProjectPath: a server spec is queued on its own server (work-queue).
+    const workspace = { id: r.id, name: r.name, branch: null, root: r.root, host: r.host, serverKey: r.serverKey || null, serverProjectPath: r.serverProjectPath || null, offline: false };
     const link = linkOf(r.serverKey);
     if (!link) {
       // This workspace's server is down: keep its last list, offline.
@@ -1989,6 +2018,10 @@ function wireServerSpecs() {
 function checkoutLocations(root) {
   const map = new Map();
   for (const slug of specFolderNames(root)) map.set(slug, { root, workspace: null });
+  // A server clone's running queue items (work-queue D16): their copies win.
+  for (const ws of queueWorkRoots(root)) {
+    for (const slug of specFolderNames(ws.root)) map.set(slug, { root: ws.root, workspace: ws });
+  }
   return map;
 }
 
@@ -2224,5 +2257,9 @@ module.exports = {
   parseTasksMarkdown,
   syncTasksFromMarkdown,
   parseFootprintMarkdown,
-  getSpecFootprint
+  getSpecFootprint,
+  specLocation,
+  setQueueRootsProvider,
+  // The work queue starts a queued task with the full-auto flags (work-queue D2).
+  getAutoLaunchFlags
 };

@@ -1,7 +1,7 @@
 {
   "version": "1.1",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-11-25",
+  "lastUpdated": "2026-11-28",
   "architecture": {},
   "modules": {
     ".claude/settings.json": {
@@ -302,7 +302,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 130970,
+      "sizeBytes": 131668,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -1012,7 +1012,8 @@
       "exports": [
         "init",
         "setupIPC",
-        "getSessionsForProject"
+        "getSessionsForProject",
+        "encodeProjectPath"
       ],
       "depends": [
         "fs",
@@ -1091,7 +1092,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 8886,
+      "sizeBytes": 8997,
       "extraction": {
         "status": "parsed"
       },
@@ -6359,6 +6360,8 @@
         "commitExists",
         "isAncestor",
         "setupIPC",
+        "queueBranches",
+        "createQueueWorktree",
         "localBranchExists",
         "defaultRemoteBranch",
         "fetchBranch",
@@ -6727,28 +6730,59 @@
           ],
           "purpose": "`git merge --abort` → `{ error }`."
         },
+        "queueWorktreePath": {
+          "line": 811,
+          "params": [
+            "checkout",
+            "key"
+          ]
+        },
+        "queueBranches": {
+          "line": 816,
+          "params": [
+            "checkout"
+          ],
+          "purpose": "Local branches under frame/queue/ — the names a new key must avoid."
+        },
+        "isWorktreeOf": {
+          "line": 826,
+          "params": [
+            "checkout",
+            "dir"
+          ],
+          "purpose": "Whether `dir` is a live worktree of `checkout`."
+        },
+        "createQueueWorktree": {
+          "line": 838,
+          "params": [
+            "checkout",
+            "{ key",
+            "existing = null } = {}"
+          ],
+          "purpose": "The worktree a queue item runs in: `existing` when it is still a worktree"
+        },
         "orchWorktreePath": {
-          "line": 809,
+          "line": 858,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getHeadSha": {
-          "line": 813,
+          "line": 862,
           "params": [
             "projectPath"
           ]
         },
         "isRevArg": {
-          "line": 828,
+          "line": 877,
           "params": [
             "value"
           ],
           "purpose": "A value safe to pass as a revision: a non-empty string git cannot read as an option."
         },
         "branchTipSha": {
-          "line": 833,
+          "line": 882,
           "params": [
             "projectPath",
             "name"
@@ -6756,7 +6790,7 @@
           "purpose": "The full commit id a local branch points at, or null when there is no such branch."
         },
         "showFileAt": {
-          "line": 848,
+          "line": 897,
           "params": [
             "projectPath",
             "ref",
@@ -6765,7 +6799,7 @@
           "purpose": "A file's text as committed at `ref` (`git show <ref>:./<relPath>`, the path"
         },
         "commitExists": {
-          "line": 859,
+          "line": 908,
           "params": [
             "projectPath",
             "sha"
@@ -6773,7 +6807,7 @@
           "purpose": "Does this repository hold `sha` as a commit?"
         },
         "isAncestor": {
-          "line": 870,
+          "line": 919,
           "params": [
             "projectPath",
             "a",
@@ -6782,14 +6816,14 @@
           "purpose": "Is commit `a` an ancestor of `b`, or the same commit? false when either is unknown."
         },
         "branchExists": {
-          "line": 880,
+          "line": 929,
           "params": [
             "projectPath",
             "branchName"
           ]
         },
         "createOrchWorktree": {
-          "line": 894,
+          "line": 943,
           "params": [
             "projectPath",
             "slug"
@@ -6797,7 +6831,7 @@
           "purpose": "Create a fresh worker worktree for a spec, branched from current HEAD."
         },
         "removeOrchWorktree": {
-          "line": 915,
+          "line": 964,
           "params": [
             "projectPath",
             "slug",
@@ -6806,7 +6840,7 @@
           "purpose": "Remove a spec's worker worktree (force). Optionally delete its work branch."
         },
         "worktreeChangedFiles": {
-          "line": 930,
+          "line": 979,
           "params": [
             "projectPath",
             "slug",
@@ -6815,7 +6849,7 @@
           "purpose": "Files actually changed on a spec's work branch relative to a base ref."
         },
         "mergeWorkToIntegration": {
-          "line": 947,
+          "line": 996,
           "params": [
             "projectPath",
             "slug"
@@ -6823,7 +6857,7 @@
           "purpose": "Merge a spec's work branch into its per-spec integration branch. Because the"
         },
         "isWorkMerged": {
-          "line": 966,
+          "line": 1015,
           "params": [
             "projectPath",
             "slug"
@@ -6831,14 +6865,14 @@
           "purpose": "Whether a spec's work branch has been merged (its integration branch exists"
         },
         "listOrchBranches": {
-          "line": 982,
+          "line": 1031,
           "params": [
             "projectPath"
           ],
           "purpose": "List orchestration branches present in the repo, grouped by slug. Used for"
         },
         "setupIPC": {
-          "line": 1002,
+          "line": 1051,
           "params": [
             "ipcMain"
           ],
@@ -6860,7 +6894,7 @@
           "TOGGLE_GIT_BRANCHES_PANEL"
         ]
       },
-      "sizeBytes": 41523,
+      "sizeBytes": 43999,
       "extraction": {
         "status": "parsed"
       },
@@ -6878,6 +6912,7 @@
           "createBranch": "65e6f97f28dbaa7a",
           "createBundle": "137125c05b40b858",
           "createOrchWorktree": "360f17a3e8ed35d7",
+          "createQueueWorktree": "441b40474a80810a",
           "currentBranch": "69702a9570698b9b",
           "defaultRemoteBranch": "2b8cac1668d02128",
           "deleteBranch": "558fdff79656691b",
@@ -6891,6 +6926,7 @@
           "isRevArg": "6b803e3f7518c943",
           "isWorkMerged": "39ca7ffa9b37d991",
           "isWorkingTreeClean": "077fc8ab2e75ee0d",
+          "isWorktreeOf": "691ba4cc986c9efa",
           "listIgnoredCandidates": "8363d4cd5adc577f",
           "listIgnoredIn": "6778c318a1168739",
           "listOrchBranches": "b6e87043dfe78d4c",
@@ -6902,6 +6938,7 @@
           "mergeRef": "2e98a7d4780d893c",
           "mergeWorkToIntegration": "5fdd31c529fff0f9",
           "pushBranch": "ddd89a5237603350",
+          "queueBranches": "100b678bfb6fcef9",
           "remoteBranchExists": "a30d34317fb25600",
           "removeOrchWorktree": "ee09f7af04806f80",
           "removeWorkspaceWorktree": "3f14e3547c30a6c2",
@@ -7688,32 +7725,34 @@
         "cloud/cloudShapeService",
         "cloud/cloudStartService",
         "cloud/cloudDoneService",
+        "leadManager",
+        "queueManager",
         "structureLifecycle",
         "child_process",
         "sendFiles"
       ],
       "functions": {
         "confirmQuitWithLiveAgents": {
-          "line": 72,
+          "line": 74,
           "purpose": "Quitting (or closing the window) tears down every PTY — killing running"
         },
         "createWindow": {
-          "line": 90,
+          "line": 92,
           "purpose": "Create main application window"
         },
         "probeCoreDeps": {
-          "line": 213
+          "line": 215
         },
         "setupAllIPC": {
-          "line": 243,
+          "line": 245,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 350,
+          "line": 356,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 398,
+          "line": 404,
           "params": [
             "window"
           ],
@@ -7736,7 +7775,7 @@
           "MAIN_PROCESS_ERROR"
         ]
       },
-      "sizeBytes": 18855,
+      "sizeBytes": 19170,
       "extraction": {
         "status": "parsed"
       },
@@ -7956,6 +7995,235 @@
           "readRootAgents": "80a1f40de9d03955",
           "run": "d5ec1a1151386ac1",
           "trackedAmong": "c6c3e9a0099863f9"
+        }
+      }
+    },
+    "main/leadHost": {
+      "file": "src/main/leadHost.js",
+      "description": "leadHost — the Chief's host, one per machine (lead-agent spec, T07).",
+      "exports": [
+        "createLeadHost",
+        "shellQuote",
+        "ALLOWED_TOOLS",
+        "MCP_SERVER_KEY",
+        "INSTRUCTIONS_LIMIT"
+      ],
+      "depends": [
+        "fs",
+        "net",
+        "os",
+        "path",
+        "crypto",
+        "shared/leadRules",
+        "shared/leadProtocol",
+        "shared/programStatus",
+        "shared/leadTranscript",
+        "aiToolManager",
+        "shared/queueRules",
+        "gitBranchesManager",
+        "queueRunner"
+      ],
+      "functions": {
+        "shellQuote": {
+          "line": 65,
+          "params": [
+            "s",
+            "platform = process.platform"
+          ]
+        },
+        "readTail": {
+          "line": 70,
+          "params": [
+            "file",
+            "bytes = TRANSCRIPT_TAIL_BYTES"
+          ]
+        },
+        "createLeadHost": {
+          "line": 97,
+          "params": [
+            "{ machine",
+            "machineLabel = null",
+            "adapter",
+            "homeDir = os.homedir("
+          ]
+        }
+      },
+      "sizeBytes": 44289,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0478bbc163c59a70"
+      }
+    },
+    "main/leadManager": {
+      "file": "src/main/leadManager.js",
+      "description": "leadManager — the desktop side of the Chief (lead-agent spec, T09).",
+      "exports": [
+        "init",
+        "setupIPC",
+        "getHost",
+        "shutdown",
+        "decideOnServer",
+        "_adapter"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "crypto",
+        "shared/ipcChannels",
+        "leadHost",
+        "shared/leadTranscript",
+        "ptyManager",
+        "sessionRestore",
+        "claudeSessionsManager",
+        "logger",
+        "shared/serverRouting",
+        "orchestrationManager",
+        "queueManager",
+        "tasksManager",
+        "serverConnection",
+        "workspaceManager"
+      ],
+      "functions": {
+        "openTerminal": {
+          "line": 42,
+          "params": [
+            "{ projectPath",
+            "cwd",
+            "name = null",
+            "assignment = null } = {}"
+          ],
+          "purpose": "A terminal the Chief opens for a queue item (work-queue D11): the renderer"
+        },
+        "send": {
+          "line": 56,
+          "params": [
+            "channel",
+            "payload"
+          ]
+        },
+        "readScreen": {
+          "line": 61,
+          "params": [
+            "terminalId",
+            "lines"
+          ],
+          "purpose": "Plain screen text from the renderer's xterm (D5); null when it cannot answer."
+        },
+        "claudeConfigDir": {
+          "line": 71
+        },
+        "transcriptFor": {
+          "line": 76,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "A terminal's transcript: the SessionStart report, else ~/.claude/sessions/<pid>.json (D16)."
+        },
+        "orchestrationIds": {
+          "line": 95,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Conductor and worker lanes of a running orchestration session (read-only to the Chief)."
+        },
+        "server": {
+          "line": 126
+        },
+        "serverRoute": {
+          "line": 131,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "`{ link, serverTerminalId, info }` for a server Chief's desktop id, or null."
+        },
+        "toDesktopRecord": {
+          "line": 140,
+          "params": [
+            "rec",
+            "key"
+          ],
+          "purpose": "Server-local ids in an approval record → desktop ids, so the renderer can name the target."
+        },
+        "forwardServerApprovals": {
+          "line": 144,
+          "params": [
+            "payload",
+            "key"
+          ]
+        },
+        "serverChiefTargets": {
+          "line": 157,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Connected servers that hold workspaces of this project, each with its clone path: where a server Chief belongs."
+        },
+        "init": {
+          "line": 175,
+          "params": [
+            "window"
+          ]
+        },
+        "getHost": {
+          "line": 191,
+          "purpose": "The desktop host (T12's server bridge and tests)."
+        },
+        "setupIPC": {
+          "line": 195,
+          "params": [
+            "ipcMain"
+          ]
+        },
+        "decideOnServer": {
+          "line": 289,
+          "params": [
+            "serverKey",
+            "{ approvalId",
+            "decision",
+            "text = null } = {}"
+          ],
+          "purpose": "A server Chief's approval, decided here; the server applies the first decision only."
+        },
+        "shutdown": {
+          "line": 299
+        }
+      },
+      "ipc": {
+        "listens": [
+          "LEAD_START",
+          "LEAD_STOP",
+          "LEAD_MODE_GET",
+          "LEAD_MODE_SET",
+          "LEAD_QUEUE_START",
+          "LEAD_SERVER_TARGETS",
+          "LEAD_PENDING",
+          "LEAD_DECIDE",
+          "LEAD_OPEN_TERMINAL_REPLY",
+          "LEAD_SCREEN_REPLY"
+        ],
+        "emits": [
+          "channel"
+        ]
+      },
+      "sizeBytes": 13684,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "ed6873c56c723fb3",
+        "purposes": {
+          "decideOnServer": "95fb498338b936a5",
+          "getHost": "342291fb849308f9",
+          "openTerminal": "cc4b0e760102b4b6",
+          "orchestrationIds": "09cf2bc3a3a897fc",
+          "readScreen": "5efcaee08f663c39",
+          "serverChiefTargets": "98889df6e9e29a4a",
+          "serverRoute": "da1c3ebd33df7df5",
+          "toDesktopRecord": "b0106d43a6535737",
+          "transcriptFor": "5526c60a58c5e60f"
         }
       }
     },
@@ -9239,6 +9507,17 @@
         "requestedShell",
         "serverTerminalInfo",
         "noteServerTerminal",
+        "T08",
+        "T09)\n  onTerminalExit",
+        "leadTerminalOf",
+        "isLeadTerminal",
+        "listTerminals",
+        "agentStatus",
+        "pasteMode",
+        "noteUserInput",
+        "getLastUserInputAt",
+        "getForegroundName",
+        "getForegroundPid",
         "setupIPC"
       ],
       "depends": [
@@ -9251,6 +9530,8 @@
         "analytics",
         "pollGate",
         "sessionRestore",
+        "shared/programStatus",
+        "shared/leadRules",
         "child_process",
         "shared/serverRouting",
         "workspaceManager",
@@ -9258,36 +9539,43 @@
       ],
       "functions": {
         "flushOutput": {
-          "line": 29,
+          "line": 31,
           "params": [
             "terminalId"
           ],
           "purpose": "Flush a terminal's buffered output as one coalesced send."
         },
         "init": {
-          "line": 49,
+          "line": 51,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
         "getForegroundCommand": {
-          "line": 64,
+          "line": 66,
           "params": [
             "shellPid",
             "callback"
           ],
           "purpose": "Resolve the full command line of the terminal's foreground process."
         },
+        "foregroundPidOf": {
+          "line": 90,
+          "params": [
+            "shellPid"
+          ],
+          "purpose": "The pid of a shell's foreground process group (lead-agent T03): the CLI the"
+        },
         "availableShellsOnServer": {
-          "line": 91,
+          "line": 109,
           "params": [
             "loc"
           ],
           "purpose": "A server workspace's shells, from its own Frame Server (`loc.serverKey`); never rejects, never empty."
         },
         "defaultUnixShell": {
-          "line": 109,
+          "line": 127,
           "params": [
             "platform = process.platform",
             "env = process.env",
@@ -9296,7 +9584,7 @@
           "purpose": "The Unix shell to start when none was chosen (server-linux-readiness)."
         },
         "requestedShell": {
-          "line": 121,
+          "line": 139,
           "params": [
             "shellPath",
             "platform = process.platform",
@@ -9305,46 +9593,125 @@
           "purpose": "The shell a create asked for, or null to use the default. Off macOS and"
         },
         "getDefaultShell": {
-          "line": 131
+          "line": 149
         },
         "getAvailableShells": {
-          "line": 148,
+          "line": 166,
           "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 234,
+          "line": 252,
           "params": [
             "workingDir = null",
             "projectPath = null",
             "shellPath = null",
             "extraEnv = null",
-            "workspaceId = 'main'"
+            "workspaceId = 'main'",
+            "{ lead = false } = {}"
           ],
           "purpose": "Create a new terminal instance"
         },
+        "noteProgramStatus": {
+          "line": 429,
+          "params": [
+            "inst",
+            "data"
+          ],
+          "purpose": "Claude Code's OSC 7501 program status and the bracketed-paste mode, read"
+        },
+        "onTerminalExit": {
+          "line": 451,
+          "params": [
+            "fn"
+          ],
+          "purpose": "Call `fn(terminalId, exitCode)` when a local PTY exits; returns an unsubscribe."
+        },
+        "leadTerminalOf": {
+          "line": 457,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The Chief terminal of a project on this machine, or null (lead-agent T08)."
+        },
+        "isLeadTerminal": {
+          "line": 464,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "listTerminals": {
+          "line": 470,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "This machine's terminals of a project, as the Chief host lists them."
+        },
+        "getForegroundName": {
+          "line": 480,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "The live foreground process name (node-pty), read now rather than from the gated poll."
+        },
+        "getForegroundPid": {
+          "line": 491,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "Pid of the program in the foreground of a terminal (a CLI the user started), or null."
+        },
+        "agentStatus": {
+          "line": 502,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "What a terminal is doing, for the Chief (leadRules.deriveStatus): agent"
+        },
+        "pasteMode": {
+          "line": 515,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "Whether the program in a terminal has bracketed paste on (D14)."
+        },
+        "noteUserInput": {
+          "line": 525,
+          "params": [
+            "terminalId",
+            "data"
+          ],
+          "purpose": "The user typed into a terminal (D15). Called from the input path only —"
+        },
+        "getLastUserInputAt": {
+          "line": 532,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "When the user last typed there (epoch ms), or null."
+        },
         "getTerminalsByProject": {
-          "line": 383,
+          "line": 542,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 398,
+          "line": 557,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "getLastOutputAt": {
-          "line": 410,
+          "line": 569,
           "params": [
             "terminalId"
           ],
           "purpose": "Last time this terminal produced output (epoch ms), or null if unknown."
         },
         "writeToTerminal": {
-          "line": 418,
+          "line": 577,
           "params": [
             "terminalId",
             "data"
@@ -9352,7 +9719,7 @@
           "purpose": "Write data to specific terminal"
         },
         "resizeTerminal": {
-          "line": 428,
+          "line": 587,
           "params": [
             "terminalId",
             "cols",
@@ -9361,13 +9728,13 @@
           "purpose": "Resize specific terminal"
         },
         "wasDestroyedOnRequest": {
-          "line": 443,
+          "line": 602,
           "params": [
             "terminalId"
           ]
         },
         "destroyTerminal": {
-          "line": 451,
+          "line": 610,
           "params": [
             "terminalId",
             "{ teardown = false } = {}"
@@ -9375,56 +9742,56 @@
           "purpose": "Destroy specific terminal. `teardown` marks one that dies with its"
         },
         "destroyAll": {
-          "line": 472,
+          "line": 631,
           "purpose": "Destroy all terminals"
         },
         "getTerminalCount": {
-          "line": 492,
+          "line": 651,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 499,
+          "line": 658,
           "purpose": "Get all terminal IDs"
         },
         "destroyExcept": {
-          "line": 509,
+          "line": 668,
           "params": [
             "knownIds"
           ],
           "purpose": "Destroy every PTY the renderer doesn't know about. A renderer reload"
         },
         "hasTerminal": {
-          "line": 519,
+          "line": 678,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "serverLocationOf": {
-          "line": 548,
+          "line": 707,
           "params": [
             "workspaceId"
           ]
         },
         "server": {
-          "line": 557
+          "line": 716
         },
         "connectedLink": {
-          "line": 562,
+          "line": 721,
           "params": [
             "key"
           ],
           "purpose": "The connected link of `key`, or null."
         },
         "routeOfTerminal": {
-          "line": 568,
+          "line": 727,
           "params": [
             "terminalId"
           ],
           "purpose": "`{ link, serverTerminalId }` a desktop id routes to, or null when its server is unknown."
         },
         "createServerTerminal": {
-          "line": 574,
+          "line": 733,
           "params": [
             "loc",
             "{ cwd",
@@ -9436,14 +9803,14 @@
           ]
         },
         "serverTerminalInfo": {
-          "line": 591,
+          "line": 750,
           "params": [
             "terminalId"
           ],
           "purpose": "Local project/workspace (and server) of a server terminal this window knows, or null."
         },
         "noteServerTerminal": {
-          "line": 596,
+          "line": 755,
           "params": [
             "terminalId",
             "info"
@@ -9451,10 +9818,10 @@
           "purpose": "Remember a server terminal found on reconnect (adopted by the renderer)."
         },
         "wireServerEvents": {
-          "line": 602
+          "line": 761
         },
         "adoptFrom": {
-          "line": 655,
+          "line": 814,
           "params": [
             "link",
             "projectPath",
@@ -9463,14 +9830,14 @@
           "purpose": "One connected server's live terminals of a local project, with a screen each; null when it cannot tell."
         },
         "adoptServerTerminals": {
-          "line": 699,
+          "line": 864,
           "params": [
             "projectPath"
           ],
           "purpose": "Every connected server's live terminals of a local project, with a screen"
         },
         "setupIPC": {
-          "line": 729,
+          "line": 894,
           "params": [
             "ipcMain"
           ]
@@ -9493,7 +9860,7 @@
           "TERMINAL_PROCESS_DATA"
         ]
       },
-      "sizeBytes": 34170,
+      "sizeBytes": 42682,
       "extraction": {
         "status": "parsed"
       },
@@ -9502,6 +9869,7 @@
         "purposes": {
           "adoptFrom": "40cb568fc83ec24e",
           "adoptServerTerminals": "e03187319ffc6b7e",
+          "agentStatus": "4bfc29eafacec050",
           "availableShellsOnServer": "bbe8ae95ca95e954",
           "connectedLink": "df7da417a391592b",
           "createTerminal": "b33d916178fe23ba",
@@ -9510,21 +9878,500 @@
           "destroyExcept": "2db42ba4367a26b0",
           "destroyTerminal": "1c5d8c995da929c7",
           "flushOutput": "862238b90ed7f8f0",
+          "foregroundPidOf": "8f9d17eea623b4f8",
           "getAvailableShells": "538bc64a26510be8",
           "getForegroundCommand": "7c0ce6301fb394c1",
+          "getForegroundName": "4e0a8ae44f8a95e9",
+          "getForegroundPid": "f06d551ae0e1910a",
           "getLastOutputAt": "4ad8bccf6ad1c484",
+          "getLastUserInputAt": "95cb38a9dfc47e83",
           "getTerminalCount": "946350489b072cc3",
           "getTerminalIds": "eb3fa4ee8efdd797",
           "getTerminalInfo": "daaf7eb3ca940c30",
           "getTerminalsByProject": "479a57ca5c66839c",
           "hasTerminal": "b3801ea1d7b0ad94",
           "init": "a7cc4fe0948dfdd7",
+          "leadTerminalOf": "07788b4bfa3e9152",
+          "listTerminals": "f79050bb7eab172d",
+          "noteProgramStatus": "7b8a5482a542ab7b",
           "noteServerTerminal": "34da8c9dde687e61",
+          "noteUserInput": "ef0a7c80f29ddcde",
+          "onTerminalExit": "d896307ee2ab2a3f",
+          "pasteMode": "5a0c772707885643",
           "requestedShell": "65b3ebb6642173f5",
           "resizeTerminal": "810c8f104494f695",
           "routeOfTerminal": "c04c4b8094dd649f",
           "serverTerminalInfo": "e74374f9e9a0d275",
           "writeToTerminal": "6e7ca448a2aac555"
+        }
+      }
+    },
+    "main/queueManager": {
+      "file": "src/main/queueManager.js",
+      "description": "queueManager — the desktop side of the work queue (work-queue spec, T03).",
+      "exports": [
+        "init",
+        "setupIPC",
+        "push",
+        "queuePayload",
+        "macQueue",
+        "macChange",
+        "addSource",
+        "removeItem",
+        "reorderItems",
+        "setItem",
+        "setParallel",
+        "setConfirm",
+        "refreshServerQueues",
+        "serverListsOf",
+        "_resetForTests"
+      ],
+      "depends": [
+        "crypto",
+        "shared/ipcChannels",
+        "shared/queueRules",
+        "queueStore",
+        "logger",
+        "tasksManager",
+        "specManager",
+        "serverConnection",
+        "workspaceManager",
+        "ptyManager"
+      ],
+      "functions": {
+        "send": {
+          "line": 30,
+          "params": [
+            "channel",
+            "payload"
+          ]
+        },
+        "newId": {
+          "line": 34
+        },
+        "nowIso": {
+          "line": 38
+        },
+        "macSources": {
+          "line": 43,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The Mac's task ids and spec slugs, for deriving `missing` (S18); null when unknown."
+        },
+        "macQueue": {
+          "line": 58,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The Mac's queue as stored."
+        },
+        "macChange": {
+          "line": 63,
+          "params": [
+            "projectPath",
+            "fn"
+          ],
+          "purpose": "Applies one rule to the Mac's queue, saves, pushes. Returns the rule result."
+        },
+        "liveRoots": {
+          "line": 79,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "followWorktrees": {
+          "line": 83,
+          "params": [
+            "projectPath",
+            "queue"
+          ]
+        },
+        "queuePayload": {
+          "line": 91,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "What every QUEUE_DATA push carries: the Mac's queue, then each server's."
+        },
+        "serverConn": {
+          "line": 117
+        },
+        "linkOf": {
+          "line": 121,
+          "params": [
+            "serverKey"
+          ]
+        },
+        "serverProjectsOf": {
+          "line": 131,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "The server projects holding `projectPath`, one per server and server project."
+        },
+        "serverListsOf": {
+          "line": 143,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "serverNotesOf": {
+          "line": 152,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "markOffline": {
+          "line": 162,
+          "params": [
+            "serverKey = null"
+          ]
+        },
+        "refreshServerQueues": {
+          "line": 172,
+          "params": [
+            "projectPath",
+            "{ onlyKey = null } = {}"
+          ],
+          "purpose": "Re-read the server queues of `projectPath` (only `onlyKey`'s when given), watch them, push. Never throws."
+        },
+        "wireServers": {
+          "line": 208
+        },
+        "itemHome": {
+          "line": 247,
+          "params": [
+            "projectPath",
+            "itemId"
+          ],
+          "purpose": "The home of an item id in the merged list: `{ location:'mac' }`, a server home, or null."
+        },
+        "onServer": {
+          "line": 252,
+          "params": [
+            "projectPath",
+            "home",
+            "method",
+            "args"
+          ],
+          "purpose": "Calls `method` on a server home and re-reads that server's queue; `{ ok, res }` or `{ ok:false, error }`."
+        },
+        "sourceHome": {
+          "line": 265,
+          "params": [
+            "source"
+          ],
+          "purpose": "The server home a source names (its task or spec lives on that server), or null for the Mac."
+        },
+        "cleanSource": {
+          "line": 272,
+          "params": [
+            "source"
+          ]
+        },
+        "push": {
+          "line": 277,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "errorOf": {
+          "line": 286,
+          "params": [
+            "res"
+          ]
+        },
+        "reply": {
+          "line": 290,
+          "params": [
+            "res",
+            "extra = {}"
+          ]
+        },
+        "addSource": {
+          "line": 301,
+          "params": [
+            "projectPath",
+            "source"
+          ],
+          "purpose": "`source` = { kind, ref, title, status?, source?, phase?, malformed?, home? }."
+        },
+        "removeItem": {
+          "line": 311,
+          "params": [
+            "projectPath",
+            "itemId"
+          ]
+        },
+        "reorderItems": {
+          "line": 318,
+          "params": [
+            "projectPath",
+            "ids"
+          ],
+          "purpose": "Each home gets its own part of the order; a move never crosses homes."
+        },
+        "setItem": {
+          "line": 341,
+          "params": [
+            "projectPath",
+            "itemId",
+            "action",
+            "mode = null"
+          ],
+          "purpose": "Done (review → done), Continue (needs-you → queued), Reset (→ queued), flow mode."
+        },
+        "setParallel": {
+          "line": 352,
+          "params": [
+            "projectPath",
+            "n",
+            "serverKey = null"
+          ],
+          "purpose": "One machine's parallel limit: the Mac's, or `serverKey`'s for its server project."
+        },
+        "setConfirm": {
+          "line": 367,
+          "params": [
+            "projectPath",
+            "confirm"
+          ],
+          "purpose": "\"Before starting\" for the whole project: this Mac's queue and every"
+        },
+        "okOnly": {
+          "line": 379,
+          "params": [
+            "r"
+          ]
+        },
+        "init": {
+          "line": 385,
+          "params": [
+            "window"
+          ]
+        },
+        "setupIPC": {
+          "line": 390,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "QUEUE_LOAD",
+          "QUEUE_ADD",
+          "QUEUE_REMOVE",
+          "QUEUE_REORDER",
+          "QUEUE_SET",
+          "QUEUE_CONFIRM",
+          "QUEUE_PARALLEL"
+        ],
+        "emits": [
+          "channel"
+        ]
+      },
+      "sizeBytes": 18864,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "e0297a72f3631625",
+        "purposes": {
+          "addSource": "b829bf40e12eb3ab",
+          "itemHome": "360224a7f1ba6464",
+          "macChange": "04eb3663f3cab14c",
+          "macQueue": "40a47c4ece0ddcd8",
+          "macSources": "05bdfeaf4c7ed3c4",
+          "onServer": "f59e253571454140",
+          "queuePayload": "8f906f667f40a47c",
+          "refreshServerQueues": "cb8ff05fbbfb1854",
+          "reorderItems": "020959477131b491",
+          "serverProjectsOf": "509cbc43be447245",
+          "setConfirm": "42563248cc76ec4c",
+          "setItem": "07c71b97d0415c53",
+          "setParallel": "4f62fe6ff3b4a242",
+          "sourceHome": "bd2ddf6e161f1c09"
+        }
+      }
+    },
+    "main/queueRunner": {
+      "file": "src/main/queueRunner.js",
+      "description": "queueRunner — gets one queue item ready to run (work-queue spec, T08).",
+      "exports": [
+        "prepare",
+        "AI_TOOL",
+        "_copySpecIn"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/queueRules",
+        "renderer/tasks/runPrompt",
+        "frameStore",
+        "specManager",
+        "gitBranchesManager",
+        "shared/frameConstants",
+        "tasksManager",
+        "workspaceTooling",
+        "queueStore"
+      ],
+      "functions": {
+        "specDirIn": {
+          "line": 33,
+          "params": [
+            "root",
+            "slug"
+          ]
+        },
+        "readStatusAt": {
+          "line": 37,
+          "params": [
+            "root",
+            "slug"
+          ]
+        },
+        "workspaceRootOf": {
+          "line": 46,
+          "params": [
+            "checkout",
+            "slug"
+          ],
+          "purpose": "The checkout a spec already lives in when that is a Frame workspace, else null (D18)."
+        },
+        "copySpecIn": {
+          "line": 58,
+          "params": [
+            "checkout",
+            "worktree",
+            "slug"
+          ],
+          "purpose": "Copies main's spec folder into the worktree when the worktree has none (D15)."
+        },
+        "worktreeFor": {
+          "line": 67,
+          "params": [
+            "checkout",
+            "item"
+          ]
+        },
+        "tasksPathOf": {
+          "line": 76,
+          "params": [
+            "checkout"
+          ]
+        },
+        "findTask": {
+          "line": 82,
+          "params": [
+            "checkout",
+            "taskId"
+          ]
+        },
+        "prepareSpec": {
+          "line": 88,
+          "params": [
+            "checkout",
+            "item"
+          ]
+        },
+        "prepareTask": {
+          "line": 111,
+          "params": [
+            "checkout",
+            "item",
+            "{ confirm = 'ask' } = {}"
+          ]
+        },
+        "prepare": {
+          "line": 126,
+          "params": [
+            "checkout",
+            "item"
+          ],
+          "purpose": "Everything a queue item needs before its agent starts. Throws with a"
+        }
+      },
+      "sizeBytes": 6034,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "bf735bfa00aba11e",
+        "purposes": {
+          "copySpecIn": "af0959e48bf25819",
+          "prepare": "d59fcd1d5c3c70a7",
+          "workspaceRootOf": "1c903bb90d2bf557"
+        }
+      }
+    },
+    "main/queueStore": {
+      "file": "src/main/queueStore.js",
+      "description": "queueStore — one checkout's `.frame/runtime/queue.json` (work-queue spec, T02).",
+      "exports": [
+        "FILE",
+        "queuePath",
+        "load",
+        "save",
+        "update",
+        "reconcile"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/queueRules",
+        "fsSafe",
+        "frameStore"
+      ],
+      "functions": {
+        "queuePath": {
+          "line": 26,
+          "params": [
+            "checkout"
+          ]
+        },
+        "load": {
+          "line": 31,
+          "params": [
+            "checkout"
+          ],
+          "purpose": "The checkout's queue, cleaned; an absent or unreadable file is an empty queue."
+        },
+        "save": {
+          "line": 37,
+          "params": [
+            "checkout",
+            "queue"
+          ]
+        },
+        "update": {
+          "line": 50,
+          "params": [
+            "checkout",
+            "fn"
+          ],
+          "purpose": "Applies one rule to the stored queue and saves when it changed something."
+        },
+        "reconcile": {
+          "line": 63,
+          "params": [
+            "checkout",
+            "liveIds"
+          ],
+          "purpose": "Running items whose terminal is not among `liveIds` become interrupted"
+        }
+      },
+      "sizeBytes": 2510,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "93265df5a58a3c84",
+        "purposes": {
+          "load": "d1d0d1042785e46d",
+          "reconcile": "eaff94c1722ffaa7",
+          "update": "9087e560bfe6f42d"
         }
       }
     },
@@ -10191,6 +11038,7 @@
       "exports": [
         "init",
         "envFor",
+        "transcriptFor",
         "registerTerminal",
         "onForeground",
         "onClose",
@@ -10212,25 +11060,32 @@
           "line": 55,
           "purpose": "Create the report directory, drop last run's leftovers (their terminals"
         },
+        "transcriptFor": {
+          "line": 83,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "The transcript of the session running in a terminal, as its SessionStart"
+        },
         "envFor": {
-          "line": 80,
+          "line": 89,
           "params": [
             "terminalId"
           ],
           "purpose": "The env a PTY needs so its CLIs can report. Empty when init failed."
         },
         "writeStore": {
-          "line": 87
+          "line": 96
         },
         "persist": {
-          "line": 100,
+          "line": 109,
           "params": [
             "projectPath"
           ],
           "purpose": "Rewrite one project's record from its live terminals."
         },
         "registerTerminal": {
-          "line": 112,
+          "line": 121,
           "params": [
             "terminalId",
             "{ projectPath = null",
@@ -10239,7 +11094,7 @@
           ]
         },
         "onForeground": {
-          "line": 119,
+          "line": 128,
           "params": [
             "terminalId",
             "processName",
@@ -10247,24 +11102,24 @@
           ]
         },
         "onClose": {
-          "line": 125,
+          "line": 134,
           "params": [
             "terminalId"
           ],
           "purpose": "The user closed the terminal or its shell exited."
         },
         "freeze": {
-          "line": 132,
+          "line": 141,
           "purpose": "App teardown: keep every record exactly as it is."
         },
         "scheduleScan": {
-          "line": 138
+          "line": 147
         },
         "scanReports": {
-          "line": 146
+          "line": 155
         },
         "isForegroundJob": {
-          "line": 178,
+          "line": 187,
           "params": [
             "pid",
             "shellPid",
@@ -10273,30 +11128,30 @@
           "purpose": "Is `pid` the terminal's foreground job? A CLI started from inside a"
         },
         "take": {
-          "line": 201,
+          "line": 210,
           "params": [
             "projectPath"
           ],
           "purpose": "A project's restore plan. Holds the project's record until the renderer"
         },
         "restoreDone": {
-          "line": 210,
+          "line": 219,
           "params": [
             "projectPath"
           ]
         },
         "launchProject": {
-          "line": 222,
+          "line": 231,
           "purpose": "The project to open on launch instead of the default one: the project the"
         },
         "setLastActiveProject": {
-          "line": 229,
+          "line": 238,
           "params": [
             "projectPath"
           ]
         },
         "setupIPC": {
-          "line": 236,
+          "line": 245,
           "params": [
             "ipcMain"
           ]
@@ -10313,7 +11168,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 9322,
+      "sizeBytes": 9678,
       "extraction": {
         "status": "parsed"
       },
@@ -10327,7 +11182,8 @@
           "launchProject": "11a50d0b9f2e3a19",
           "onClose": "4eedc38351ae9028",
           "persist": "5e8a9c379af7ca5c",
-          "take": "d506f8cc1cf5a1ec"
+          "take": "d506f8cc1cf5a1ec",
+          "transcriptFor": "f61a82a828b2527c"
         }
       }
     },
@@ -10555,7 +11411,9 @@
         "parseTasksMarkdown",
         "syncTasksFromMarkdown",
         "parseFootprintMarkdown",
-        "getSpecFootprint"
+        "getSpecFootprint",
+        "specLocation",
+        "setQueueRootsProvider"
       ],
       "depends": [
         "fs",
@@ -10596,21 +11454,35 @@
           ],
           "purpose": "Active workspaces of a project whose folder exists: `[{ id, name, branch, root }]`."
         },
+        "setQueueRootsProvider": {
+          "line": 112,
+          "params": [
+            "fn"
+          ],
+          "purpose": "`fn(checkout) → [{ root, branch, key }]` — the live queue worktrees of a checkout."
+        },
+        "queueWorkRoots": {
+          "line": 117,
+          "params": [
+            "checkout"
+          ],
+          "purpose": "The live queue worktrees of `checkout` whose folder exists, as workspace-shaped records."
+        },
         "specFolderNames": {
-          "line": 102,
+          "line": 126,
           "params": [
             "root"
           ]
         },
         "refreshSpecLocations": {
-          "line": 113,
+          "line": 137,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-read which checkout holds each slug of `projectPath`."
         },
         "specLocation": {
-          "line": 139,
+          "line": 167,
           "params": [
             "projectPath",
             "slug"
@@ -10618,7 +11490,7 @@
           "purpose": "The checkout a slug lives in (main when unknown — where a new spec would go)."
         },
         "specRoot": {
-          "line": 148,
+          "line": 176,
           "params": [
             "projectPath",
             "slug"
@@ -10626,14 +11498,14 @@
           "purpose": "Root folder for a slug: its workspace's worktree, or the main checkout."
         },
         "getSpecDir": {
-          "line": 152,
+          "line": 180,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "repairSpecStatus": {
-          "line": 183,
+          "line": 211,
           "params": [
             "obj",
             "folderName"
@@ -10641,26 +11513,26 @@
           "purpose": "Fill in the fields of a status.json that the folder itself already"
         },
         "validateSpecStatus": {
-          "line": 206,
+          "line": 234,
           "params": [
             "obj"
           ]
         },
         "readFileSafe": {
-          "line": 225,
+          "line": 253,
           "params": [
             "p"
           ]
         },
         "readStatus": {
-          "line": 234,
+          "line": 262,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "writeStatus": {
-          "line": 245,
+          "line": 273,
           "params": [
             "projectPath",
             "slug",
@@ -10668,33 +11540,33 @@
           ]
         },
         "indexStamp": {
-          "line": 276,
+          "line": 304,
           "params": [
             "projectPath"
           ],
           "purpose": "mtime of the derived index, or 0 — used to tell a rebuild from a no-op."
         },
         "scheduleIndexRefresh": {
-          "line": 285,
+          "line": 313,
           "params": [
             "projectPath"
           ]
         },
         "buildSpecCatalog": {
-          "line": 313,
+          "line": 341,
           "params": [
             "projectPath"
           ],
           "purpose": "One line per non-excluded spec for the spec.new catalog embed. Reads the"
         },
         "listSpecs": {
-          "line": 333,
+          "line": 361,
           "params": [
             "projectPath"
           ]
         },
         "listSpecsCore": {
-          "line": 339,
+          "line": 367,
           "params": [
             "projectPath",
             "tasksProject",
@@ -10703,7 +11575,7 @@
           ]
         },
         "listSpecReports": {
-          "line": 438,
+          "line": 466,
           "params": [
             "projectPath",
             "slug"
@@ -10711,7 +11583,7 @@
           "purpose": "Which of a spec's two generated reports exist on disk, named as the viewer"
         },
         "looksLikeSpecFolder": {
-          "line": 447,
+          "line": 475,
           "params": [
             "projectPath",
             "folderName"
@@ -10719,7 +11591,7 @@
           "purpose": "A folder is a spec if it carries at least one of the chain's artifacts."
         },
         "malformedSpec": {
-          "line": 459,
+          "line": 487,
           "params": [
             "folderName",
             "status",
@@ -10728,7 +11600,7 @@
           "purpose": "A spec folder Frame cannot read as a spec, rendered as itself rather than"
         },
         "fileExists": {
-          "line": 479,
+          "line": 507,
           "params": [
             "projectPath",
             "slug",
@@ -10736,7 +11608,7 @@
           ]
         },
         "derivePhase": {
-          "line": 483,
+          "line": 511,
           "params": [
             "projectPath",
             "slug",
@@ -10746,7 +11618,7 @@
           ]
         },
         "recordedTaskCount": {
-          "line": 524,
+          "line": 552,
           "params": [
             "projectPath",
             "slug",
@@ -10754,14 +11626,14 @@
           ]
         },
         "collectSpecTasks": {
-          "line": 530,
+          "line": 558,
           "params": [
             "slug",
             "tasksData"
           ]
         },
         "countPhaseWrite": {
-          "line": 551,
+          "line": 579,
           "params": [
             "projectPath",
             "slug",
@@ -10770,7 +11642,7 @@
           ]
         },
         "reconcilePhase": {
-          "line": 559,
+          "line": 587,
           "params": [
             "projectPath",
             "slug",
@@ -10778,14 +11650,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 607,
+          "line": 635,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 611,
+          "line": 639,
           "params": [
             "projectPath",
             "aiTool",
@@ -10793,7 +11665,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 631,
+          "line": 659,
           "params": [
             "projectPath",
             "aiTool",
@@ -10801,7 +11673,7 @@
           ]
         },
         "interpolateValues": {
-          "line": 640,
+          "line": 668,
           "params": [
             "obj",
             "vars"
@@ -10809,14 +11681,14 @@
           "purpose": "Run `interpolate` over each value of an object. One pass, no recursion."
         },
         "interpolate": {
-          "line": 648,
+          "line": 676,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 661,
+          "line": 689,
           "params": [
             "projectPath",
             "slug",
@@ -10829,7 +11701,7 @@
           ]
         },
         "reportAssetRel": {
-          "line": 756,
+          "line": 784,
           "params": [
             "projectPath",
             "tool",
@@ -10838,34 +11710,34 @@
           "purpose": "Which staged report asset a tool's prompt should name."
         },
         "resolveVerificationCommand": {
-          "line": 823,
+          "line": 851,
           "params": [
             "projectPath"
           ],
           "purpose": "The project's own check, in descending order of what actually verifies a"
         },
         "buildImplementPermissions": {
-          "line": 838,
+          "line": 866,
           "params": [
             "verification"
           ]
         },
         "writeImplementPermissions": {
-          "line": 856,
+          "line": 884,
           "params": [
             "projectPath"
           ],
           "purpose": "Writes .frame/implement-permissions.json and reports what it resolved, so"
         },
         "resolveImplementLaunchHint": {
-          "line": 880,
+          "line": 908,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "getImplementLaunchFlags": {
-          "line": 896,
+          "line": 924,
           "params": [
             "projectPath",
             "slug",
@@ -10874,7 +11746,7 @@
           "purpose": "The flags the lane's launch line needs for this dispatch. Only the"
         },
         "getAutoLaunchFlags": {
-          "line": 915,
+          "line": 943,
           "params": [
             "projectPath",
             "aiTool"
@@ -10882,7 +11754,7 @@
           "purpose": "The flags a full-auto run (`spec.auto`) launches with: always the"
         },
         "launchFlagsFor": {
-          "line": 922,
+          "line": 950,
           "params": [
             "projectPath",
             "slug",
@@ -10891,7 +11763,7 @@
           ]
         },
         "stagePhasePrompts": {
-          "line": 938,
+          "line": 966,
           "params": [
             "projectPath",
             "slug",
@@ -10902,21 +11774,21 @@
           ]
         },
         "specNewPromptFilename": {
-          "line": 955,
+          "line": 983,
           "params": [
             "date"
           ],
           "purpose": "A slug-less run has no stable name to key the prompt file on — `${slug}__`"
         },
         "uniquePromptFilename": {
-          "line": 960,
+          "line": 988,
           "params": [
             "promptsDir",
             "filename"
           ]
         },
         "buildSpecCommandFile": {
-          "line": 969,
+          "line": 997,
           "params": [
             "projectPath",
             "slug",
@@ -10928,32 +11800,32 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 1030,
+          "line": 1058,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 1056,
+          "line": 1084,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 1075,
+          "line": 1103,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "completedTaskIdsFromOutcome": {
-          "line": 1089,
+          "line": 1117,
           "params": [
             "content"
           ]
         },
         "initialTaskState": {
-          "line": 1096,
+          "line": 1124,
           "params": [
             "status",
             "outcomeIds",
@@ -10962,7 +11834,7 @@
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 1104,
+          "line": 1132,
           "params": [
             "projectPath",
             "slug",
@@ -10970,27 +11842,27 @@
           ]
         },
         "arraysEqual": {
-          "line": 1192,
+          "line": 1220,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 1199,
+          "line": 1227,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 1210,
+          "line": 1238,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "readSpecReport": {
-          "line": 1251,
+          "line": 1279,
           "params": [
             "projectPath",
             "slug",
@@ -10999,7 +11871,7 @@
           "purpose": "Read one of a spec's two generated HTML reports, for the in-app viewer."
         },
         "searchSpecs": {
-          "line": 1280,
+          "line": 1308,
           "params": [
             "projectPath",
             "query"
@@ -11007,7 +11879,7 @@
           "purpose": "Search specs by keyword over their spec.md content. Case-insensitive"
         },
         "updateSpecStatus": {
-          "line": 1293,
+          "line": 1321,
           "params": [
             "projectPath",
             "slug",
@@ -11015,14 +11887,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 1317,
+          "line": 1345,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 1336,
+          "line": 1364,
           "params": [
             "projectPath",
             "oldSlug",
@@ -11031,96 +11903,96 @@
           "purpose": "Rename a spec: moves the folder, updates status.json's slug field, and"
         },
         "specsWatchHandler": {
-          "line": 1460,
+          "line": 1488,
           "params": [
             "projectPath"
           ],
           "purpose": "One handler for every specs folder of the watched project — main's and each"
         },
         "closeWorkspaceSpecWatchers": {
-          "line": 1489
+          "line": 1517
         },
         "refreshWorkspaceWatchers": {
-          "line": 1502,
+          "line": 1530,
           "params": [
             "projectPath"
           ],
           "purpose": "Watch each active workspace's `.frame/specs` alongside main's, then push"
         },
         "startWatching": {
-          "line": 1530,
+          "line": 1558,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 1610
+          "line": 1638
         },
         "markSpecNewLaunch": {
-          "line": 1665,
+          "line": 1693,
           "params": [
             "projectPath"
           ]
         },
         "consumeSpecNewLaunch": {
-          "line": 1671,
+          "line": 1699,
           "params": [
             "projectPath"
           ]
         },
         "resolveSpecOrigin": {
-          "line": 1687,
+          "line": 1715,
           "params": [
             "projectPath"
           ],
           "purpose": "How this spec was started, from Frame's own state — never guessed from the"
         },
         "trackSpecLifecycle": {
-          "line": 1698,
+          "line": 1726,
           "params": [
             "projectPath",
             "specs"
           ]
         },
         "pushSpecData": {
-          "line": 1726,
+          "line": 1754,
           "params": [
             "projectPath"
           ]
         },
         "serverConn": {
-          "line": 1765
+          "line": 1793
         },
         "linkOf": {
-          "line": 1770,
+          "line": 1798,
           "params": [
             "serverKey"
           ],
           "purpose": "The connected link of a server key, or null (down, removed, or no key)."
         },
         "serverWorkspacesOf": {
-          "line": 1780,
+          "line": 1808,
           "params": [
             "projectPath"
           ],
           "purpose": "The watched project's server workspaces: `[{ id, root, host, serverKey, projectPath, serverProjectPath, name }]`."
         },
         "serverSpecLists": {
-          "line": 1793,
+          "line": 1821,
           "params": [
             "projectPath"
           ],
           "purpose": "`[{ workspace, specs }]` for mergeSpecLists — the cached server lists of `projectPath`."
         },
         "markServerSpecsOffline": {
-          "line": 1802,
+          "line": 1830,
           "params": [
             "serverKey = null"
           ],
           "purpose": "Tag the entries of one server (`serverKey`), or of every server, offline."
         },
         "refreshServerSpecs": {
-          "line": 1816,
+          "line": 1844,
           "params": [
             "projectPath",
             "onlyRoot = null"
@@ -11128,7 +12000,7 @@
           "purpose": "Re-list the server workspaces of `projectPath` (only `onlyRoot` when given),"
         },
         "remoteSpecEntry": {
-          "line": 1863,
+          "line": 1892,
           "params": [
             "projectPath",
             "slug"
@@ -11136,19 +12008,19 @@
           "purpose": "The server workspace entry that holds `slug` for `projectPath`, or null when"
         },
         "serverOffline": {
-          "line": 1876,
+          "line": 1905,
           "params": [
             "entry"
           ]
         },
         "offlineText": {
-          "line": 1880,
+          "line": 1909,
           "params": [
             "entry"
           ]
         },
         "serverSpecCall": {
-          "line": 1884,
+          "line": 1913,
           "params": [
             "entry",
             "method",
@@ -11156,7 +12028,7 @@
           ]
         },
         "getServerSpec": {
-          "line": 1889,
+          "line": 1918,
           "params": [
             "entry",
             "slug"
@@ -11164,7 +12036,7 @@
           "purpose": "GET_SPEC for a server spec: the server's getSpec, tagged with its workspace; `{ offline: host }` while unreachable."
         },
         "readServerSpecReport": {
-          "line": 1913,
+          "line": 1942,
           "params": [
             "entry",
             "slug",
@@ -11172,7 +12044,7 @@
           ]
         },
         "updateServerSpecStatus": {
-          "line": 1922,
+          "line": 1951,
           "params": [
             "entry",
             "slug",
@@ -11180,26 +12052,26 @@
           ]
         },
         "unwatchServerSpecs": {
-          "line": 1933
+          "line": 1962
         },
         "wireServerSpecs": {
-          "line": 1942
+          "line": 1971
         },
         "checkoutLocations": {
-          "line": 1989,
+          "line": 2018,
           "params": [
             "root"
           ]
         },
         "inCheckout": {
-          "line": 1995,
+          "line": 2028,
           "params": [
             "root",
             "fn"
           ]
         },
         "listSpecsIn": {
-          "line": 2008,
+          "line": 2041,
           "params": [
             "root",
             "tasksProject"
@@ -11207,14 +12079,14 @@
           "purpose": "listSpecs over one checkout; task counts come from `tasksProject`'s tasks.json."
         },
         "getSpecIn": {
-          "line": 2012,
+          "line": 2045,
           "params": [
             "root",
             "slug"
           ]
         },
         "readSpecReportIn": {
-          "line": 2016,
+          "line": 2049,
           "params": [
             "root",
             "slug",
@@ -11222,7 +12094,7 @@
           ]
         },
         "updateSpecStatusIn": {
-          "line": 2020,
+          "line": 2053,
           "params": [
             "root",
             "slug",
@@ -11230,7 +12102,7 @@
           ]
         },
         "syncSpecTasksIn": {
-          "line": 2025,
+          "line": 2058,
           "params": [
             "root",
             "tasksProject"
@@ -11238,7 +12110,7 @@
           "purpose": "Import every spec's tasks.md in `root` into `tasksProject`'s tasks.json."
         },
         "buildSpecCommandFileIn": {
-          "line": 2038,
+          "line": 2071,
           "params": [
             "root",
             "tasksProject",
@@ -11250,13 +12122,13 @@
           "purpose": "Stage a spec command's prompt in `root`, with `{tasks_path}` naming `tasksProject`'s tasks.json."
         },
         "init": {
-          "line": 2044,
+          "line": 2077,
           "params": [
             "window"
           ]
         },
         "handleGetSpec": {
-          "line": 2052,
+          "line": 2085,
           "params": [
             "projectPath",
             "slug"
@@ -11264,7 +12136,7 @@
           "purpose": "The spec IPC handlers route a server spec to Frame Server (server-specs"
         },
         "handleReadSpecReport": {
-          "line": 2057,
+          "line": 2090,
           "params": [
             "projectPath",
             "slug",
@@ -11272,7 +12144,7 @@
           ]
         },
         "handleUpdateSpecStatus": {
-          "line": 2062,
+          "line": 2095,
           "params": [
             "projectPath",
             "slug",
@@ -11280,7 +12152,7 @@
           ]
         },
         "serverStagingTarget": {
-          "line": 2076,
+          "line": 2109,
           "params": [
             "projectPath",
             "slug",
@@ -11289,7 +12161,7 @@
           "purpose": "Where a spec command for `workspaceId` / `slug` runs when that is a server"
         },
         "handleBuildSpecCommandFile": {
-          "line": 2091,
+          "line": 2124,
           "params": [
             "{ projectPath",
             "slug = null",
@@ -11302,7 +12174,7 @@
           "purpose": "BUILD_SPEC_COMMAND_FILE: stage locally, or — for a server workspace — have"
         },
         "setupIPC": {
-          "line": 2116,
+          "line": 2149,
           "params": [
             "ipcMain"
           ]
@@ -11329,7 +12201,7 @@
           "SPEC_DATA"
         ]
       },
-      "sizeBytes": 97305,
+      "sizeBytes": 99313,
       "extraction": {
         "status": "parsed"
       },
@@ -11352,6 +12224,7 @@
           "looksLikeSpecFolder": "48b25d6c330697cf",
           "malformedSpec": "8d1f316ef92d3106",
           "markServerSpecsOffline": "1c31cbd424619572",
+          "queueWorkRoots": "f6b1233c94abaf3f",
           "readSpecReport": "9c5b897e277cfa95",
           "refreshServerSpecs": "5e296443e1b9b237",
           "refreshSpecLocations": "2b62eb2faa809ce4",
@@ -11366,6 +12239,7 @@
           "serverSpecLists": "3468fa0b8c5e65ba",
           "serverStagingTarget": "8879e83c8838781d",
           "serverWorkspacesOf": "0a87cd9e52797342",
+          "setQueueRootsProvider": "d4463e5dbbfc4b48",
           "specLocation": "4655e5ba85a04400",
           "specNewPromptFilename": "f040681603f82c98",
           "specRoot": "9532b9928312db1c",
@@ -12384,14 +13258,15 @@
           "line": 157
         },
         "refreshServer": {
-          "line": 178,
+          "line": 192,
           "params": [
-            "projectPath"
+            "projectPath",
+            "{ onlyKey = null } = {}"
           ],
-          "purpose": "Ask every server holding `projectPath`'s workspaces for their state (and make them push changes)."
+          "purpose": "Ask every server holding `projectPath`'s workspaces for their state (and"
         },
         "onServer": {
-          "line": 195,
+          "line": 210,
           "params": [
             "method",
             "id",
@@ -12400,43 +13275,43 @@
           "purpose": "Run a PR-flow action of a server workspace on its own server, or return null for a local one."
         },
         "settled": {
-          "line": 210,
+          "line": 225,
           "purpose": "Resolves once no refresh is running or queued. Workspace actions start a"
         },
         "refresh": {
-          "line": 218,
+          "line": 233,
           "params": [
             "projectPath"
           ],
           "purpose": "Re-read and push the state of `projectPath`'s workspaces. Calls that land"
         },
         "setWatched": {
-          "line": 246,
+          "line": 261,
           "params": [
             "projectPath"
           ],
           "purpose": "Make `projectPath` the polled and pushed project (Frame Server's"
         },
         "watched": {
-          "line": 251,
+          "line": 266,
           "purpose": "The polled project, or null."
         },
         "getState": {
-          "line": 256,
+          "line": 271,
           "params": [
             "projectPath"
           ],
           "purpose": "The last state read for a project, or null."
         },
         "recordOf": {
-          "line": 265,
+          "line": 280,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "baseOf": {
-          "line": 273,
+          "line": 288,
           "params": [
             "projectPath",
             "ws"
@@ -12444,26 +13319,26 @@
           "purpose": "A workspace's base: the recorded one, else (records from before"
         },
         "settingsOf": {
-          "line": 278,
+          "line": 293,
           "params": [
             "projectPath"
           ]
         },
         "noRemote": {
-          "line": 290,
+          "line": 305,
           "params": [
             "cwd"
           ]
         },
         "push": {
-          "line": 299,
+          "line": 314,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "heldSpec": {
-          "line": 324,
+          "line": 339,
           "params": [
             "projectPath",
             "id"
@@ -12471,7 +13346,7 @@
           "purpose": "The spec a workspace holds (spec-in-workspace), with its documents, or null."
         },
         "prDraft": {
-          "line": 338,
+          "line": 353,
           "params": [
             "projectPath",
             "id"
@@ -12479,7 +13354,7 @@
           "purpose": "Prefilled PR title/body: from the held spec, else the commit subjects."
         },
         "prCreate": {
-          "line": 349,
+          "line": 364,
           "params": [
             "projectPath",
             "id",
@@ -12490,7 +13365,7 @@
           "purpose": "Push if needed, then `gh pr create` from the workspace branch into its base."
         },
         "merge": {
-          "line": 377,
+          "line": 392,
           "params": [
             "projectPath",
             "id"
@@ -12498,14 +13373,14 @@
           "purpose": "Merge the workspace's PR with the project's method (or the repo's first"
         },
         "updateFromBase": {
-          "line": 427,
+          "line": 442,
           "params": [
             "projectPath",
             "id"
           ]
         },
         "abortUpdate": {
-          "line": 464,
+          "line": 479,
           "params": [
             "projectPath",
             "id"
@@ -12513,7 +13388,7 @@
           "purpose": "Abort a stopped update: `git merge --abort`, only while MERGE_HEAD exists."
         },
         "setupIPC": {
-          "line": 482,
+          "line": 497,
           "params": [
             "ipcMain"
           ]
@@ -12533,7 +13408,7 @@
           "WORKSPACE_GIT_STATE"
         ]
       },
-      "sizeBytes": 22875,
+      "sizeBytes": 23610,
       "extraction": {
         "status": "parsed"
       },
@@ -12549,7 +13424,7 @@
           "prCreate": "33db61ed0da6f9aa",
           "prDraft": "62d68c7cdebe2e3d",
           "refresh": "0316824b93954fd9",
-          "refreshServer": "c8572b9dd80532a4",
+          "refreshServer": "504dc0adafe375f8",
           "rowState": "114f885ae19483b9",
           "serverProjectsOf": "e2d28f5b919c60d9",
           "setWatched": "1b0ebe93abb317e0",
@@ -14124,6 +14999,254 @@
       },
       "provenance": {
         "description": "629c22fb058fd80e"
+      }
+    },
+    "renderer/chiefLane": {
+      "file": "src/renderer/chiefLane.js",
+      "description": "chiefLane — the Chief terminal in the renderer (lead-agent spec, T10).",
+      "exports": [
+        "init",
+        "ensure",
+        "openChief",
+        "startQueue",
+        "_chiefs"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state",
+        "notify",
+        "queueView",
+        "workspaceSection"
+      ],
+      "functions": {
+        "escapeHtml": {
+          "line": 53,
+          "params": [
+            "s"
+          ]
+        },
+        "chiefOf": {
+          "line": 57,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "ensure": {
+          "line": 64,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "ensureServers": {
+          "line": 85,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "One Chief per connected server that holds this project's workspaces (T12)."
+        },
+        "decorate": {
+          "line": 125,
+          "params": [
+            "terminalId",
+            "projectPath",
+            "host = null"
+          ]
+        },
+        "refreshPending": {
+          "line": 199,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Approvals asked while this window could not see them (reload, a server reconnect)."
+        },
+        "render": {
+          "line": 206,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "queueFor": {
+          "line": 229,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "This Chief's machine's items and parallel limit, from the Queue view's data."
+        },
+        "renderQueueBar": {
+          "line": 239,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "startQueueOn": {
+          "line": 253,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "stepParallel": {
+          "line": 263,
+          "params": [
+            "terminalId",
+            "delta"
+          ]
+        },
+        "startQueue": {
+          "line": 270,
+          "params": [
+            "projectPath = state.getProjectPath && state.getProjectPath("
+          ],
+          "purpose": "The palette's \"Start queue\": the Chief at the sidebar's selected location."
+        },
+        "setMode": {
+          "line": 277,
+          "params": [
+            "terminalId",
+            "mode"
+          ]
+        },
+        "start": {
+          "line": 286,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "stopped": {
+          "line": 309,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "The Chief's session left its terminal (back at the shell): show Start again."
+        },
+        "approvalTitle": {
+          "line": 319,
+          "params": [
+            "rec"
+          ],
+          "purpose": "\"Send to 1st Terminal (blue)\": the target as the user sees it, not its id."
+        },
+        "approvalDetail": {
+          "line": 328,
+          "params": [
+            "rec"
+          ],
+          "purpose": "One line on what a non-message action will do (a queue start: its worktree and terminal)."
+        },
+        "renderCards": {
+          "line": 337,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "onApprovals": {
+          "line": 376,
+          "params": [
+            "payload"
+          ],
+          "purpose": "main → renderer: a Chief's pending approvals changed."
+        },
+        "readLocations": {
+          "line": 394
+        },
+        "rememberLocation": {
+          "line": 398,
+          "params": [
+            "projectPath",
+            "key"
+          ]
+        },
+        "locationsFor": {
+          "line": 407,
+          "purpose": "Where the Chief can run for this project: this Mac, then each connected server that holds its workspaces."
+        },
+        "chiefAt": {
+          "line": 412,
+          "params": [
+            "projectPath",
+            "key"
+          ],
+          "purpose": "The Chief terminal at a location, if this window has it."
+        },
+        "selectedLocation": {
+          "line": 418,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "chiefSummary": {
+          "line": 427,
+          "params": [
+            "id"
+          ]
+        },
+        "renderNav": {
+          "line": 432
+        },
+        "refreshTargets": {
+          "line": 482,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "openChief": {
+          "line": 492,
+          "params": [
+            "projectPath",
+            "key"
+          ],
+          "purpose": "Show the Chief at `key` ('local' or a server key), opening it there first if needed."
+        },
+        "onDocClickForNav": {
+          "line": 507,
+          "params": [
+            "e"
+          ]
+        },
+        "init": {
+          "line": 518,
+          "params": [
+            "multiTerminalUI"
+          ]
+        },
+        "serverKeyOf": {
+          "line": 51,
+          "params": [
+            "id"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TERMINAL_PROCESS_DATA",
+          "TERMINAL_DESTROYED",
+          "SERVER_STATUS_CHANGED",
+          "LEAD_APPROVALS"
+        ],
+        "emits": [
+          "LEAD_STOP",
+          "LEAD_STOP"
+        ]
+      },
+      "sizeBytes": 26217,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "80776c3e6c2c0c4a",
+        "purposes": {
+          "approvalDetail": "d10ce49a565c12ba",
+          "approvalTitle": "49608c30ed486d7d",
+          "chiefAt": "19f8592afe9b1016",
+          "ensureServers": "4e00771dbb6926c0",
+          "locationsFor": "8f32bec0d5b5aa6f",
+          "onApprovals": "5314df977e368d65",
+          "openChief": "38c790a95f0f0ddc",
+          "queueFor": "7b16f9eca23ec5af",
+          "refreshPending": "42dadb6ef3cbe71f",
+          "startQueue": "d7bd2eb9f33eb845",
+          "stopped": "cb481a62921901ba"
+        }
       }
     },
     "renderer/cloudBriefsCopy": {
@@ -21316,6 +22439,7 @@
         "tooltip",
         "ipcWatchdog",
         "../package.json",
+        "chiefLane",
         "reviewSection",
         "statusBar",
         "workspaceSection",
@@ -21331,34 +22455,34 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 400,
+          "line": 403,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 515,
+          "line": 518,
           "purpose": "Wire the current-project dropdown: build the project list on open, switch on"
         },
         "setupUpdateDot": {
-          "line": 646,
+          "line": 649,
           "purpose": "Show the sidebar's update banner (version + arrow, click-to-act) when a"
         },
         "revealSidebarTab": {
-          "line": 685,
+          "line": 688,
           "params": [
             "tabName"
           ],
           "purpose": "Show the sidebar (if hidden) and switch to the given tab. Used by focus"
         },
         "registerCommands": {
-          "line": 711,
+          "line": 714,
           "purpose": "Register every app command with the central registry. Commands are the"
         },
         "startAiSession": {
-          "line": 1313,
+          "line": 1324,
           "purpose": "Start the selected AI tool (Claude Code / Codex CLI / etc.) in a fresh"
         },
         "forwardException": {
-          "line": 1338,
+          "line": 1349,
           "params": [
             "err"
           ],
@@ -21379,7 +22503,7 @@
           "ANALYTICS_EXCEPTION"
         ]
       },
-      "sizeBytes": 50218,
+      "sizeBytes": 50557,
       "extraction": {
         "status": "parsed"
       },
@@ -21772,7 +22896,8 @@
         "cloudBriefsPanel",
         "specsDashboard",
         "tasksDashboard",
-        "projectListUI"
+        "projectListUI",
+        "queueView"
       ],
       "functions": {},
       "ipc": {
@@ -21781,7 +22906,7 @@
           "SESSION_RESTORE_SET_LAST_PROJECT"
         ]
       },
-      "sizeBytes": 36208,
+      "sizeBytes": 37078,
       "extraction": {
         "status": "parsed"
       },
@@ -22438,7 +23563,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 4160,
+      "sizeBytes": 4212,
       "extraction": {
         "status": "parsed"
       },
@@ -22643,6 +23768,7 @@
         "shared/ipcChannels",
         "terminal",
         "laneStatus",
+        "queueView",
         "orchestrator",
         "cloudBriefsPanel",
         "commandRegistry",
@@ -22738,66 +23864,66 @@
           "purpose": "Setup IPC listeners"
         },
         "applyAgentStatuses": {
-          "line": 234,
+          "line": 241,
           "params": [
             "map"
           ],
           "purpose": "Per-project agent status counts (from projectStatusBadges). Stored for the"
         },
         "getAgentStatus": {
-          "line": 240,
+          "line": 247,
           "params": [
             "projectPath"
           ],
           "purpose": "{ approval, input } counts for one project, or undefined."
         },
         "selectNextProject": {
-          "line": 247,
+          "line": 254,
           "purpose": "Select next project in list"
         },
         "selectPrevProject": {
-          "line": 258,
+          "line": 265,
           "purpose": "Select previous project in list"
         },
         "focus": {
-          "line": 269,
+          "line": 276,
           "purpose": "\"Focus Project List\" now means: open the switcher dropdown."
         },
         "blur": {
-          "line": 274,
+          "line": 281,
           "purpose": "No list rows to blur anymore — kept for callers."
         },
         "getProjects": {
-          "line": 280,
+          "line": 287,
           "purpose": "Snapshot of the registered projects (switcher menu, file panels). Copy so"
         },
         "loadCollapsedGroups": {
-          "line": 353
+          "line": 364
         },
         "saveCollapsedGroups": {
-          "line": 362,
+          "line": 373,
           "params": [
             "state"
           ]
         },
         "buildProjectNav": {
-          "line": 370
+          "line": 381
         },
         "revealNavItem": {
-          "line": 439,
+          "line": 453,
           "params": [
             "view"
           ],
           "purpose": "Make a nav row reachable without changing the user's saved layout: expand"
         },
         "placeProjectNav": {
-          "line": 452
+          "line": 466
         },
         "refreshProjectNav": {
-          "line": 464
+          "line": 478
         },
         "updateProjectNav": {
-          "line": 551,
+          "line": 567,
           "purpose": "Called by multiTerminalUI on every manager state change so the Terminals"
         }
       },
@@ -22815,7 +23941,7 @@
           "REMOVE_PROJECT_FROM_REGISTRY"
         ]
       },
-      "sizeBytes": 22317,
+      "sizeBytes": 23131,
       "extraction": {
         "status": "parsed"
       },
@@ -23294,6 +24420,253 @@
           "setupIPC": "4c49f7443d20ad7c",
           "show": "33bff978cc5d9acd",
           "toggle": "d26536144643972f"
+        }
+      }
+    },
+    "renderer/queueView": {
+      "file": "src/renderer/queueView.js",
+      "description": "queueView — the Queue center view (work-queue spec, T05).",
+      "exports": [
+        "SOURCE_MIME",
+        "init",
+        "load",
+        "mountInline",
+        "notifyDetached",
+        "isInlineMounted",
+        "onChange",
+        "count",
+        "items",
+        "current",
+        "isQueued",
+        "sourceForTask",
+        "sourceForSpec",
+        "addSource",
+        "removeItem",
+        "setItem",
+        "setParallel",
+        "setConfirm",
+        "setDragSource",
+        "acceptDrops"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state",
+        "notify",
+        "dnd/reorder",
+        "terminal",
+        "tasksDashboard",
+        "specsDashboard"
+      ],
+      "functions": {
+        "escapeHtml": {
+          "line": 48,
+          "params": [
+            "s"
+          ]
+        },
+        "init": {
+          "line": 54
+        },
+        "apply": {
+          "line": 70,
+          "params": [
+            "data"
+          ]
+        },
+        "load": {
+          "line": 83
+        },
+        "emit": {
+          "line": 94
+        },
+        "onChange": {
+          "line": 101,
+          "params": [
+            "fn"
+          ],
+          "purpose": "Subscribe to queue changes (the sidebar row's count, the Chief lane)."
+        },
+        "count": {
+          "line": 107,
+          "purpose": "Items not done: the sidebar count."
+        },
+        "items": {
+          "line": 111
+        },
+        "current": {
+          "line": 115
+        },
+        "sourceForTask": {
+          "line": 120,
+          "params": [
+            "task"
+          ],
+          "purpose": "A task as a queue source: its id, the facts the rules check, and its home."
+        },
+        "sourceForSpec": {
+          "line": 132,
+          "params": [
+            "spec"
+          ],
+          "purpose": "A spec as a queue source; a spec in a server workspace is queued on that server."
+        },
+        "isQueued": {
+          "line": 146,
+          "params": [
+            "kind",
+            "ref"
+          ],
+          "purpose": "Whether a task id / spec slug is queued (not done) — the spec card's icon."
+        },
+        "addSource": {
+          "line": 156,
+          "params": [
+            "source"
+          ],
+          "purpose": "Adds a source: `{ kind, ref, title, status?, source?, phase?, malformed?, home? }`."
+        },
+        "call": {
+          "line": 171,
+          "params": [
+            "channel",
+            "args",
+            "failText"
+          ]
+        },
+        "ui": {
+          "line": 191
+        },
+        "openSource": {
+          "line": 195,
+          "params": [
+            "item"
+          ]
+        },
+        "openTerminal": {
+          "line": 207,
+          "params": [
+            "item"
+          ]
+        },
+        "carriesSource": {
+          "line": 215,
+          "params": [
+            "e"
+          ],
+          "purpose": "True when a drag carries a queue source (task tile / spec card)."
+        },
+        "setDragSource": {
+          "line": 221,
+          "params": [
+            "e",
+            "source"
+          ],
+          "purpose": "Put a queue source on a drag (T06/T07 call this from their dragstart)."
+        },
+        "acceptDrops": {
+          "line": 230,
+          "params": [
+            "el"
+          ],
+          "purpose": "Makes `el` a drop target that queues a dragged task or spec."
+        },
+        "mountInline": {
+          "line": 263,
+          "params": [
+            "container"
+          ]
+        },
+        "notifyDetached": {
+          "line": 282
+        },
+        "render": {
+          "line": 292
+        },
+        "renderConfirm": {
+          "line": 322
+        },
+        "renderEmpty": {
+          "line": 328
+        },
+        "actionsFor": {
+          "line": 337,
+          "params": [
+            "it"
+          ]
+        },
+        "renderRow": {
+          "line": 349,
+          "params": [
+            "it",
+            "i"
+          ]
+        },
+        "renderMode": {
+          "line": 378,
+          "params": [
+            "it"
+          ]
+        },
+        "itemOf": {
+          "line": 385,
+          "params": [
+            "el"
+          ]
+        },
+        "onClick": {
+          "line": 390,
+          "params": [
+            "e"
+          ]
+        },
+        "onDragStart": {
+          "line": 422,
+          "params": [
+            "e"
+          ]
+        },
+        "onDragOver": {
+          "line": 431,
+          "params": [
+            "e"
+          ]
+        },
+        "onDrop": {
+          "line": 442,
+          "params": [
+            "e"
+          ]
+        },
+        "clearDropMarks": {
+          "line": 464,
+          "params": [
+            "endDrag = true"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "QUEUE_DATA"
+        ],
+        "emits": []
+      },
+      "sizeBytes": 19483,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "85e0f28f004958bd",
+        "purposes": {
+          "acceptDrops": "b796ef793ca62890",
+          "addSource": "8df9afc3d3d04c63",
+          "carriesSource": "be8013f6778ac798",
+          "count": "2e8c1c804ae27520",
+          "isQueued": "cd2df3256ed324cc",
+          "onChange": "4784d58088436a23",
+          "setDragSource": "6747cea8c4c39a78",
+          "sourceForSpec": "85d3f1a1052331c3",
+          "sourceForTask": "0afd11aa59b107a1"
         }
       }
     },
@@ -24992,6 +26365,7 @@
         "taskInfoModal",
         "workspaceSection",
         "terminal",
+        "queueView",
         "specSection"
       ],
       "functions": {
@@ -25056,23 +26430,41 @@
           "line": 381
         },
         "openFromGrid": {
-          "line": 435,
+          "line": 436,
           "params": [
             "slug"
           ],
           "purpose": "A card click. A spec living in another checkout (spec-in-workspace) selects"
         },
+        "canQueue": {
+          "line": 455,
+          "params": [
+            "spec"
+          ]
+        },
+        "queueButtonHtml": {
+          "line": 459,
+          "params": [
+            "spec"
+          ]
+        },
+        "wireQueue": {
+          "line": 468,
+          "params": [
+            "list"
+          ]
+        },
         "wireOlderTile": {
-          "line": 447
+          "line": 497
         },
         "renderCard": {
-          "line": 454,
+          "line": 504,
           "params": [
             "spec"
           ]
         },
         "selectCard": {
-          "line": 516,
+          "line": 567,
           "params": [
             "slug",
             "{ instant = false } = {}"
@@ -25080,26 +26472,26 @@
           "purpose": "Open a spec in the drawer. `instant` is the top-bar chip path: the grid"
         },
         "clearSelection": {
-          "line": 543,
+          "line": 594,
           "params": [
             "{ notify = true } = {}"
           ],
           "purpose": "Close the drawer. `notify: false` is for the host-driven teardown"
         },
         "reloadDetail": {
-          "line": 556
+          "line": 607
         },
         "renderDetailHeader": {
-          "line": 583
+          "line": 634
         },
         "runSpecCommand": {
-          "line": 669,
+          "line": 720,
           "params": [
             "command"
           ]
         },
         "tabBtn": {
-          "line": 680,
+          "line": 731,
           "params": [
             "tab",
             "label",
@@ -25107,44 +26499,44 @@
           ]
         },
         "renderDetailBody": {
-          "line": 686
-        },
-        "renderTasksTabBody": {
           "line": 737
         },
+        "renderTasksTabBody": {
+          "line": 788
+        },
         "renderSpecTaskRow": {
-          "line": 774,
+          "line": 825,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 823
+          "line": 874
         },
         "handleSpecTaskAction": {
-          "line": 836,
+          "line": 887,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 847
+          "line": 898
         },
         "tasksTabLabel": {
-          "line": 853,
+          "line": 904,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 862,
+          "line": 913,
           "params": [
             "md"
           ]
         },
         "relativeTime": {
-          "line": 867,
+          "line": 918,
           "params": [
             "iso"
           ]
@@ -25163,7 +26555,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 36138,
+      "sizeBytes": 38633,
       "extraction": {
         "status": "parsed"
       },
@@ -26269,6 +27661,18 @@
         "reason": "no-extractor"
       }
     },
+    "renderer/styles/components/chief.css": {
+      "file": "src/renderer/styles/components/chief.css",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 6619,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     "renderer/styles/components/cloud-briefs.css": {
       "file": "src/renderer/styles/components/cloud-briefs.css",
       "description": "",
@@ -26485,6 +27889,18 @@
         "reason": "no-extractor"
       }
     },
+    "renderer/styles/components/queue.css": {
+      "file": "src/renderer/styles/components/queue.css",
+      "description": "",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 5666,
+      "extraction": {
+        "status": "unsupported",
+        "reason": "no-extractor"
+      }
+    },
     "renderer/styles/components/report-section.css": {
       "file": "src/renderer/styles/components/report-section.css",
       "description": "",
@@ -26695,7 +28111,7 @@
       "exports": [],
       "depends": [],
       "functions": {},
-      "sizeBytes": 3837,
+      "sizeBytes": 3901,
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
@@ -26800,25 +28216,25 @@
       ],
       "functions": {
         "init": {
-          "line": 49
+          "line": 51
         },
         "updateBranchChoiceUI": {
-          "line": 98
+          "line": 103
         },
         "getBranchChoice": {
-          "line": 106
-        },
-        "getCliChoice": {
           "line": 111
         },
-        "populateCliOptions": {
+        "getCliChoice": {
           "line": 116
         },
+        "populateCliOptions": {
+          "line": 121
+        },
         "loadCurrentBranch": {
-          "line": 146
+          "line": 151
         },
         "renderWhere": {
-          "line": 163,
+          "line": 168,
           "params": [
             "task",
             "target",
@@ -26827,7 +28243,7 @@
           "purpose": "Show where the task runs: the note, the workspace chooser, and the branch"
         },
         "open": {
-          "line": 189,
+          "line": 195,
           "params": [
             "task",
             "opts = {}"
@@ -26835,16 +28251,20 @@
           "purpose": "Open the modal for a given task."
         },
         "close": {
-          "line": 216
-        },
-        "confirm": {
           "line": 225
         },
+        "confirm": {
+          "line": 235
+        },
+        "queue": {
+          "line": 254,
+          "purpose": "Queue the task instead of running it: no terminal opens (work-queue S2)."
+        },
         "cancel": {
-          "line": 243
+          "line": 260
         }
       },
-      "sizeBytes": 8854,
+      "sizeBytes": 9556,
       "extraction": {
         "status": "parsed"
       },
@@ -26852,6 +28272,7 @@
         "description": "89842ba948bd27c4",
         "purposes": {
           "open": "4aae553672a18f02",
+          "queue": "9638de0c161ba784",
           "renderWhere": "df3a3eb101167e3e"
         }
       }
@@ -27035,11 +28456,12 @@
           "params": [
             "task",
             "missing",
-            "fileRef = 'tasks.json'"
+            "fileRef = 'tasks.json'",
+            "{ decide = false } = {}"
           ]
         },
         "buildTaskPrompt": {
-          "line": 63,
+          "line": 71,
           "params": [
             "task",
             "opts = {}"
@@ -27047,7 +28469,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. A task missing"
         }
       },
-      "sizeBytes": 4944,
+      "sizeBytes": 5812,
       "extraction": {
         "status": "parsed"
       },
@@ -27090,78 +28512,79 @@
         "agentDispatch",
         "taskInfoModal",
         "specsDashboard",
+        "queueView",
         "tasksPanel",
         "taskConfirmModal"
       ],
       "functions": {
         "init": {
-          "line": 115
+          "line": 116
         },
         "flatten": {
-          "line": 189,
+          "line": 190,
           "params": [
             "data"
           ]
         },
         "setInlineHost": {
-          "line": 209,
+          "line": 210,
           "params": [
             "host"
           ]
         },
         "mountInline": {
-          "line": 213,
+          "line": 214,
           "params": [
             "container"
           ]
         },
         "notifyDetached": {
-          "line": 222
+          "line": 223
         },
         "_load": {
-          "line": 235
+          "line": 236
         },
         "show": {
-          "line": 256
+          "line": 257
         },
         "hide": {
-          "line": 266
+          "line": 267
         },
         "toggle": {
-          "line": 279
+          "line": 280
         },
         "listModel": {
-          "line": 287
+          "line": 288
         },
         "render": {
-          "line": 300
+          "line": 301
         },
         "renderToolbar": {
-          "line": 317,
+          "line": 318,
           "params": [
             "model"
           ],
           "purpose": "The scope segments, Active's status chips and the spec-tasks checkbox,"
         },
         "renderServerNotes": {
-          "line": 370,
+          "line": 371,
           "purpose": "One line per server whose tasks cannot be shown or changed right now."
         },
         "renderList": {
-          "line": 385,
+          "line": 386,
           "params": [
             "model"
           ]
         },
         "openSpec": {
-          "line": 439,
+          "line": 440,
           "params": [
             "slug"
           ],
           "purpose": "Leave for the Specs screen with this spec in its drawer — the pair"
         },
         "sectionHeader": {
-          "line": 446,
+          "line": 447,
           "params": [
             "id",
             "label",
@@ -27169,7 +28592,7 @@
           ]
         },
         "appendSection": {
-          "line": 462,
+          "line": 463,
           "params": [
             "id",
             "label",
@@ -27178,21 +28601,21 @@
           "purpose": "A section heading plus its grid; returns the grid for the tiles."
         },
         "emptyState": {
-          "line": 476,
+          "line": 477,
           "params": [
             "message",
             "heading"
           ]
         },
         "renderOlderTile": {
-          "line": 491,
+          "line": 492,
           "params": [
             "count"
           ],
           "purpose": "The ghost tile closing Completed: \"N older done tasks · Show\"."
         },
         "renderTile": {
-          "line": 512,
+          "line": 513,
           "params": [
             "task",
             "{ playable = false } = {}"
@@ -27200,24 +28623,24 @@
           "purpose": "One task tile. `playable` puts the Play button on it — pending non-spec"
         },
         "renderPlayButton": {
-          "line": 610,
+          "line": 621,
           "params": [
             "task"
           ],
           "purpose": "Play starts the task through the shared run flow (run modal → Agent"
         },
         "startTask": {
-          "line": 625,
+          "line": 636,
           "params": [
             "task"
           ]
         },
         "syncAside": {
-          "line": 641,
+          "line": 652,
           "purpose": "Single owner of the aside's and the drawer's visibility. The aside exists"
         },
         "selectTask": {
-          "line": 667,
+          "line": 678,
           "params": [
             "taskId",
             "{ instant = false } = {}"
@@ -27225,59 +28648,59 @@
           "purpose": "Open a task in the drawer. `instant` is the top-bar chip path: the list"
         },
         "clearSelection": {
-          "line": 692,
+          "line": 703,
           "params": [
             "{ notify = true } = {}"
           ],
           "purpose": "Close the drawer. `notify: false` is for the host-driven teardown"
         },
         "resetAside": {
-          "line": 703,
+          "line": 714,
           "purpose": "Leaving the screen: no selection, no half-typed form waiting on return."
         },
         "isFormOpen": {
-          "line": 714
+          "line": 725
         },
         "setupForm": {
-          "line": 718
+          "line": 729
         },
         "showForm": {
-          "line": 732
+          "line": 743
         },
         "hideForm": {
-          "line": 747
+          "line": 758
         },
         "requestDeleteSelected": {
-          "line": 755
+          "line": 766
         },
         "selectedWorkspaceId": {
-          "line": 775,
+          "line": 786,
           "purpose": "The selected workspace's id, or null for the main checkout — where a new task goes."
         },
         "submitForm": {
-          "line": 780
+          "line": 791
         },
         "renderDetail": {
-          "line": 803,
+          "line": 814,
           "params": [
             "task"
           ]
         },
         "renderDetailActions": {
-          "line": 886,
+          "line": 898,
           "params": [
             "task"
           ]
         },
         "runDetailAction": {
-          "line": 921,
+          "line": 933,
           "params": [
             "taskId",
             "action"
           ]
         },
         "appendMetaPill": {
-          "line": 936,
+          "line": 953,
           "params": [
             "container",
             "text",
@@ -27285,7 +28708,7 @@
           ]
         },
         "setSection": {
-          "line": 943,
+          "line": 960,
           "params": [
             "textEl",
             "sectionEl",
@@ -27293,64 +28716,64 @@
           ]
         },
         "formatDate": {
-          "line": 954,
+          "line": 971,
           "params": [
             "isoString"
           ]
         },
         "isFilterActive": {
-          "line": 968
+          "line": 985
         },
         "filterMatches": {
-          "line": 972,
+          "line": 989,
           "params": [
             "task"
           ]
         },
         "setupFilter": {
-          "line": 978
+          "line": 995
         },
         "isFilterPopoverOpen": {
-          "line": 1016
+          "line": 1033
         },
         "toggleFilterPopover": {
-          "line": 1020
+          "line": 1037
         },
         "openFilterPopover": {
-          "line": 1026
+          "line": 1043
         },
         "closeFilterPopover": {
-          "line": 1032
+          "line": 1049
         },
         "clearFilters": {
-          "line": 1038
+          "line": 1055
         },
         "updateFilterUI": {
-          "line": 1050
-        },
-        "setupSort": {
           "line": 1067
         },
+        "setupSort": {
+          "line": 1084
+        },
         "isSortPopoverOpen": {
-          "line": 1112
+          "line": 1129
         },
         "toggleSortPopover": {
-          "line": 1116
+          "line": 1133
         },
         "openSortPopover": {
-          "line": 1122
+          "line": 1139
         },
         "closeSortPopover": {
-          "line": 1128
+          "line": 1145
         },
         "resetSort": {
-          "line": 1134
+          "line": 1151
         },
         "updateSortUI": {
-          "line": 1147
+          "line": 1164
         },
         "commitSortToFile": {
-          "line": 1174,
+          "line": 1191,
           "purpose": "Commit the current sorted view to tasks.json. Ids only (tasks-list-view"
         }
       },
@@ -27367,7 +28790,7 @@
           "REORDER_TASKS"
         ]
       },
-      "sizeBytes": 43645,
+      "sizeBytes": 44280,
       "extraction": {
         "status": "parsed"
       },
@@ -27416,6 +28839,7 @@
         "tasksDashboard",
         "taskInfoModal",
         "taskRunModal",
+        "queueView",
         "workspaceSection",
         "agentDispatch",
         "taskConfirmModal"
@@ -27487,18 +28911,18 @@
           "purpose": "Open the run-config modal for a task and dispatch it on confirm."
         },
         "workspaceContext": {
-          "line": 408,
+          "line": 410,
           "purpose": "The selected workspace's record (null for the main checkout) and the project's server workspaces."
         },
         "selectRunWorkspace": {
-          "line": 421,
+          "line": 423,
           "params": [
             "workspaceId"
           ],
           "purpose": "Select the workspace a run goes to before the lane opens there, the way"
         },
         "buildTaskPrompt": {
-          "line": 445,
+          "line": 447,
           "params": [
             "task",
             "opts = {}"
@@ -27506,7 +28930,7 @@
           "purpose": "Build the task prompt that gets injected into the AI CLI. The builder"
         },
         "runTaskWithOptions": {
-          "line": 459,
+          "line": 461,
           "params": [
             "task",
             "opts = {}"
@@ -27514,65 +28938,65 @@
           "purpose": "Send the task to an agent. Always a new Frame: agentDispatch creates"
         },
         "setClaudeRunning": {
-          "line": 480,
+          "line": 482,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 487,
+          "line": 489,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 496,
+          "line": 498,
           "params": [
             "taskId"
           ],
           "purpose": "Delete task — opens the shared confirm modal first; only dispatches the IPC"
         },
         "showAddTaskModal": {
-          "line": 513,
+          "line": 515,
           "purpose": "Show add task modal"
         },
         "showEditTaskModal": {
-          "line": 532,
+          "line": 534,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
         "hideTaskModal": {
-          "line": 558,
+          "line": 560,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 568,
+          "line": 570,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 609,
+          "line": 611,
           "purpose": "Setup modal event listeners"
         },
         "renderSourceChip": {
-          "line": 654,
+          "line": 656,
           "params": [
             "source"
           ],
           "purpose": "Render a small attribution chip for tasks that came from a Frame spec."
         },
         "formatDate": {
-          "line": 665,
+          "line": 667,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 682,
+          "line": 684,
           "purpose": "Initialize when DOM is ready"
         }
       },
@@ -27591,7 +29015,7 @@
           "UPDATE_TASK"
         ]
       },
-      "sizeBytes": 21795,
+      "sizeBytes": 21966,
       "extraction": {
         "status": "parsed"
       },
@@ -27840,7 +29264,8 @@
         "terminalInput",
         "themes",
         "workspaceSection",
-        "os"
+        "os",
+        "notify"
       ],
       "functions": {
         "getTerminalTheme": {
@@ -27866,6 +29291,14 @@
         "closeCaller": {
           "line": 78,
           "purpose": "Where an unlabelled closeTerminal call came from: the first frames past"
+        },
+        "chiefFirst": {
+          "line": 88,
+          "params": [
+            "a",
+            "b"
+          ],
+          "purpose": "Oldest first, with a project's Chiefs pinned ahead of every other terminal:"
         }
       },
       "ipc": {
@@ -27873,6 +29306,9 @@
           "TERMINAL_CREATED",
           "TERMINAL_OUTPUT_ID",
           "AVAILABLE_SHELLS_DATA",
+          "LEAD_OPEN_TERMINAL_REQUEST",
+          "LEAD_TERMINAL_OPENED",
+          "LEAD_SCREEN_REQUEST",
           "TERMINAL_OUTPUT_ID",
           "TERMINAL_DESTROYED",
           "SERVER_STATUS_CHANGED"
@@ -27884,16 +29320,20 @@
           "SESSION_RESTORE_META",
           "SESSION_RESTORE_META",
           "TERMINAL_DESTROY",
-          "TERMINAL_RESIZE_ID"
+          "TERMINAL_RESIZE_ID",
+          "LEAD_OPEN_TERMINAL_REPLY",
+          "LEAD_OPEN_TERMINAL_REPLY",
+          "LEAD_SCREEN_REPLY"
         ]
       },
-      "sizeBytes": 43574,
+      "sizeBytes": 48002,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "5503a1b34dbada83",
         "purposes": {
+          "chiefFirst": "ac5fc0d6cb3158ee",
           "closeCaller": "dbe7ad2c35f80fff",
           "getTerminalTheme": "c1851af8b213ec21",
           "terminalName": "1c4c500d3f4e3dbd"
@@ -27944,7 +29384,7 @@
           "THEME_CHANGED"
         ]
       },
-      "sizeBytes": 22605,
+      "sizeBytes": 22800,
       "extraction": {
         "status": "parsed"
       },
@@ -27992,7 +29432,7 @@
           ]
         }
       },
-      "sizeBytes": 27010,
+      "sizeBytes": 27205,
       "extraction": {
         "status": "parsed"
       },
@@ -28276,41 +29716,41 @@
           "purpose": "Row state of a workspace, or null before the first read."
         },
         "access": {
-          "line": 74,
+          "line": 75,
           "params": [
             "ws"
           ],
           "purpose": "GitHub access for `ws`: the desktop's `gh` for local workspaces, its own"
         },
         "prBlockedReason": {
-          "line": 84,
+          "line": 85,
           "params": [
             "ws"
           ],
           "purpose": "Why PR actions are unavailable for `ws`, or null when they are. Server messages name the host."
         },
         "checksDot": {
-          "line": 94,
+          "line": 96,
           "params": [
             "pr"
           ]
         },
         "rowBadgesHtml": {
-          "line": 103,
+          "line": 105,
           "params": [
             "ws"
           ],
           "purpose": "Badges under a workspace row's labels: dirty, ↑unpushed, ↓behind, PR."
         },
         "menuItems": {
-          "line": 131,
+          "line": 133,
           "params": [
             "ws"
           ],
           "purpose": "Row-menu items for a workspace: `{ id, label, disabled?, title? }`."
         },
         "runAction": {
-          "line": 161,
+          "line": 163,
           "params": [
             "id",
             "ws"
@@ -28318,40 +29758,40 @@
           "purpose": "Run a PR-flow menu action for a workspace. Returns true when it was ours."
         },
         "push": {
-          "line": 176,
+          "line": 178,
           "params": [
             "ws"
           ]
         },
         "openCreatePrOnce": {
-          "line": 204,
+          "line": 206,
           "params": [
             "ws"
           ]
         },
         "fixChecks": {
-          "line": 285,
+          "line": 287,
           "params": [
             "ws"
           ],
           "purpose": "Hand the failing checks to an agent in the workspace: select it, then a new"
         },
         "merge": {
-          "line": 305,
+          "line": 307,
           "params": [
             "ws"
           ],
           "purpose": "Merge the workspace's PR with the project's method (main decides: the"
         },
         "updateFromBase": {
-          "line": 338,
+          "line": 340,
           "params": [
             "ws"
           ],
           "purpose": "Fetch the base and merge it into the workspace branch (main decides; see"
         },
         "workspaceAgentLanes": {
-          "line": 372,
+          "line": 374,
           "params": [
             "projectPath",
             "workspaceId"
@@ -28359,14 +29799,14 @@
           "purpose": "A workspace's terminals running an agent, most recently active first:"
         },
         "askConflictChoiceOnce": {
-          "line": 393,
+          "line": 395,
           "params": [
             "ws",
             "files"
           ]
         },
         "resolveConflicts": {
-          "line": 426,
+          "line": 428,
           "params": [
             "ws",
             "files = null",
@@ -28375,7 +29815,7 @@
           "purpose": "Hand a stopped update to an agent in the workspace: the most recently"
         },
         "abortUpdate": {
-          "line": 447,
+          "line": 449,
           "params": [
             "ws",
             "{ confirmed = false",
@@ -28384,7 +29824,7 @@
           "purpose": "Abort a stopped update (`git merge --abort`): the branch goes back to where it was."
         },
         "openOnGitHub": {
-          "line": 457,
+          "line": 459,
           "params": [
             "ws"
           ],
@@ -28399,7 +29839,7 @@
           "OPEN_GITHUB_ISSUE"
         ]
       },
-      "sizeBytes": 21064,
+      "sizeBytes": 21245,
       "extraction": {
         "status": "parsed"
       },
@@ -28765,7 +30205,7 @@
           "purpose": "Select the checkout a spec lives in (its workspace, or main). Returns true"
         },
         "getWorkspaces": {
-          "line": 952,
+          "line": 955,
           "purpose": "Active workspaces of the current project, as last loaded."
         },
         "serverOpen": {
@@ -28782,7 +30222,7 @@
         ],
         "emits": []
       },
-      "sizeBytes": 43372,
+      "sizeBytes": 43535,
       "extraction": {
         "status": "parsed"
       },
@@ -33789,10 +35229,12 @@
         "net",
         "crypto",
         "terminals",
+        "lead",
         "projects",
         "panels",
         "specs",
         "tasks",
+        "queue",
         "sendFiles",
         "doctor"
       ],
@@ -33891,7 +35333,7 @@
           "purpose": "An installed package carries its exact version (a dev build's is"
         }
       },
-      "sizeBytes": 11642,
+      "sizeBytes": 11965,
       "extraction": {
         "status": "parsed"
       },
@@ -33905,6 +35347,45 @@
           "registerMethods": "ef386b7d3e2ed91b",
           "serverId": "110206541ac5ecf5"
         }
+      }
+    },
+    "server/lead": {
+      "file": "src/server/lead.js",
+      "description": "Server Chief — the Frame Server side of the Chief (lead-agent spec, T11).",
+      "exports": [
+        "setup"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/leadHost",
+        "shared/leadTranscript",
+        "main/claudeSessionsManager",
+        "terminals",
+        "main/logger",
+        "main/queueStore",
+        "main/tasksManager"
+      ],
+      "functions": {
+        "claudeConfigDir": {
+          "line": 34
+        },
+        "setup": {
+          "line": 44,
+          "params": [
+            "{ registerMethods",
+            "broadcast",
+            "terminals }"
+          ]
+        }
+      },
+      "sizeBytes": 5709,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7a94f860bc6b67e1"
       }
     },
     "server/panels": {
@@ -33994,6 +35475,44 @@
         }
       }
     },
+    "server/queue": {
+      "file": "src/server/queue.js",
+      "description": "Frame Server — a server project's work queue (work-queue spec, T04).",
+      "exports": [
+        "setup",
+        "LOCAL_MODE",
+        "NO_FRAME"
+      ],
+      "depends": [
+        "path",
+        "crypto",
+        "main/projectRegistry",
+        "main/frameStore",
+        "main/gitSharing",
+        "main/fsSafe",
+        "main/queueStore",
+        "shared/queueRules",
+        "tooling",
+        "main/specManager",
+        "fs"
+      ],
+      "functions": {
+        "setup": {
+          "line": 35,
+          "params": [
+            "{ registerMethods",
+            "broadcast }"
+          ]
+        }
+      },
+      "sizeBytes": 7318,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0a0731735c299bb0"
+      }
+    },
     "server/screenMirror": {
       "file": "src/server/screenMirror.js",
       "description": "screenMirror — what a server terminal looks like right now",
@@ -34019,7 +35538,7 @@
           ]
         }
       },
-      "sizeBytes": 2654,
+      "sizeBytes": 3625,
       "extraction": {
         "status": "parsed"
       },
@@ -34098,7 +35617,9 @@
         "tooling",
         "main/gitSharing",
         "main/projectRegistry",
-        "shared/workspaceRegistry"
+        "shared/workspaceRegistry",
+        "shared/queueRules",
+        "main/queueStore"
       ],
       "functions": {
         "setup": {
@@ -34109,7 +35630,7 @@
           ]
         }
       },
-      "sizeBytes": 9122,
+      "sizeBytes": 9491,
       "extraction": {
         "status": "parsed"
       },
@@ -34189,7 +35710,7 @@
           "purpose": "An id of another boot names no terminal here."
         }
       },
-      "sizeBytes": 6944,
+      "sizeBytes": 8597,
       "extraction": {
         "status": "parsed"
       },
@@ -35265,12 +36786,451 @@
       ],
       "depends": [],
       "functions": {},
-      "sizeBytes": 25513,
+      "sizeBytes": 28836,
       "extraction": {
         "status": "parsed"
       },
       "provenance": {
         "description": "30513a7499948b34"
+      }
+    },
+    "shared/leadProtocol": {
+      "file": "src/shared/leadProtocol.js",
+      "description": "leadProtocol — the wire between the Chief's MCP server and its host",
+      "exports": [
+        "MCP_VERSIONS",
+        "HOST_TYPES",
+        "RPC",
+        "MAX_LINE",
+        "createLineReader",
+        "encode",
+        "tokensEqual",
+        "generateToken",
+        "validateHostRequest",
+        "hostOk",
+        "hostError",
+        "rpcResult",
+        "rpcError",
+        "negotiateVersion",
+        "initializeResult",
+        "toolResult",
+        "classifyRpc"
+      ],
+      "depends": [
+        "crypto"
+      ],
+      "functions": {
+        "createLineReader": {
+          "line": 37,
+          "params": [
+            "onMessage",
+            "{ onError = ("
+          ],
+          "purpose": "Split a byte/string stream into JSON messages, one per line. Partial lines"
+        },
+        "encode": {
+          "line": 70,
+          "params": [
+            "msg"
+          ]
+        },
+        "tokensEqual": {
+          "line": 75,
+          "params": [
+            "a",
+            "b"
+          ],
+          "purpose": "Constant-time token comparison; false for anything but two equal non-empty strings."
+        },
+        "generateToken": {
+          "line": 83
+        },
+        "validateHostRequest": {
+          "line": 90,
+          "params": [
+            "msg",
+            "token"
+          ],
+          "purpose": "`{ ok: true, request }` or `{ ok: false, error }` for a message arriving at the host."
+        },
+        "hostOk": {
+          "line": 100,
+          "params": [
+            "id",
+            "result"
+          ]
+        },
+        "hostError": {
+          "line": 104,
+          "params": [
+            "id",
+            "code",
+            "message"
+          ]
+        },
+        "rpcResult": {
+          "line": 110,
+          "params": [
+            "id",
+            "result"
+          ]
+        },
+        "rpcError": {
+          "line": 114,
+          "params": [
+            "id",
+            "code",
+            "message"
+          ]
+        },
+        "negotiateVersion": {
+          "line": 119,
+          "params": [
+            "requested"
+          ],
+          "purpose": "The revision to answer `initialize` with: the client's when we speak it, else our newest."
+        },
+        "initializeResult": {
+          "line": 123,
+          "params": [
+            "{ requested",
+            "name",
+            "version",
+            "instructions }"
+          ]
+        },
+        "toolResult": {
+          "line": 134,
+          "params": [
+            "value",
+            "{ isError = false } = {}"
+          ],
+          "purpose": "A tool's outcome as MCP content: one text block holding JSON, flagged on error."
+        },
+        "classifyRpc": {
+          "line": 143,
+          "params": [
+            "msg"
+          ],
+          "purpose": "Classify an incoming MCP message."
+        }
+      },
+      "sizeBytes": 6527,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "15feb7f708ee1cd6",
+        "purposes": {
+          "classifyRpc": "3a25e1a8f5995e36",
+          "createLineReader": "bbc98e1c1e7ccabf",
+          "negotiateVersion": "890fd26cc125812b",
+          "tokensEqual": "c4571805f8789b82",
+          "toolResult": "a549b5d58b4ccd92",
+          "validateHostRequest": "73fdd08fc92621b1"
+        }
+      }
+    },
+    "shared/leadRules": {
+      "file": "src/shared/leadRules.js",
+      "description": "leadRules — the rules behind the Chief (lead-agent spec, T01).",
+      "exports": [
+        "STATUS",
+        "MODES",
+        "DEFAULT_MODE",
+        "AGENT_PROCESSES",
+        "USER_QUIET_MS",
+        "mapProgramState",
+        "isAgentProcess",
+        "deriveStatus",
+        "scopeFilter",
+        "isMultiLine",
+        "sendRefusal",
+        "needsApproval",
+        "normalizeMode",
+        "createApprovals",
+        "requestApproval",
+        "decideApproval",
+        "cancelApprovals",
+        "pendingApprovals",
+        "pruneApprovals",
+        "deliveryGate",
+        "enqueue",
+        "head",
+        "dequeue",
+        "dropTarget"
+      ],
+      "depends": [],
+      "functions": {
+        "mapProgramState": {
+          "line": 47,
+          "params": [
+            "report"
+          ],
+          "purpose": "An OSC 7501 report (`{ state, kind?, msg? }`, see shared/programStatus) →"
+        },
+        "baseName": {
+          "line": 65,
+          "params": [
+            "name"
+          ]
+        },
+        "isAgentProcess": {
+          "line": 73,
+          "params": [
+            "name"
+          ]
+        },
+        "deriveStatus": {
+          "line": 88,
+          "params": [
+            "{ alive = true",
+            "foreground = null",
+            "shellName = null",
+            "agentState = null } = {}"
+          ],
+          "purpose": "What a terminal is doing."
+        },
+        "scopeFilter": {
+          "line": 110,
+          "params": [
+            "terminals",
+            "{ projectPath",
+            "machine",
+            "chiefId = null } = {}"
+          ],
+          "purpose": "The terminals a Chief may see: same project, same machine, no home"
+        },
+        "isMultiLine": {
+          "line": 120,
+          "params": [
+            "text"
+          ]
+        },
+        "sendRefusal": {
+          "line": 132,
+          "params": [
+            "target",
+            "{ chiefId = null",
+            "inScope = true",
+            "orchestrationIds = []",
+            "text = '' } = {}"
+          ],
+          "purpose": "Why a send must not go out, or null when it may (queued or not). Holds in"
+        },
+        "needsApproval": {
+          "line": 158,
+          "params": [
+            "action",
+            "mode = DEFAULT_MODE"
+          ],
+          "purpose": "Whether `action` needs the user's approval in `mode` (D19: each action declares it)."
+        },
+        "normalizeMode": {
+          "line": 163,
+          "params": [
+            "mode"
+          ]
+        },
+        "createApprovals": {
+          "line": 175,
+          "purpose": "A pure approval book. State is plain data so the host can persist or send"
+        },
+        "requestApproval": {
+          "line": 179,
+          "params": [
+            "state",
+            "{ id = null",
+            "action",
+            "target = null",
+            "summary = ''",
+            "payload = null",
+            "chiefId = null",
+            "at = 0 } = {}"
+          ]
+        },
+        "decideApproval": {
+          "line": 189,
+          "params": [
+            "state",
+            "id",
+            "{ decision",
+            "text = null",
+            "at = 0 } = {}"
+          ],
+          "purpose": "Apply a decision. The first one wins: a record that is no longer pending"
+        },
+        "cancelApprovals": {
+          "line": 202,
+          "params": [
+            "state",
+            "pred",
+            "{ at = 0 } = {}"
+          ],
+          "purpose": "Cancel every pending record matching `pred` (its target or its Chief went away)."
+        },
+        "pendingApprovals": {
+          "line": 213,
+          "params": [
+            "state"
+          ]
+        },
+        "pruneApprovals": {
+          "line": 218,
+          "params": [
+            "state",
+            "keep = 50"
+          ],
+          "purpose": "Drop decided records, keeping the book small; pending ones always stay."
+        },
+        "deliveryGate": {
+          "line": 230,
+          "params": [
+            "{ status",
+            "lastUserInputAt = null",
+            "now = 0",
+            "quietMs = USER_QUIET_MS } = {}"
+          ],
+          "purpose": "Whether the head of a target's queue may go out now, and if not, how long"
+        },
+        "enqueue": {
+          "line": 239,
+          "params": [
+            "queues",
+            "targetId",
+            "item"
+          ],
+          "purpose": "FIFO per target: enqueue keeps order; the head is the only deliverable item."
+        },
+        "head": {
+          "line": 245,
+          "params": [
+            "queues",
+            "targetId"
+          ]
+        },
+        "dequeue": {
+          "line": 250,
+          "params": [
+            "queues",
+            "targetId"
+          ]
+        },
+        "dropTarget": {
+          "line": 258,
+          "params": [
+            "queues",
+            "targetId"
+          ],
+          "purpose": "Remove every queued item for a target (it closed); returns the dropped items too."
+        }
+      },
+      "sizeBytes": 12088,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "a83625fbea567011",
+        "purposes": {
+          "cancelApprovals": "30a45ad8b0858b7e",
+          "createApprovals": "41652f36a07d5f1c",
+          "decideApproval": "dcd7a6ec11cd23a4",
+          "deliveryGate": "bf20a4b0b7ef9327",
+          "deriveStatus": "be103ca20dd21621",
+          "dropTarget": "7d18cb71ead93cc8",
+          "enqueue": "49bafa7baad59663",
+          "mapProgramState": "970d9bb8f743b489",
+          "needsApproval": "87b03064e68d0016",
+          "pruneApprovals": "fa36f60946a0f3b9",
+          "scopeFilter": "90ffd7db3c5e12a9",
+          "sendRefusal": "b482c90ef73af73e"
+        }
+      }
+    },
+    "shared/leadTranscript": {
+      "file": "src/shared/leadTranscript.js",
+      "description": "leadTranscript — what a Claude session has been doing, from its transcript",
+      "exports": [
+        "DEFAULT_EVENTS",
+        "summarize",
+        "parseLines",
+        "transcriptPathFromSession",
+        "userText"
+      ],
+      "depends": [],
+      "functions": {
+        "excerpt": {
+          "line": 23,
+          "params": [
+            "text",
+            "n = TEXT_EXCERPT"
+          ]
+        },
+        "isScaffolding": {
+          "line": 28,
+          "params": [
+            "text"
+          ]
+        },
+        "userText": {
+          "line": 34,
+          "params": [
+            "record"
+          ],
+          "purpose": "The user's own words in a user record, or null."
+        },
+        "fileOf": {
+          "line": 44,
+          "params": [
+            "input"
+          ]
+        },
+        "toolLabel": {
+          "line": 50,
+          "params": [
+            "name",
+            "input"
+          ]
+        },
+        "summarize": {
+          "line": 62,
+          "params": [
+            "records",
+            "{ maxEvents = DEFAULT_EVENTS } = {}"
+          ],
+          "purpose": "Records (oldest first) → `{ title, lastPrompt, events, filesChanged, filesRead, truncated }`."
+        },
+        "parseLines": {
+          "line": 112,
+          "params": [
+            "text",
+            "{ fromMiddle = false } = {}"
+          ],
+          "purpose": "JSON lines → records. A tail read starts mid-line, so the first line is"
+        },
+        "transcriptPathFromSession": {
+          "line": 136,
+          "params": [
+            "sessionFile",
+            "{ projectsDir",
+            "encodeProjectPath",
+            "join }"
+          ],
+          "purpose": "The transcript path a Claude CLI's session file points to (plan D16"
+        }
+      },
+      "sizeBytes": 5752,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "4380adc1ae08f15a",
+        "purposes": {
+          "parseLines": "bfe2ba2ec1d2f216",
+          "summarize": "82b195b5782035ed",
+          "transcriptPathFromSession": "49e2409273689ca5",
+          "userText": "c930d7c976580fd2"
+        }
       }
     },
     "shared/prFlow": {
@@ -35462,6 +37422,385 @@
           "sectionLead": "7dbdd518e09a59cd",
           "updateMenuState": "ff74f58a1c2a5de4",
           "updateMessage": "c1eef6571d356a69"
+        }
+      }
+    },
+    "shared/programStatus": {
+      "file": "src/shared/programStatus.js",
+      "description": "programStatus — what Claude Code says about itself in the terminal stream",
+      "exports": [
+        "PROBE_ANSWER",
+        "createScanner",
+        "parseReport",
+        "bracketedPaste",
+        "isTerminalReplyOnly",
+        "MAX_CARRY"
+      ],
+      "depends": [],
+      "functions": {
+        "decodeB64": {
+          "line": 36,
+          "params": [
+            "v"
+          ]
+        },
+        "parseReport": {
+          "line": 45,
+          "params": [
+            "data"
+          ],
+          "purpose": "`state=working:app=claude-code:msg=…` → `{ state, app, kind?, id?, progress?, title?, msg? }`."
+        },
+        "carryStart": {
+          "line": 66,
+          "params": [
+            "s"
+          ],
+          "purpose": "Where an unfinished sequence of interest starts at the end of `s`, or -1."
+        },
+        "createScanner": {
+          "line": 81
+        },
+        "isTerminalReplyOnly": {
+          "line": 139,
+          "params": [
+            "data"
+          ],
+          "purpose": "Whether an input chunk is only the terminal answering the program (D15):"
+        },
+        "bracketedPaste": {
+          "line": 144,
+          "params": [
+            "text"
+          ],
+          "purpose": "Text wrapped as one bracketed paste (D14)."
+        }
+      },
+      "sizeBytes": 5372,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "7c16fcc49c582dbd",
+        "purposes": {
+          "bracketedPaste": "a4c1a494d6ef6863",
+          "carryStart": "edb91d22259168f2",
+          "isTerminalReplyOnly": "ac353bc171f9c4e4",
+          "parseReport": "9966dc87b9c1ef66"
+        }
+      }
+    },
+    "shared/queueRules": {
+      "file": "src/shared/queueRules.js",
+      "description": "queueRules — the rules behind the work queue (work-queue spec, T01).",
+      "exports": [
+        "VERSION",
+        "MAX_PARALLEL",
+        "DEFAULT_PARALLEL",
+        "KINDS",
+        "STATES",
+        "FLOW_MODES",
+        "DEFAULT_FLOW_MODE",
+        "CONFIRM",
+        "DEFAULT_CONFIRM",
+        "normalizeConfirm",
+        "setConfirm",
+        "TRANSITIONS",
+        "REFUSAL_TEXT",
+        "normalizeQueue",
+        "normalizeItem",
+        "emptyQueue",
+        "clampParallel",
+        "refusal",
+        "add",
+        "find",
+        "remove",
+        "reorder",
+        "canMove",
+        "setState",
+        "setParallel",
+        "setFlowMode",
+        "activeCount",
+        "nextRunnable",
+        "markInterrupted",
+        "deriveMissing",
+        "mergeQueues",
+        "homeOf",
+        "worktreeKey",
+        "queueBranch",
+        "queueWorktreeRel",
+        "nextPhaseCommand",
+        "startCommand",
+        "worktreeRoots"
+      ],
+      "depends": [],
+      "functions": {
+        "normalizeConfirm": {
+          "line": 40,
+          "params": [
+            "c"
+          ]
+        },
+        "list": {
+          "line": 61,
+          "params": [
+            "x"
+          ]
+        },
+        "clampParallel": {
+          "line": 65,
+          "params": [
+            "n"
+          ]
+        },
+        "normalizeFlowMode": {
+          "line": 71,
+          "params": [
+            "m"
+          ]
+        },
+        "normalizeItem": {
+          "line": 78,
+          "params": [
+            "raw"
+          ],
+          "purpose": "One stored item, cleaned; null when it cannot be an item."
+        },
+        "normalizeQueue": {
+          "line": 101,
+          "params": [
+            "raw"
+          ],
+          "purpose": "A queue file's contents, cleaned: unknown fields dropped, bad items skipped."
+        },
+        "emptyQueue": {
+          "line": 114
+        },
+        "sameSource": {
+          "line": 118,
+          "params": [
+            "a",
+            "kind",
+            "ref"
+          ]
+        },
+        "refusal": {
+          "line": 127,
+          "params": [
+            "queue",
+            "source"
+          ],
+          "purpose": "Why a source cannot be queued, or null. `source` is what the caller knows:"
+        },
+        "add": {
+          "line": 154,
+          "params": [
+            "queue",
+            "source",
+            "{ id",
+            "now = null",
+            "flowMode = DEFAULT_FLOW_MODE } = {}"
+          ],
+          "purpose": "`{ queue, item }` with the source appended, or `{ queue, refused }` unchanged."
+        },
+        "find": {
+          "line": 163,
+          "params": [
+            "queue",
+            "id"
+          ]
+        },
+        "remove": {
+          "line": 168,
+          "params": [
+            "queue",
+            "id"
+          ],
+          "purpose": "Removes an item; a running one is refused (stop its terminal first)."
+        },
+        "reorder": {
+          "line": 177,
+          "params": [
+            "queue",
+            "ids"
+          ],
+          "purpose": "Puts the named ids first, in that order; the rest keep their order after them."
+        },
+        "canMove": {
+          "line": 189,
+          "params": [
+            "from",
+            "to"
+          ]
+        },
+        "setState": {
+          "line": 198,
+          "params": [
+            "queue",
+            "id",
+            "state",
+            "patch = {}",
+            "{ now = null } = {}"
+          ],
+          "purpose": "Moves an item to `state`, merging `patch` (worktree, terminalId, note, …)."
+        },
+        "pick": {
+          "line": 212,
+          "params": [
+            "obj",
+            "keys"
+          ]
+        },
+        "setParallel": {
+          "line": 218,
+          "params": [
+            "queue",
+            "n"
+          ]
+        },
+        "setConfirm": {
+          "line": 224,
+          "params": [
+            "queue",
+            "c"
+          ],
+          "purpose": "How the machine's queued tasks treat an unclear start: 'ask' or 'decide'."
+        },
+        "setFlowMode": {
+          "line": 230,
+          "params": [
+            "queue",
+            "id",
+            "mode"
+          ],
+          "purpose": "A spec item's flow mode; not while it runs (the running agent already has its command)."
+        },
+        "activeCount": {
+          "line": 241,
+          "params": [
+            "items"
+          ],
+          "purpose": "How many items hold a terminal now."
+        },
+        "nextRunnable": {
+          "line": 249,
+          "params": [
+            "items",
+            "{ parallel = DEFAULT_PARALLEL",
+            "freeSlots = MAX_PARALLEL } = {}"
+          ],
+          "purpose": "The items to start now, in queue order: queued or interrupted, not missing,"
+        },
+        "markInterrupted": {
+          "line": 256,
+          "params": [
+            "queue",
+            "liveIds"
+          ],
+          "purpose": "Running items whose terminal is not in `liveIds` become interrupted (D19)."
+        },
+        "deriveMissing": {
+          "line": 273,
+          "params": [
+            "items",
+            "{ taskIds = null",
+            "specSlugs = null } = {}"
+          ],
+          "purpose": "Items as shown: an unfinished item whose task id or spec slug no longer"
+        },
+        "mergeQueues": {
+          "line": 290,
+          "params": [
+            "macItems",
+            "servers = []"
+          ],
+          "purpose": "The project's queues as one list: the Mac's first, then each server's,"
+        },
+        "homeOf": {
+          "line": 301,
+          "params": [
+            "itemId",
+            "merged"
+          ],
+          "purpose": "Where an item of the merged list lives: `{ location:'mac' }`, a server home, or null."
+        },
+        "slugPart": {
+          "line": 308,
+          "params": [
+            "s"
+          ]
+        },
+        "worktreeKey": {
+          "line": 317,
+          "params": [
+            "item",
+            "takenBranches = []"
+          ],
+          "purpose": "The worktree key of an item (plan D14): the spec slug, or the task id"
+        },
+        "queueBranch": {
+          "line": 327,
+          "params": [
+            "key"
+          ]
+        },
+        "queueWorktreeRel": {
+          "line": 332,
+          "params": [
+            "key"
+          ],
+          "purpose": "`.frame/worktrees/queue-<key>`, relative to the checkout (posix)."
+        },
+        "worktreeRoots": {
+          "line": 340,
+          "params": [
+            "items"
+          ],
+          "purpose": "The worktrees whose spec copies are live (plan D16): every item that has"
+        },
+        "nextPhaseCommand": {
+          "line": 351,
+          "params": [
+            "phase"
+          ],
+          "purpose": "The next single phase for step-by-step (D20); null when nothing is left."
+        },
+        "startCommand": {
+          "line": 365,
+          "params": [
+            "item",
+            "phase"
+          ],
+          "purpose": "The spec command an item starts with: `spec.auto` in full auto, the next"
+        }
+      },
+      "sizeBytes": 15661,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "0c9d932ae20c15c5",
+        "purposes": {
+          "activeCount": "2089280efd93d43e",
+          "add": "bd493f157f7b1c25",
+          "deriveMissing": "bc56cf39b6d02f19",
+          "homeOf": "5df436e951805108",
+          "markInterrupted": "6fb3870448480177",
+          "mergeQueues": "e8fc2f30b732e382",
+          "nextPhaseCommand": "8a987a12dbfc61ba",
+          "nextRunnable": "8213fa5bc87065a1",
+          "normalizeItem": "efa71ec91679fc17",
+          "normalizeQueue": "42b7b6df9584e712",
+          "queueWorktreeRel": "b8f5dc4c9f021f44",
+          "refusal": "fa514f8257eccfd6",
+          "remove": "6a0a0ca02b78e804",
+          "reorder": "7794d1b9e4379f47",
+          "setConfirm": "2f575bc7887c1587",
+          "setFlowMode": "b2a4594ca8024e1b",
+          "setState": "c307d483ef40319d",
+          "startCommand": "fa4fe9e23a4a6bd8",
+          "worktreeKey": "db8c2800601e6ca5",
+          "worktreeRoots": "12d188f4c129de0b"
         }
       }
     },
@@ -36899,14 +39238,14 @@
           "purpose": "Merge the main checkout's specs with each workspace's."
         },
         "chipLabel": {
-          "line": 78,
+          "line": 83,
           "params": [
             "ws"
           ],
           "purpose": "The text of a spec's workspace chip: `name` for a local workspace,"
         },
         "rootForSlug": {
-          "line": 84,
+          "line": 89,
           "params": [
             "mergedSpecs",
             "slug",
@@ -36914,7 +39253,7 @@
           ]
         },
         "commandPaths": {
-          "line": 94,
+          "line": 99,
           "params": [
             "{ projectPath",
             "root",
@@ -36923,7 +39262,7 @@
           "purpose": "Values a staged spec command is filled with. `{project_path}` is where the"
         },
         "handBackSlugs": {
-          "line": 113,
+          "line": 118,
           "params": [
             "worktreeSpecs",
             "mainSpecs",
@@ -36932,7 +39271,7 @@
           "purpose": "Spec folders to copy from a worktree back into the main checkout before the"
         }
       },
-      "sizeBytes": 5064,
+      "sizeBytes": 5405,
       "extraction": {
         "status": "parsed"
       },
@@ -37586,6 +39925,72 @@
       "extraction": {
         "status": "unsupported",
         "reason": "no-extractor"
+      }
+    },
+    "templates/lead/CHIEF": {
+      "file": "src/templates/lead/CHIEF.md",
+      "description": "Role: Chief",
+      "exports": [],
+      "depends": [],
+      "functions": {},
+      "sizeBytes": 3281,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "fd28191e0bf8ebce"
+      }
+    },
+    "templates/lead/lead-mcp": {
+      "file": "src/templates/lead/lead-mcp.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "net",
+        "path"
+      ],
+      "functions": {
+        "failAll": {
+          "line": 41,
+          "params": [
+            "message"
+          ]
+        },
+        "connect": {
+          "line": 46
+        },
+        "host": {
+          "line": 73,
+          "params": [
+            "type",
+            "extra = {}"
+          ],
+          "purpose": "One request to the host; resolves with its response object (never rejects)."
+        },
+        "send": {
+          "line": 89,
+          "params": [
+            "msg"
+          ]
+        },
+        "handleRequest": {
+          "line": 93,
+          "params": [
+            "id",
+            "method",
+            "params"
+          ]
+        }
+      },
+      "sizeBytes": 5274,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "purposes": {
+          "host": "8d941683036e5106"
+        }
       }
     },
     "templates/orchestration/CONDUCTOR": {
@@ -40713,6 +43118,112 @@
         }
       }
     },
+    "test/leadMcp.test": {
+      "file": "test/leadMcp.test.js",
+      "description": "lead-mcp.js — the Chief's stdio MCP server (lead-agent spec, T06).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "net",
+        "os",
+        "path",
+        "child_process",
+        "src/shared/leadProtocol"
+      ],
+      "functions": {
+        "sockPath": {
+          "line": 25,
+          "params": [
+            "tag"
+          ]
+        },
+        "stubHost": {
+          "line": 32,
+          "params": [
+            "file"
+          ],
+          "purpose": "A host that answers like leadHost, recording what it received."
+        },
+        "runMcp": {
+          "line": 50,
+          "params": [
+            "env",
+            "requests"
+          ],
+          "purpose": "Run lead-mcp.js, send `requests`, collect one response per request id."
+        }
+      },
+      "sizeBytes": 6595,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "ecc5b1d5cd5b84f7",
+        "purposes": {
+          "runMcp": "497e4e017e50b038",
+          "stubHost": "9974cadc0c5acaa8"
+        }
+      }
+    },
+    "test/leadProtocol.test": {
+      "file": "test/leadProtocol.test.js",
+      "description": "leadProtocol — framing and messages between the Chief's MCP server and its",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "path",
+        "src/shared/leadProtocol"
+      ],
+      "functions": {},
+      "sizeBytes": 5374,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "20b1df96aea9ec5b"
+      }
+    },
+    "test/leadRules.test": {
+      "file": "test/leadRules.test.js",
+      "description": "leadRules — the Chief's rules (lead-agent spec, T01).",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/leadRules"
+      ],
+      "functions": {},
+      "sizeBytes": 10249,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "eb2941798a52182c"
+      }
+    },
+    "test/leadTranscript.test": {
+      "file": "test/leadTranscript.test.js",
+      "description": "leadTranscript — a compact activity summary of a Claude session for the",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "path",
+        "src/shared/leadTranscript"
+      ],
+      "functions": {},
+      "sizeBytes": 4399,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "46201c19fbf0ef58"
+      }
+    },
     "test/logger.test": {
       "file": "test/logger.test.js",
       "description": "Redaction tests: no secret shape may survive into a persisted log, and",
@@ -41029,6 +43540,24 @@
         "description": "a50a1b013a69c595"
       }
     },
+    "test/programStatus.test": {
+      "file": "test/programStatus.test.js",
+      "description": "programStatus — Claude Code's OSC 7501 status reports and bracketed-paste",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "src/shared/programStatus"
+      ],
+      "functions": {},
+      "sizeBytes": 5040,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "b91b62aa5e41e711"
+      }
+    },
     "test/projectAgnostic.test": {
       "file": "test/projectAgnostic.test.js",
       "description": "Cross-project fixture suite (T02+). The committed golden STRUCTURE.json in",
@@ -41148,6 +43677,52 @@
         "purposes": {
           "create": "06ed8b1305ca5d37"
         }
+      }
+    },
+    "test/queueRules.test": {
+      "file": "test/queueRules.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert",
+        "src/shared/queueRules"
+      ],
+      "functions": {
+        "withItems": {
+          "line": 8,
+          "params": [
+            "...sources"
+          ]
+        }
+      },
+      "sizeBytes": 9672,
+      "extraction": {
+        "status": "parsed"
+      }
+    },
+    "test/queueStore.test": {
+      "file": "test/queueStore.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert",
+        "fs",
+        "os",
+        "path",
+        "src/main/queueStore",
+        "src/shared/queueRules",
+        "src/shared/frameConstants"
+      ],
+      "functions": {
+        "checkout": {
+          "line": 10
+        }
+      },
+      "sizeBytes": 3156,
+      "extraction": {
+        "status": "parsed"
       }
     },
     "test/recordDiscussion.test": {
@@ -41840,6 +44415,50 @@
       },
       "provenance": {
         "description": "53feb2bccb916eff"
+      }
+    },
+    "test/serverQueue.test": {
+      "file": "test/serverQueue.test.js",
+      "description": "Frame Server's queue methods (work-queue T04): a server project's queue",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "child_process",
+        "src/server/electronShim",
+        "src/server/projects",
+        "src/server/queue",
+        "src/main/workspaceGitState"
+      ],
+      "functions": {
+        "write": {
+          "line": 48,
+          "params": [
+            "file",
+            "body"
+          ]
+        },
+        "receive": {
+          "line": 60,
+          "params": [
+            "{ frame = true",
+            "mode = null } = {}"
+          ],
+          "purpose": "A project on \"the Mac\" received by the server. `frame`: a Frame project; `mode`: its gitSharing."
+        }
+      },
+      "sizeBytes": 8397,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "b52b8e981404f89d",
+        "purposes": {
+          "receive": "bb7b59aff5bba64a"
+        }
       }
     },
     "test/serverRestoreWorkspace.test": {
@@ -42682,7 +45301,7 @@
           ]
         }
       },
-      "sizeBytes": 14843,
+      "sizeBytes": 14995,
       "extraction": {
         "status": "parsed"
       },
@@ -43489,7 +46108,7 @@
           "purpose": "The builder as it stood in tasksPanel.js before this spec, kept verbatim"
         }
       },
-      "sizeBytes": 8244,
+      "sizeBytes": 9694,
       "extraction": {
         "status": "parsed"
       },
@@ -43778,6 +46397,47 @@
           "gitWrite": "e08d17cebb278718",
           "makeProject": "7f672baea984bab4"
         }
+      }
+    },
+    "test/workspaceGitStateReconnect.test": {
+      "file": "test/workspaceGitStateReconnect.test.js",
+      "description": "Server PR state after a reconnect (#235): when a Frame Server's link comes",
+      "exports": [],
+      "depends": [
+        "node:test",
+        "node:assert/strict",
+        "fs",
+        "os",
+        "path",
+        "node:module",
+        "events",
+        "src/main/workspaceGitState",
+        "src/shared/ipcChannels"
+      ],
+      "functions": {
+        "fakeLink": {
+          "line": 22,
+          "params": [
+            "key",
+            "host",
+            "serverProjectPath",
+            "wsId"
+          ]
+        },
+        "waitFor": {
+          "line": 79,
+          "params": [
+            "pred",
+            "ms = 2000"
+          ]
+        }
+      },
+      "sizeBytes": 6157,
+      "extraction": {
+        "status": "parsed"
+      },
+      "provenance": {
+        "description": "e47ac739da633183"
       }
     },
     "test/workspaceNames.test": {
@@ -45040,6 +47700,120 @@
         "description": ""
       }
     },
+    "lead": {
+      "LEAD_START": {
+        "name": "lead-start",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_STOP": {
+        "name": "lead-stop",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_MODE_GET": {
+        "name": "lead-mode-get",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_MODE_SET": {
+        "name": "lead-mode-set",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_APPROVALS": {
+        "name": "lead-approvals",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_PENDING": {
+        "name": "lead-pending",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_DECIDE": {
+        "name": "lead-decide",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_SCREEN_REQUEST": {
+        "name": "lead-screen-request",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_SCREEN_REPLY": {
+        "name": "lead-screen-reply",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_SERVER_TARGETS": {
+        "name": "lead-server-targets",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_OPEN_TERMINAL_REQUEST": {
+        "name": "lead-open-terminal-request",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_OPEN_TERMINAL_REPLY": {
+        "name": "lead-open-terminal-reply",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_TERMINAL_OPENED": {
+        "name": "lead-terminal-opened",
+        "direction": "",
+        "description": ""
+      },
+      "LEAD_QUEUE_START": {
+        "name": "lead-queue-start",
+        "direction": "",
+        "description": ""
+      }
+    },
+    "queue": {
+      "QUEUE_LOAD": {
+        "name": "queue-load",
+        "direction": "",
+        "description": ""
+      },
+      "QUEUE_DATA": {
+        "name": "queue-data",
+        "direction": "",
+        "description": ""
+      },
+      "QUEUE_ADD": {
+        "name": "queue-add",
+        "direction": "",
+        "description": ""
+      },
+      "QUEUE_REMOVE": {
+        "name": "queue-remove",
+        "direction": "",
+        "description": ""
+      },
+      "QUEUE_REORDER": {
+        "name": "queue-reorder",
+        "direction": "",
+        "description": ""
+      },
+      "QUEUE_SET": {
+        "name": "queue-set",
+        "direction": "",
+        "description": ""
+      },
+      "QUEUE_PARALLEL": {
+        "name": "queue-parallel",
+        "direction": "",
+        "description": ""
+      },
+      "QUEUE_CONFIRM": {
+        "name": "queue-confirm",
+        "direction": "",
+        "description": ""
+      }
+    },
     "cloud": {
       "CLOUD_SIGN_IN": {
         "name": "cloud-sign-in",
@@ -45818,6 +48592,43 @@
         "description": "IPC Channel Constants"
       }
     ],
+    "lead": [
+      {
+        "module": "main/leadHost",
+        "file": "src/main/leadHost.js",
+        "description": "leadHost — the Chief's host, one per machine (lead-agent spec, T07)."
+      },
+      {
+        "module": "main/leadManager",
+        "file": "src/main/leadManager.js",
+        "description": "leadManager — the desktop side of the Chief (lead-agent spec, T09)."
+      },
+      {
+        "module": "server/lead",
+        "file": "src/server/lead.js",
+        "description": "Server Chief — the Frame Server side of the Chief (lead-agent spec, T11)."
+      },
+      {
+        "module": "shared/leadProtocol",
+        "file": "src/shared/leadProtocol.js",
+        "description": "leadProtocol — the wire between the Chief's MCP server and its host"
+      },
+      {
+        "module": "shared/leadRules",
+        "file": "src/shared/leadRules.js",
+        "description": "leadRules — the rules behind the Chief (lead-agent spec, T01)."
+      },
+      {
+        "module": "shared/leadTranscript",
+        "file": "src/shared/leadTranscript.js",
+        "description": "leadTranscript — what a Claude session has been doing, from its transcript"
+      },
+      {
+        "module": "templates/lead/lead-mcp",
+        "file": "src/templates/lead/lead-mcp.js",
+        "description": ""
+      }
+    ],
     "link": [
       {
         "module": "main/serverLink",
@@ -45854,9 +48665,19 @@
         "description": "Codex Sessions Manager Module"
       },
       {
+        "module": "main/leadManager",
+        "file": "src/main/leadManager.js",
+        "description": "leadManager — the desktop side of the Chief (lead-agent spec, T09)."
+      },
+      {
         "module": "main/pluginsManager",
         "file": "src/main/pluginsManager.js",
         "description": "Plugins Manager Module"
+      },
+      {
+        "module": "main/queueManager",
+        "file": "src/main/queueManager.js",
+        "description": "queueManager — the desktop side of the work queue (work-queue spec, T03)."
       },
       {
         "module": "main/workspaceManager",
@@ -46152,6 +48973,50 @@
         "description": "Project Status Badges"
       }
     ],
+    "protocol": [
+      {
+        "module": "shared/leadProtocol",
+        "file": "src/shared/leadProtocol.js",
+        "description": "leadProtocol — the wire between the Chief's MCP server and its host"
+      },
+      {
+        "module": "shared/serverProtocol",
+        "file": "src/shared/serverProtocol.js",
+        "description": "serverProtocol — the messages between Frame desktop and Frame Server"
+      }
+    ],
+    "queue": [
+      {
+        "module": "main/queueManager",
+        "file": "src/main/queueManager.js",
+        "description": "queueManager — the desktop side of the work queue (work-queue spec, T03)."
+      },
+      {
+        "module": "main/queueRunner",
+        "file": "src/main/queueRunner.js",
+        "description": "queueRunner — gets one queue item ready to run (work-queue spec, T08)."
+      },
+      {
+        "module": "main/queueStore",
+        "file": "src/main/queueStore.js",
+        "description": "queueStore — one checkout's `.frame/runtime/queue.json` (work-queue spec, T02)."
+      },
+      {
+        "module": "renderer/queueView",
+        "file": "src/renderer/queueView.js",
+        "description": "queueView — the Queue center view (work-queue spec, T05)."
+      },
+      {
+        "module": "server/queue",
+        "file": "src/server/queue.js",
+        "description": "Frame Server — a server project's work queue (work-queue spec, T04)."
+      },
+      {
+        "module": "shared/queueRules",
+        "file": "src/shared/queueRules.js",
+        "description": "queueRules — the rules behind the work queue (work-queue spec, T01)."
+      }
+    ],
     "rail": [
       {
         "module": "renderer/otherTerminalsRail",
@@ -46237,6 +49102,18 @@
         "module": "renderer/home/sessionRows",
         "file": "src/renderer/home/sessionRows.js",
         "description": "Which Claude sessions Home offers to resume, and how they are labelled."
+      }
+    ],
+    "rules": [
+      {
+        "module": "shared/leadRules",
+        "file": "src/shared/leadRules.js",
+        "description": "leadRules — the rules behind the Chief (lead-agent spec, T01)."
+      },
+      {
+        "module": "shared/queueRules",
+        "file": "src/shared/queueRules.js",
+        "description": "queueRules — the rules behind the work queue (work-queue spec, T01)."
       }
     ],
     "section": [
@@ -46558,6 +49435,11 @@
         "module": "renderer/statusBar",
         "file": "src/renderer/statusBar.js",
         "description": "Status Bar Module"
+      },
+      {
+        "module": "shared/programStatus",
+        "file": "src/shared/programStatus.js",
+        "description": "programStatus — what Claude Code says about itself in the terminal stream"
       }
     ],
     "store": [
@@ -46565,6 +49447,11 @@
         "module": "main/frameStore",
         "file": "src/main/frameStore.js",
         "description": "frameStore — the one module that knows where a project's meta files live."
+      },
+      {
+        "module": "main/queueStore",
+        "file": "src/main/queueStore.js",
+        "description": "queueStore — one checkout's `.frame/runtime/queue.json` (work-queue spec, T02)."
       },
       {
         "module": "main/sessionRestoreStore",
@@ -46718,6 +49605,11 @@
         "description": "Decisions View Module"
       },
       {
+        "module": "renderer/queueView",
+        "file": "src/renderer/queueView.js",
+        "description": "queueView — the Queue center view (work-queue spec, T05)."
+      },
+      {
         "module": "renderer/terminalsView",
         "file": "src/renderer/terminalsView.js",
         "description": "Terminals View Module"
@@ -46817,8 +49709,8 @@
     "extraction": {
       "coverage": "complete",
       "counts": {
-        "parsed": 479,
-        "unsupported": 94,
+        "parsed": 504,
+        "unsupported": 96,
         "partial": 0
       }
     },
@@ -46864,9 +49756,9 @@
       }
     },
     "counts": {
-      "visitedEntries": 668,
-      "traversedDirectories": 87,
-      "eligibleFiles": 573,
+      "visitedEntries": 696,
+      "traversedDirectories": 88,
+      "eligibleFiles": 600,
       "unreadable": 0,
       "binaryFiles": 5,
       "symlinks": 0,
@@ -46883,7 +49775,7 @@
         "config": 0,
         "depth": 0
       },
-      "indexedFiles": 573,
+      "indexedFiles": 600,
       "legacyGroups": 0
     },
     "diagnostics": {
@@ -46891,6 +49783,6 @@
       "truncated": false,
       "samples": []
     },
-    "revision": "f40584de1dc0e70d3148efb143f595224157ee1af5b63e7d66225aca674127b2"
+    "revision": "1c7d86c49e3b0ede78dcb75fd4ee64ace8510de319a73ab56665a0a2f486a9fa"
   }
 }

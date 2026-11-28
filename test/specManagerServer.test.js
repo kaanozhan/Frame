@@ -103,7 +103,8 @@ test('T05: a server workspace\'s specs are listed once, tagged with the workspac
   const specs = specManager.listSpecs(PROJECT);
   assert.deepEqual(specs.map((s) => s.slug).sort(), ['local-one', 'on-server']);
   const remoteSpec = specs.find((s) => s.slug === 'on-server');
-  assert.deepEqual(remoteSpec.workspace, { id: 'srv-ws-1', name: 'teal', branch: null, root: ROOT, host: 'box', offline: false });
+  // serverKey + serverProjectPath: where a server spec is queued (work-queue).
+  assert.deepEqual(remoteSpec.workspace, { id: 'srv-ws-1', name: 'teal', branch: null, root: ROOT, host: 'box', offline: false, serverKey: 'kbox', serverProjectPath: '/home/u/frame/projects/project' });
   assert.equal(remoteSpec.completed_count, 1);
   assert.equal(specs.find((s) => s.slug === 'local-one').workspace, null);
 });

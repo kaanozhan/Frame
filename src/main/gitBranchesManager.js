@@ -800,6 +800,55 @@ async function abortMerge(cwd) {
   }
 }
 
+// ─── Work queue worktrees (work-queue spec, D14) ──────────
+//
+// Each queue item runs in its own plain git worktree (not a Frame workspace):
+// .frame/worktrees/queue-<key> on frame/queue/<key>, branched from the
+// checkout's current HEAD. The `queue-` prefix keeps them clear of the
+// conductor's .frame/worktrees/<slug>, which createOrchWorktree force-removes.
+// An item that already has its worktree (a resume) gets it back as is.
+
+function queueWorktreePath(checkout, key) {
+  return path.join(checkout, FRAME_DIR, ORCH_WORKTREES_DIR, `queue-${key}`);
+}
+
+/** Local branches under frame/queue/ — the names a new key must avoid. */
+async function queueBranches(checkout) {
+  try {
+    const { stdout } = await execGitArgs(['for-each-ref', '--format=%(refname:short)', 'refs/heads/frame/queue/'], checkout);
+    return String(stdout || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  } catch (_) {
+    return [];
+  }
+}
+
+/** Whether `dir` is a live worktree of `checkout`. */
+async function isWorktreeOf(checkout, dir) {
+  if (!dir || !fs.existsSync(dir)) return false;
+  const { worktrees } = await loadWorktrees(checkout);
+  const want = fs.realpathSync(dir);
+  return (worktrees || []).some((w) => { try { return fs.realpathSync(w.path) === want; } catch (_) { return false; } });
+}
+
+/**
+ * The worktree a queue item runs in: `existing` when it is still a worktree
+ * of `checkout`, else a new one for `key` (the caller picks a key no branch
+ * uses). Returns `{ error, path, branch, reused }`.
+ */
+async function createQueueWorktree(checkout, { key, existing = null } = {}) {
+  if (existing && existing.path && await isWorktreeOf(checkout, existing.path)) {
+    return { error: null, path: existing.path, branch: existing.branch || null, reused: true };
+  }
+  if (!checkout || !key) return { error: 'Missing parameters' };
+  const wtPath = queueWorktreePath(checkout, key);
+  const branch = `frame/queue/${key}`;
+  if (fs.existsSync(wtPath)) return { error: `${wtPath} already exists and is not a worktree of this checkout.` };
+  try { fs.mkdirSync(path.dirname(wtPath), { recursive: true }); } catch (e) { return { error: e.message }; }
+  const res = await addWorkspaceWorktree(checkout, wtPath, { branch, createBranch: true });
+  if (res.error) return res;
+  return { error: null, path: wtPath, branch, reused: false };
+}
+
 // ─── Orchestration helpers ────────────────────────────────
 //
 // Worker worktrees for orchestration live under .frame/worktrees/<slug> on a
@@ -1084,6 +1133,10 @@ module.exports = {
   commitExists,
   isAncestor,
   setupIPC,
+  // Work queue worktrees (work-queue spec)
+  queueWorktreePath,
+  queueBranches,
+  createQueueWorktree,
   // Workspace helpers (workspaces spec)
   execGitArgs,
   localBranchExists,

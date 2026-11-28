@@ -170,14 +170,29 @@ function wireServer() {
       send(lastState.get(local.projectPath) || { projectPath: local.projectPath, access: null, workspaces: {} });
     }
   });
+  // A link that comes back (after a drop, a server restart or a late first
+  // connect) is asked again, as tasks, git status and specs do (#235): its
+  // state was dropped on disconnect, and a restarted server watches nothing
+  // until pr.refresh names the project.
+  sc.on('connected', (status, key) => {
+    const projectPath = watchedProject;
+    if (!projectPath || !key) return;
+    refreshServer(projectPath, { onlyKey: key }).then(() => {
+      if (projectPath === watchedProject) send(lastState.get(projectPath) || { projectPath, access: null, workspaces: {} });
+    });
+  });
   sc.on('disconnected', (status, key) => dropServer(key));
   sc.on('removed', (payload, key) => dropServer(key));
 }
 
-/** Ask every server holding `projectPath`'s workspaces for their state (and make them push changes). */
-async function refreshServer(projectPath) {
+/**
+ * Ask every server holding `projectPath`'s workspaces for their state (and
+ * make them push changes). `onlyKey` limits it to that one server.
+ */
+async function refreshServer(projectPath, { onlyKey = null } = {}) {
   const sc = require('./serverConnection');
-  await Promise.all(serverProjectsOf(projectPath).map(async ([key, serverProjectPath]) => {
+  const targets = serverProjectsOf(projectPath).filter(([key]) => !onlyKey || key === onlyKey);
+  await Promise.all(targets.map(async ([key, serverProjectPath]) => {
     const link = sc.of(key);
     if (!link || !link.isConnected()) return;
     try {

@@ -225,6 +225,13 @@ function setupIPC() {
 
   // Running-agent indicator on the Terminals row tracks live lane status
   require('./laneStatus').onChange(() => refreshProjectNav());
+  // Queue row count: items not done, from the queue's own pushes.
+  const queueView = require('./queueView');
+  queueView.init();
+  queueView.onChange(() => {
+    navQueueCount = queueView.count();
+    refreshProjectNav();
+  });
 }
 
 /**
@@ -288,6 +295,7 @@ function getProjects() {
 let projectNavEl = null;
 let navSpecsCount = 0;
 let navTasksCount = 0;
+let navQueueCount = 0;
 
 // Project destinations, grouped (sidebar-nav-groups spec): Work is where
 // you act, Context is what the project knows about itself. The read-only
@@ -305,7 +313,10 @@ const PROJECT_NAV_GROUPS = [
     key: 'work',
     label: 'Work',
     items: [
-      { view: 'terminals', icon: '›_', label: 'Terminals', open: ui => ui.showTerminals(), surfaces: ['terminals'] }
+      { view: 'terminals', icon: '›_', label: 'Terminals', open: ui => ui.showTerminals(), surfaces: ['terminals'] },
+      // The work queue (work-queue spec): tasks and specs waiting for the
+      // Chief. Also a drop target for task tiles and spec cards.
+      { view: 'queue', icon: '⇶', label: 'Queue', count: true, open: ui => ui.showQueue(), surfaces: ['queue'] }
       // Orchestration is hidden from navigation for now — new users landed on
       // it first, and it is not where Frame's value is. The feature and its
       // palette command (orchestrator.open) stay; restore this row to re-expose it:
@@ -397,6 +408,9 @@ function buildProjectNav() {
         <span class="project-nav-label">${PROJECT_NAV_FOOT.label}</span>
       </div>
     </div>`;
+
+  // The Queue row takes dragged task tiles and spec cards (work-queue spec).
+  require('./queueView').acceptDrops(nav.querySelector('[data-view="queue"]'));
 
   PROJECT_NAV_ITEMS.forEach((item) => {
     nav.querySelector(`[data-view="${item.view}"]`).addEventListener('click', () => {
@@ -542,6 +556,8 @@ function refreshProjectNav() {
 
   projectNavEl.querySelector('[data-count="specs"]').textContent = String(navSpecsCount);
   projectNavEl.querySelector('[data-count="tasks"]').textContent = String(navTasksCount);
+  const queueCountEl = projectNavEl.querySelector('[data-count="queue"]');
+  if (queueCountEl) queueCountEl.textContent = String(navQueueCount);
 }
 
 /**

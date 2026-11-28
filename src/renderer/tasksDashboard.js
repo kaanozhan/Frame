@@ -8,8 +8,9 @@
  * Pending, and its In progress / Pending chips narrow it to one of the two
  * (as the Specs phase chips do); Done lists Completed under the project's
  * done window, older ones
- * behind the "Show" ghost tile. Nothing is draggable: a task changes status
- * through Play, its drawer actions, or the agent closing it.
+ * behind the "Show" ghost tile. A task changes status through Play, its
+ * drawer actions, or the agent closing it. A pending non-spec tile can be
+ * dragged onto the Queue (work-queue spec) — that queues it, nothing else.
  *
  * What the list shows comes from the pure `tasks/listModel.js`; this module
  * only renders it. Spec tasks (`source: spec:…`) are owned by their spec —
@@ -597,6 +598,16 @@ function renderTile(task, { playable = false } = {}) {
 
   tile.addEventListener('click', () => selectTask(task.id));
 
+  // Queueable tiles (the ones with Play) drag onto the sidebar's Queue row
+  // or the Queue view (work-queue spec).
+  if (playable && !task.offline) {
+    tile.draggable = true;
+    tile.addEventListener('dragstart', (e) => {
+      const queueView = require('./queueView');
+      queueView.setDragSource(e, queueView.sourceForTask(task));
+    });
+  }
+
   return tile;
 }
 
@@ -870,6 +881,7 @@ function renderDetail(task) {
 const DETAIL_ACTIONS = {
   pending: [
     { action: 'start', label: 'Play', icon: PLAY_ICON, primary: true },
+    { action: 'queue', label: 'Add to queue' },
     { action: 'complete', label: 'Mark complete' }
   ],
   in_progress: [
@@ -925,6 +937,11 @@ function runDetailAction(taskId, action) {
 
   if (action === 'start') {
     startTask(task);
+    return;
+  }
+  if (action === 'queue') {
+    const queueView = require('./queueView');
+    queueView.addSource(queueView.sourceForTask(task));
     return;
   }
   const status = ACTION_STATUS[action];
